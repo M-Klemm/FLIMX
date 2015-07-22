@@ -1,0 +1,767 @@
+classdef FLIMX < handle
+    %=============================================================================================================
+    %
+    % @file     FLIMX.m
+    % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
+    % @version  1.0
+    % @date     July, 2015
+    %
+    % @section  LICENSE
+    %
+    % Copyright (C) 2015, Matthias Klemm. All rights reserved.
+    %
+    % Redistribution and use in source and binary forms, with or without modification, are permitted provided that
+    % the following conditions are met:
+    %     * Redistributions of source code must retain the above copyright notice, this list of conditions and the
+    %       following disclaimer.
+    %     * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and
+    %       the following disclaimer in the documentation and/or other materials provided with the distribution.
+    %     * Neither the name of FLIMX authors nor the names of its contributors may be used
+    %       to endorse or promote products derived from this software without specific prior written permission.
+    %
+    % THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+    % WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+    % PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+    % INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    % PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+    % HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    % NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    % POSSIBILITY OF SUCH DAMAGE.
+    %
+    %
+    % @brief    A class to represent the base class FLIM eXplorer, which stores all other objects
+    %
+    properties(GetAccess = public, SetAccess = private)        
+        fdt = [];        %FDTree object, our datastorage  
+        irfMgr = [];        %object to handle IRF access        
+        paramMgr = [];      %parameter objects
+        curSubject = [];    %current subject   
+    end
+    
+    properties(GetAccess = protected, SetAccess = private)
+        FLIMFitObj = [];    %approximation object
+        sDDMgrObj = [];     %only temporary: manage synthetic datasets        
+        batchJobMgrObj = [];   %batch job manager
+        %GUIs
+        FLIMFitGUIObj = []; %visualization of approximation        
+        FLIMVisGUIObj = []; %extended visualization and statistics
+        studyMgrGUIObj = [];%manager for subject studies
+        irfMgrGUIObj = [];  %GUI to handle IRF access
+        batchJobMgrGUIObj = [];%batch job manager GUI
+        importGUIObj = [];  %import wizard
+        matlabPoolTimer = [];
+    end
+    
+    properties (Dependent = true)
+        configPath = '';
+        %objects
+        FLIMFit = [];    %approximation object
+        sDDMgr = [];     %only temporary: manage synthetic datasets        
+        batchJobMgr = [];   %batch job manager
+        
+        FLIMFitGUI = [];     %visualization of approximation        
+        FLIMVisGUI = []; %extended visualization and statistics
+        studyMgrGUI = [];%manager for subject studies
+        irfMgrGUI = [];  %GUI to handle IRF access
+        batchJobMgrGUI = [];%batch job manager GUI
+        importGUI = [];  %import wizard
+    end
+    
+    methods
+        function this = FLIMX()
+            %constructor
+            %parameters from ini file            
+            warning('off','parallel:gpu:DeviceCapabiity');
+            %make lower level objects
+            this.paramMgr = FLIMXParamMgr(this,FLIMX.getVersionInfo());
+            this.irfMgr = IRFMgr(this,fullfile(cd,'data')); 
+            this.fdt = FDTree(this,cd); %replace with path from config?!
+            fp = this.paramMgr.getParamSection('filtering');
+            if(fp.ifilter)
+                alg = fp.ifilter_type;
+                params = fp.ifilter_size;
+            else
+                alg = 0;
+                params = 0;
+            end
+            this.fdt.setDataSmoothFilter(alg,params);
+%             this.sDDMgr = sddMgr(this,fullfile(cd,'simData')); %replace with path from config?!
+%             %make high level objects
+%             this.fitObj = FluoDecayFit(this);
+%             this.FLIMFitGUI = FLIMXFitGUI(this);
+%             this.FLIMVisGUIObj = FLIMXVisGUI(this);
+%             this.studyMgrGUIObj = studyMgr(this,fullfile(cd,'studyData')); %replace with path from config?!
+%             this.batchMgrObj = batchJobMgr(this,fullfile(cd,'batchJobData')); %replace with path from config?!
+%             this.batchMgrGUIObj = batchJobMgrGUI(this);
+%             this.importGUIObj = importWizard(this);
+            %load a subject
+            subs = this.fdt.getSubjectsNames('Default','-');
+            if(isempty(subs))
+                %todo: generate a dummy subject with simulated data
+                %this.curSubject = this.fdt.getSubject4Import('Default','example_subject');
+                this.setCurrentSubject('Default','-','');
+            else
+                %this.curSubject = this.fdt.getSubject4Approx('Default',subs{1});
+                this.setCurrentSubject('Default','-',subs{1});
+            end
+%             this.newSDTFile('');
+%             %default to 1024 time channels at startup -> check if currently selected IRF has 1024 time channels
+%             if(isempty(this.irfMgr.getCurIRF(1)))
+%                 [~,mask] = this.irfMgr.getIRFNames(1024);
+%                 if(~isempty(mask))
+%                     basicFit = this.paramMgr.getParamSection('basic_fit');
+%                     basicFit.curIRFID = mask(1);
+%                     this.paramMgr.setParamSection('basic_fit',basicFit,true);
+%                 end
+%             end
+%             this.paramMgr.setFLIMXHandle(this);
+%             this.paramMgr.setFluoFileHandle(this.curFluoFile);
+%             this.paramMgr.setFDTHandle(this.fdt);
+%             this.paramMgr.setFitGUIHandle(this.FLIMFitGUI);
+%             this.paramMgr.setFLIMVisGUIHandle(this.FLIMVisGUI);
+            this.openMatlabPool();
+        end
+        
+        function openFLIMXFitGUI(this)
+            %open FLIMXFitGUI
+            this.FLIMFitGUI.checkVisWnd();
+        end
+        
+        function openFLIMXVisGUI(this)
+            %open FLIMVisGUI
+            this.FLIMVisGUI.checkVisWnd();
+        end
+        
+        function openMatlabPool(this)
+            %try to open a matlab pool
+            computationParams = this.paramMgr.getParamSection('computation');
+            p = gcp('nocreate');
+            if(computationParams.useMatlabDistComp > 0 && isempty(p))
+                %start local matlab workers
+                hwb = waitbar(0,sprintf('Trying to open pool of Matlab workers - \nthis may take some time.\n\nMatlab pool workers can be disabled in Settings -> Computation'));
+                try                    
+                    p = parpool('local'); 
+                    waitbar(1,hwb,'Trying to open pool of Matlab workers - done');  
+                    %p.IdleTimeout = 0;
+                catch ME
+                    if(ishandle(hwb))
+                        waitbar(1,hwb,'Trying to open pool of Matlab workers - failed');
+                    end
+                    warning('FLIMX:openMatlabPool','Could not open Matlab pool for parallel computations: %s',ME.message);
+                end 
+                if(ishandle(hwb))
+                    close(hwb);
+                end
+            end
+            if(~isempty(p))
+                this.matlabPoolTimer = timer('ExecutionMode','fixedRate','Period',p.IdleTimeout/2*60,'TimerFcn','FLIMX.MatlabPoolIdleFcn','Tag','FLIMXMatlabPoolTimer');
+                start(this.matlabPoolTimer);
+            end
+        end
+        
+        function destroy(this,forceFlag)
+            %delete FLIMX object if all windows are closed or if forceFlag == true
+            if(forceFlag || (~this.FLIMFitGUI.isOpenVisWnd() && ~this.FLIMVisGUI.isOpenVisWnd()))
+                %do some cleanup
+                if(~isempty(this.sDDMgrObj) && this.sDDMgrObj.anyDirtySDDs())
+                    choice = questdlg('Save changes to simulation parameter sets?','Save Parameter Sets?','Yes','No','Cancel','Yes');
+                    switch choice
+                        case 'Yes'
+                            this.sDDMgrObj.saveAll();
+                        case 'No'
+                            %load unmodified parameter sets
+                            %                         this.FLIMXObj.sDDMgr.deleteAllSDDs();
+                            this.sDDMgrObj.scanForSDDs();
+                    end
+                end
+                %close remaining GUIs
+                if(~isempty(this.studyMgrGUIObj))
+                    this.studyMgrGUIObj.menuExit_Callback();
+                end                
+                if(~isempty(this.batchJobMgrGUIObj))
+                    this.batchJobMgrGUIObj.menuExit_Callback();
+                end
+                if(~isempty(this.irfMgrGUIObj))
+                    this.irfMgrGUIObj.menuExit_Callback();
+                end
+                if(~isempty(this.irfMgrGUIObj))
+                    this.irfMgrGUIObj.menuExit_Callback();
+                end
+                if(~isempty(this.matlabPoolTimer))
+                    stop(this.matlabPoolTimer);
+                    delete(this.matlabPoolTimer);
+                    this.matlabPoolTimer = [];
+                end
+                %delete me
+                delete(this);
+                return
+            end
+        end
+        
+        function closeBatchJobMgrGUI(this)
+            %close GUI of batch job manager
+            
+        end
+        %% output methods
+        function out = get.configPath(this)
+            %config file path
+            out = fullfile(cd,'config','config.ini');
+        end
+        
+         
+%         FLIMfitGUI = [];     %visualization of approximation        
+%         FLIMVisGUI = []; %extended visualization and statistics
+%         studyMgrGUI = [];%manager for subject studies
+%         IRFMgrGUI = [];  %GUI to handle IRF access
+%         batchMgrGUI = [];%batch job manager GUI
+%         importGUI = [];
+%         
+%         this.sDDMgr = sddMgr(this,fullfile(cd,'simData')); 
+%             %make high level objects
+%             this.fitObj = FluoDecayFit(this);
+%             this.FLIMFitGUI = FLIMXFitGUI(this);
+%             this.FLIMVisGUI = FLIMXVisGUI(this);
+%             this.studyMgrGUIObj = studyMgr(this,fullfile(cd,'studyData')); %replace with path from config?!
+%             this.batchMgrObj = batchJobMgr(this,fullfile(cd,'batchJobData')); %replace with path from config?!
+%             this.batchMgrGUIObj = batchJobMgrGUI(this);
+%             this.importGUIObj = importWizard(this);
+        
+        function out = get.FLIMFit(this)
+            %get FLIMFit object
+            if(isempty(this.FLIMFitObj))
+                this.FLIMFitObj = FluoDecayFit(this);
+            end
+            out = this.FLIMFitObj;
+        end
+        
+        function out = get.sDDMgr(this)
+            %get sDDMgr object
+            if(isempty(this.sDDMgrObj))
+                this.sDDMgrObj = sddMgr(this,fullfile(cd,'simData')); %replace with path from config?!
+            end
+            out = this.sDDMgrObj;
+        end
+                
+        function out = get.batchJobMgr(this)
+            %get batchJobMgr object
+            if(isempty(this.batchJobMgrObj))
+                this.batchJobMgrObj = batchJobMgr(this,fullfile(cd,'batchJobData')); %replace with path from config?!
+            end
+            out = this.batchJobMgrObj;
+        end
+        
+        function out = get.FLIMFitGUI(this)
+            %get FLIMFitGUI object
+            if(isempty(this.FLIMFitGUIObj))
+                this.FLIMFitGUIObj = FLIMXFitGUI(this);
+            end
+            out = this.FLIMFitGUIObj;
+        end
+        
+        function out = get.FLIMVisGUI(this)
+            %get FLIMVisGUI object
+            if(isempty(this.FLIMVisGUIObj))
+                this.FLIMVisGUIObj = FLIMXVisGUI(this);
+            end
+            out = this.FLIMVisGUIObj;
+        end
+               
+        function out = get.studyMgrGUI(this)
+            %get studyMgrGUI object
+            if(isempty(this.studyMgrGUIObj))
+                this.studyMgrGUIObj = studyMgr(this,fullfile(cd,'studyData')); %replace with path from config?!
+            end
+            out = this.studyMgrGUIObj;
+        end        
+               
+        function out = get.irfMgrGUI(this)
+            %get irfMgrGUI object
+            if(isempty(this.irfMgrGUIObj))
+                this.irfMgrGUIObj = IRFMgrGUI(this.irfMgr); %replace with path from config?!
+            end
+            out = this.irfMgrGUIObj;
+        end
+        
+        function out = get.batchJobMgrGUI(this)
+            %get batchMgrGUI object
+            if(isempty(this.batchJobMgrGUIObj))
+                this.batchJobMgrGUIObj = batchJobMgrGUI(this);
+            end
+            out = this.batchJobMgrGUIObj;
+        end
+        
+        function out = get.importGUI(this)
+            %get importGUI object
+            if(isempty(this.importGUIObj))
+                this.importGUIObj = importWizard(this);
+            end
+            out = this.importGUIObj;
+        end
+        
+        function saveCurResultInFDT(this)
+            %save dirty channels of current result in FDTree
+            for ch = find(this.curSubject.resultIsDirty)
+                this.curSubject.updateSubjectChannel(ch,'result');
+                this.fdt.saveStudy(this.curSubject.getStudyName());
+            end
+        end        
+        
+        function success = setCurrentSubject(this,study,view,subject)
+            %set the current subject
+            success = true;            
+            studyPos = find(strcmp(study,this.fdt.getStudyNames()),1);
+            if(isempty(studyPos))
+                success = false;
+                return
+            end
+            if(isempty(subject))
+                this.curSubject = this.fdt.getSubject4Import(study,'example_subject');
+            else
+                subjectPos = find(strcmp(subject,this.fdt.getSubjectsNames(study,view)),1);
+                if(~isempty(subjectPos) && isempty(this.curSubject) || (~strcmp(this.curSubject.getStudyName(),study) || ~strcmp(this.curSubject.getDatasetName(),subject)))
+                    %save old result
+                    if(~isempty(this.curSubject) && any(this.curSubject.resultIsDirty))
+                        button = questdlg(sprintf('Approximation result was changed. Do you want to save the changes?'),'Approximation Result Changed','Yes','No','Yes');
+                        switch button
+                            case 'Yes'
+                                this.saveCurResultInFDT();
+                        end
+                    end
+                    this.curSubject = this.fdt.getSubject4Approx(study,subject);
+                    if(isempty(this.curSubject))
+                        %we don't have that subject in FDTree -> create a dummy fluoFile object
+                        this.curSubject = this.fdt.getSubject4Import(study,'example_subject');
+                    end
+                    this.curSubject.setProgressCallback(@this.updateFluoDecayFitProgressbar);
+                else
+                    return
+                end
+            end
+            if(~isempty(this.FLIMFitGUIObj))
+                this.FLIMFitGUI.setupGUI(); %make sure popup menus are correct
+                %move to pixel with most photons
+                img = this.curSubject.getROIDataFlat(this.FLIMFitGUI.currentChannel);
+                if(~isempty(img))
+                    [tmp,yPos] = max(img,[],1);
+                    [~,xPos] = max(tmp);
+                    yPos = yPos(xPos);
+                    this.FLIMFitGUI.setCurrentPos(yPos,xPos);
+                else
+                    this.FLIMFitGUI.updateGUI(true);
+                end
+                %todo: check irf?!
+            end
+        end
+        
+        function updateFluoDecayFitProgressbar(this,x,text)
+            %set progress in FLIMXFitGUI to new value
+            this.FLIMFitGUI.updateProgressShort(x,text);
+        end
+        
+    end %methods
+    
+    methods(Static)
+        function out = getVersionInfo()
+            %get version numbers of FLIMX
+            %set current revisions HERE!
+            out.config_revision = 248;
+            out.client_revision = 320;
+            out.core_revision = 344;
+            out.results_revision = 256;
+            out.measurement_revision = 203;
+        end
+        
+        function MatlabPoolIdleFcn()
+            %function to keep matlab pool from timing out
+            if(~isempty(gcp('nocreate')))
+                parfor i = 1:10
+                    y(i) = sin(i);
+                end
+            end
+        end
+        
+        function out = getLicenseInfo()
+            %return license text
+            [Y, ~, ~, ~, ~, ~] = datevec(now);
+            if(Y > 2014)
+                dStr = sprintf('-%d',Y);
+            else
+                dStr = '';
+            end
+            out = {sprintf('Copyright (c) 2014%s, authors of FLIMX. All rights reserved.',dStr);
+                char(13);
+                'Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:'
+                char(13);
+                '   * Redistributions of source code must retain the above copyright';
+                '     notice, this list of conditions and the following disclaimer.';
+                '   * Redistributions in binary form must reproduce the above';
+                '     copyright notice, this list of conditions and the following';
+                '     disclaimer in the documentation and/or other materials provided';
+                '     with the distribution';
+                '   * Neither the names of the FLIMX authors nor the names of its';
+                '     names of its contributors may be used to endorse or promote';
+                '     products derived from this software without specific prior';
+                '     written permission.';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.';};
+        end
+        
+        function out = getAcknowledgementInfo()
+            %return acknowledgement text
+            out = {
+                'This software uses ''Scalar function-based filtering'' by Damien Garcia from http://www.biomecardio.com/matlab/sffilt.html';
+                
+                char(10);
+                'This software uses ''Fast and robust smoothing of one-dimensional and multidimensional data'' by Damien Garcia from http://www.biomecardio.com/matlab/smoothn.html';
+                
+                char(10);
+                'This software uses ''qinterp1'' by Nathaniel Brahms from http://www.mathworks.com/matlabcentral/fileexchange/10286-fast-interpolation';
+                
+                char(10);
+                'This software uses ''fminsearchbnd new'' by Ken Purchase from http://www.mathworks.com/matlabcentral/fileexchange/17804-fminsearchbnd-new';
+                
+                char(10);
+                'This software uses ''Fast smoothing function'' by T. C. O''Haver from http://www.mathworks.com/matlabcentral/fileexchange/19998-fast-smoothing-function, which is covered by the following license:';
+                char(13);
+                'Copyright (c) 2009, Tom O''Haver All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without';
+                'modification, are permitted provided that the following conditions are';
+                'met:';
+                char(13);
+                '* Redistributions of source code must retain the above copyright';
+                '  notice, this list of conditions and the following disclaimer.';
+                '* Redistributions in binary form must reproduce the above copyright';
+                '  notice, this list of conditions and the following disclaimer in';
+                '  the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
+                'POSSIBILITY OF SUCH DAMAGE.';
+                
+                char(10);
+                'This software uses ''Recursive directory listing'' by Gus Brown from http://www.mathworks.com/matlabcentral/fileexchange/19550-recursive-directory-listing, which is covered by the following license:';
+                'Copyright (c) 2009, Gus Brown';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without ';
+                'modification, are permitted provided that the following conditions are ';
+                'met:';
+                char(13);
+                '    * Redistributions of source code must retain the above copyright ';
+                '      notice, this list of conditions and the following disclaimer.';
+                '    * Redistributions in binary form must reproduce the above copyright ';
+                '      notice, this list of conditions and the following disclaimer in ';
+                '      the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" ';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE ';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE ';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR ';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF ';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS ';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN ';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
+                'POSSIBILITY OF SUCH DAMAGE.';
+                
+                char(10);
+                'This software uses ''CATSTRUCT'' by Jos van der Geest from http://www.mathworks.com/matlabcentral/fileexchange/7842-catstruct, which is covered by the following license:';
+                'Copyright (c) 2009, Jos van der Geest';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without ';
+                'modification, are permitted provided that the following conditions are ';
+                'met:';
+                char(13);
+                '    * Redistributions of source code must retain the above copyright ';
+                '      notice, this list of conditions and the following disclaimer.';
+                '    * Redistributions in binary form must reproduce the above copyright ';
+                '      notice, this list of conditions and the following disclaimer in ';
+                '      the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" ';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE ';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE ';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR ';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF ';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS ';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN ';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
+                'POSSIBILITY OF SUCH DAMAGE.';
+                
+                char(10);
+                'This software uses ''struct2ini'' by Dirk Lohse from http://www.mathworks.com/matlabcentral/fileexchange/22079-struct2ini, which is covered by the following license:';
+                'Copyright (c) 2009, Dirk Lohse';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without ';
+                'modification, are permitted provided that the following conditions are ';
+                'met:';
+                char(13);
+                '    * Redistributions of source code must retain the above copyright ';
+                '      notice, this list of conditions and the following disclaimer.';
+                '    * Redistributions in binary form must reproduce the above copyright ';
+                '      notice, this list of conditions and the following disclaimer in ';
+                '      the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" ';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE ';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE ';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR ';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF ';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS ';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN ';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
+                'POSSIBILITY OF SUCH DAMAGE.';
+                
+                char(10);
+                'This software uses ''ini2struct'' by Andriy Nych from http://www.mathworks.com/matlabcentral/fileexchange/17177-ini2struct, which is covered by the following license:';
+                'Copyright (c) 2008, Andriy Nych';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without ';
+                'modification, are permitted provided that the following conditions are ';
+                'met:';
+                char(13);
+                '    * Redistributions of source code must retain the above copyright ';
+                '      notice, this list of conditions and the following disclaimer.';
+                '    * Redistributions in binary form must reproduce the above copyright ';
+                '      notice, this list of conditions and the following disclaimer in ';
+                '      the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" ';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE ';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE ';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR ';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF ';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS ';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN ';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
+                'POSSIBILITY OF SUCH DAMAGE.';
+                
+                char(10);
+                'This software uses ''Multicore - Parallel processing on multiple cores'' by Markus Buehren from http://www.mathworks.com/matlabcentral/fileexchange/13775-multicore-parallel-processing-on-multiple-cores, which is covered by the following license:';
+                'Copyright (c) 2007, Markus Buehren';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without';
+                'modification, are permitted provided that the following conditions are';
+                'met:';
+                char(13);
+                '    * Redistributions of source code must retain the above copyright';
+                '      notice, this list of conditions and the following disclaimer.';
+                '    * Redistributions in binary form must reproduce the above copyright';
+                '      notice, this list of conditions and the following disclaimer in';
+                '      the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
+                'POSSIBILITY OF SUCH DAMAGE.';
+                
+                char(10);
+                'This software uses ''Differential Evolution'' by Markus Buehren from http://www.mathworks.com/matlabcentral/fileexchange/18593-differential-evolution, which is covered by the following license:';
+                'Copyright (c) 2008, Markus Buehren';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without';
+                'modification, are permitted provided that the following conditions are';
+                'met:';
+                char(13);
+                '    * Redistributions of source code must retain the above copyright';
+                '      notice, this list of conditions and the following disclaimer.';
+                '    * Redistributions in binary form must reproduce the above copyright';
+                '      notice, this list of conditions and the following disclaimer in';
+                '      the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
+                'POSSIBILITY OF SUCH DAMAGE.';
+                
+                char(10);
+                'This software uses ''Another Particle Swarm Toolbox'' by Sam Chen from http://www.mathworks.com/matlabcentral/fileexchange/25986-another-particle-swarm-toolbox, which is covered by the following license:';
+                'Copyright (c) 2009, Sam Chen';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:';
+                char(13);
+                '    * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.';
+                '    * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.',
+                
+                char(10);
+                'This software uses ''settings dialog'' by Rody Oldenhuis from http://www.mathworks.com/matlabcentral/fileexchange/26312-settings-dialog, which is covered by the following license:';
+                'Copyright (c) 2010, Rody Oldenhuis';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without';
+                'modification, are permitted provided that the following conditions are ';
+                'met:';
+                char(13);
+                '    * Redistributions of source code must retain the above copyright ';
+                '      notice, this list of conditions and the following disclaimer.';
+                '    * Redistributions in binary form must reproduce the above copyright ';
+                '      notice, this list of conditions and the following disclaimer in ';
+                '      the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" ';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE ';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE ';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR ';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF ';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS ';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN ';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
+                'POSSIBILITY OF SUCH DAMAGE.';
+                
+                char(10);
+                'This software uses ''ROC curve'' by Giuseppe Cardillo from http://www.mathworks.com/matlabcentral/fileexchange/19950-roc-curve, which is covered by the following license:';
+                'Copyright (c) 2014, Giuseppe Cardillo';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without';
+                'modification, are permitted provided that the following conditions are';
+                'met:';
+                char(13);
+                '    * Redistributions of source code must retain the above copyright';
+                '      notice, this list of conditions and the following disclaimer.';
+                '    * Redistributions in binary form must reproduce the above copyright';
+                '      notice, this list of conditions and the following disclaimer in';
+                '      the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
+                'POSSIBILITY OF SUCH DAMAGE.';
+                
+                char(10);
+                'This software uses ''Clinical Test Performance'' by Giuseppe Cardillo from http://www.mathworks.com/matlabcentral/fileexchange/12705-clinical-test-performance, which is covered by the following license:';
+                'Copyright (c) 2006, Giuseppe Cardillo';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without';
+                'modification, are permitted provided that the following conditions are';
+                'met:';
+                char(13);
+                '    * Redistributions of source code must retain the above copyright';
+                '      notice, this list of conditions and the following disclaimer.';
+                '    * Redistributions in binary form must reproduce the above copyright';
+                '      notice, this list of conditions and the following disclaimer in';
+                '      the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
+                'POSSIBILITY OF SUCH DAMAGE.';
+                
+                char(10);
+                'This software uses ''rotate xtick labels of an axes'' by Brian Katz from http://www.mathworks.com/matlabcentral/fileexchange/3486-xticklabel-rotate, which is covered by the following license:';
+                'Copyright (c) 2003, Brian Katz';
+                'Copyright (c) 2009, The MathWorks, Inc.';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without ';
+                'modification, are permitted provided that the following conditions are ';
+                'met:';
+                char(13);
+                '    * Redistributions of source code must retain the above copyright ';
+                '      notice, this list of conditions and the following disclaimer.';
+                '    * Redistributions in binary form must reproduce the above copyright ';
+                '      notice, this list of conditions and the following disclaimer in ';
+                '      the documentation and/or other materials provided with the distribution';
+                '    * Neither the name of the The MathWorks, Inc. nor the names ';
+                '      of its contributors may be used to endorse or promote products derived ';
+                '      from this software without specific prior written permission.';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" ';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE ';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE ';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR ';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF ';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS ';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN ';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
+                'POSSIBILITY OF SUCH DAMAGE.';
+                
+                char(10);
+                'This software uses ''findjobj'' by Yair Altman from http://www.mathworks.com/matlabcentral/fileexchange/14317-findjobj-find-java-handles-of-matlab-graphic-objects, which is covered by the following license:';
+                'Copyright (c) 2014, Yair Altman';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without ';
+                'modification, are permitted provided that the following conditions are ';
+                'met:';
+                char(13);
+                '    * Redistributions of source code must retain the above copyright ';
+                '      notice, this list of conditions and the following disclaimer.';
+                '    * Redistributions in binary form must reproduce the above copyright ';
+                '      notice, this list of conditions and the following disclaimer in ';
+                '      the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"'
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE'
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE'
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE'
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR'
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF'
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS'
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN'
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)'
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE'
+                'POSSIBILITY OF SUCH DAMAGE.'
+                };
+        end
+        
+    end %methods(Static)
+end
+

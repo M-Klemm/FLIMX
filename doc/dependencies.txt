@@ -1,0 +1,127 @@
+Autofluorescence Decay Fitting  -  Dependency List
+======================================================
+
+* Fast smoothing function
+- Author: T. C. O'Haver
+- files: fastsmooth.m
+- modified: no
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/19998-fast-smoothing-function
+- license: license_fastsmooth.txt
+
+
+* Recursive directory listing
+- Author: Gus Brown 
+- files: rdir.m
+- modified: no
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/19550-recursive-directory-listing
+- license: license_rdir.txt
+
+
+* CATSTRUCT
+- Author: Jos van der Geest 
+- files: catstruct.m
+- modified: no
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/7842-catstruct
+- license: license_catstruct.txt
+
+
+* struct2ini
+- Author: Dirk Lohse
+- files: struct2ini.m
+- modified: yes (bugfix, sorting of sections, improved readability)
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/22079-struct2ini
+- license: license_struct2ini.txt
+
+
+* ini2struct
+- Author: Andriy Nych 
+- files: catstruct.m
+- modified: yes (bugfix, support for numeric data)
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/17177-ini2struct
+- license: license_ini2struct.txt
+
+
+* Scalar function-based filtering
+- Author: Damien Garcia 
+- files: sffilt.m
+- modified: no
+- URL: http://www.biomecardio.com/matlab/sffilt.html
+- license: 
+
+
+* Fast and robust smoothing of one-dimensional and multidimensional data
+- Author: Damien Garcia 
+- files: smoothn.m
+- modified: no
+- URL: http://www.biomecardio.com/matlab/smoothn.html
+- license: 
+
+
+* Multicore - Parallel processing on multiple cores
+- Author: Markus Buehren 
+- files: all files in 'functions/multicore' directory
+- modified: yes (bugfixing, usage of Matlab's 'dir' instead of 'existfile', display speed of workunit generation, support for on-demand workunit generation)
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/13775-multicore-parallel-processing-on-multiple-cores
+- license: license_Multicore.txt
+
+
+* Differential Evolution
+- Author: Markus Buehren 
+- files: all files in 'functions/Optimizers/Differential_Evolution' directory
+- modified: yes (bugfixing, modified generation of new population, modified cost function call to make use of vectorized cost functions, reworked parameter border and grid checks, removed most commandline status messages)
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/18593-differential-evolution
+- license: license_DE.txt
+
+
+* fminsearchbnd new
+- Author: Ken Purchase  
+- files: fminsearchbnd.m, testFMinSearchNew.m
+- modified: no
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/17804-fminsearchbnd-new
+- license: No BSD License
+
+
+* Another Particle Swarm Toolbox
+- Author: Sam Chen
+- files: all files in 'functions/Optimizers/psopt
+- modified: yes (transponse population for FLIMX cost function required)
+- URL: hhttp://www.mathworks.com/matlabcentral/fileexchange/25986-another-particle-swarm-toolbox
+- license: license_pso.txt
+
+
+* settings dialog
+- Author: Rody Oldenhuis  
+- files: settingsdlg.m
+- modified: no
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/26312-settings-dialog
+- license: license_settingsdlg.txt
+
+
+* qinterp1
+- Author: Nathaniel Brahms
+- files: qinterp1.m
+- modified: yes (removed switch of method, support for vectorization (compute independent interp1s at once))
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/10286-fast-interpolation
+- license: No BSD License
+
+
+* ROC curve
+- Author: Giuseppe Cardillo  
+- files: roc.m, rocdata.mat
+- modified: yes (added functionality to plot to given axes)
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/19950-roc-curve
+- license: license_roc.txt
+
+* Clinical Test Performance
+- Author: Giuseppe Cardillo  
+- files: partest.m
+- modified: no
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/12705
+- license: license_partest.txt
+
+* rotate xtick labels of an axes
+- Author: Brian Katz  
+- files: xticklabel_rotate.m
+- modified: yes (added functionality to plot to given axes)
+- URL: http://www.mathworks.de/matlabcentral/fileexchange/3486
+- license: license_xticklabel_rotate.txt

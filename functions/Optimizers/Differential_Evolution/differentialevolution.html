@@ -1,0 +1,282 @@
+<html>
+<title>
+differentialevolution
+</title>
+<body>
+
+<h2><font color="#000080">
+DIFFERENTIAL EVOLUTION
+</font></h2>
+
+<h3><font color="#000080">
+Preamble
+</font></h3>
+
+I have put a lot of effort into this contribution to Matlab Central. As I 
+used the code successfully for myself for quite some time, I am sure that it can 
+be rather valuable for the one or the other. If you find any errors or bugs, 
+if you have problems in using the function or if you find the documentation 
+insufficiently detailed:
+
+<h4><font color="#660000">
+Please contact me and give me the chance to help you before giving a bad 
+rating on Matlab Central!
+</font></h4>
+
+Contact details at the bottom of this page.
+
+<h3><font color="#000080">Introduction
+</font></h3>
+
+This contribution provides functions for finding an optimum parameter set 
+using the <a href="http://en.wikipedia.org/wiki/Evolutionary_algorithm">
+Evolutionary Algorithm</a> of <b>Differential Evolution</b>. Simply 
+speaking: If you have some complicated function of which you are unable to 
+compute a derivative, and you want to find the parameter set minimizing the 
+output of the function, using this package is one possible way to go.<br><br>
+
+The core of the optimization is the Differential Evolution algorithm. For an 
+introduction to the algorithm, see the <a href="http://www.icsi.berkeley.edu/~storn/code.html#basi">
+basics section</a> on the <a href="http://www.icsi.berkeley.edu/~storn/code.html">
+<b>Differential Evolution homepage</b></a> of Rainer Storn. You will also find a demo 
+applet and code for different programming languages there. For in-depth documentation and 
+publications, check out the <a href="http://www.icsi.berkeley.edu/~storn/litera.html">
+Literature Section</a>. Even several <a href="http://www.icsi.berkeley.edu/~storn/code.html#link">
+books about Differential Evolution</a> are available.<br><br>
+
+This package provides much more than the code available on the referenced 
+homepage. Here is a list of some features:
+
+<ul>
+	<li>Optimization can run in parallel on multiple cores/computers.
+	<li>Extensive and configurable progress information during optimization.
+	<li>Intermediate results are stored for later review of optimization progress.
+	<li>Progress information can be sent by E-mail.
+	<li>Optimization toolbox is not needed.
+	<li>Quick start with demo functions.
+	<li>Intermediate results are displayed after the optimization.
+	<li>Different end conditions can be chosen (maximum time, value to reach etc.).
+	<li>Each parameter value can be constrained to an interval.
+	<li>Each parameter value can be quantized (for example for parameters of integer nature).
+	<li>Code can easily be extended to use the evolutionary algorithm of your choice.
+</ul>
+
+I have developed this package for an own project. A single evaluation of my 
+objective function took between 30 seconds and one minute and the parameter 
+space was galactically large. If your objective function needs only milliseconds to 
+evaluate and your optimization is expected to finish in seconds or minutes, 
+you can still use this package. However, much of its power (parallel processing, 
+progress notifications) will not be of much use.<br><br>
+
+In addition to this documentation, I have summarized E-mail conversations in 
+a list of <a href="differentialevolution-faq.html">Frequently Asked Questions.</a>
+
+<h3><font color="#000080">Quick start
+</font></h3>
+
+To get into the usage of the package quickly, check out the demo functions 
+<font face="Courier New" color="#000080">demo1.m</font>,
+<font face="Courier New" color="#000080">demo2.m</font> and 
+<font face="Courier New" color="#000080">demo3.m</font>. Modify those files 
+to start your first optimization. Essentially you only have to define 
+which parameters to optimize and provide a handle to your objective function. 
+You can learn about everything else later.
+
+Your objective function can be called in different ways:
+<ul>
+	<li>With a scalar or column vector as the only input argument.
+	<li>With a structure containing the current parameters as only input argument.
+	<li>With one or more fixed arguments first, then a parameter vector or structure as last argument.
+</ul>
+If your objective function has an argument list that does not comply with 
+one of these possibilities, you have to write a small wrapper function which 
+brings the arguments into the correct order and calls your objective function. 
+In any case, your objective function has to return a <b>finite scalar</b> 
+(not NaN or Inf) as the first output argument.<br><br>
+
+The definition of the parameters to optimize is expected as a cell array. The 
+first column of the cell array has to contain the parameter names. In the second 
+column, you have to provide the parameter ranges. For a scalar parameter, the 
+range is expected as a two-element row vector. For vector-valued parameters, you 
+have to give the ranges of the elements as a two-column matrix with ranges in 
+rows. The third column contains the parameter quantization steps as a 
+scalar or a column vector (set to zero for no quantization). The fourth column 
+(optional) can contain the initial values of the parameters. If your objective 
+function shall be called with a column parameter vector instead of a structure 
+as input, define only one single parameter with an empty string as parameter name. 
+See the help text (&quot;help differentialevolution&quot;) and the demos for 
+more details and examples.<br><br>
+
+<h3><font color="#000080">Parallel processing on multiple cores
+</font></h3>
+This package allows to work in parallel on multiple cores in order to increase 
+the speed of the optimization. One process acts as the master and all other 
+processes act as slaves. The only requirements for parallel processing are:
+<ul>
+	<li>All involved processes have to have read- and write-access to a common directory, 
+	for example on a network share.
+	<li>All involved processes have to have access to identical code versions of the 
+	objective function.
+</ul>
+For parallel processing, the main function differentialevolution.m has to be started in 
+one Matlab process. In all other processes, the function differentialevolutionslave.m 
+has to be started. The master process will save files including the parameter 
+sets to evaluate into the common directory. 
+The slave processes load the parameter files, evaluate the objective function and 
+save the obtainted results into other files. After each iteration, the master process 
+collects the evaluated results and feeds the slave processes with data files 
+again. If there are no results found, the master process will evaluate the 
+parameter sets himself. This way, the slaves can never cause the master to 
+get stuck.<br><br>
+
+The <a href="http://www.mathworks.com/matlabcentral/fileexchange/loadFile.do?objectId=13775&objectType=file">
+Multicore package</a> on Matlab Central actually emanated from this function 
+and works quite similar. 
+
+<h3><font color="#000080">Functions contained in this package
+</font></h3>
+In the following, the most important functions contained in this package are 
+listed. Every file contains its own help comments which you can access by 
+typing &quot;help functionname&quot; on the Matlab command line.
+
+<br><br><b><font color="#000080">differentialevolution.m
+</font></b><br>
+The main function to call after preparing the input arguments.
+
+<br><br><b><font color="#000080">getdefaultparams.m
+</font></b><br>
+When starting to work with this package, you probably do not want to handle 
+with every existing parameter for function differentialevolution.m. You can 
+get a default parameter set by calling getdefaultparams.m.
+
+<br><br><b><font color="#000080">differentialevolutionslave.m
+</font></b><br>
+When working in parallel on multiple cores/computers, this 
+function has to be started in every Matlab process that shall act as slave. 
+
+<br><br><b><font color="#000080">computenewpopulation.m
+</font></b><br>
+The core Differential Evolution algorithm resides in this functions. If you 
+like to use your own favorite evolutionary algorithm, you can put the code 
+into this function.
+
+<br><br><b><font color="#000080">demo1.m, demo2.m, demo3.m
+</font></b><br>
+Demo functions you can modify for a quick start.
+
+<br><br><b><font color="#000080">foxholes.m, rosenbrocksaddle.m
+</font></b><br>
+These two functions are used for the demos. They implement two functions that 
+are often cited in the context of optimization algorithms (&quot;Shekel's 
+Foxholes&quot; and &quot;Rosenbrock's Saddle&quot;). 
+
+<br><br><b><font color="#000080">deletewithsemaphores.m, setfilesemaphore.m
+</font></b><br>
+These functions help to avoid simultaneous file access when working with 
+multiple cores. 
+
+<br><br><b><font color="#000080">sendmailblat.m, blat.exe
+</font></b><br>
+Function sendmailblat.m sends E-mail notifications using the freeware 
+executable blat.exe on Windows (see the <a href="http://www.blat.net/">Blat 
+homepage</a> for more information). There are alternatives for sending E-mails 
+from Matlab on Windows, but I don't see any need to change this.
+
+<br><br><b><font color="#000080">existfile.m, existfile.c</font></b><br>
+Test if a file exists. To use the faster mex-file, type 
+<font face="Courier New" color="#000080">&quot;mex -setup&quot;</font>, 
+select the builtin Lcc compiler and type
+<font face="Courier New" color="#000080">&quot;mex existfile.c&quot;</font>
+to compile the file. However, the package also works without using the mex-file.
+
+<h3><font color="#000080">
+Problems/open issues
+</font></h3>  
+
+<b>Vector parameters</b><br><br>
+In my own project, I always passed the current parameter set as a structure 
+to my objective function. Each field contained a scalar parameter value. 
+Before releasing this package on Matlab Central, I introduced the possibility to 
+work with vector-valued parameters, either passed as a single column vector or as 
+a structure with vector-valued fields to the objective function. However, I did 
+not have the time to test vector-valued parameters extensively. If you find 
+any bugs with this, please let me know.
+
+<br><br><b>Parameter quantization</b><br><br>
+The original Differential Evolution algorithm only know unbounded, continuous 
+parameters. In order to include parameters of integer nature into the optimization, 
+I have extended the algorithm in this way. Internally, all parameters are 
+continuous. Only before passing them to the objective function, the parameter 
+values are quantized.
+
+<br><br><b>Hard parameter bounds</b><br><br>
+In my own project, and I guess in most other optimization problems as well, 
+I always had an idea about the possible range for each optimal parameter. A hard
+parameter range has to be given here for every parameter. Using -Inf or Inf as 
+lower or upper bound is <b>not</b> possible. A side effect of the hard bounds 
+is that parameter sets including boundary values can be evaluated with higher 
+probability under certain circumstances.
+
+<br><br><b>Breaking using Ctrl-C</b><br><br>
+When breaking the optimization using Ctrl-C, it might happen that you catch 
+Matlab just when writing to a file. When you start the optimization again and 
+the same file needs to be accessed again, the file is locked until you quit 
+and restart Matlab (at least on Windows). To avoid this, a 'time-over'-file 
+is saved in the current directory. After each function evaluation, the master 
+process checks if the file is still existing. If it was deleted, the 
+optimization is finished cheerfully.
+
+<br><br><b>Shrinking slave support in parallel processing</b><br><br>
+When processing in parallel, the master process feeds the slaves at the start 
+of each iteration and collects the results at the end. Further, as all parameter 
+sets that have been evaluated before are saved, not all parameter vectors in 
+the current population might need to be evaluated. If the population has already 
+converged very well, it can happen that there are less new parameter vectors 
+in the population than processes are working on the optimization problem. In 
+this case, some or all slaves are sleeping, as there is no more work to do.
+
+<br><br><b>Parameter vectors in rows and columns</b><br><br>
+I always save parameter vectors as column vectors. However, the core 
+Differential Evolution algorithm taken from the 
+<a href="http://www.icsi.berkeley.edu/~storn/code.html#matl">Differential 
+Evolution homepage</a> expects parameter vectors to be stored in rows. 
+Unfortunately, the code now contains a mixture of representations as rows 
+and columns. You will never get involved with this issue until you edit the 
+code. Parameter vectors are passed to your objective functions as column vectors. 
+If your objective function needs to get parameter vectors passed as row vectors, 
+you will have to write a small wrapper function that transposed the vectors 
+and calls the objective function in the right way.
+
+<h3><font color="#000080">
+Links
+</font></h3>  
+
+<a href="http://www.icsi.berkeley.edu/~storn/code.html">Differential Evolution
+homepage.</a><br>
+<a href="http://en.wikipedia.org/wiki/Evolutionary_algorithm">Wikipedia</a> about 
+Evolutionary Algorithms.<br>
+<a href="http://www.mathworks.com/matlabcentral/fileexchange/loadFile.do?objectId=18593">
+Latest Version of this package</a> on Matlab Central.<br>
+The <a href="http://www.mathworks.com/matlabcentral/fileexchange/loadFile.do?objectId=13775&objectType=file">
+Multicore package</a> on Matlab Central.<br>
+<a href="http://www.blat.net/">Blat homepage</a> (E-mails from the command line on Windows).
+
+<h3><font color="#000080">
+Contact
+</font></h3>  
+
+Dipl.-Ing. Markus Buehren<br>
+Stuttgart, Germany<br>
+<br>
+
+<a href="mailto:mb_matlab@gmx.de?subject=differential evolution package">mb_matlab@gmx.de</a><br>
+<a href="http://www.markusbuehren.de">http://www.markusbuehren.de</a><br>
+
+<h3><font color="#000080">
+Version
+</font></h3>  
+Last modified 09.08.2008<br>
+Latest version on <a href="http://www.mathworks.com/matlabcentral/fileexchange/loadFile.do?objectId=18593">Matlab Central</a>.
+
+</body>
+</html>
