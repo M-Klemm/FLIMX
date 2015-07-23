@@ -431,6 +431,7 @@ result = orderfields(result);
                 %         bounds.I_refresh    = 0;
                 %         bounds.I_plotting   = 0;
         end %switch
+    end
 
 end
 

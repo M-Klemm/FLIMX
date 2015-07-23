@@ -92,7 +92,7 @@ sep.RRWinSz = varargin{5};
 sep.RRgrpSz = varargin{6};
 sep.fix_start = varargin{7};
 sep.fix_end = varargin{8};
-sep.start_pos = getStartPos(sep.data);
+sep.start_pos = fluoPixelModel.getStartPos(sep.data);
 
 sep.ERidx = [];
 %[mask sep.ERidx] = compReflectionMask(sep.data,sep.RRWinSz,sep.RRgrpSz);
@@ -100,13 +100,13 @@ sep.tableERrow = 1;
 sep.buttonDown = 0;
 switch sep.auto_start
     case 1 %auto
-        sep.start_pos = getStartPos(sep.data);
+        sep.start_pos = fluoPixelModel.getStartPos(sep.data);
         set(handles.buttonSDec,'Enable','off');
         set(handles.buttonSInc,'Enable','off');
         set(handles.buttonSAuto,'Enable','off');
         set(handles.editStart,'Enable','off');
     case 0 %manual
-        sep.start_pos = getStartPos(sep.data);
+        sep.start_pos = fluoPixelModel.getStartPos(sep.data);
     case -1 %fix
         sep.start_pos = varargin{7};
         set(handles.buttonSDec,'Enable','off');
@@ -116,13 +116,13 @@ switch sep.auto_start
 end
 switch sep.auto_end
     case 1 %auto
-        sep.end_pos = getEndPos(sep.data);
+        sep.end_pos = fluoPixelModel.getEndPos(sep.data);
         set(handles.buttonEDec,'Enable','off');
         set(handles.buttonEInc,'Enable','off');
         set(handles.buttonEAuto,'Enable','off');
         set(handles.editEnd,'Enable','off');
     case 0 %manual
-        sep.end_pos = getEndPos(sep.data);
+        sep.end_pos = fluoPixelModel.getEndPos(sep.data);
     case -1 %fix
         sep.end_pos = varargin{8};
         set(handles.buttonEDec,'Enable','off');
@@ -202,32 +202,6 @@ for i = 1:rows-1
 end
 set(handles.tableER,'Data',tstr);
 
-function start_pos = getStartPos(data_vec)
-% find slope starting point using sliding average (fastsmooth function) and gradient
-if(isempty(data_vec) || ~any(data_vec))
-    start_pos = 1;
-    return
-end
-%get max & offset
-[~, d1_pos] = max(data_vec(:));
-avg = fastsmooth(data_vec(1:d1_pos+5),3,3,0);
-%avg = sWnd1DAvg(data_vec(1:d1_pos+5),3); %use 5 points after max as well (smoother max), sliding window: 3x2+1=7
-%look for the rising egde only before the signal rose to 1/8th of the maximum
-fwemAPos = find(bsxfun(@lt,avg(1:end-5),max(avg(:),[],1)/6),1,'last')+1;
-start_pos = find(fastGrad(avg(1:fwemAPos)) <= 0,1, 'last')+1; %start 5 points prior to max
-if(isempty(start_pos))
-    start_pos = 1;
-end
-
-function end_pos = getEndPos(data_vec)
-% find starting point for chi² computation using sliding average
-% cut zeros at the end of data vector
-if(isempty(data_vec))
-    end_pos = 1;
-    return
-end
-non_zero = find(data_vec);
-end_pos = non_zero(end);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %push buttons
@@ -236,7 +210,7 @@ end_pos = non_zero(end);
 function buttonSAuto_Callback(hObject, eventdata, handles)
 %
 sep = get(handles.startEndPosWizardFigure,'userdata');
-sep.start_pos = getStartPos(sep.data);
+sep.start_pos = fluoPixelModel.getStartPos(sep.data);
 set(handles.editStart,'String',num2str(sep.start_pos));
 set(handles.startEndPosWizardFigure,'userdata',sep);
 
@@ -244,7 +218,7 @@ set(handles.startEndPosWizardFigure,'userdata',sep);
 function buttonEAuto_Callback(hObject, eventdata, handles)
 %
 sep = get(handles.startEndPosWizardFigure,'userdata');
-sep.end_pos = getEndPos(sep.data);
+sep.end_pos = fluoPixelModel.getEndPos(sep.data);
 set(handles.editEnd,'String',num2str(sep.end_pos));
 set(handles.startEndPosWizardFigure,'userdata',sep);
 

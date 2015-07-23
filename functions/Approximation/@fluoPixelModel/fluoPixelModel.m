@@ -596,7 +596,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     [rs(chIdx).OffsetGuess, rs(chIdx).SlopeStartPosition] = fluoPixelModel.makeOffsetGuess(dataTmp(:),rs(chIdx).MaximumPhotons,...
                         this.preProcessParams.offsetStartPos,this.getFileInfo(chList(chIdx)).StartPosition,this.basicParams.heightMode);
                     rs(chIdx).StartPosition = this.getFileInfo(chList(chIdx)).StartPosition;
-                    rs(chIdx).EndPosition = max(2,min(this.getFileInfo(chList(chIdx)).EndPosition,getEndPos(dataTmp)));
+                    rs(chIdx).EndPosition = max(2,min(this.getFileInfo(chList(chIdx)).EndPosition,fluoPixelModel.getEndPos(dataTmp)));
                     rs(chIdx).TotalPhotons = sum(dataTmp(rs(chIdx).StartPosition:rs(chIdx).EndPosition));
                     irfTmp = this.getIRF(chList(chIdx));
                     [~,fwhmDPos] = max(bsxfun(@gt,dataTmp,max(dataTmp(:),[],1)*0.75),[],1);
@@ -1365,7 +1365,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
         function [oGuess, SlopeStartPosition, d_max] = makeOffsetGuess(data,d_max,offsetStartPos,fitStartPos,heightMode)
             %make an educated guess for the current offset
             dataStartPos = find(data,1);
-            SlopeStartPosition = getStartPos(data);
+            SlopeStartPosition = fluoPixelModel.getStartPos(data);
             oGuess = data(dataStartPos:max(dataStartPos+1,SlopeStartPosition));
             % if(length(oGuess) < 10)
             %     %we have too few datapoints for a reliable estimate, try to get more
@@ -1380,6 +1380,35 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 oGuess = oGuess/d_max*1;
                 d_max = 1;
             end
+        end
+        
+        function start_pos = getStartPos(data_vec)
+            % find slope starting point using sliding average (fastsmooth function) and gradient
+            if(isempty(data_vec) || ~any(data_vec))
+                start_pos = 1;
+                return
+            end
+            %get max & offset
+            [~, d1_pos] = max(data_vec(:));
+            avg = fastsmooth(data_vec(1:d1_pos+5),3,3,0);
+            %avg = sWnd1DAvg(data_vec(1:d1_pos+5),3); %use 5 points after max as well (smoother max), sliding window: 3x2+1=7
+            %look for the rising egde only before the signal rose to 1/8th of the maximum
+            fwemAPos = find(bsxfun(@lt,avg(1:end-5),max(avg(:),[],1)/6),1,'last')+1;
+            start_pos = find(fastGrad(avg(1:fwemAPos)) <= 0,1, 'last')+1; %start 5 points prior to max
+            if(isempty(start_pos))
+                start_pos = 1;
+            end
+        end
+        
+        function end_pos = getEndPos(data_vec)
+            % find starting point for chi² computation using sliding average
+            % cut zeros at the end of data vector
+            if(isempty(data_vec))
+                end_pos = 1;
+                return
+            end
+            non_zero = find(data_vec);
+            end_pos = non_zero(end);
         end
     end %methods(Static)
 end % classdef
