@@ -35,7 +35,7 @@ function varargout = GUI_FLIMXVisGUIVisualizationOptions(varargin)
 % vargin - structure with preferences and defaults
 %output: same as input, but altered according to user input
 
-% Last Modified by GUIDE v2.5 17-Jul-2015 14:57:45
+% Last Modified by GUIDE v2.5 23-Jul-2015 14:12:30
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -139,15 +139,15 @@ set(handles.popup_ETDRS_subfield_values,'Value',val);
 if(val > 1 && data.flimvis.ETDRS_subfield_bg_enable) %sum(data.flimvis.ETDRS_subfield_bg_color(:)) < 1)
     set(handles.check_EDTRS_subfield_bg,'Value',1);
     set(handles.textSubfieldBGColor,'Visible','on');
-    set(handles.textSubfieldBGTrans,'Visible','on');
+    %set(handles.textSubfieldBGTrans,'Visible','on');
     set(handles.button_ETDRS_bg_color,'Visible','on','Backgroundcolor',data.flimvis.ETDRS_subfield_bg_color(1:3));
-    set(handles.edit_ETDRS_bg_trans,'Visible','on','String',data.flimvis.ETDRS_subfield_bg_color(4));
+    %set(handles.edit_ETDRS_bg_trans,'Visible','on','String',data.flimvis.ETDRS_subfield_bg_color(4));
 else
     set(handles.check_EDTRS_subfield_bg,'Value',0);
     set(handles.textSubfieldBGColor,'Visible','off');
-    set(handles.textSubfieldBGTrans,'Visible','off');
+    %set(handles.textSubfieldBGTrans,'Visible','off');
     set(handles.button_ETDRS_bg_color,'Visible','off');
-    set(handles.edit_ETDRS_bg_trans,'Visible','off');
+    %set(handles.edit_ETDRS_bg_trans,'Visible','off');
 end
 set(handles.offset_m3d_checkbox,'Value',data.flimvis.offset_m3d);
 set(handles.color_cuts_checkbox,'Value',data.flimvis.color_cuts);
