@@ -346,11 +346,6 @@ classdef FDisplay < handle
                     pos = 1;
             end
             gc = this.staticVisParams.ROIColor;%[1 1 1];
-            if(this.staticVisParams.ROI_fill_enable)
-                trans = this.staticVisParams.ETDRS_subfield_bg_color(end);
-            else
-                trans = 0;
-            end
             if(res > 0)
                 %radius ring1 = 500 µm
                 d1 = 1000/res;
@@ -405,7 +400,7 @@ classdef FDisplay < handle
                     if(strcmp(this.staticVisParams.ETDRS_subfield_values,'field name'))
                         txt = {'C','IN','IS','II','IT','OS','ON','OI','OT'};
                     else
-                        tmp = hfd.getROISubfieldStatistics(2,this.staticVisParams.ETDRS_subfield_values);                        
+                        tmp = hfd.getROISubfieldStatistics(cp,1,this.staticVisParams.ETDRS_subfield_values);                        
                         txt = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%FLIMXFitGUI.num4disp(tmp(i));
                     end
                     if(this.staticVisParams.ETDRS_subfield_bg_enable)
@@ -682,7 +677,7 @@ classdef FDisplay < handle
                             ROIType = this.ROIType;
                             if(ROIType >= 1)
                                 ROICoord = this.ROICoordinates;
-                                this.drawROI(ROIType,ROICoord(:,1),ROICoord(:,2),false);
+                                this.drawROI(ROIType,ROICoord(:,1),ROICoord(:,2),true);
                             end
                         end
                         if(~this.screenshot)

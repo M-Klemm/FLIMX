@@ -718,7 +718,7 @@ classdef FData < handle
             this.clearCachedImage();
         end
                 
-        function out = getROISubfieldStatistics(this,ROIType,statsType)
+        function out = getROISubfieldStatistics(this,ROICoord,ROIType,statsType)
             %get statType (mean, SD) for all subfields of the ETDRS grid
             %with the following order:
             %             1 %central
@@ -730,14 +730,14 @@ classdef FData < handle
             %             7 %outer nasal
             %             8 %outer inferior
             %             9 %outer temporal 
-            out = [];
-            if(isempty(this.ROISubTypeAnchor) || ROIType < 2)
-                return
-            end
+%             out = [];
+%             if(ROIType < 1)
+%                 return
+%             end
             ri = this.getFullImage();
             out = zeros(9,1);
             for i = 1:9
-                ci = this.getImgSeg(ri,ROIType,i,this.getFileInfoStruct());
+                ci = this.getImgSeg(ri,ROICoord,ROIType,i,0,this.getFileInfoStruct()); %ROICoord,ROIType,ROISubType,ROIInvertFlag,fileInfo
                 ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
                 cim = this.getNonInfMin(2,ci);
                 %set possible "-inf" in curImg to "cim"
