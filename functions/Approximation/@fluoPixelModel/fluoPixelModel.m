@@ -726,7 +726,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                         scSmooth(:,i) = fastsmooth(scData(:,i),3,3,0);
                         [scMaxVal(i), scMaxPos(i)] = max(scSmooth(:,i),[],1);
                         %get slope position of scatter data and measurement data
-                        idxSc(i) = find(scData(:,i) > scMaxVal(i)/2,1);
+                        idxSc(i) = find(scData(1:scMaxPos(i),i) <= scMaxVal(i)/10,1,'last');
                     end
                     %idxData = find(dataTmp(1:rs(chIdx).MaximumPosition) < rs(chIdx).MaximumPhotons/15,1,'last'); % look at 1/15th of data as riding edge
 %                     nBins = ceil(rs(chIdx).MaximumPhotons/10);
