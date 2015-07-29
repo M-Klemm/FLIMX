@@ -486,6 +486,7 @@ classdef FStudy < handle
             if(~isempty(chs))
                 for ch = chs
                     subject.removeChannel(ch);
+                    this.addObj(subjectID,ch,[],[],[]);
                 end
                 subject.loadChannelMeasurement(chs(1),false);
             end
