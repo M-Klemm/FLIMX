@@ -97,7 +97,6 @@ classdef measurementInFDTree < measurementFile
                  return
              end
              try
-                 %measurement = load(fn);
                  this.myFiles{1,ch} = matfile(fn,'Writable',false);
              catch ME
                  %todo: error handling

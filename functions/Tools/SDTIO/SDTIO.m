@@ -155,24 +155,40 @@ classdef SDTIO < handle
                         % zip compressed blocks
                         if bitget(pReqDBI.uBlockType, 13)
                             %disp('Reading compressed data block ...')
-                            zipbuf = fread(obj.m_hInFile, pReqDBI.uNextBlockOffset-pReqDBI.uFileOffset, 'uint8=>uint8');
-                            fnz = 'FlimUnzipTemp.zip';
-                            current_folder = cd;
-                            tmp_fid = fopen(fnz,'w');
-                            fwrite(tmp_fid, zipbuf);
-                            fclose(tmp_fid);
+                            zipbuf = fread(obj.m_hInFile, pReqDBI.uNextBlockOffset-pReqDBI.uFileOffset, 'uint8=>uint8');                            
+                            current_folder = tempdir;
+                            if(isempty(current_folder))
+                                current_folder = cd;
+                            end
+                            fn_stub = 'FlimUnzipTemp';
+                            for i = 1:100
+                                fn = fullfile(current_folder,sprintf('%s%d.zip',fn_stub,i));
+                                if(~exist(path,'file'))
+                                    break
+                                end
+                            end
+                            tmp_fid = fopen(fn,'w');
+                            count = fwrite(tmp_fid, zipbuf,'uint8');
                             pause(1);
-                            fnu=char(unzip(fnz,current_folder));
-                            pause(1);
-                            tmp_fid = fopen(fnu, 'r');
-                            raw = fread(tmp_fid, pReqDBI.uBlockLength/type_len, type_str);
-                            fclose(tmp_fid);
-                            delete (fnz);
-                            delete (fnu);
+                            fclose(tmp_fid);                            
+                            try
+                                fnu=char(unzip(fn,current_folder));
+                                pause(1);
+                                tmp_fid = fopen(fnu, 'r');
+                                raw = fread(tmp_fid, pReqDBI.uBlockLength/type_len, type_str);
+                                fclose(tmp_fid);
+                                delete(fn);
+                                delete(fnu);
+                            catch MD
+                                raw = [];
+                            end
                         else
                             raw = fread(fid, double(blk{block_no}.block_length/type_len), type_str);
                         end
-                        if no_of_curves == obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_x*obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y
+                        if(isempty(raw))
+                            return
+                        end
+                        if(no_of_curves == obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_x*obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y)
                             raw = reshape(raw, (2^obj.m_SDTReadInfo.pSPCData(iDataBlock).adc_resolution), obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y, obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_x);
                         else
                             raw = reshape(raw, (2^obj.m_SDTReadInfo.pSPCData(iDataBlock).adc_resolution), no_of_curves);

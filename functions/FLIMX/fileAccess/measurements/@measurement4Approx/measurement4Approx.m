@@ -47,13 +47,5 @@ classdef measurement4Approx < measurementInFDTree
         %% input methods
         
     end %methods
-    
-    methods (Access = protected)
-    end
-    
-    methods(Static)
-        
-        
-    end %methods(Static)
 end
 

@@ -1389,6 +1389,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 return
             end
             %get max & offset
+            data_vec(isnan(data_vec)) = 0;
             [~, d1_pos] = max(data_vec(:));
             avg = fastsmooth(data_vec(1:d1_pos+5),3,3,0);
             %avg = sWnd1DAvg(data_vec(1:d1_pos+5),3); %use 5 points after max as well (smoother max), sliding window: 3x2+1=7

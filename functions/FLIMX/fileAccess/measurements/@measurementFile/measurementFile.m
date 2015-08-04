@@ -91,8 +91,6 @@ classdef measurementFile < handle
             out = fluoSyntheticFile(this.paramMgrObj);
             %copy all properties
             out.progressCb = this.progressCb;
-%             out.studyName = this.studyName;
-%             out.datasetName = this.datasetName;
             out.sourceFile = this.sourceFile;
             out.ROICoord = this.ROICoord;
             out.rawXSz = this.rawXSz;
@@ -105,17 +103,7 @@ classdef measurementFile < handle
             out.roiFluoDataFlat = this.roiFluoDataFlat;
             out.roiMerged = this.roiMerged;            
         end
-        %% input methods
-%         function setStudyName(this,dn)
-%             %set study name
-%             this.studyName = dn;
-%         end
-        
-%         function setDatasetName(this,dn)
-%             %set dataset name
-%             this.datasetName = dn;
-%         end
-        
+        %% input methods        
         function setProgressCallback(this,cb)
             %set callback function for short progress bar
             this.progressCb(end+1) = {cb};
@@ -140,13 +128,7 @@ classdef measurementFile < handle
             %set handle to parameter manager
             this.paramMgrObj = hPM;
         end
-        
-%         function setTacRange(this,val)
-%             %set tac range
-%             this.fileInfo.tacRange = val;
-%         end
-%         
-        
+                
         function setReflectionMask(this,channel,val)
             %set reflection mask for channel
             this.fileInfo.reflectionMask(channel) = {val};
@@ -202,7 +184,7 @@ classdef measurementFile < handle
                 raw = this.rawFluoData{channel};
             end
         end
-                
+        
         function out = get.useMex4StaticBin(this)
             %
             if(isempty(this.useMexFlags))
@@ -347,8 +329,6 @@ classdef measurementFile < handle
                 fileInfo.EndPosition = this.getEndPosition(channel);
                 fileInfo.channel = channel;
             end
-%             fileInfo.ROICoordinates = this.ROICoordinates;
-%             fileInfo.ROIDataType = this.ROIDataType;
             fileInfo.rawXSz = this.rawXSz;
             fileInfo.rawYSz = this.rawYSz;            
             fileInfo.position = this.fileInfo.position;
@@ -529,9 +509,6 @@ classdef measurementFile < handle
                 return
             end
             [yR, xR, zR] = size(raw);
-%             yR = this.rawYSz;
-%             xR = this.rawXSz;
-%             zR = this.nrTimeChannels;
             roi = this.ROICoordinates;
             if(length(roi) ~= 4)
                 roi = ones(4,1);
@@ -584,6 +561,19 @@ classdef measurementFile < handle
                 end
                 if(~isempty(y) && ~isempty(x))
                     out = squeeze(out(y,x,:));
+                end
+            end
+            aniso = false;
+            if(aniso && ~isMultipleCall())
+                %get anisotropy data from channel 1 and 2 (ch1 is parallel; ch2 is perpendicular)
+                out = [];
+                if(this.nrSpectralChannels >= 2 && length(this.rawFluoData) >= 2)
+                    pP = double(this.getROIData(1,y,x)); %parallel
+                    pS = double(this.getROIData(2,y,x)); %senkrecht          
+                    pP(isnan(pP)) = 0;
+                    pS(isnan(pS)) = 0;
+                    %out = (pP./pS-1)./(pP./pS+2);
+                    out = (pP-pS)./(pP+2*pS);
                 end
             end
         end
@@ -667,7 +657,7 @@ classdef measurementFile < handle
                 if(isempty(m))
                     this.fileInfo.StartPosition(channel) = {1};
                 else
-                    this.fileInfo.StartPosition(channel) = {getStartPos(m)};
+                    this.fileInfo.StartPosition(channel) = {fluoPixelModel.getStartPos(m)};
                 end
             elseif(pParam.autoStartPos == -1)
                 %fixed predifined value
@@ -678,7 +668,7 @@ classdef measurementFile < handle
                 if(isempty(m))
                     this.fileInfo.EndPosition(channel) = {1};
                 else
-                    this.fileInfo.EndPosition(channel) = {getEndPos(m)};
+                    this.fileInfo.EndPosition(channel) = {fluoPixelModel.getEndPos(m)};
                 end
             elseif(pParam.autoEndPos == -1)
                 %fixed predifined value
@@ -935,8 +925,6 @@ classdef measurementFile < handle
                 fileInfo.reflectionMask = mat2cell(ones(fileInfo.nrTimeChannels,fileInfo.nrSpectralChannels),val,ones(fileInfo.nrSpectralChannels,1))';
             end
             this.setSEPosRM(fileInfo.channel,fileInfo.StartPosition,fileInfo.EndPosition,fileInfo.reflectionMask);
-%             this.ROICoord = fileInfo.ROICoordinates;
-%             this.ROIDataType = fileInfo.ROIDataType;
             this.rawXSz = fileInfo.rawXSz;
             this.rawYSz = fileInfo.rawYSz;
             this.fileInfo.position = fileInfo.position;
@@ -982,39 +970,7 @@ classdef measurementFile < handle
         end
     end %methods (Access = protected)
     
-    methods(Static)
-%         function [idx,maxBinLevelReached] = getAdaptiveBinningIndex(pixelYPos,pixelXPos,binLevel,dataYSz,dataXSz,maxBinFactor)
-%             %
-%             persistent maxBin binXcoord binYcoord binRho binRhoU
-%             if(isempty(maxBin))
-%                 maxBin = int8(maxBinFactor);
-%             end
-%             if(isempty(binXcoord) || maxBin ~= maxBinFactor)
-%                 [binXcoord,binYcoord] = meshgrid(-maxBin:maxBin,-maxBin:maxBin);
-%                 [~,binRho] = cart2pol(single(binXcoord),single(binYcoord));
-%                 binRhoU = unique(binRho);
-%                 binRhoU(1) = [];
-%             end            
-% %             Ym = binYcoord;
-% %             Xm = binXcoord;
-%             if(binLevel >= length(binRhoU))
-%                 maxBinLevelReached = true;
-%                 binLevel = length(binRhoU);
-%             else
-%                 maxBinLevelReached = false;
-%             end
-%             mask = binRho <= binRhoU(binLevel);
-%             cols = any(mask,1);
-%             rows = any(mask,2);
-%             Ym = int32(binYcoord(rows,cols));
-%             Xm = int32(binXcoord(rows,cols));
-%             mask = mask(rows,cols);
-%             Ym(:) = min(dataYSz,max(1,Ym(:) + pixelYPos));
-%             Xm(:) = min(dataXSz,max(1,Xm(:) + pixelXPos));
-% %             idx = sub2ind([dataYSz,dataXSz],tmpYcoord(mask),tmpXcoord(mask));
-%             idx = Ym(mask)+dataYSz.*(Xm(mask)-1); 
-%         end
-        
+    methods(Static)        
         function out = sWnd3D(xl,xu,yl,yu,d,raw,pres,hwb)
             % xl - lower bound x
             % xu - upper bound x

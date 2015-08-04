@@ -798,14 +798,16 @@ classdef FLIMXFitGUI < handle
             data = apObj.getMeasurementData(ch);
             xAxis = this.FLIMXObj.curSubject.timeVector(1:length(data));
             e_vec = zeros(length(data),1);
+            data(isnan(data)) = 0;
             %e_vec(1:apObj.getFileInfo(ch).nrTimeChannels) = ((data(1:apObj.getFileInfo(ch).nrTimeChannels))-(model(1:apObj.getFileInfo(ch).nrTimeChannels)))./(model(1:apObj.getFileInfo(ch).nrTimeChannels))*100;
-            e_vec(1:apObj.getFileInfo(ch).nrTimeChannels) = ((data(1:apObj.getFileInfo(ch).nrTimeChannels))-(model(1:apObj.getFileInfo(ch).nrTimeChannels)))./sqrt(data(1:apObj.getFileInfo(ch).nrTimeChannels)); % Weighting in lsqnonlin is 1/std; in Poisson statistics: 1/sqrt(counts)
+            e_vec(1:apObj.getFileInfo(ch).nrTimeChannels) = ((data(1:apObj.getFileInfo(ch).nrTimeChannels))-(model(1:apObj.getFileInfo(ch).nrTimeChannels)))./sqrt(abs(data(1:apObj.getFileInfo(ch).nrTimeChannels))); % Weighting in lsqnonlin is 1/std; in Poisson statistics: 1/sqrt(counts)
             nz_idx =  apObj.getDataNonZeroMask(ch);
             ds = find(nz_idx,1,'first');
             de = find(nz_idx,1,'last');
             [StartPosition, EndPosition] = apObj.getStartEndPos(ch);
             nz_idx(1:StartPosition) = false;
             nz_idx(EndPosition:end) = false;
+            e_vec(isinf(e_vec)) = 0;
             e_vec_smooth = e_vec;
             e_vec_smooth(ds:de) = fastsmooth(e_vec(ds:de),50,3,0);
             e_vec_smooth(1:ds) = e_vec_smooth(ds);
@@ -817,7 +819,7 @@ classdef FLIMXFitGUI < handle
                 nz_idx = nz_idx(this.dynVisParams.timeScalingStart:this.dynVisParams.timeScalingEnd);
                 StartPosition = StartPosition-this.dynVisParams.timeScalingStart+1;
                 EndPosition = EndPosition-this.dynVisParams.timeScalingStart+1;
-            end            
+            end
             cla(hAxRes);
             hold(hAxRes,'on');
             idx = measurementFile.getMaskGrps(find(nz_idx > 0));

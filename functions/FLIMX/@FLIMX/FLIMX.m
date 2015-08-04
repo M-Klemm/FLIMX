@@ -85,40 +85,14 @@ classdef FLIMX < handle
                 params = 0;
             end
             this.fdt.setDataSmoothFilter(alg,params);
-%             this.sDDMgr = sddMgr(this,fullfile(cd,'simData')); %replace with path from config?!
-%             %make high level objects
-%             this.fitObj = FluoDecayFit(this);
-%             this.FLIMFitGUI = FLIMXFitGUI(this);
-%             this.FLIMVisGUIObj = FLIMXVisGUI(this);
-%             this.studyMgrGUIObj = studyMgr(this,fullfile(cd,'studyData')); %replace with path from config?!
-%             this.batchMgrObj = batchJobMgr(this,fullfile(cd,'batchJobData')); %replace with path from config?!
-%             this.batchMgrGUIObj = batchJobMgrGUI(this);
-%             this.importGUIObj = importWizard(this);
             %load a subject
             subs = this.fdt.getSubjectsNames('Default','-');
             if(isempty(subs))
                 %todo: generate a dummy subject with simulated data
-                %this.curSubject = this.fdt.getSubject4Import('Default','example_subject');
                 this.setCurrentSubject('Default','-','');
             else
-                %this.curSubject = this.fdt.getSubject4Approx('Default',subs{1});
                 this.setCurrentSubject('Default','-',subs{1});
             end
-%             this.newSDTFile('');
-%             %default to 1024 time channels at startup -> check if currently selected IRF has 1024 time channels
-%             if(isempty(this.irfMgr.getCurIRF(1)))
-%                 [~,mask] = this.irfMgr.getIRFNames(1024);
-%                 if(~isempty(mask))
-%                     basicFit = this.paramMgr.getParamSection('basic_fit');
-%                     basicFit.curIRFID = mask(1);
-%                     this.paramMgr.setParamSection('basic_fit',basicFit,true);
-%                 end
-%             end
-%             this.paramMgr.setFLIMXHandle(this);
-%             this.paramMgr.setFluoFileHandle(this.curFluoFile);
-%             this.paramMgr.setFDTHandle(this.fdt);
-%             this.paramMgr.setFitGUIHandle(this.FLIMFitGUI);
-%             this.paramMgr.setFLIMVisGUIHandle(this.FLIMVisGUI);
             this.openMatlabPool();
         end
         
@@ -207,25 +181,7 @@ classdef FLIMX < handle
             %config file path
             out = fullfile(cd,'config','config.ini');
         end
-        
-         
-%         FLIMfitGUI = [];     %visualization of approximation        
-%         FLIMVisGUI = []; %extended visualization and statistics
-%         studyMgrGUI = [];%manager for subject studies
-%         IRFMgrGUI = [];  %GUI to handle IRF access
-%         batchMgrGUI = [];%batch job manager GUI
-%         importGUI = [];
-%         
-%         this.sDDMgr = sddMgr(this,fullfile(cd,'simData')); 
-%             %make high level objects
-%             this.fitObj = FluoDecayFit(this);
-%             this.FLIMFitGUI = FLIMXFitGUI(this);
-%             this.FLIMVisGUI = FLIMXVisGUI(this);
-%             this.studyMgrGUIObj = studyMgr(this,fullfile(cd,'studyData')); %replace with path from config?!
-%             this.batchMgrObj = batchJobMgr(this,fullfile(cd,'batchJobData')); %replace with path from config?!
-%             this.batchMgrGUIObj = batchJobMgrGUI(this);
-%             this.importGUIObj = importWizard(this);
-        
+                
         function out = get.FLIMFit(this)
             %get FLIMFit object
             if(isempty(this.FLIMFitObj))
