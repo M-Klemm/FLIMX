@@ -328,9 +328,9 @@ classdef FStudy < handle
                 return
             end
             %subject.setResultROICoordinates(dType,ROIType,ROICoord);
-            if(subject.getGlobalScale(dType))
+%             if(subject.getGlobalScale(dType))
                 this.myStudyInfoSet.setResultROICoordinates(subjectID,ROIType,ROICoord);
-            end
+%             end
             this.clearObjMerged();
             this.clearClusters(subjectID,dType,dTypeNr);
         end
