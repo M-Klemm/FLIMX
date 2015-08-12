@@ -164,6 +164,7 @@ classdef FDataNormal < FData
                 out = [];                                
                 return
             end
+            this.clearCachedImage();
             %cut ROI
             ci = this.getImgSeg(this.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIInvertFlag,this.getFileInfoStruct());
             if(this.sType == 2)
