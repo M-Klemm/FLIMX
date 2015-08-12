@@ -43,12 +43,12 @@ args=cell(varargin);
 nu=numel(args);
 if isempty(nu)
     error('Warning: almost the data matrix is required')
-elseif nu>4
-    error('Warning: Max four input data are required')
+elseif nu>5
+    error('Warning: Max five input data are required')
 end
-default.values = {[],0,0.05,1};
+default.values = {[],0,0.05,1,1};
 default.values(1:nu) = args;
-[x threshold alpha verbose] = deal(default.values{:});
+[x, threshold, alpha, verbose, totalPixel] = deal(default.values{:});
 if isvector(x)
     error('Warning: X must be a matrix')
 end
@@ -275,10 +275,19 @@ try
 %             disp('http://www.mathworks.com/matlabcentral/fileexchange/12705')
 %         end
 %     end
-    tmp = cell(size(cutOffData.tableData,1)+2,1);
-    tmp(1,1) = {sprintf('Cut off threshold: %02.2f', co)};
-    tmp(2,1) = {sprintf('Area under curve (AUC): %02.2f', Area)};
-    tmp(3:end,1) = cutOffData.tableData;
+    
+    mPat = mean(x(logical(x(:,2)),1));
+    mCtrl= mean(x(~logical(x(:,2)),1));
+    if(mPat > mCtrl)
+        str = 'more';
+    else
+        str = 'less';
+    end
+    tmp = cell(size(cutOffData.tableData,1)+3,1);
+    tmp(1,1) = {sprintf('Subjects with %s than %02.1f pixels (%02.2f%%) out of %d are considered pathologic.',str,co,co/totalPixel*100,totalPixel)};
+    tmp(2,1) = {sprintf('Cut off threshold: %02.1f', co)};
+    tmp(3,1) = {sprintf('Area under curve (AUC): %02.2f', Area)};
+    tmp(4:end,1) = cutOffData.tableData;
     cutOffData.tableData = tmp;    
 %else
 catch

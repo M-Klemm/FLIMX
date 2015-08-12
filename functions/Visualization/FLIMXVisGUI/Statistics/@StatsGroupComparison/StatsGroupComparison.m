@@ -774,7 +774,10 @@ classdef StatsGroupComparison < handle
                 rocdata(1:size(patients,1),1) = patients(:,histClass);
                 rocdata(1:size(patients,1),2) = ones(size(patients,1),1);
                 rocdata(size(patients,1)+1:end,1) = healthy(:,histClass);
-                this.rocData = roc(rocdata,[],[],false);
+                stats = this.visObj.fdt.getStudyStatistics(this.study1,this.view1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,false);
+                %we simply use the ROI size of the last subject, which might be wrong, as subjects are not checked to have identical ROI sizes yet
+                %also, it is quite expensive to calculate the study statistics only to get the ROI size
+                this.rocData = roc(rocdata,[],[],false,stats(1,end));
             end
         end
         
