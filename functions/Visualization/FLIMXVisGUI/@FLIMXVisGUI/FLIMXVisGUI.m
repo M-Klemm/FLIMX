@@ -347,7 +347,7 @@ classdef FLIMXVisGUI < handle
             %colorbar
             this.updateColorbar();                               
             %arithmetic images
-            this.objHandles.AI.updateCtrls();
+            this.objHandles.AI.updateCtrls();            
         end %setupGUI
         
         function updateGUI(this,side)
@@ -414,6 +414,20 @@ classdef FLIMXVisGUI < handle
                     set(this.visHandles.(sprintf('IO_%s_dec_button',s)),'Enable','On');
                 end
             end %for j=1:length(side)
+            %
+            setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.cm_axes,false);
+            setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.supp_l_axes,false);
+            setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.supp_r_axes,false);
+            if(this.getROIDisplayMode('l') < 3)
+                setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.main_l_axes,false);
+            else
+                setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.main_l_axes,true);
+            end
+            if(this.getROIDisplayMode('r') < 3)
+                setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.main_r_axes,false);
+            else
+                setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.main_r_axes,true);
+            end
         end %updateGUI
         
         function updateShortProgressbar(this,x,text)
@@ -919,9 +933,9 @@ classdef FLIMXVisGUI < handle
                     set(this.visHandles.cp_l_val_text,'Visible','off');
                     set(this.visHandles.cp_r_val_text,'Visible','off');
                     set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonDown','');
-                    set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonUpFcn','');%WindowButtonUpFcn
+                    set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonUpFcn','');
                     set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonMotionFcn','');
-                    set(this.visHandles.hrotate3d, 'Enable','on','ActionPostCallback',{@FLIMXVisGUI.rotate_postCallback,this});                                        
+%                     set(this.visHandles.hrotate3d,'Enable','on','ActionPostCallback',{@FLIMXVisGUI.rotate_postCallback,this});
                 case 1
                     set(this.visHandles.cp_l_desc_text,'Visible','on');
                     set(this.visHandles.cp_r_desc_text,'Visible','on');
@@ -929,10 +943,10 @@ classdef FLIMXVisGUI < handle
                     set(this.visHandles.cp_r_pos_text,'Visible','on');
                     set(this.visHandles.cp_l_val_text,'Visible','on');
                     set(this.visHandles.cp_r_val_text,'Visible','on');
-                    set(this.visHandles.hrotate3d, 'Enable','off','ActionPostCallback',{@FLIMXVisGUI.rotate_postCallback,this});
+%                     set(this.visHandles.hrotate3d,'Enable','off','ActionPostCallback',{@FLIMXVisGUI.rotate_postCallback,this});
                     set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonDown',@this.GUI_mouseButtonDown_Callback);
                     set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
-                    set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);                    
+                    set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
             end
         end
         
@@ -962,28 +976,32 @@ classdef FLIMXVisGUI < handle
             end
             lastUpdate = tNow;
             cp = this.objHandles.ldo.getMyCP();
-            tS = 'l'; %this side
-            oS = 'r'; %other side
+            thisSide = 'l'; %this side
+            otherSide = 'r'; %other side
             if(isempty(cp))
                 cp = this.objHandles.rdo.getMyCP();
-                tS = 'r';
-                oS = 'l';
+                thisSide = 'r';
+                otherSide = 'l';
+            end
+            if(isempty(cp))
+                inFunction = []; %enable callback
+                return
             end
             %draw current point in both (empty cp deletes old lines)
             this.objHandles.ldo.drawCP(cp);
             this.objHandles.rdo.drawCP(cp);
-            if(isempty(cp))
+            if(isempty(cp) && this.getROIDisplayMode(thisSide) < 3)
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-            else
+            elseif(~isempty(cp) && this.getROIDisplayMode(thisSide) < 3)
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
                 if(this.dynParams.mouseButtonDown)% && this.getROIType(s) == 2)
-                    this.objHandles.(sprintf('%sdo',tS)).drawROI(this.getROIType(tS),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
-                    if(strcmp(this.getStudy(tS),this.getStudy(oS)) && strcmp(this.getSubject(tS),this.getSubject(oS)) && this.getROIDisplayMode(oS) == 1)
-                        this.objHandles.(sprintf('%sdo',oS)).drawROI(this.getROIType(tS),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
+                    this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
+                    if(strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
+                        this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
                     end
                     %this.objHandles.rdo.drawROI(this.getROIType(tS),flipud(cp),flipud(this.dynParams.mouseButtonDownCoord),false);
-                    if(this.getROIType(tS) >= 1)
-                        this.objHandles.(sprintf('%sROI',tS)).setEndPoint(flipud(cp),false);
+                    if(this.getROIType(thisSide) >= 1)
+                        this.objHandles.(sprintf('%sROI',thisSide)).setEndPoint(flipud(cp),false);
                     end
                 end
             end 
@@ -993,28 +1011,30 @@ classdef FLIMXVisGUI < handle
         function GUI_mouseButtonDown_Callback(this,hObject,eventdata)
             %executes on mouse button down in window
             cp = this.objHandles.ldo.getMyCP();
-            tS = 'l';
-            oS = 'r';
+            thisSide = 'l';
+            otherSide = 'r';
             if(isempty(cp))
                 cp = this.objHandles.rdo.getMyCP();
-                tS = 'r';
-                oS = 'l';
+                thisSide = 'r';
+                otherSide = 'l';
             end
-            if(this.getROIType(tS) < 1)
+            if(this.getROIType(thisSide) < 1)
                 return
             end            
             if(isempty(cp))
                 %set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-            else
+            elseif(this.getROIDisplayMode(thisSide) < 3)
                 this.dynParams.mouseButtonDown = true;
                 this.dynParams.mouseButtonDownCoord = cp;
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
-                this.objHandles.(sprintf('%sROI',tS)).setStartPoint(flipud(cp));
+                this.objHandles.(sprintf('%sROI',thisSide)).setStartPoint(flipud(cp));
+            else
+                return
             end
             %draw current point in both (empty cp deletes old lines)
-            this.objHandles.(sprintf('%sdo',tS)).drawROI(this.getROIType(tS),flipud(cp),flipud(cp),false);
-            if(strcmp(this.getStudy(tS),this.getStudy(oS)) && strcmp(this.getSubject(tS),this.getSubject(oS)) && this.getROIDisplayMode(oS) == 1)
-                this.objHandles.(sprintf('%sdo',oS)).drawROI(this.getROIType(tS),flipud(cp),flipud(cp),false);
+            this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(cp),flipud(cp),false);
+            if(strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
+                this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(cp),flipud(cp),false);
             end
         end
         
@@ -1033,7 +1053,7 @@ classdef FLIMXVisGUI < handle
             this.objHandles.rdo.drawCP(cp);
             if(isempty(cp))
                 %set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-            else
+            elseif(this.getROIDisplayMode(thisSide) < 3)
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
                 %[dType, id] = this.getFLIMItem(s);
                 if(this.getROIType(thisSide) >= 1)
@@ -1113,9 +1133,9 @@ classdef FLIMXVisGUI < handle
                 s = 'l';
             end                       
             this.updateGUI(s);
-            this.objHandles.(sprintf('%sdo',s)).sethfdMain([]);
-            this.objHandles.(sprintf('%sROI',s)).updateGUI([]);
-            this.objHandles.(sprintf('%sdo',s)).updatePlots();            
+%             this.objHandles.(sprintf('%sdo',s)).sethfdMain([]);
+%             this.objHandles.(sprintf('%sROI',s)).updateGUI([]);
+%             this.objHandles.(sprintf('%sdo',s)).updatePlots();       
         end
         
         function GUI_mainAxesVarPop_Callback(this,hObject,eventdata)
@@ -1136,8 +1156,9 @@ classdef FLIMXVisGUI < handle
             end
             if(this.fdt.getNrSubjects(this.getStudy(s),this.getView(s)) < 1)
                 return
-            end
-            this.objHandles.(sprintf('%sdo',s)).updatePlots();
+            end            
+            %this.objHandles.(sprintf('%sdo',s)).updatePlots();  
+            this.updateGUI([]);
         end
         
         function GUI_mainAxesChPop_Callback(this,hObject,eventdata)
@@ -1178,8 +1199,9 @@ classdef FLIMXVisGUI < handle
             else
                 this.objHandles.(sprintf('cut%s',ax)).sliderCallback();
             end
-            this.objHandles.rdo.updatePlots();
-            this.objHandles.ldo.updatePlots();
+            this.updateGUI([]);
+%             this.objHandles.rdo.updatePlots();
+%             this.objHandles.ldo.updatePlots();
         end
                                 
         function GUI_roi_Callback(this,hObject,eventdata)
@@ -1527,8 +1549,11 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.IO_l_edit,'Callback',@this.GUI_intOverlay_Callback);
             set(this.visHandles.IO_r_edit,'Callback',@this.GUI_intOverlay_Callback);
                     
-            this.visHandles.hrotate3d = rotate3d(this.visHandles.FLIMXVisGUIFigure);
-            set(this.visHandles.hrotate3d, 'Enable','on','ActionPostCallback',{@FLIMXVisGUI.rotate_postCallback,this});
+            this.visHandles.hrotate3d = rotate3d(this.visHandles.FLIMXVisGUIFigure);%this.visHandles.main_l_axes
+            set(this.visHandles.hrotate3d,'Enable','on','ActionPostCallback',{@FLIMXVisGUI.rotate_postCallback,this});            
+            %this.visHandles.hrotate3d_r = rotate3d(this.visHandles.main_r_axes);%
+%             set(this.visHandles.hrotate3d_l,'Enable','off','ActionPostCallback',{@FLIMXVisGUI.rotate_postCallback,this});
+            
             %setup study controls
             set(this.visHandles.study_l_pop,'Callback',@this.GUI_studySet_Callback);
             set(this.visHandles.study_r_pop,'Callback',@this.GUI_studySet_Callback);
@@ -1543,13 +1568,14 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.cancel_button,'Callback',@this.GUI_cancelButton_Callback);
             xpatch = [0 0 0 0];
             ypatch = [0 0 1 1];
-            setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.short_progress_axes,false);
+%             setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.short_progress_axes,false);
+%             setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.short_progress_axes,true);
             axis(this.visHandles.short_progress_axes ,'off');            
             xlim(this.visHandles.short_progress_axes,[0 100]);
             ylim(this.visHandles.short_progress_axes,[0 1]);
             this.visHandles.patch_short_progress = patch(xpatch,ypatch,'m','EdgeColor','m','Parent',this.visHandles.short_progress_axes);%,'EraseMode','normal'
             this.visHandles.text_short_progress = text(1,0,'','Parent',this.visHandles.short_progress_axes);
-            setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.long_progress_axes,false);
+%             setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.long_progress_axes,false);
             axis(this.visHandles.long_progress_axes ,'off');
             xlim(this.visHandles.long_progress_axes,[0 100]);
             ylim(this.visHandles.long_progress_axes,[0 1]);
@@ -1566,10 +1592,11 @@ classdef FLIMXVisGUI < handle
             this.objHandles.AI = AICtrl(this); %arithmetic image
             this.objHandles.movObj = exportMovie(this);
                         
-            this.clearAxes([]);                       
+            this.clearAxes([]);
             this.setupPopUps([]);
             this.setupGUI();
-            this.updateGUI([]); 
+            this.updateGUI([]);
+            setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.main_l_axes,false);
         end   
     end %methods protected   
     
