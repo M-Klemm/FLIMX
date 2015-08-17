@@ -328,9 +328,9 @@ classdef FStudy < handle
                 return
             end
             %subject.setResultROICoordinates(dType,ROIType,ROICoord);
-            if(subject.getGlobalScale(dType))
+%             if(subject.getGlobalScale(dType))
                 this.myStudyInfoSet.setResultROICoordinates(subjectID,ROIType,ROICoord);
-            end
+%             end
             this.clearObjMerged();
             this.clearClusters(subjectID,dType,dTypeNr);
         end
@@ -1244,17 +1244,30 @@ classdef FStudy < handle
                         if(isempty(start))
                             start = find(cTemp == centers(1));                            
                             if(isempty(start))
-                                
+                                cw = getHistParams(this.getStatsParams(),dType,id);
+                                if(min(cTemp(:)) > max(centers(:)))
+                                    centers = centers(1):cw:cTemp(end);
+                                    start = find(centers == cTemp(1));
+                                    histTemp2 = zeros(length(hg),length(centers));
+                                    histTemp2(:,1:size(histTable,2)) = histTable;
+                                    histTemp2(i,start:start+length(histTemp)-1) = histTemp;
+                                else
+                                    centers = cTemp(1):cw:centers(end);
+                                    histTemp2 = zeros(length(hg),length(centers));
+                                    histTemp2(:,end-size(histTable,2)+1:end) = histTable;
+                                    histTemp2(i,1:length(histTemp)) = histTemp;
+                                end                                
+                                histTable = histTemp2; 
                             else
                                 cTemp(start:start+length(centers)-1) = centers;
                                 centers = cTemp;
                                 histTemp2 = zeros(length(hg),length(centers));
                                 histTemp2(:,start:start+size(histTable,2)-1) = histTable;
-                                histTemp2(i,1:length(histTemp)) = histTemp;%hg{i}.getCIHistStrict();
+                                histTemp2(i,1:length(histTemp)) = histTemp;
                                 histTable = histTemp2;                                
                             end                            
                         else
-                            histTable(i,start:start+length(cTemp)-1) = histTemp;%hg{i}.getCIHistStrict();
+                            histTable(i,start:start+length(cTemp)-1) = histTemp;
                             centers(start:start+length(cTemp)-1) = cTemp;                            
                         end                        
                     end

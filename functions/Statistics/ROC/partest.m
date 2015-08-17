@@ -348,7 +348,7 @@ out.diagrams.rect3y = [0 0 fp(1) fp(1)];
 out.diagrams.rect4x = xg(1)+[0 xg(2) xg(2) 0];
 out.diagrams.rect4y = [0 0 SS(2) SS(2)];
 out.diagrams.rose = [fp(2) SS(1) fp(1) SS(2)];
-out.diagrams.legend = {'False Positive','True Positive (Sensibility)','False Negative','True Negative (Specificity)'};
+out.diagrams.legend = {'False Positive','True Positive (Sensitivity)','False Negative','True Negative (Specificity)'};
 
 %The rose plot is a variation of the common pie chart. For both, we have k data
 %points where each point denotes a frequency or a count. Pie charts and rose
