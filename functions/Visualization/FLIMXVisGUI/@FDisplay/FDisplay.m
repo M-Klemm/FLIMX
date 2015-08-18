@@ -178,8 +178,10 @@ classdef FDisplay < handle
             hfd = this.gethfd();
             dim = this.mDispDim;
             if(isempty(hfd{1}) || length(hfd) > 1 || dim > 2)
+                set(this.h_CPPosTxt,'String','|');
+                set(this.h_CPValTxt,'String','');
                 return
-            end  
+            end
             hfd = hfd{1};
             cp=fix(cp+0.52);            
             if(dim == 1)
@@ -680,9 +682,6 @@ classdef FDisplay < handle
                                 this.drawROI(ROIType,ROICoord(:,1),ROICoord(:,2),true);
                             end
                         end
-                        if(~this.screenshot)
-                            setAllowAxesRotate(this.visObj.visHandles.hrotate3d,hAx,false);
-                        end
                         %save for export
                         %this.mainExportGfx = current_img;
                     case 3 %3D plot
@@ -851,9 +850,6 @@ classdef FDisplay < handle
                         else
                             grid(hAx,'off');
                         end
-                        if(~this.screenshot)
-                            setAllowAxesRotate(this.visObj.visHandles.hrotate3d,hAx,true);
-                        end
                         if(nrFD > 1)
                             hold(hAx,'on');
                         end
@@ -863,6 +859,13 @@ classdef FDisplay < handle
             shading(hAx,sVisParam.shading);
             if(nrFD > 1)
                 hold(hAx,'off');
+            end
+            if(~this.screenshot)
+                if(dispDim == 3)
+                    setAllowAxesRotate(this.visObj.visHandles.hrotate3d,this.h_m_ax,true);
+                else
+                    setAllowAxesRotate(this.visObj.visHandles.hrotate3d,this.h_m_ax,false);
+                end
             end
         end %makeMainPlot
           
@@ -977,9 +980,6 @@ classdef FDisplay < handle
                         end
                         set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,...
                             'XTickLabel',num2str(centers(xtick)','%.1f'));
-                        if(~this.screenshot)
-                            setAllowAxesRotate(this.visObj.visHandles.hrotate3d,this.h_s_ax,false);
-                        end
                     else %nothing to do
                         cla(this.h_s_ax);
                         axis(this.h_s_ax,'off');
@@ -1128,9 +1128,6 @@ classdef FDisplay < handle
                                 grid(this.h_s_ax,'off');
                             end
                             set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color);
-                            if(~this.screenshot)
-                                setAllowAxesRotate(this.visObj.visHandles.hrotate3d,this.h_s_ax,false);
-                            end
                             %get offset for next iteration
                             if(this.staticVisParams.offset_sc)
                                 %distribute plots equaly among axes
@@ -1169,6 +1166,9 @@ classdef FDisplay < handle
             end
             if(nrFD > 1)
                 hold(this.h_s_ax,'off');
+            end
+            if(~this.screenshot)
+                setAllowAxesRotate(this.visObj.visHandles.hrotate3d,this.h_s_ax,false);
             end
         end %makeSuppPlot
         
