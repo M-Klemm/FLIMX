@@ -74,8 +74,8 @@ classdef FLIMX < handle
             warning('off','parallel:gpu:DeviceCapabiity');
             %make lower level objects
             this.paramMgr = FLIMXParamMgr(this,FLIMX.getVersionInfo());
-            this.irfMgr = IRFMgr(this,fullfile(cd,'data')); 
-            this.fdt = FDTree(this,cd); %replace with path from config?!
+            this.irfMgr = IRFMgr(this,fullfile(FLIMX.getWorkingDir(),'data')); 
+            this.fdt = FDTree(this,FLIMX.getWorkingDir()); %replace with path from config?!
             fp = this.paramMgr.getParamSection('filtering');
             if(fp.ifilter)
                 alg = fp.ifilter_type;
@@ -114,7 +114,7 @@ classdef FLIMX < handle
                 %start local matlab workers
                 hwb = waitbar(0,sprintf('Trying to open pool of Matlab workers - \nthis may take some time.\n\nMatlab pool workers can be disabled in Settings -> Computation'));
                 try                    
-                    p = parpool('local'); 
+                    p = parpool('local',feature('numCores')); 
                     waitbar(1,hwb,'Trying to open pool of Matlab workers - done');  
                     %p.IdleTimeout = 0;
                 catch ME
@@ -179,7 +179,7 @@ classdef FLIMX < handle
         %% output methods
         function out = get.configPath(this)
             %config file path
-            out = fullfile(cd,'config','config.ini');
+            out = fullfile(FLIMX.getWorkingDir(),'config','config.ini');
         end
                 
         function out = get.FLIMFit(this)
@@ -193,7 +193,7 @@ classdef FLIMX < handle
         function out = get.sDDMgr(this)
             %get sDDMgr object
             if(isempty(this.sDDMgrObj))
-                this.sDDMgrObj = sddMgr(this,fullfile(cd,'simData')); %replace with path from config?!
+                this.sDDMgrObj = sddMgr(this,fullfile(FLIMX.getWorkingDir(),'simData')); %replace with path from config?!
             end
             out = this.sDDMgrObj;
         end
@@ -201,7 +201,7 @@ classdef FLIMX < handle
         function out = get.batchJobMgr(this)
             %get batchJobMgr object
             if(isempty(this.batchJobMgrObj))
-                this.batchJobMgrObj = batchJobMgr(this,fullfile(cd,'batchJobData')); %replace with path from config?!
+                this.batchJobMgrObj = batchJobMgr(this,fullfile(FLIMX.getWorkingDir(),'batchJobData')); %replace with path from config?!
             end
             out = this.batchJobMgrObj;
         end
@@ -225,7 +225,7 @@ classdef FLIMX < handle
         function out = get.studyMgrGUI(this)
             %get studyMgrGUI object
             if(isempty(this.studyMgrGUIObj))
-                this.studyMgrGUIObj = studyMgr(this,fullfile(cd,'studyData')); %replace with path from config?!
+                this.studyMgrGUIObj = studyMgr(this,fullfile(FLIMX.getWorkingDir(),'studyData')); %replace with path from config?!
             end
             out = this.studyMgrGUIObj;
         end        
@@ -317,12 +317,30 @@ classdef FLIMX < handle
     end %methods
     
     methods(Static)
+        function out = getWorkingDir()
+            %get current FLIMX working directory
+            persistent myDir
+            if(isempty(myDir))
+                myDir = fileparts(which('FLIMXLauncher.m'));
+            end
+            out = myDir;
+        end
+        
+        function out = getAnimationPath()
+            %get path to animated spinner.gif
+            persistent myDir
+            if(isempty(myDir))
+                myDir = which('spinner.gif');
+            end
+            out = myDir;
+        end
+        
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
-            out.config_revision = 248;
-            out.client_revision = 321;
-            out.core_revision = 345;
+            out.config_revision = 249;
+            out.client_revision = 322;
+            out.core_revision = 346;
             out.results_revision = 256;
             out.measurement_revision = 203;
         end
