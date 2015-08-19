@@ -497,20 +497,21 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             exponentials(:,:,idxIgnored) = 0;
             %help optimizer to get shift right, if we are too far off             
             %[~, chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,tmp,[false; ~idxIgnored],this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
-            %compute model FWHM positions
-            [~,fwhmPos] = max(bsxfun(@gt,model(:,~idxIgnored),max(model(:,~idxIgnored),[],1)*0.8),[],1);  
-            d = abs(bsxfun(@minus,fwhmPos,this.myChannels{ch}.dFWHMPos));            
-            idxHit = d > 5;
-            %idxHit = idxd < 0;
-            if(any(idxHit))
-                idxNum = find(~idxIgnored);
-                idxNum = idxNum(idxHit);
-                idxIgnored(idxNum) = true;
-                chi2(idxNum) = d(idxHit).*10000;
-            end 
-            if(all(idxIgnored == true))
-                chi2tail = chi2;
-                return
+            if(bp.approximationTarget == 1 || ch > 1) %only for fluorescence lifetime
+                %compute model FWHM positions
+                [~,fwhmPos] = max(bsxfun(@gt,model(:,~idxIgnored),max(model(:,~idxIgnored),[],1)*0.8),[],1);
+                d = abs(bsxfun(@minus,fwhmPos,this.myChannels{ch}.dFWHMPos));
+                idxHit = d > bp.risingEdgeErrorMargin;
+                if(any(idxHit))
+                    idxNum = find(~idxIgnored);
+                    idxNum = idxNum(idxHit);
+                    idxIgnored(idxNum) = true;
+                    chi2(idxNum) = d(idxHit).*10000;
+                end
+                if(all(idxIgnored == true))
+                    chi2tail = chi2;
+                    return
+                end
             end
             %ensure tci components are earlier on the time axis compared to the other components
             vcp = this.getVolatileChannelParams(ch);
@@ -570,11 +571,6 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             elseif(nargout == 5 && bp.fitModel ~= 1)
                 chi2tail(~idxIgnored) = chi2(~idxIgnored);
             end
-%             %make sure tau1 is not zero
-%             if(this.getVolatileChannelParams(ch).cMask(1) ~= 1)
-%                 idx = amps(1,:) < eps('single');
-%                 chi2(idx) = inf;
-%             end
         end
         
         function [rs, nonLinBounds, iVec] = makeDataPreProcessing(this,allInitVec)

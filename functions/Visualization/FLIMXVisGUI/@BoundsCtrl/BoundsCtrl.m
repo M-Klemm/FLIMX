@@ -32,14 +32,12 @@ classdef BoundsCtrl < handle
     % @brief    A class to handle UI controls for parameter bounds in FLIMXVisGUI's statistics options GUI
     %
     properties(SetAccess = protected,GetAccess = public)
-        
-    end
-    properties(SetAccess = protected,GetAccess = protected)
         myParent = [];
         myTarget = [];
         myQuantization = 0; %0: no quantization
-        myBoundsValues = [0 100]; %typical (soft) or hard bounds
-        myBoundsFlags = [0 0]; %1: hard bound, 0: soft bound
+        myBoundsValues = [0; 100]; %typical (soft) or hard bounds
+        myBoundsFlags = [0; 0]; %1: hard bound, 0: soft bound
+        currentChannel = 1;
         
         isInitialized = false; %true if handles are set
         lo_dec_button = [];
@@ -49,7 +47,10 @@ classdef BoundsCtrl < handle
         hi_inc_button = [];
         hi_edit = [];
         check = [];
-        text = [];        
+        text = []; 
+    end
+    properties(SetAccess = protected,GetAccess = protected)
+               
     end
 
     methods        
@@ -59,14 +60,19 @@ classdef BoundsCtrl < handle
             this.myTarget = target;
         end
         
+        function setCurrentChannel(this,val)
+            %set current channel (no checks of value yet)
+            this.currentChannel = max(1,abs(val));
+        end
+        
         function this = setBounds(this,values)
             %set bounds
-            if(length(values) ~= 2)
+            if(size(values,1) ~= 2)
                 return
             end
             this.myBoundsValues = values;
-            set(this.lo_edit,'String',num2str(values(1)));
-            set(this.hi_edit,'String',num2str(values(2)));
+            set(this.lo_edit,'String',num2str(values(1,1)));
+            set(this.hi_edit,'String',num2str(values(2,1)));
             this.updateCtrls();
         end
         
@@ -82,15 +88,12 @@ classdef BoundsCtrl < handle
         
         function setQuantization(this,quant)
             %set quantization
+            if(length(quant) ~= size(this.myBoundsValues,2))
+                quant = repmat(quant,1,size(this.myBoundsValues,2));
+            end
             this.myQuantization = quant;
             this.updateCtrls();
         end
-                
-        function this = SOHistLim(parent,target)
-            % Constructor for SOHistLim.
-            this.myParent = parent;
-            this.myTarget = target;
-        end  
         
         function check_Callback(this,hObject,eventdata)
             %callback function of the check control
@@ -154,12 +157,12 @@ classdef BoundsCtrl < handle
                 return;
             end
             %disable buttons if currently at min/ max 
-            if(cMin == gMin && this.myBoundsFlags(1))
+            if(cMin == gMin && this.myBoundsFlags(1,this.currentChannel))
                 set(this.l_dec_button,'Enable','off');
             else
                 set(this.lo_dec_button,'Enable','on');
             end
-            if(gMax == cMax && this.myBoundsFlags(2))
+            if(gMax == cMax && this.myBoundsFlags(2,this.currentChannel))
                 set(this.hi_inc_button,'Enable','off');
             else
                 set(this.hi_inc_button,'Enable','on');
@@ -178,8 +181,8 @@ classdef BoundsCtrl < handle
             flag = get(this.check,'Value');
             cMin = str2double(get(this.lo_edit,'String'));
             cMax = str2double(get(this.hi_edit,'String'));
-            gMin = this.myBoundsValues(1);
-            gMax = this.myBoundsValues(2);               
+            gMin = this.myBoundsValues(1,this.currentChannel);
+            gMax = this.myBoundsValues(2,this.currentChannel);               
         end
         
         function enDisAble(this,arg)
@@ -227,8 +230,8 @@ classdef BoundsCtrl < handle
         function out = incMin(this)
             %increase lower bound
             [cMin, ~, gMin, gMax] = this.getCurVals();
-            if(this.myQuantization)
-                out = cMin+this.myQuantization;
+            if(this.myQuantization(this.currentChannel))
+                out = cMin+this.myQuantization(this.currentChannel);
             else
                 if(gMax < 1)
                     %B&H amplitudes
@@ -242,8 +245,8 @@ classdef BoundsCtrl < handle
         function out = decMin(this)
             %decrease lower bound
             [cMin, ~, gMin, gMax] = this.getCurVals();
-            if(this.myQuantization)
-                out = cMin-this.myQuantization;
+            if(this.myQuantization(this.currentChannel))
+                out = cMin-this.myQuantization(this.currentChannel);
             else
                 if(gMax < 1)
                     %B&H amplitudes
@@ -257,8 +260,8 @@ classdef BoundsCtrl < handle
         function out = incMax(this)
             %increase lower bound
             [~, cMax, gMin, gMax] = this.getCurVals();
-            if(this.myQuantization)
-                out = cMax+this.myQuantization;
+            if(this.myQuantization(this.currentChannel))
+                out = cMax+this.myQuantization(this.currentChannel);
             else
                 if(gMax < 1)
                     %B&H amplitudes
@@ -272,8 +275,8 @@ classdef BoundsCtrl < handle
         function out = decMax(this)
             %decrease lower bound
             [~, cMax, gMin, gMax] = this.getCurVals();
-            if(this.myQuantization)
-                out = cMax-this.myQuantization;
+            if(this.myQuantization(this.currentChannel))
+                out = cMax-this.myQuantization(this.currentChannel);
             else
                 if(gMax < 1)
                     %B&H amplitudes
@@ -295,7 +298,7 @@ classdef BoundsCtrl < handle
                     if(val >= cMax) %overflow
                         val = cMax-(gMax-gMin)*0.05;
                     end
-                    if(this.myBoundsFlags(1) && val > gMin)
+                    if(this.myBoundsFlags(1,this.currentChannel) && val > gMin)
                         val = gMin;
                     end
                     %if(this.myQuantization)
@@ -305,11 +308,11 @@ classdef BoundsCtrl < handle
                     if(val <= cMin) %underflow
                         val = cMin+(gMax-gMin)*0.05;
                     end
-                    if(this.myBoundsFlags(2) && val > gMax)
+                    if(this.myBoundsFlags(2,this.currentChannel) && val > gMax)
                         val = gMax;
                     end
-                    if(this.myQuantization)
-                        val = checkQuantization(val,this.myQuantization,cMin);
+                    if(this.myQuantization(this.currentChannel))
+                        val = checkQuantization(val,this.myQuantization(this.currentChannel),cMin);
                     end
             end
         end

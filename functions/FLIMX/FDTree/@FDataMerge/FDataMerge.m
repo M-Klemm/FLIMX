@@ -67,6 +67,18 @@ classdef FDataMerge < FData
             this.clearCachedImage();
         end
         
+        function out = getFullImage(this)
+            %get raw image with respect to linear/log scaling
+            out = this.rawImage;
+            scaling = this.sType;
+            %scale to log
+            if(scaling == 2)
+                out = log10(abs(out)); %turn negative values positive
+                out(isinf(out)) = 0;
+            end
+            %don't filter
+        end
+        
         function out = getROIImage(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
             %get cached image
             out = this.rawImage;

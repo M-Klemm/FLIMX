@@ -53,19 +53,16 @@ if(isdeployed())
     for i = 1:nrPixels
         apObjs{i}.volatilePixelParams.compatibleGPUs = GPUList;
     end 
-%     if(isempty(ini))
-%         ini = paramMgr.ini2struct(fullfile('config','config.ini'));
-%     end
     if(apObjs{1}.computationParams.useMatlabDistComp > 0)
         %check if matlabpool is open
         if(isempty(gcp('nocreate')))
-            parpool('local');
+            try
+                parpool('local',feature('numCores'));
+            catch
+                parpool('local');
+            end
         end
     end
-% else
-%     if(isempty(ini))
-%         ini = paramMgr.ini2struct(fullfile(cd,'config','config.ini'));
-%     end
 end
 for i = 1:nrPixels
     apObjs{i}.checkGPU;

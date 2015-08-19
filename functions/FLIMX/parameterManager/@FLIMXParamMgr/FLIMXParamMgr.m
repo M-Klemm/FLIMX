@@ -215,6 +215,15 @@ classdef FLIMXParamMgr < paramMgr
                     ini_isdirty = true;
                 end
                 
+                if(ini.about.config_revision < 250)
+                    if(isfield(ini,'statistics')) %add a second channel to statistics parameters
+                        fn = fieldnames(ini.statistics);
+                        for i=1:length(fn)
+                            ini.statistics.(fn{i}) = repmat(ini.statistics.(fn{i}),1,2);
+                        end
+                    end
+                end
+                
                 if(ini_isdirty || ini.about.client_revision < this.about.client_revision || ini.about.config_revision < this.about.config_revision)
                     %generic version mismatch
                     ini = rmfield(ini,{'about'});

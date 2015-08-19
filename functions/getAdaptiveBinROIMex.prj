@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.matlabcoder" plugin-version="R2014a_nu">
-  <configuration build-checksum="3813318084" file="D:\Matthias Klemm\Promotion\software\FLIMX_trunk\functions\getAdaptiveBinROIMex.prj" location="D:\Matthias Klemm\Promotion\software\FLIMX_trunk\functions" name="getAdaptiveBinROIMex" target="target.matlab.coder" target-name="MEX, C, and C++ Code Generation">
+  <configuration build-checksum="2417850276" file="D:\Matthias Klemm\Promotion\software\FLIMX_master\functions\getAdaptiveBinROIMex.prj" location="D:\Matthias Klemm\Promotion\software\FLIMX_master\functions" name="getAdaptiveBinROIMex" target="target.matlab.coder" target-name="MEX, C, and C++ Code Generation">
     <profile key="profile.mex">
       <param.MergeInstrumentationResults>false</param.MergeInstrumentationResults>
       <param.BuiltInstrumentedMex>false</param.BuiltInstrumentedMex>
@@ -38,6 +38,7 @@
       <param.mex.GenCodeOnly>false</param.mex.GenCodeOnly>
       <param.ConstantFoldingTimeout>40000</param.ConstantFoldingTimeout>
       <param.RecursionLimit>100</param.RecursionLimit>
+      <param.ReuseLocalVariables>option.ReuseLocalVariables.NotUserDefined</param.ReuseLocalVariables>
       <param.TargetLang>option.TargetLang.C</param.TargetLang>
       <param.EchoExpressions>true</param.EchoExpressions>
       <param.InlineThreshold>10</param.InlineThreshold>
@@ -75,6 +76,7 @@
         <param.mex.GenCodeOnly />
         <param.ConstantFoldingTimeout />
         <param.RecursionLimit />
+        <param.ReuseLocalVariables />
         <param.TargetLang />
         <param.EchoExpressions />
         <param.InlineThreshold />
@@ -87,6 +89,7 @@
       </unset>
     </profile>
     <profile key="profile.c">
+      <param.RanPilSilVerification>false</param.RanPilSilVerification>
       <param.grt.GenCodeOnly>false</param.grt.GenCodeOnly>
       <param.WorkingFolder>option.WorkingFolder.Project</param.WorkingFolder>
       <param.SpecifiedWorkingFolder />
@@ -125,6 +128,7 @@
       <param.GenerateReport>true</param.GenerateReport>
       <param.GenerateCodeMetricsReport>true</param.GenerateCodeMetricsReport>
       <param.GenerateCodeReplacementReport>false</param.GenerateCodeReplacementReport>
+      <param.HighlightPotentialDataTypeIssues>false</param.HighlightPotentialDataTypeIssues>
       <param.LaunchReport>false</param.LaunchReport>
       <param.CustomSourceCode />
       <param.CustomHeaderCode />
@@ -179,9 +183,13 @@
       <param.Toolchain>Automatically locate an installed toolchain</param.Toolchain>
       <param.BuildConfiguration>Faster Builds</param.BuildConfiguration>
       <param.CustomToolchainOptions />
+      <param.CastingMode>option.CastingMode.Nominal</param.CastingMode>
+      <param.IndentStyle>option.IndentStyle.K&amp;R</param.IndentStyle>
+      <param.IndentSize>2</param.IndentSize>
       <param.ConstantFoldingTimeout>40000</param.ConstantFoldingTimeout>
       <param.RecursionLimit>100</param.RecursionLimit>
       <param.IncludeTerminateFcn>true</param.IncludeTerminateFcn>
+      <param.ReuseLocalVariables>option.ReuseLocalVariables.NotUserDefined</param.ReuseLocalVariables>
       <param.TargetLang>option.TargetLang.C</param.TargetLang>
       <param.CCompilerOptimization>option.CCompilerOptimization.Off</param.CCompilerOptimization>
       <param.CCompilerCustomOptimizations />
@@ -190,6 +198,8 @@
       <param.MakeCommand>make_rtw</param.MakeCommand>
       <param.TemplateMakefile>default_tmf</param.TemplateMakefile>
       <param.BuildToolConfiguration />
+      <param.SILDebugging>false</param.SILDebugging>
+      <param.CodeExecutionProfiling>false</param.CodeExecutionProfiling>
       <param.InlineThreshold>10</param.InlineThreshold>
       <param.InlineThresholdMax>200</param.InlineThresholdMax>
       <param.InlineStackLimit>4000</param.InlineStackLimit>
@@ -200,6 +210,7 @@
       <param.PassStructByReference>true</param.PassStructByReference>
       <param.UseECoderFeatures>true</param.UseECoderFeatures>
       <unset>
+        <param.RanPilSilVerification />
         <param.grt.GenCodeOnly />
         <param.WorkingFolder />
         <param.SpecifiedWorkingFolder />
@@ -238,6 +249,7 @@
         <param.GenerateReport />
         <param.GenerateCodeMetricsReport />
         <param.GenerateCodeReplacementReport />
+        <param.HighlightPotentialDataTypeIssues />
         <param.LaunchReport />
         <param.CustomSourceCode />
         <param.CustomHeaderCode />
@@ -291,9 +303,13 @@
         <param.Toolchain />
         <param.BuildConfiguration />
         <param.CustomToolchainOptions />
+        <param.CastingMode />
+        <param.IndentStyle />
+        <param.IndentSize />
         <param.ConstantFoldingTimeout />
         <param.RecursionLimit />
         <param.IncludeTerminateFcn />
+        <param.ReuseLocalVariables />
         <param.TargetLang />
         <param.CCompilerOptimization />
         <param.CCompilerCustomOptimizations />
@@ -302,6 +318,8 @@
         <param.MakeCommand />
         <param.TemplateMakefile />
         <param.BuildToolConfiguration />
+        <param.SILDebugging />
+        <param.CodeExecutionProfiling />
         <param.InlineThreshold />
         <param.InlineThresholdMax />
         <param.InlineStackLimit />
@@ -316,18 +334,17 @@
     <param.outputfile>${PROJECT_ROOT}\getAdaptiveBinROI_mex.mexw64</param.outputfile>
     <param.version>R2012a</param.version>
     <param.HasECoderFeatures>true</param.HasECoderFeatures>
-    <param.mex.mainhtml>D:\Matthias Klemm\Promotion\software\FLIMX_trunk\functions\codegen\mex\getAdaptiveBinROI\html\index.html</param.mex.mainhtml>
+    <param.mex.mainhtml />
     <param.grt.mainhtml />
     <param.CallGeneratedCodeFromTest>true</param.CallGeneratedCodeFromTest>
     <param.VerificationMode>option.VerificationMode.None</param.VerificationMode>
-    <param.SILDebugging>false</param.SILDebugging>
     <param.DefaultTestFile />
     <param.AutoInferDefaultFile />
     <param.AutoInferUseVariableSize>false</param.AutoInferUseVariableSize>
     <param.AutoInferUseUnboundedSize>false</param.AutoInferUseUnboundedSize>
     <param.AutoInferVariableSizeThreshold>1024</param.AutoInferVariableSizeThreshold>
     <param.AutoInferUnboundedSizeThreshold>2048</param.AutoInferUnboundedSizeThreshold>
-    <param.AnnotationChecksum>715279464</param.AnnotationChecksum>
+    <param.AnnotationChecksum>3294092846</param.AnnotationChecksum>
     <param.mex.outputfile>getAdaptiveBinROI_mex</param.mex.outputfile>
     <param.grt.outputfile>getAdaptiveBinROI</param.grt.outputfile>
     <param.artifact>option.target.artifact.mex</param.artifact>
@@ -368,6 +385,8 @@
     <param.OptimizeWholeNumbers>true</param.OptimizeWholeNumbers>
     <param.GeneratedFixedPointFileSuffix>_fixpt</param.GeneratedFixedPointFileSuffix>
     <param.PlotFunction />
+    <param.SDIPlot>false</param.SDIPlot>
+    <param.EnableCodeEfficiencyChecks>false</param.EnableCodeEfficiencyChecks>
     <param.DefaultFixedPointSignedness>option.DefaultFixedPointSignedness.Automatic</param.DefaultFixedPointSignedness>
     <unset>
       <param.outputfile />
@@ -376,7 +395,6 @@
       <param.grt.mainhtml />
       <param.CallGeneratedCodeFromTest />
       <param.VerificationMode />
-      <param.SILDebugging />
       <param.DefaultTestFile />
       <param.AutoInferDefaultFile />
       <param.AutoInferUseVariableSize />
@@ -421,6 +439,8 @@
       <param.FixedPointFunctionReplacements />
       <param.GeneratedFixedPointFileSuffix />
       <param.PlotFunction />
+      <param.SDIPlot />
+      <param.EnableCodeEfficiencyChecks />
       <param.DefaultFixedPointSignedness />
     </unset>
     <fileset.entrypoints>
@@ -434,17 +454,17 @@
             <UserDefined>true</UserDefined>
             <Complex>false</Complex>
           </Input>
-          <Input Name="roiCoord">
+          <Input Name="roiX">
             <Class>int32</Class>
-            <Size>4 x 1</Size>
+            <Size>1 x :256</Size>
             <Value />
             <InitialValue />
             <UserDefined>true</UserDefined>
             <Complex>false</Complex>
           </Input>
-          <Input Name="gridSz">
+          <Input Name="roiY">
             <Class>int32</Class>
-            <Size>1 x 1</Size>
+            <Size>1 x :256</Size>
             <Value />
             <InitialValue />
             <UserDefined>true</UserDefined>
@@ -480,11 +500,11 @@
     <fileset.testbench />
     <fileset.package />
     <build-deliverables>
-      <file location="D:\Matthias Klemm\Promotion\software\FLIMX_trunk\functions" name="getAdaptiveBinROI_mex.mexw64" optional="false">D:\Matthias Klemm\Promotion\software\FLIMX_trunk\functions\getAdaptiveBinROI_mex.mexw64</file>
+      <file location="D:\Matthias Klemm\Promotion\software\FLIMX_master\functions" name="getAdaptiveBinROI_mex.mexw64" optional="false">D:\Matthias Klemm\Promotion\software\FLIMX_master\functions\getAdaptiveBinROI_mex.mexw64</file>
     </build-deliverables>
     <workflow />
     <matlab>
-      <root>C:\Program Files\MATLAB\R2014a</root>
+      <root>C:\Program Files\MATLAB\R2014b</root>
       <toolboxes>
         <toolbox name="matlabhdlcoder" />
         <toolbox name="fixedpoint" />

@@ -1,4 +1,4 @@
-function [roiFlat, binLevels, roiFull] = getAdaptiveBinROI(raw,roiCoord,gridSz,targetPhotons,maxBinFactor,optimize4Codegen)
+function [roiFlat, binLevels, roiFull] = getAdaptiveBinROI(raw,roiX,roiY,targetPhotons,maxBinFactor,optimize4Codegen)
 %=============================================================================================================
 %
 % @file     getAdaptiveBinROI.m
@@ -37,37 +37,19 @@ rawClass = class(raw);
 [dataYSz,dataXSz] = size(flat);
 dataYSz = int32(dataYSz);
 dataXSz = int32(dataXSz);
-if(gridSz == 0)
-    roiX = roiCoord(1):roiCoord(2);
-    roiY = roiCoord(3):roiCoord(4); 
-elseif(gridSz == 1)
-    roiX = int32(floor(round(mean([roiCoord(2),roiCoord(1)]))));
-    roiY = int32(floor(round(mean([roiCoord(4),roiCoord(3)]))));
-else
-    roiCoord = double(roiCoord);
-    gridSz = double(gridSz);
-    roiX = int32(roiCoord(1):floor((roiCoord(2)-roiCoord(1))/(gridSz-1)):roiCoord(2));
-    roiY = int32(roiCoord(3):floor((roiCoord(4)-roiCoord(3))/(gridSz-1)):roiCoord(4));
-end
-% roiXLen = roiCoord(2)-roiCoord(1)+1;
-% roiYLen = roiCoord(4)-roiCoord(3)+1;
+roiX = int32(roiX);
+roiY = int32(roiY);
 roiXLen = length(roiX);
 roiYLen = length(roiY);
 roiFlat = zeros(roiYLen,roiXLen,'int32');
 binLevels = zeros(roiYLen,roiXLen,'int32');
-% roiFlat = reshape(roiFlat,roiYLen*roiXLen,1);
-% binLevels = reshape(binLevels,roiYLen*roiXLen,1);
 if(nargout == 3)
     roiFull = zeros(roiYLen,roiXLen,zR,'uint32');
     roiFull = reshape(roiFull,roiYLen*roiXLen,1,zR);
-    %g_roiFull = gpuArray(roiFull);
 end
-%g_raw = gpuArray(raw);
 nPixel = roiYLen*roiXLen;
 %calculate coordinates of output grid
 [pxYcoord, pxXcoord] = ind2sub([roiYLen,roiXLen],1:nPixel);
-%g_pxYcoord = gpuArray(pxYcoord);
-%g_pxXcoord = gpuArray(pxXcoord);
 [~, ~, ~, binRhoU] = makeBinMask(maxBinFactor);
 parfor px = 1:nPixel
     %coarse search
@@ -90,22 +72,7 @@ parfor px = 1:nPixel
             binLevel = int32(0);
         end
         binLevel = binLevel(1);
-    end    
-    %     [binLevel,fval,exitflag,output] = MSimplexBnd(@costFcn,50,options,roiY(pxYcoord(px)),roiX(pxXcoord(px)),targetPhotons,flat,maxBinFactor);
-    %     [idx,maxBinLevelReached] = getAdaptiveBinningIndex(roiY(pxYcoord(px)),roiX(pxXcoord(px)),floor(binLevel),dataYSz,dataXSz,maxBinFactor);
-    %     val = sum(flat(idx),'native');
-    %     if(val < targetPhotons && ~maxBinLevelReached)
-    %         [idx,maxBinLevelReached] = getAdaptiveBinningIndex(roiY(pxYcoord(px)),roiX(pxXcoord(px)),floor(binLevel)+1,dataYSz,dataXSz,maxBinFactor);
-    %         val = sum(flat(idx),'native');
-    %         if(val < targetPhotons && ~maxBinLevelReached)
-    %             %we still did not reach the target -> optimizer failed -> use brute force approach
-    %             maxBinLevelReached = false;
-    %             binLevel = int32(0);  
-    %             val = int32(0);
-    %             idx = int32(0);
-    %             %we add up so many pixels until we reach the target
-    %         end
-    %     end
+    end
     val = int32(0);
     while(~maxBinLevelReached && val < targetPhotons)
         binLevel = binLevel+1;
@@ -127,10 +94,6 @@ parfor px = 1:nPixel
         %% use this for matlab execution!
         roiFull(px,1,:) = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native');
     end
-        %g_roiFull(g_pxYcoord(px),g_pxXcoord(px),:) = sum(g_raw(bsxfun(@plus, gpuArray(idx), gpuArray(int32(yR)) * gpuArray(int32(xR)) * gpuArray(((1:int32(zR))-1)))),1,'native');
-%     end    
 end
-% roiFlat = reshape(roiFlat,roiYLen,roiXLen);
-% binLevels = reshape(binLevels,roiYLen,roiXLen);
 roiFull = reshape(roiFull,roiYLen,roiXLen,zR);
 end

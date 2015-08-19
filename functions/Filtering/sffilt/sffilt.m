@@ -158,7 +158,7 @@ end
 
 if all(isnan(A(:))), B = A; return, end
 
-sizA = size(A);
+sizA = uint16(size(A));
 if nargin==2
     % default kernel size is 3 or 3x3 or 3x3x3
     if isvector(A)

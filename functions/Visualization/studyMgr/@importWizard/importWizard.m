@@ -550,7 +550,7 @@ classdef importWizard < handle
         function GUI_buttonOK_Callback(this,hObject, eventdata)
             %
             try
-                set(hObject,'String',sprintf('<html><img src="file:/%s"/> OK</html>',fullfile(cd,'functions','visualization','spinner.gif')));
+                set(hObject,'String',sprintf('<html><img src="file:/%s"/> OK</html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
             m = this.myMeasurement;

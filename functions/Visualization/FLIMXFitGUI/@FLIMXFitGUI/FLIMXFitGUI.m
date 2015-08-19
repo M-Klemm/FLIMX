@@ -123,7 +123,7 @@ classdef FLIMXFitGUI < handle
             %switch between spinning and regular stop button
             if(flag)
                 try
-                    set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/> Stop</html>',fullfile(cd,'functions','visualization','spinner.gif')));
+                    set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/> Stop</html>',FLIMX.getAnimationPath()));
                     drawnow;
                 end
             else
@@ -279,18 +279,10 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.editTimeScalEnd,'String',num2str(this.dynVisParams.timeScalingEnd*this.FLIMXObj.curSubject.timeChannelWidth,'%.02f'));
             %counts edits
             tmp = this.currentDecayData;            
-            if(~isempty(tmp))
-%                 rm = logical(this.FLIMXObj.curSubject.getReflectionMask(this.currentChannel));
-%                 rm(1:this.FLIMXObj.curSubject.getStartPosition(this.currentChannel)) = false;
-%                 rm(this.FLIMXObj.curSubject.getEndPosition(this.currentChannel):end) = false;
-%                 if(get(this.visHandles.radioTimeScalManual,'Value'))
-%                     rm(1:this.dynVisParams.timeScalingStart) = false;
-%                     rm(this.dynVisParams.timeScalingEnd:end) = false;
-%                 end
-%                 tmp = tmp(rm);
-                this.dynVisParams.countsScalingEnd = 10^ceil(log10(max(tmp(:))));
-                this.dynVisParams.countsScalingStart = max(min(10^floor(log10(min(tmp(:)))),this.dynVisParams.countsScalingEnd-1),0.1);
-            end
+%             if(~isempty(tmp))
+%                 this.dynVisParams.countsScalingEnd = 10^ceil(log10(max(tmp(:))));
+%                 this.dynVisParams.countsScalingStart = max(min(10^floor(log10(min(tmp(:)))),this.dynVisParams.countsScalingEnd-1),0.1);
+%             end
             set(this.visHandles.editCountsScalStart,'String',num2str(this.dynVisParams.countsScalingStart,'%G'));
             set(this.visHandles.editCountsScalEnd,'String',num2str(this.dynVisParams.countsScalingEnd,'%G'));
                         
@@ -650,7 +642,7 @@ classdef FLIMXFitGUI < handle
             [apObj xVec hShift oset chi2 chi2Tail TotalPhotons iterations time slopeStart iVec] = this.FLIMXObj.curSubject.getVisParams(ch,y,x,this.showInitialization);
         end
         
-        function [xAxis data irf model exponentials residuum residuumHist tableInfo] = visCurFit(this,ch,y,x,hAxMain,hAxRes,hAxResHis,hTableInfo)
+        function [xAxis, data, irf, model, exponentials, residuum, residuumHist, tableInfo] = visCurFit(this,ch,y,x,hAxMain,hAxRes,hAxResHis,hTableInfo)
             %plot current data, fit, parameters
             if(~this.isOpenVisWnd())
                 return;
@@ -672,62 +664,70 @@ classdef FLIMXFitGUI < handle
             residuum = [];
             residuumHist = [];
             data = this.currentDecayData;
-            [apObj x_vec oset chi2 chi2Tail TotalPhotons iterations time slopeStart iVec] = this.getVisParams(ch,y,x);
+            [apObj, x_vec, oset, chi2, chi2Tail, TotalPhotons, iterations, time, slopeStart, iVec] = this.getVisParams(ch,y,x);
             if(sum(TotalPhotons(:)) == 0)
                 TotalPhotons = sum(data(:));
             end
             xAxis = this.FLIMXObj.curSubject.timeVector(1:length(data));
+            if(apObj.basicParams.approximationTarget == 1 || ch > 1)
+                %fluorescence lifetime
+                dMin = max(1e-2,min(data(data>0)));
+                yScaleStr = 'log';
+                yLbl = 'Photon-Frequency (counts)';
+            else
+                %anisotropy
+                dMin = min(data);
+                yScaleStr = 'linear';
+                yLbl = 'Anisotropy';
+            end
             if(sum(x_vec(:)) == 0)
                 model = [];
             else
                 model = apObj.getModel(ch,x_vec);
                 model = model(1:length(data));
-                model(model < 1e-1) = 1e-1;
+                model(model < dMin) = dMin;
             end
             ylabel(hAxMain,'');
             legend(hAxMain,'off');
             lStr = cell(0,0);
-            cla(hAxMain);
-            set(hAxMain,'YLimMode','auto','Yscale','log','XTickLabelMode','auto','YTickLabelMode','auto');
-            ylabel(hAxMain,'Photon-Frequency (counts)');
-            
+            cla(hAxMain);            
             %% data
             if(this.visualizationParams.plotData)
                 lStr = this.makeModelPlot(hAxMain,data,xAxis,'Data',this.dynVisParams,this.visualizationParams,'Measured',lStr);
-            end
-            
+            end            
             %% model
             if(this.visualizationParams.plotExpSum)
                 lStr = this.makeModelPlot(hAxMain,model,xAxis,'ExpSum',this.dynVisParams,this.visualizationParams,'Model',lStr);
-            end
-            
+            end            
             %% IRF
             irf = apObj.getIRF(ch);
             if(this.visualizationParams.plotIRF)                
 %                 irfPlot = mObj.compShift(irf,length(irf),mObj.dLen,mObj.mMaxPos - mObj.iMaxPos);
             if(isempty(model))
                 irfPlot = max(data).*irf./max(irf);
+                if(~this.dynVisParams.countsScalingAuto)
+                    irfPlot = irfPlot.*this.dynVisParams.countsScalingEnd;
+                end
             else
                 irfPlot = max(model).*irf./max(irf) + oset;
             end
-                irfPlot(irfPlot < 1e-1) = 1e-1;
+                irfPlot(irfPlot < dMin) = dMin;
                 lStr = this.makeModelPlot(hAxMain,irfPlot,xAxis,'IRF',this.dynVisParams,this.visualizationParams,'IRF',lStr);
             end            
             tci = zeros(1,apObj.basicParams.nExp);
-            tci(logical(apObj.basicParams.tciMask)) = x_vec(2*apObj.basicParams.nExp+1 : 2*apObj.basicParams.nExp+sum(apObj.basicParams.tciMask))';
-            
+            tci(logical(apObj.basicParams.tciMask)) = x_vec(2*apObj.basicParams.nExp+1 : 2*apObj.basicParams.nExp+sum(apObj.basicParams.tciMask))';            
             %% display parameters on the right side
-            tableInfo = this.makeParamTable(hTableInfo,x_vec,tci,oset,chi2,chi2Tail,iterations,time,TotalPhotons,apObj);
-            
+            tableInfo = this.makeParamTable(hTableInfo,x_vec,tci,oset,chi2,chi2Tail,iterations,time,TotalPhotons,apObj);            
             %% display x & y
             set(this.visHandles.editX,'String',x);
-            set(this.visHandles.editY,'String',y);
-            
+            set(this.visHandles.editY,'String',y);            
             %% counts scaling
             if(~this.dynVisParams.countsScalingAuto)
                 ylim(hAxMain,[this.dynVisParams.countsScalingStart this.dynVisParams.countsScalingEnd]);
             end
-            
+            %y axis
+            set(hAxMain,'YLimMode','auto','Yscale',yScaleStr,'XTickLabelMode','auto','YTickLabelMode','auto');
+            ylabel(hAxMain,yLbl);
             %% no parameters computed
             if(sum(x_vec(:)) == 0)
                 cla(this.visHandles.axesRes);
@@ -736,8 +736,7 @@ classdef FLIMXFitGUI < handle
                     this.makeLegend(hAxMain,lStr)
                 end
                 return;
-            end
-            
+            end            
             %% we have parameters, plot exponentials
             if(this.visualizationParams.plotExp)
                 [lStr, exponentials] = this.makeExponentialsPlot(hAxMain,xAxis,apObj,x_vec,lStr,this.dynVisParams,this.visualizationParams);
@@ -747,9 +746,10 @@ classdef FLIMXFitGUI < handle
                 if(sum(iVec(:)) == 0)
                     model = [];
                 else
-                    apObj.compModel(splitXVec(iVec,apObj.volatile.cMask));
-                    model = apObj.model(1:apObj.dLen);
-                    model(model < 1e-1) = 1e-1;
+                    %todo
+%                     apObj.compModel(splitXVec(iVec,apObj.volatile.cMask));
+%                     model = apObj.model(1:apObj.dLen);
+%                     model(model < 1e-1) = 1e-1;
                 end
                 lStr = this.makeModelPlot(hAxMain,model,xAxis,'Init',this.dynVisParams,this.visualizationParams,'Init Guess',lStr);
             end
@@ -766,12 +766,11 @@ classdef FLIMXFitGUI < handle
             %legend
             if(this.visualizationParams.showLegend)
                 this.makeLegend(hAxMain,lStr);
-            end
-            
-            [residuum residuumHist] = this.visRes(ch,y,x,apObj,hAxRes,hAxResHis);
+            end            
+            [residuum, residuumHist] = this.visRes(ch,y,x,apObj,hAxRes,hAxResHis);
         end
         
-        function [e_vec rh] = visRes(this,ch,y,x,apObj,hAxRes,hAxResHis)
+        function [e_vec, rh] = visRes(this,ch,y,x,apObj,hAxRes,hAxResHis)
             %% plot error vector
             if(isempty(apObj))
                 [apObj x_vec] = this.getVisParams(ch,y,x);
@@ -1126,7 +1125,7 @@ classdef FLIMXFitGUI < handle
         function GUI_popupStudy_Callback(this,hObject,eventdata)
             %callback to change subject name
             try
-                set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/></html>',fullfile(cd,'functions','visualization','spinner.gif')));
+                set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/></html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
             subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,'-');
@@ -1145,7 +1144,7 @@ classdef FLIMXFitGUI < handle
         function GUI_popupSubject_Callback(this,hObject,eventdata)
             %callback to change subject name
             try
-                set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/></html>',fullfile(cd,'functions','visualization','spinner.gif')));
+                set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/></html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
             this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentView,this.currentSubject);
@@ -1364,12 +1363,12 @@ classdef FLIMXFitGUI < handle
         
         function GUI_editCountsScal_Callback(this,hObject,eventdata)
             %call of editCountsScal control
-            current = abs(str2double(get(hObject,'String')));
+            current = str2double(get(hObject,'String'));
             if(hObject == this.visHandles.editCountsScalStart)
-                current = max(min(current,this.dynVisParams.countsScalingEnd-1),0.01);
+                current = min(current,this.dynVisParams.countsScalingEnd-0.01);
                 this.dynVisParams.countsScalingStart = current;
             else
-                current = max(current,this.dynVisParams.countsScalingStart+1);
+                current = max(current,this.dynVisParams.countsScalingStart+0.01);
                 this.dynVisParams.countsScalingEnd = current;
             end
             set(hObject,'String',num2str(current,'%G'));
@@ -2204,7 +2203,7 @@ classdef FLIMXFitGUI < handle
                 set(hAx,'NextPlot','add');
             end            
             try
-                semilogy(hAx,xAxis,model,...
+                plot(hAx,xAxis,model,...
                     'Linewidth',staticVisParams.(sprintf('plot%sLinewidth',paramName)),...
                     'Linestyle',staticVisParams.(sprintf('plot%sLinestyle',paramName)),...
                     'Color',staticVisParams.(sprintf('plot%sColor',paramName)),...
@@ -2222,14 +2221,16 @@ classdef FLIMXFitGUI < handle
             end
         end
                 
-        function [lStr exponentials] = makeExponentialsPlot(hAx,xAxis,apObj,x_vec,lStr,dynVisParams,staticVisParams,exponentials)
+        function [lStr, exponentials] = makeExponentialsPlot(hAx,xAxis,apObj,x_vec,lStr,dynVisParams,staticVisParams,exponentials,dMin)
             %plot exponentials and scatter data to hAx
             %[amps taus tcis scAmps scShifts scOset vShift hShift oset] = sliceXVec(x_vec,fitParams);
+            if(nargin < 9)
+                dMin = 1e-2;
+            end
             if(nargin < 8)
                 %compute exponentials
                 hmOld = apObj.basicParams.heightMode;
                 apObj.basicParams.heightMode = 1;
-%                 m_single = multiExpModel(data,[],[],irf,fileInfo,basicFitParams,pixelFitParams,computationParams,volatileParams,-inf,inf);%this.FLIMXObj.FLIMFit.data.scatter.cut
                 exponentials = apObj.getExponentials(apObj.currentChannel,x_vec);
                 apObj.basicParams.heightMode = hmOld;
                 exponentials = squeeze(exponentials);
@@ -2247,11 +2248,11 @@ classdef FLIMXFitGUI < handle
             end
             for i = 1 : size(exponentials,2)-1
                 model_vec = squeeze(exponentials(:,i)) + oset;
-                model_vec(model_vec < 1e-1) = 1e-1;
+                model_vec(model_vec < dMin) = dMin;
                 if(~dynVisParams.timeScalingAuto)
                     model_vec = model_vec(dynVisParams.timeScalingStart:dynVisParams.timeScalingEnd);
                 end
-                semilogy(hAx,xAxis,model_vec,'Linestyle',staticVisParams.plotExpLinestyle,'Linewidth',staticVisParams.plotExpLinewidth,...
+                plot(hAx,xAxis,model_vec,'Linestyle',staticVisParams.plotExpLinestyle,'Linewidth',staticVisParams.plotExpLinewidth,...
                     'Color',staticVisParams.(sprintf('plotExp%dColor',i-5*(ceil(i/5)-1))),'Marker',staticVisParams.plotExpMarkerstyle,'Markersize',staticVisParams.plotExpMarkersize);
                 if(i <= apObj.basicParams.nExp)
                     lStr(end+1) = {sprintf('Exp. %d',i)};
@@ -2259,22 +2260,6 @@ classdef FLIMXFitGUI < handle
                     lStr(end+1) = {sprintf('Scatter. %d',i-apObj.basicParams.nExp)};
                 end
             end
-            %             %plot scatter vector(s)
-            %             for i = 1 : fitParams.nScatter
-            %                 my_scAmps = scAmps;
-            %                 idx = 1 : fitParams.nScatter;
-            %                 idx(i) = [];
-            %                 my_scAmps(idx) = 0;
-            %                 my_xVec = mergeXVec(zeros(size(amps)),taus,tcis,my_scAmps,scShifts,scOset,vShift,hShift,oset,fitParams);
-            %                 m_single.compModel(splitXVec(my_xVec,fitParams.cMask));
-            %                 model_vec = m_single.model(1:m_single.dLen);
-            %                 model_vec(model_vec < 1e-1) = 1e-1;
-            %                 if(~this.dynVisParams.timeScalingAuto)
-            %                     model_vec = model_vec(this.dynVisParams.timeScalingStart:this.dynVisParams.timeScalingEnd);
-            %                 end
-            %                 semilogy(hAx,xAxis,model_vec,'Linewidth',1,'color',map(i+3+fitParams.nExp,:));
-            %                 lStr(end+1) = {sprintf('Scatter %d',i)};
-            %             end
         end
         
         function tstr = makeParamTable(hTable,xVec,tci,osetS,chi2,chi2Tail,FunctionEvaluations,time,nrPhotons,apObj)

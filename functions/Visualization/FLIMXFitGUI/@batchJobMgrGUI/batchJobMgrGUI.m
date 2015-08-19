@@ -155,7 +155,7 @@ classdef batchJobMgrGUI < handle
                 return
             end
             try
-                set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/> Stop</html>',fullfile(cd,'functions','visualization','spinner.gif')));
+                set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/> Stop</html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
             this.batchJobMgr.runSelectedJobs(this.mySelJobs,this.deleteFinishedJobs);
@@ -171,7 +171,7 @@ classdef batchJobMgrGUI < handle
                 return
             end
             try
-                set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/> Stop</html>',fullfile(cd,'functions','visualization','spinner.gif')));
+                set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/> Stop</html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
             this.batchJobMgr.runAllJobs(this.deleteFinishedJobs);                       

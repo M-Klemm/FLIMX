@@ -497,7 +497,7 @@ classdef StatsGroupComparison < handle
         function updateGUI(this)
             %update tables and axes            
             try
-                set(this.visHandles.buttonUpdateGUI,'String',sprintf('<html><img src="file:/%s"/> Update</html>',fullfile(cd,'functions','visualization','spinner.gif')));
+                set(this.visHandles.buttonUpdateGUI,'String',sprintf('<html><img src="file:/%s"/> Update</html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
             tData = this.getCurrentTableData();

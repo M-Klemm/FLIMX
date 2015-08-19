@@ -165,7 +165,7 @@ set(handles.tableMexSupport,'Data',data);
 function buttonCreateMex_Callback(hObject, eventdata, handles)
 %try to create mex files
 try
-    set(hObject,'String',sprintf('<html><img src="file:/%s"/> Creating...</html>',fullfile(cd,'functions','visualization','spinner.gif')));
+    set(hObject,'String',sprintf('<html><img src="file:/%s"/> Creating...</html>',FLIMX.getAnimationPath()));
 end
 drawnow;
 %run coder

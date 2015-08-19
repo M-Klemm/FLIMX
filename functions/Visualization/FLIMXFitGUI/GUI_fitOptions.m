@@ -54,7 +54,7 @@ function varargout = GUI_fitOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_fitOptions
 
-% Last Modified by GUIDE v2.5 06-Feb-2015 18:00:14
+% Last Modified by GUIDE v2.5 18-Aug-2015 16:18:20
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -130,6 +130,29 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function updateGUI(handles,data)
 %general
+% def.basic_fit.approximationTarget   =   1; %1: lifetime; 2: anisotropy
+% def.basic_fit.anisotropyChannelShift=   0; %shift between channel 1 and 2 in time channels
+% def.basic_fit.anisotropyGFactor     =   1; %the g factor to take different detector sensitifities into account
+% def.basic_fit.anisotropyPerpendicularFactor = 2; %impact of the perpendicular intensity on the fluorescence (usually 2)
+% def.basic_fit.anisotropyR0Method    =   1; %method to compute r0; 1: directly from anisotropy; 2: using the fluorescence lifetime from the sum of both channels
+% def.basic_fit.reconvoluteWithIRF
+
+set(handles.popupApproxTarget,'Value',data.basic.approximationTarget);
+if(data.basic.approximationTarget == 2)
+    %anisotropy
+    set(handles.panelApproxModel,'Visible','off');
+    set(handles.panelAnisotropy,'Visible','on');
+else
+    %lifetime
+    set(handles.panelApproxModel,'Visible','on');
+    set(handles.panelAnisotropy,'Visible','off');
+end
+set(handles.checkIRF,'Value',data.basic.reconvoluteWithIRF)
+if(data.basic.reconvoluteWithIRF)
+    set(handles.popupIRF,'Visible','on');
+else
+    set(handles.popupIRF,'Visible','off');
+end
 set(handles.popupNExp,'Value',data.basic.nExp);
 set(handles.editLifetimeGap,'String',num2str((data.basic.lifetimeGap-1)*100));
 set(handles.checkHybridFit,'Value',data.basic.hybridFit);
@@ -589,6 +612,26 @@ rdh.isDirty(1) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
 set(hObject,'String',num2str(rdh.basic.photonThreshold));
 
+function editAnisoChannelShift_Callback(hObject, eventdata, handles)
+rdh = get(handles.fitOptionsFigure,'userdata');
+rdh.basic.anisotropyChannelShift = str2double(get(hObject,'String'));
+rdh.isDirty(1) = 1;
+set(handles.fitOptionsFigure,'userdata',rdh);
+
+function editAnisoGFactor_Callback(hObject, eventdata, handles)
+rdh = get(handles.fitOptionsFigure,'userdata');
+rdh.basic.anisotropyGFactor = abs(str2double(get(hObject,'String')));
+rdh.isDirty(1) = 1;
+set(handles.fitOptionsFigure,'userdata',rdh);
+set(hObject,'String',num2str(rdh.basic.anisotropyGFactor));
+
+function editAnisoPerpenFactor_Callback(hObject, eventdata, handles)
+rdh = get(handles.fitOptionsFigure,'userdata');
+rdh.basic.anisotropyPerpendicularFactor = abs(str2double(get(hObject,'String')));
+rdh.isDirty(1) = 1;
+set(handles.fitOptionsFigure,'userdata',rdh);
+set(hObject,'String',num2str(rdh.basic.anisotropyPerpendicularFactor));
+
 function editInitGridSize_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
 rdh.init.gridSize = round(abs(str2double(get(hObject,'String'))));
@@ -726,6 +769,20 @@ if(~strcmp('no IRF found',str))
 end
 rdh.isDirty(1) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
+
+% --- Executes on selection change in popupApproxTarget.
+function popupApproxTarget_Callback(hObject, eventdata, handles)
+rdh = get(handles.fitOptionsFigure,'userdata');
+rdh.basic.approximationTarget = get(hObject,'Value');
+set(handles.fitOptionsFigure,'userdata',rdh);
+updateGUI(handles, rdh);
+
+% --- Executes on selection change in popupAnisoR0Method.
+function popupAnisoR0Method_Callback(hObject, eventdata, handles)
+rdh = get(handles.fitOptionsFigure,'userdata');
+rdh.basic.anisotropyR0Method = get(hObject,'Value');
+set(handles.fitOptionsFigure,'userdata',rdh);
+updateGUI(handles, rdh);
 
 % --- Executes on selection change in popupNBPixels.
 function popupNBPixels_Callback(hObject, eventdata, handles)
@@ -1035,6 +1092,31 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function popupChiWeighting_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editAnisoChannelShift_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editAnisoGFactor_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editAnisoPerpenFactor_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupAnisoR0Method_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupApproxTarget_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

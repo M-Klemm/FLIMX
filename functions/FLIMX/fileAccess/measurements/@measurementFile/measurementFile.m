@@ -563,17 +563,21 @@ classdef measurementFile < handle
                     out = squeeze(out(y,x,:));
                 end
             end
-            aniso = false;
-            if(aniso && ~isMultipleCall())
+            bp = this.paramMgrObj.basicParams;
+            if(bp.approximationTarget == 2 && ~isMultipleCall())
                 %get anisotropy data from channel 1 and 2 (ch1 is parallel; ch2 is perpendicular)
                 out = [];
                 if(this.nrSpectralChannels >= 2 && length(this.rawFluoData) >= 2)
                     pP = double(this.getROIData(1,y,x)); %parallel
-                    pS = double(this.getROIData(2,y,x)); %senkrecht          
-                    pP(isnan(pP)) = 0;
-                    pS(isnan(pS)) = 0;
-                    %out = (pP./pS-1)./(pP./pS+2);
-                    out = (pP-pS)./(pP+2*pS);
+                    pS = double(this.getROIData(2,y,x)); %senkrecht
+                    pS = circshift(pS,bp.anisotropyChannelShift);
+                    %pP(isnan(pP)) = 0;
+                    %pS(isnan(pS)) = 0;
+                    if(channel == 2)
+                        out = pP+pS;
+                    else
+                        out = (pP-bp.anisotropyGFactor*pS)./(pP+bp.anisotropyGFactor*bp.anisotropyPerpendicularFactor*pS);
+                    end
                 end
             end
         end
@@ -628,7 +632,35 @@ classdef measurementFile < handle
                         targetPhotons = int32(param.gridPhotons);
                     end
                 end
-                [~,~,out] = getAdaptiveBinROI(raw,int32(this.ROICoordinates),int32(gridSz),targetPhotons,int32(50),false);
+                [roiX,roiY] = compGridCoordinates(this.ROICoordinates,gridSz);
+                [~,bl,out] = getAdaptiveBinROI(raw,roiX,roiY,targetPhotons,int32(50),false);
+                if(this.paramMgrObj.basicParams.approximationTarget == 2 && ch == 1)
+                    bp = this.paramMgrObj.basicParams;
+                    %get anisotropy data from channel 1 and 2 (ch1 is parallel; ch2 is perpendicular)
+                    if(this.nrSpectralChannels >= 2 && length(this.rawFluoData) >= 2)
+                        pP = out; %parallel
+                        raw = this.getRawData(2); %senkrecht
+                        [yR,xR,zR] = size(raw);
+                        pS = zeros(size(bl,1),size(bl,2),zR,'like',out);
+                        parfor i = 1:size(bl,1)
+                            tmp = pS(i,:,:);
+                            for j = 1:size(bl,2)
+                                idx = getAdaptiveBinningIndex(roiY(i),roiX(j),bl(i,j),yR,xR,100);
+                                tmp(1,j,:) = circshift(sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')',bp.anisotropyChannelShift);
+                            end
+                            pS(i,:,:) = tmp;
+                        end
+                        %pP(isnan(pP)) = 0;
+                        %pS(isnan(pS)) = 0;
+                        if(ch == 2)
+                            out = pP+pS;
+                        else
+                            pP = double(pP);
+                            pS = double(pS);
+                            out = (pP-bp.anisotropyGFactor*pS)./(pP+bp.anisotropyGFactor*bp.anisotropyPerpendicularFactor*pS);
+                        end
+                    end
+                end
                 this.updateProgress(1,'ROI preparation: 100% done');
                 this.initData{ch} = out;
                 this.updateProgress(0,'');
@@ -816,7 +848,8 @@ classdef measurementFile < handle
                 if(computationParams.useMatlabDistComp == 0 || binFactor < 1 || generalParams.saveMaxMem || (~this.roiAdaptiveBinEnable || this.roiAdaptiveBinEnable && ~isa(raw,'uint16')))
                     %force to run binning on matlab code
                     if(this.roiAdaptiveBinEnable)
-                        [~,binLevels,out] = getAdaptiveBinROI(uint32(raw),roi,int32(0),int32(this.roiAdaptiveBinThreshold),int32(this.roiAdaptiveBinMax),false);
+                        [roiX,roiY] = compGridCoordinates(roi,0);
+                        [~,binLevels,out] = getAdaptiveBinROI(uint32(raw),roiX,roiY,int32(this.roiAdaptiveBinThreshold),int32(this.roiAdaptiveBinMax),false);
                         this.roiBinLevels{channel} = binLevels;
                         this.setDirtyFlags(channel,4,true);
                     else
@@ -828,10 +861,11 @@ classdef measurementFile < handle
                     if(this.roiAdaptiveBinEnable)
                         target = int32(this.roiAdaptiveBinThreshold);
                         maxBin = int32(this.roiAdaptiveBinMax);
+                        [roiX,roiY] = compGridCoordinates(roi,0);
                         if(this.useMex4AdaptiveBin && this.nrTimeChannels == 1024)
-                            [~,binLevels,out] = getAdaptiveBinROI_mex(raw,int32(roi),int32(0),target,maxBin,true);
+                            [~,binLevels,out] = getAdaptiveBinROI_mex(raw,roiX,roiY,target,maxBin,true);
                         else
-                            [~,binLevels,out] = getAdaptiveBinROI(raw,int32(roi),int32(0),target,maxBin,false);
+                            [~,binLevels,out] = getAdaptiveBinROI(raw,roiX,roiY,target,maxBin,false);
                         end
                         this.roiBinLevels{channel} = binLevels;
                         this.setDirtyFlags(channel,4,true);
@@ -1066,7 +1100,7 @@ classdef measurementFile < handle
             %returns true is a mex file can be used for adaptive binning
             out = false;
             try
-                getAdaptiveBinROI_mex(zeros(1,1,1024,'uint16'),int32([1;1;1;1]),int32(0),int32(0),int32(0),true);
+                getAdaptiveBinROI_mex(zeros(1,1,1024,'uint16'),int32(1),int32(1),int32(0),int32(0),true);
                 out = true;
             catch ME
             end
