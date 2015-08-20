@@ -483,7 +483,7 @@ classdef Channel < handle
                 CImaxs(1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIInvertFlag);
                 CImins(1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIInvertFlag);
                 %get reference classwidth
-                cw = getHistParams(this.getStatsParams(),dType{1},dTypeNr(1));
+                cw = getHistParams(this.getStatsParams(),this.getMyChannelNr(),dType{1},dTypeNr(1));
             end
             %get FLIM items for y-axis
             if(~isempty(cMVs.y))

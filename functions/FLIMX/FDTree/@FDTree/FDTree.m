@@ -1383,7 +1383,7 @@ classdef FDTree < handle
                 %get reference classwidth
                 cMVs = this.getClusterTargets(clusterTargets{i,1},clusterID);
                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
-                cw = getHistParams(this.getStatsParams(),dType{1},dTypeNr(1));                
+                cw = getHistParams(this.getStatsParams(),chan,dType{1},dTypeNr(1));
                 %get merged clusters from subjects of view
                 %use whole image for scatter plots, ignore any ROIs
                 [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,viewClusterObj.getROIImage([],0,1,0)./viewClusterObj.getCImax([],0,1,0)*1000,viewClusterObj.getCIXLbl([],0,1,0),viewClusterObj.getCIYLbl([],0,1,0),cw);

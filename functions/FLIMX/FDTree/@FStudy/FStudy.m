@@ -1244,7 +1244,7 @@ classdef FStudy < handle
                         if(isempty(start))
                             start = find(cTemp == centers(1));                            
                             if(isempty(start))
-                                cw = getHistParams(this.getStatsParams(),dType,id);
+                                cw = getHistParams(this.getStatsParams(),chan,dType,id);
                                 if(min(cTemp(:)) > max(centers(:)))
                                     centers = centers(1):cw:cTemp(end);
                                     start = find(centers == cTemp(1));
@@ -1485,7 +1485,7 @@ classdef FStudy < handle
             end
             %get reference classwidth
             [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
-            cw = getHistParams(this.getStatsParams(),dType{1},dTypeNr(1));            
+            cw = getHistParams(this.getStatsParams(),chan,dType{1},dTypeNr(1));            
             %get merged clusters from subjects of view
             for i=1:length(clusterObjs)
                 %use whole image for scatter plots, ignore any ROIs

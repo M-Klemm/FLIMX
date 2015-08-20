@@ -35,7 +35,7 @@ function varargout = GUI_Statistics_Options(varargin)
 % vargin - structure with preferences and defaults
 %output: same as input, but altered according to user input
 
-% Last Modified by GUIDE v2.5 30-Jul-2011 16:24:10
+% Last Modified by GUIDE v2.5 19-Aug-2015 13:51:42
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -68,14 +68,15 @@ function GUI_Statistics_Options_OpeningFcn(hObject, eventdata, handles, varargin
 rdh = varargin{1};
 %setup objects
 parent.visHandles = handles;
-
+nCh = length(rdh.prefs.amp1_lb);
+set(handles.popupChannel,'String',sprintfc('Ch %d',1:nCh));
 types = {'amp','ampPer','tau','q'};
 for i = 1:length(types) %loop of types
     for j = 1:3
         oStr = sprintf('%s%d',types{i},j);
         rdh.obj.(oStr) = BoundsCtrl(parent,oStr);
         rdh.obj.(oStr).setUIHandles();
-        rdh.obj.(oStr).setBounds([rdh.prefs.(sprintf('%s%d_lb',types{i},j)) rdh.prefs.(sprintf('%s%d_ub',types{i},j))]);
+        rdh.obj.(oStr).setBounds([rdh.prefs.(sprintf('%s%d_lb',types{i},j)); rdh.prefs.(sprintf('%s%d_ub',types{i},j))]);
         rdh.obj.(oStr).setQuantization(rdh.prefs.(sprintf('%s%d_classwidth',types{i},j)));
         rdh.obj.(oStr).setStatus(rdh.prefs.(sprintf('%s%d_lim',types{i},j)));
     end
@@ -83,26 +84,26 @@ for i = 1:length(types) %loop of types
     oStr = sprintf('%sN',types{i});
     rdh.obj.(oStr) = BoundsCtrl(parent,oStr);
     rdh.obj.(oStr).setUIHandles();
-    rdh.obj.(oStr).setBounds([rdh.prefs.(sprintf('%sN_lb',types{i})) rdh.prefs.(sprintf('%sN_ub',types{i}))]);
+    rdh.obj.(oStr).setBounds([rdh.prefs.(sprintf('%sN_lb',types{i})); rdh.prefs.(sprintf('%sN_ub',types{i}))]);
     rdh.obj.(oStr).setQuantization(rdh.prefs.(sprintf('%sN_classwidth',types{i})));
     rdh.obj.(oStr).setStatus(rdh.prefs.(sprintf('%sN_lim',types{i})));
     
 end
 rdh.obj.tauMean = BoundsCtrl(parent,'tauMean');
 rdh.obj.tauMean.setUIHandles();
-rdh.obj.tauMean.setBounds([rdh.prefs.tauMean_lb rdh.prefs.tauMean_ub]);
+rdh.obj.tauMean.setBounds([rdh.prefs.tauMean_lb; rdh.prefs.tauMean_ub]);
 rdh.obj.tauMean.setQuantization(rdh.prefs.tauMean_classwidth);
 rdh.obj.tauMean.setStatus(rdh.prefs.tauMean_lim);
 
 rdh.obj.c = BoundsCtrl(parent,'c');
 rdh.obj.c.setUIHandles();
-rdh.obj.c.setBounds([rdh.prefs.c_lb rdh.prefs.c_ub]);
+rdh.obj.c.setBounds([rdh.prefs.c_lb; rdh.prefs.c_ub]);
 rdh.obj.c.setQuantization(rdh.prefs.c_classwidth);
 rdh.obj.c.setStatus(rdh.prefs.c_lim);
 
 rdh.obj.o = BoundsCtrl(parent,'o');
 rdh.obj.o.setUIHandles();
-rdh.obj.o.setBounds([rdh.prefs.o_lb rdh.prefs.o_ub]);
+rdh.obj.o.setBounds([rdh.prefs.o_lb; rdh.prefs.o_ub]);
 rdh.obj.o.setQuantization(rdh.prefs.o_classwidth);
 rdh.obj.o.setStatus(rdh.prefs.o_lim);
 
@@ -146,17 +147,18 @@ end
 function updateGUI(handles,data)
 types = {'amp','ampPer','tau','q'};
 typesB = {'Amp','AmpPer','Tau','Q'};
+ch = get(handles.popupChannel,'Value');
 for i = 1:length(types) %loop of types
     for j = 1:3 
-        set(handles.(sprintf('edit%s%d',typesB{i},j)),'String',num2str(data.(sprintf('%s%d_classwidth',types{i},j))));
+        set(handles.(sprintf('edit%s%d',typesB{i},j)),'String',num2str(data.(sprintf('%s%d_classwidth',types{i},j))(ch)));
     end
     % n
-    set(handles.(sprintf('edit%sN',typesB{i})),'String',num2str(data.(sprintf('%sN_classwidth',types{i}))));
+    set(handles.(sprintf('edit%sN',typesB{i})),'String',num2str(data.(sprintf('%sN_classwidth',types{i}))(ch)));
     
 end
-set(handles.editTauMean,'String',num2str(data.tauMean_classwidth));
-set(handles.editCluster,'String',num2str(data.c_classwidth));
-set(handles.editOther,'String',num2str(data.o_classwidth));
+set(handles.editTauMean,'String',num2str(data.tauMean_classwidth(ch)));
+set(handles.editCluster,'String',num2str(data.c_classwidth(ch)));
+set(handles.editOther,'String',num2str(data.o_classwidth(ch)));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %radio buttons
@@ -166,7 +168,20 @@ set(handles.editOther,'String',num2str(data.o_classwidth));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %popup menus
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+% --- Executes on selection change in popupChannel.
+function popupChannel_Callback(hObject, eventdata, handles)
+rdh = get(handles.StatisticsOptionsFigure,'userdata');
+types = {'amp','ampPer','tau','q'};
+for i = 1:length(types) %loop of types
+    for j = 1:3 
+        oStr = sprintf('%s%d',types{i},j);        
+        rdh.obj.(oStr).setCurrentChannel(get(hObject,'Value'));
+    end
+    % n
+    oStr = sprintf('%sN',types{i}); 
+    rdh.obj.(oStr).setCurrentChannel(get(hObject,'Value'));
+end
+updateGUI(handles,rdh.prefs);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %checkboxes
@@ -178,7 +193,7 @@ set(handles.editOther,'String',num2str(data.o_classwidth));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function editAmp1_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.amp1_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.amp1_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.a_lim_obj.factor = rdh.prefs.amp1_classwidth;
 rdh.a_lim_obj.offset = 0.5*rdh.prefs.amp1_classwidth;
 rdh.obj.amp1.setQuantization(rdh.prefs.amp1_classwidth);
@@ -187,7 +202,7 @@ updateGUI(handles,rdh.prefs);
 
 function editAmp2_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.amp2_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.amp2_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.a_lim_obj.factor = rdh.prefs.amp2_classwidth;
 rdh.a_lim_obj.offset = 0.5*rdh.prefs.amp2_classwidth;
 rdh.obj.amp2.setQuantization(rdh.prefs.amp2_classwidth);
@@ -196,7 +211,7 @@ updateGUI(handles,rdh.prefs);
 
 function editAmp3_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.amp3_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.amp3_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.a_lim_obj.factor = rdh.prefs.amp3_classwidth;
 rdh.a_lim_obj.offset = 0.5*rdh.prefs.amp3_classwidth;
 rdh.obj.amp3.setQuantization(rdh.prefs.amp3_classwidth);
@@ -205,7 +220,7 @@ updateGUI(handles,rdh.prefs);
 
 function editAmpN_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.ampN_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.ampN_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.a_lim_obj.factor = rdh.prefs.ampN_classwidth;
 rdh.a_lim_obj.offset = 0.5*rdh.prefs.ampN_classwidth;
 rdh.obj.ampN.setQuantization(rdh.prefs.ampN_classwidth);
@@ -214,7 +229,7 @@ updateGUI(handles,rdh.prefs);
 
 function editAmpPer1_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.ampPer1_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.ampPer1_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.p_lim_obj.factor = rdh.prefs.ampPer1_classwidth;
 rdh.p_lim_obj.offset = 0.5*rdh.prefs.ampPer1_classwidth;
 rdh.obj.ampPer1.setQuantization(rdh.prefs.ampPer1_classwidth);
@@ -223,7 +238,7 @@ updateGUI(handles,rdh.prefs);
 
 function editAmpPer2_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.ampPer2_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.ampPer2_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.p_lim_obj.factor = rdh.prefs.ampPer2_classwidth;
 rdh.p_lim_obj.offset = 0.5*rdh.prefs.ampPer2_classwidth;
 rdh.obj.ampPer2.setQuantization(rdh.prefs.ampPer2_classwidth);
@@ -232,7 +247,7 @@ updateGUI(handles,rdh.prefs);
 
 function editAmpPer3_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.ampPer3_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.ampPer3_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.p_lim_obj.factor = rdh.prefs.ampPer3_classwidth;
 rdh.p_lim_obj.offset = 0.5*rdh.prefs.ampPer3_classwidth;
 rdh.obj.ampPer3.setQuantization(rdh.prefs.ampPer3_classwidth);
@@ -241,7 +256,7 @@ updateGUI(handles,rdh.prefs);
 
 function editAmpPerN_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.ampPerN_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.ampPerN_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.p_lim_obj.factor = rdh.prefs.ampPerN_classwidth;
 rdh.p_lim_obj.offset = 0.5*rdh.prefs.ampPerN_classwidth;
 rdh.obj.ampPerN.setQuantization(rdh.prefs.ampPerN_classwidth);
@@ -250,7 +265,7 @@ updateGUI(handles,rdh.prefs);
 
 function editTau1_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.tau1_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.tau1_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.t_lim_obj.factor = rdh.prefs.tau1_classwidth;
 rdh.t_lim_obj.offset = 0.5*rdh.prefs.tau1_classwidth;
 rdh.obj.tau1.setQuantization(rdh.prefs.tau1_classwidth);
@@ -259,7 +274,7 @@ updateGUI(handles,rdh.prefs);
 
 function editTau2_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.tau2_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.tau2_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.t_lim_obj.factor = rdh.prefs.tau2_classwidth;
 rdh.t_lim_obj.offset = 0.5*rdh.prefs.tau2_classwidth;
 rdh.obj.tau2.setQuantization(rdh.prefs.tau2_classwidth);
@@ -268,7 +283,7 @@ updateGUI(handles,rdh.prefs);
 
 function editTau3_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.tau3_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.tau3_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.t_lim_obj.factor = rdh.prefs.tau3_classwidth;
 rdh.t_lim_obj.offset = 0.5*rdh.prefs.tau3_classwidth;
 rdh.obj.tau3.setQuantization(rdh.prefs.tau3_classwidth);
@@ -277,7 +292,7 @@ updateGUI(handles,rdh.prefs);
 
 function editTauN_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.tauN_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.tauN_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.t_lim_obj.factor = rdh.prefs.tauN_classwidth;
 rdh.t_lim_obj.offset = 0.5*rdh.prefs.tauN_classwidth;
 rdh.obj.tauN.setQuantization(rdh.prefs.tauN_classwidth);
@@ -286,7 +301,7 @@ updateGUI(handles,rdh.prefs);
 
 function editTauMean_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.tauMean_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.tauMean_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.t_lim_obj.factor = rdh.prefs.tauMean_classwidth;
 rdh.t_lim_obj.offset = 0.5*rdh.prefs.tauMean_classwidth;
 rdh.obj.tauMean.setQuantization(rdh.prefs.tauMean_classwidth);
@@ -295,7 +310,7 @@ updateGUI(handles,rdh.prefs);
 
 function editQ1_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.q1_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.q1_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.q_lim_obj.factor = rdh.prefs.q1_classwidth;
 rdh.q_lim_obj.offset = 0.5*rdh.prefs.q1_classwidth;
 rdh.obj.q1.setQuantization(rdh.prefs.q1_classwidth);
@@ -304,7 +319,7 @@ updateGUI(handles,rdh.prefs);
 
 function editQ2_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.q2_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.q2_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.q_lim_obj.factor = rdh.prefs.q2_classwidth;
 rdh.q_lim_obj.offset = 0.5*rdh.prefs.q2_classwidth;
 rdh.obj.q2.setQuantization(rdh.prefs.q2_classwidth);
@@ -313,7 +328,7 @@ updateGUI(handles,rdh.prefs);
 
 function editQ3_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.q3_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.q3_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.q_lim_obj.factor = rdh.prefs.q3_classwidth;
 rdh.q_lim_obj.offset = 0.5*rdh.prefs.q3_classwidth;
 rdh.obj.q3.setQuantization(rdh.prefs.q3_classwidth);
@@ -322,7 +337,7 @@ updateGUI(handles,rdh.prefs);
 
 function editQN_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.qN_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.qN_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.q_lim_obj.factor = rdh.prefs.qN_classwidth;
 rdh.q_lim_obj.offset = 0.5*rdh.prefs.qN_classwidth;
 rdh.obj.qN.setQuantization(rdh.prefs.qN_classwidth);
@@ -331,7 +346,7 @@ updateGUI(handles,rdh.prefs);
 
 function editCluster_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.c_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.c_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.c_lim_obj.factor = rdh.prefs.c_classwidth;
 rdh.c_lim_obj.offset = 0.5*rdh.prefs.c_classwidth;
 rdh.obj.c.setQuantization(rdh.prefs.c_classwidth);
@@ -340,7 +355,7 @@ updateGUI(handles,rdh.prefs);
 
 function editOther_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
-rdh.prefs.o_classwidth = abs(str2double(get(hObject,'String')));
+rdh.prefs.o_classwidth(get(handles.popupChannel,'Value')) = abs(str2double(get(hObject,'String')));
 rdh.o_lim_obj.factor = rdh.prefs.o_classwidth;
 rdh.o_lim_obj.offset = 0.5*rdh.prefs.o_classwidth;
 rdh.obj.o.setQuantization(rdh.prefs.o_classwidth);
@@ -384,18 +399,27 @@ function okbutton_Callback(hObject, eventdata, handles)
 rdh = get(handles.StatisticsOptionsFigure,'userdata');
 %read settings from objects
 types = {'amp','ampPer','tau','q'};
+nCh = length(get(handles.popupChannel,'String'));
 for i = 1:length(types) %loop of types
     for j = 1:3 
-        oStr = sprintf('%s%d',types{i},j);        
-        [rdh.prefs.(sprintf('%s%d_lb',types{i},j)) rdh.prefs.(sprintf('%s%d_ub',types{i},j)) gMin gMax rdh.prefs.(sprintf('%s%d_lim',types{i},j))] = rdh.obj.(oStr).getCurVals();
+        oStr = sprintf('%s%d',types{i},j);
+        for ch = 1:nCh
+            rdh.obj.(oStr).setCurrentChannel(ch);
+            [rdh.prefs.(sprintf('%s%d_lb',types{i},j))(ch), rdh.prefs.(sprintf('%s%d_ub',types{i},j))(ch), ~, ~, rdh.prefs.(sprintf('%s%d_lim',types{i},j))(ch)] = rdh.obj.(oStr).getCurVals();
+        end
     end
     % n
     oStr = sprintf('%sN',types{i}); 
-    [rdh.prefs.(sprintf('%sN_lb',types{i})) rdh.prefs.(sprintf('%sN_ub',types{i})) gMin gMax rdh.prefs.(sprintf('%sN_lim',types{i}))] = rdh.obj.(oStr).getCurVals();
+    for ch = 1:nCh
+        rdh.obj.(oStr).setCurrentChannel(ch);
+        [rdh.prefs.(sprintf('%sN_lb',types{i}))(ch), rdh.prefs.(sprintf('%sN_ub',types{i}))(ch), ~, ~, rdh.prefs.(sprintf('%sN_lim',types{i}))(ch)] = rdh.obj.(oStr).getCurVals();
+    end
 end
-[rdh.prefs.tauMean_lb rdh.prefs.tauMean_ub gMin gMax rdh.prefs.tauMean_lim] = rdh.obj.tauMean.getCurVals();
-[rdh.prefs.c_lb rdh.prefs.c_ub gMin gMax rdh.prefs.c_lim] = rdh.obj.c.getCurVals();
-[rdh.prefs.o_lb rdh.prefs.o_ub gMin gMax rdh.prefs.o_lim] = rdh.obj.o.getCurVals();
+for ch = 1:nCh
+    [rdh.prefs.tauMean_lb(ch), rdh.prefs.tauMean_ub(ch), ~, ~, rdh.prefs.tauMean_lim(ch)] = rdh.obj.tauMean.getCurVals();
+    [rdh.prefs.c_lb(ch), rdh.prefs.c_ub(ch), ~, ~, rdh.prefs.c_lim(ch)] = rdh.obj.c.getCurVals();
+    [rdh.prefs.o_lb(ch), rdh.prefs.o_ub(ch), ~, ~, rdh.prefs.o_lim(ch)] = rdh.obj.o.getCurVals();
+end
 set(handles.StatisticsOptionsFigure,'userdata',rdh);
 uiresume(handles.StatisticsOptionsFigure);
 
@@ -689,6 +713,11 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function o_hi_edit_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupChannel_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

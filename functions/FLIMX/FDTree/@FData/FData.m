@@ -812,7 +812,7 @@ classdef FData < handle
                 ci(ci == zlim_min) = [];
                 ci(ci == zlim_max) = [];
             end
-            [cw,lim,c_min,c_max] = getHistParams(this.getStatsParams(),this.dType,this.id);
+            [cw,lim,c_min,c_max] = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
             if(lim)
                 ci = ci(ci >= c_min & ci <= c_max);               
             else

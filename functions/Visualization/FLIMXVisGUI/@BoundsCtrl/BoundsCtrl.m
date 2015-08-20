@@ -35,10 +35,11 @@ classdef BoundsCtrl < handle
         myParent = [];
         myTarget = [];
         myQuantization = 0; %0: no quantization
-        myBoundsValues = [0; 100]; %typical (soft) or hard bounds
+        myBoundsValues = [0; 100];
+        myBoundsInitial = [0; 100]; %typical (soft) or hard bounds
         myBoundsFlags = [0; 0]; %1: hard bound, 0: soft bound
-        currentChannel = 1;
-        
+        myBoundsStatus = [0]; %bounds enabled or disabled
+        currentChannel = 1;        
         isInitialized = false; %true if handles are set
         lo_dec_button = [];
         lo_inc_button = [];
@@ -63,6 +64,10 @@ classdef BoundsCtrl < handle
         function setCurrentChannel(this,val)
             %set current channel (no checks of value yet)
             this.currentChannel = max(1,abs(val));
+            set(this.lo_edit,'String',num2str(this.myBoundsValues(1,val)));
+            set(this.hi_edit,'String',num2str(this.myBoundsValues(2,val)));
+            set(this.check,'Value',this.myBoundsStatus(val));
+            this.updateCtrls();
         end
         
         function this = setBounds(this,values)
@@ -70,26 +75,28 @@ classdef BoundsCtrl < handle
             if(size(values,1) ~= 2)
                 return
             end
+            this.myBoundsInitial = values;
             this.myBoundsValues = values;
-            set(this.lo_edit,'String',num2str(values(1,1)));
-            set(this.hi_edit,'String',num2str(values(2,1)));
+            set(this.lo_edit,'String',num2str(values(1,this.currentChannel)));
+            set(this.hi_edit,'String',num2str(values(2,this.currentChannel)));
             this.updateCtrls();
         end
         
         function setStatus(this,flag)
-            %set default on/off status
-            if(flag)
+            %set on/off status
+            this.myBoundsStatus = flag;
+            if(flag(this.currentChannel))
                 set(this.check,'Value',1)
             else
                 set(this.check,'Value',0)
             end
-            this.enDisAble(flag);
+            this.enDisAble(flag(this.currentChannel));
         end
         
         function setQuantization(this,quant)
             %set quantization
-            if(length(quant) ~= size(this.myBoundsValues,2))
-                quant = repmat(quant,1,size(this.myBoundsValues,2));
+            if(length(quant) ~= size(this.myBoundsInitial,2))
+                quant = repmat(quant,1,size(this.myBoundsInitial,2));
             end
             this.myQuantization = quant;
             this.updateCtrls();
@@ -97,6 +104,7 @@ classdef BoundsCtrl < handle
         
         function check_Callback(this,hObject,eventdata)
             %callback function of the check control
+            this.myBoundsStatus(this.currentChannel) = get(hObject,'Value');
             this.enDisAble(get(hObject,'Value'));
             this.updateCtrls();
         end
@@ -104,42 +112,54 @@ classdef BoundsCtrl < handle
         function editLo_Callback(this,hObject,eventdata)
             %callback function of the lower edit field            
             %check for validity
-            set(hObject,'String',num2str(this.checkBnds('lo',str2double(get(hObject,'String')))));
+            current = this.checkBnds('lo',str2double(get(hObject,'String')));
+            set(hObject,'String',num2str(current));
+            this.myBoundsValues(1,this.currentChannel) = current;
             this.updateCtrls();
         end
         
         function editHi_Callback(this,hObject,eventdata)
             %callback function of the lower edit field            
             %check for validity
-            set(hObject,'String',num2str(this.checkBnds('hi',str2double(get(hObject,'String')))));
+            current = this.checkBnds('hi',str2double(get(hObject,'String')));
+            set(hObject,'String',num2str(current));
+            this.myBoundsValues(2,this.currentChannel) = current;
             this.updateCtrls();
         end
         
         function buttonLoDec_Callback(this,hObject,eventdata)
             %callback function of an increase/decrease button
             %check for validity
-            set(this.lo_edit,'String',num2str(this.checkBnds('lo',this.decMin())));
+            current = this.checkBnds('lo',this.decMin());
+            set(this.lo_edit,'String',num2str(current));
+            this.myBoundsValues(1,this.currentChannel) = current;
             this.updateCtrls();
         end
         
         function buttonLoInc_Callback(this,hObject,eventdata)
             %callback function of an increase/decrease button
             %check for validity
-            set(this.lo_edit,'String',num2str(this.checkBnds('lo',this.incMin())));
+            current = this.checkBnds('lo',this.incMin());
+            set(this.lo_edit,'String',num2str(current));
+            this.myBoundsValues(1,this.currentChannel) = current;
             this.updateCtrls();
         end
         
         function buttonHiDec_Callback(this,hObject,eventdata)
             %callback function of an increase/decrease button
             %check for validity
-            set(this.hi_edit,'String',num2str(this.checkBnds('hi',this.decMax())));
+            current = this.checkBnds('hi',this.decMax());
+            set(this.hi_edit,'String',num2str(current));
+            this.myBoundsValues(2,this.currentChannel) = current;
             this.updateCtrls();
         end
         
         function buttonHiInc_Callback(this,hObject,eventdata)
             %callback function of an increase/decrease button
             %check for validity
-            set(this.hi_edit,'String',num2str(this.checkBnds('hi',this.incMax())));
+            current = this.checkBnds('hi',this.incMax());
+            set(this.hi_edit,'String',num2str(current));
+            this.myBoundsValues(2,this.currentChannel) = current;
             this.updateCtrls();
         end
         
@@ -157,12 +177,12 @@ classdef BoundsCtrl < handle
                 return;
             end
             %disable buttons if currently at min/ max 
-            if(cMin == gMin && this.myBoundsFlags(1,this.currentChannel))
+            if(cMin == gMin && this.myBoundsFlags(1))
                 set(this.l_dec_button,'Enable','off');
             else
                 set(this.lo_dec_button,'Enable','on');
             end
-            if(gMax == cMax && this.myBoundsFlags(2,this.currentChannel))
+            if(gMax == cMax && this.myBoundsFlags(2))
                 set(this.hi_inc_button,'Enable','off');
             else
                 set(this.hi_inc_button,'Enable','on');
@@ -181,8 +201,8 @@ classdef BoundsCtrl < handle
             flag = get(this.check,'Value');
             cMin = str2double(get(this.lo_edit,'String'));
             cMax = str2double(get(this.hi_edit,'String'));
-            gMin = this.myBoundsValues(1,this.currentChannel);
-            gMax = this.myBoundsValues(2,this.currentChannel);               
+            gMin = this.myBoundsInitial(1,this.currentChannel);
+            gMax = this.myBoundsInitial(2,this.currentChannel);               
         end
         
         function enDisAble(this,arg)
@@ -298,7 +318,7 @@ classdef BoundsCtrl < handle
                     if(val >= cMax) %overflow
                         val = cMax-(gMax-gMin)*0.05;
                     end
-                    if(this.myBoundsFlags(1,this.currentChannel) && val > gMin)
+                    if(this.myBoundsFlags(1) && val > gMin)
                         val = gMin;
                     end
                     %if(this.myQuantization)
@@ -308,7 +328,7 @@ classdef BoundsCtrl < handle
                     if(val <= cMin) %underflow
                         val = cMin+(gMax-gMin)*0.05;
                     end
-                    if(this.myBoundsFlags(2,this.currentChannel) && val > gMax)
+                    if(this.myBoundsFlags(2) && val > gMax)
                         val = gMax;
                     end
                     if(this.myQuantization(this.currentChannel))

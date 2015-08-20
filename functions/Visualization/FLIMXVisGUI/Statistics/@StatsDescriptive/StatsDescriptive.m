@@ -144,7 +144,7 @@ classdef StatsDescriptive < handle
         
         function GUI_SelFLIMParamPop_Callback(this,hObject,eventdata)
             %
-            [cw, ~, ~, ub] = getHistParams(this.visObj.getStatsParams(),this.dType,this.id);
+            [cw, ~, ~, ub] = getHistParams(this.visObj.getStatsParams(),this.ch,this.dType,this.id);
             set(this.visHandles.editClassWidth,'String',cw);
             this.setupGUI();
         end
@@ -163,7 +163,7 @@ classdef StatsDescriptive < handle
         function GUI_buttonUpdateGUI_Callback(this,hObject,eventdata)
             %
             try
-                set(hObject,'String',sprintf('<html><img src="file:/%s"/> Update</html>',fullfile(cd,'functions','visualization','spinner.gif')));
+                set(hObject,'String',sprintf('<html><img src="file:/%s"/> Update</html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
             this.clearResults();
@@ -218,7 +218,7 @@ classdef StatsDescriptive < handle
             [file,path] = uiputfile('*.xls','Export Data in Excel Fileformat...');
             if ~file ; return ; end
             try
-                set(hObject,'String',sprintf('<html><img src="file:/%s"/></html>',fullfile(cd,'functions','visualization','spinner.gif')));
+                set(hObject,'String',sprintf('<html><img src="file:/%s"/></html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
             fn = fullfile(path,file);

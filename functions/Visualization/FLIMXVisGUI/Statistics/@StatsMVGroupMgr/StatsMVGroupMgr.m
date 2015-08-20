@@ -142,7 +142,7 @@ classdef StatsMVGroupMgr < handle
                     idx = idx | strcmpi(cMVs.x{1}, allObjs);
                     %get corresponding class width
                     [dType, dTypeNr] = this.visObj.FLIMItem2TypeAndID(cMVs.x{1});
-                    this.cwX = getHistParams(this.visObj.getStatsParams(),dType{1},dTypeNr);
+                    this.cwX = getHistParams(this.visObj.getStatsParams(),curChNr,dType{1},dTypeNr);
                     set(this.visHandles.lblHeadingX,'String',sprintf('x-axis\n(Used classwidth: %d)',this.cwX));
                     set(this.xButton,'Enable','Off');
                     set(this.yButton,'Enable','On');
@@ -155,7 +155,7 @@ classdef StatsMVGroupMgr < handle
                 end                
                 if(~strcmp(cMVs.y{1},'-none-'))
                     [dType, dTypeNr] = this.visObj.FLIMItem2TypeAndID(cMVs.y{1});
-                    this.cwY = getHistParams(this.visObj.getStatsParams(),dType{1},dTypeNr);
+                    this.cwY = getHistParams(this.visObj.getStatsParams(),curChNr,dType{1},dTypeNr);
                     %add whitespace to distinguish between all FLIM items
                     dType{1} = sprintf('%s ',dType{1});
                     %show only targets with same dType

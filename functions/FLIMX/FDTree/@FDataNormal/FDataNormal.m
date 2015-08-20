@@ -220,7 +220,7 @@ classdef FDataNormal < FData
             %out = false if cw is within bounds, true otherwise
             out = false;
             ci = currentImage(~isnan(currentImage(:)));
-            [cw, lim, lb, ub] = getHistParams(this.getStatsParams(),this.dType,this.id);            
+            [cw, lim, lb, ub] = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
             if(lim)
                 %min/max of centers should be multiples of the bounds
                 c_min = ceil((min(ci(:))-lb)/cw)*cw+lb;

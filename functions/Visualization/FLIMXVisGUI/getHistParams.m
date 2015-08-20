@@ -1,4 +1,4 @@
-function [cw, lim, lb, ub] = getHistParams(statsParams,dType,dID)
+function [cw, lim, lb, ub] = getHistParams(statsParams,ch,dType,dID)
 %=============================================================================================================
 %
 % @file     getHistParams.m
@@ -32,76 +32,87 @@ function [cw, lim, lb, ub] = getHistParams(statsParams,dType,dID)
 % @brief    A function to extract histogram parameters from a structure for use in FLIMXVis
 %
 if(~isempty(strfind(dType,'MVGroup')))
-    cw = statsParams.c_classwidth;
-    lim = statsParams.c_lim;
-    lb = statsParams.c_lb;
-    ub = statsParams.c_ub;
+    cw = channelSel(statsParams.c_classwidth,ch);
+    lim = channelSel(statsParams.c_lim,ch);
+    lb = channelSel(statsParams.c_lb,ch);
+    ub = channelSel(statsParams.c_ub,ch);
+    
     return
 end
 
 switch lower(dType)
     %                 case 'Intensity' %intensity
-    %                     cw = statsParams.classwidth_i;
-    %                     lim = statsParams.i_lim;
-    %                     lb = statsParams.i_lb;
-    %                     ub = statsParams.i_ub;
+    %                     cw = channelSel(statsParams.classwidth_i;
+    %                     lim = channelSel(statsParams.i_lim;
+    %                     lb = channelSel(statsParams.i_lb;
+    %                     ub = channelSel(statsParams.i_ub;
     case 'amplitudepercent'
         %amplitude percent
         if(dID < 4)
-            cw = statsParams.(sprintf('ampPer%d_classwidth',dID));
-            lim = statsParams.(sprintf('ampPer%d_lim',dID));
-            lb = statsParams.(sprintf('ampPer%d_lb',dID));
-            ub = statsParams.(sprintf('ampPer%d_ub',dID));
+            cw = channelSel(statsParams.(sprintf('ampPer%d_classwidth',dID)),ch);
+            lim = channelSel(statsParams.(sprintf('ampPer%d_lim',dID)),ch);
+            lb = channelSel(statsParams.(sprintf('ampPer%d_lb',dID)),ch);
+            ub = channelSel(statsParams.(sprintf('ampPer%d_ub',dID)),ch);
         else
-            cw = statsParams.ampPerN_classwidth;
-            lim = statsParams.ampPerN_lim;
-            lb = statsParams.ampPerN_lb;
-            ub = statsParams.ampPerN_ub;
+            cw = channelSel(statsParams.ampPerN_classwidth,ch);
+            lim = channelSel(statsParams.ampPerN_lim,ch);
+            lb = channelSel(statsParams.ampPerN_lb,ch);
+            ub = channelSel(statsParams.ampPerN_ub,ch);
         end
     case 'amplitude'
         if(dID < 4)
-            cw = statsParams.(sprintf('amp%d_classwidth',dID));
-            lim = statsParams.(sprintf('amp%d_lim',dID));
-            lb = statsParams.(sprintf('amp%d_lb',dID));
-            ub = statsParams.(sprintf('amp%d_ub',dID));
+            cw = channelSel(statsParams.(sprintf('amp%d_classwidth',dID)),ch);
+            lim = channelSel(statsParams.(sprintf('amp%d_lim',dID)),ch);
+            lb = channelSel(statsParams.(sprintf('amp%d_lb',dID)),ch);
+            ub = channelSel(statsParams.(sprintf('amp%d_ub',dID)),ch);
         else
-            cw = statsParams.ampN_classwidth;
-            lim = statsParams.ampN_lim;
-            lb = statsParams.ampN_lb;
-            ub = statsParams.ampN_ub;
+            cw = channelSel(statsParams.ampN_classwidth,ch);
+            lim = channelSel(statsParams.ampN_lim,ch);
+            lb = channelSel(statsParams.ampN_lb,ch);
+            ub = channelSel(statsParams.ampN_ub,ch);
         end
     case {'tau','tc'}
         if(dID < 4)
-            cw = statsParams.(sprintf('tau%d_classwidth',dID));
-            lim = statsParams.(sprintf('tau%d_lim',dID));
-            lb = statsParams.(sprintf('tau%d_lb',dID));
-            ub = statsParams.(sprintf('tau%d_ub',dID));
+            cw = channelSel(statsParams.(sprintf('tau%d_classwidth',dID)),ch);
+            lim = channelSel(statsParams.(sprintf('tau%d_lim',dID)),ch);
+            lb = channelSel(statsParams.(sprintf('tau%d_lb',dID)),ch);
+            ub = channelSel(statsParams.(sprintf('tau%d_ub',dID)),ch);
         else
-            cw = statsParams.tauN_classwidth;
-            lim = statsParams.tauN_lim;
-            lb = statsParams.tauN_lb;
-            ub = statsParams.tauN_ub;
+            cw = channelSel(statsParams.tauN_classwidth,ch);
+            lim = channelSel(statsParams.tauN_lim,ch);
+            lb = channelSel(statsParams.tauN_lb,ch);
+            ub = channelSel(statsParams.tauN_ub,ch);
         end
     case 'taumean'
-        cw = statsParams.tauMean_classwidth;
-        lim = statsParams.tauMean_lim;
-        lb = statsParams.tauMean_lb;
-        ub = statsParams.tauMean_ub;
+        cw = channelSel(statsParams.tauMean_classwidth,ch);
+        lim = channelSel(statsParams.tauMean_lim,ch);
+        lb = channelSel(statsParams.tauMean_lb,ch);
+        ub = channelSel(statsParams.tauMean_ub,ch);
     case 'q'
         if(dID < 4)
-            cw = statsParams.(sprintf('q%d_classwidth',dID));
-            lim = statsParams.(sprintf('q%d_lim',dID));
-            lb = statsParams.(sprintf('q%d_lb',dID));
-            ub = statsParams.(sprintf('q%d_ub',dID));
+            cw = channelSel(statsParams.(sprintf('q%d_classwidth',dID)),ch);
+            lim = channelSel(statsParams.(sprintf('q%d_lim',dID)),ch);
+            lb = channelSel(statsParams.(sprintf('q%d_lb',dID)),ch);
+            ub = channelSel(statsParams.(sprintf('q%d_ub',dID)),ch);
         else
-            cw = statsParams.qN_classwidth;
-            lim = statsParams.qN_lim;
-            lb = statsParams.qN_lb;
-            ub = statsParams.qN_ub;
+            cw = channelSel(statsParams.qN_classwidth,ch);
+            lim = channelSel(statsParams.qN_lim,ch);
+            lb = channelSel(statsParams.qN_lb,ch);
+            ub = channelSel(statsParams.qN_ub,ch);
         end
     otherwise
-        cw = statsParams.o_classwidth;
-        lim = statsParams.o_lim;
-        lb = statsParams.o_lb;
-        ub = statsParams.o_ub;    
+        cw = channelSel(statsParams.o_classwidth,ch);
+        lim = channelSel(statsParams.o_lim,ch);
+        lb = channelSel(statsParams.o_lb,ch);
+        ub = channelSel(statsParams.o_ub,ch);    
+end
+
+function out = channelSel(in,ch)
+    %select parameter in specific channel
+    if(length(in) < ch)
+        out = in(1);
+    else
+        out = in(ch);
+    end    
+end
 end
