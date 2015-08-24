@@ -51,7 +51,7 @@ classdef FStudy < handle
             % Constructor for FStudy.
             this.myParent = parent;
             this.name = name;
-            this.revision = 18;
+            this.revision = 19;
             this.myDir = sDir;
             this.mySubjects = LinkedList();
             this.myStudyInfoSet = studyIS(this);
@@ -183,8 +183,7 @@ classdef FStudy < handle
         end
         
         function setClusterName(this,clusterID,val)
-            %set cluster name
-            
+            %set cluster name            
             %set name of local cluster objects
             subStr = this.getSubjectsNames('-');
             for i=1:length(subStr)
@@ -214,7 +213,7 @@ classdef FStudy < handle
                 subject.clearAllCIs('');
                 for ch = 1:2
                     if(subject.channelResultIsLoaded(ch))
-                        subject.loadChannelResult(ch,[]);
+                        subject.loadChannelResult(ch);
                     elseif(subject.channelMesurementIsLoaded(ch))
                         subject.loadChannelMeasurement(ch,true);
                     end
@@ -279,48 +278,6 @@ classdef FStudy < handle
             this.myDir = sDir;
         end
         
-%         function setResultROIType(this,subjectID,dType,dTypeNr,val)
-%             %set the ROI type for subject subjectID
-%             subject = this.getSubject(subjectID);
-%             if(isempty(subject))
-%                 return
-%             end
-%             subject.setResultROIType(dType,val);
-%             if(subject.getGlobalScale(dType))
-%                 this.myStudyInfoSet.setResultROIType(subjectID,val);
-%             end
-%             this.clearObjMerged();
-%             this.clearClusters(subjectID,dType,dTypeNr);
-%         end
-%         
-%         function setResultROISubType(this,subjectID,dType,dTypeNr,val)
-%             %set the ROI grid selection for subject subjectID
-%             subject = this.getSubject(subjectID);
-%             if(isempty(subject))
-%                 return
-%             end
-%             subject.setResultROISubType(dType,val);
-%             if(subject.getGlobalScale(dType))
-%                 this.myStudyInfoSet.setResultROISubType(subjectID,val);
-%             end
-%             this.clearObjMerged();
-%             this.clearClusters(subjectID,dType,dTypeNr);
-%         end
-        
-%         function setResultROISubTypeAnchor(this,subjectID,dType,dTypeNr,val)
-%             %set the ROI grid anchor for subject subjectID
-%             subject = this.getSubject(subjectID);
-%             if(isempty(subject))
-%                 return
-%             end
-%             subject.setResultROISubTypeAnchor(dType,val);
-%             if(subject.getGlobalScale(dType))
-%                 this.myStudyInfoSet.setResultROISubTypeAnchor(subjectID,val);
-%             end
-%             this.clearObjMerged();
-%             this.clearClusters(subjectID,dType,dTypeNr);
-%         end
-        
         function setResultROICoordinates(this,subjectID,dType,dTypeNr,ROIType,ROICoord)
             %set the ROI vector at subject subjectID and dimension dim
             subject = this.getSubject(subjectID);
@@ -343,16 +300,7 @@ classdef FStudy < handle
                 subject.setCutVec(dim,cutVec);
             end
         end
-        
-        function setSelFLIMItems(this,subjectID,ch,items)
-            %set selected FLIM parameter for subject subjectID
-            this.myStudyInfoSet.setSelFLIMItems(subjectID,ch,items);
-            subject = this.getSubject(subjectID);
-            if(~isempty(subject))
-                subject.loadChannelResult(ch,items);
-            end
-        end
-        
+                
         function setAllFLIMItems(this,subjectID,ch,items)
             %
             this.myStudyInfoSet.setAllFLIMItems(subjectID,ch,items);
@@ -471,27 +419,43 @@ classdef FStudy < handle
 % %             subject.loadChannelResult(chan);
 %         end
         
-        function importSubject(this,subjectObj)
+        function importSubject(this,importSubject)
             %import a new subject object (and possibly study)
-            subject = this.getSubject(subjectObj.name);
+            subject = this.getSubject(importSubject.name);
             if(isempty(subject))
-                subject = this.addSubject(subjectObj.name);
+                subject = this.addSubject(importSubject.name);
             end
             %remove all old files
-            this.clearSubjectFiles(subjectObj.name);
+            this.clearSubjectFiles(importSubject.name);
             %save mat files for measurements and results
-            subjectObj.exportMatFile([],fullfile(this.myDir,subjectObj.name));
-            this.checkSubjectFiles(subjectObj.name);
-            chs = subjectObj.getNonEmptyChannelList('');
+            importSubject.exportMatFile([],fullfile(this.myDir,importSubject.name));
+            this.checkSubjectFiles(importSubject.name);
+            chs = importSubject.getNonEmptyChannelList('');
             if(~isempty(chs))
                 for ch = chs
                     subject.removeChannel(ch);
-                    this.addObj(subjectID,ch,[],[],[]);
+                    this.addObj(importSubject.name,ch,[],[],[]);
                 end
                 subject.loadChannelMeasurement(chs(1),false);
             end
         end
         
+        function unloadAllChannels(this)
+            %remove all channels in all subjects from memory
+            subStr = this.getSubjectsNames('-');
+            for i=1:length(subStr)
+                subject = this.getSubject(subStr{i});
+                chs = subject.getNrChannels();
+                if(~isempty(chs))
+                    for ch = 1:chs
+                        if(subject.channelResultIsLoaded(ch))
+                            subject.removeChannel(ch);
+                            this.addObj(subject.name,ch,[],[],[]);
+                        end
+                    end
+                end
+            end
+        end        
         
 %         function importResultObj(this,resultObj,subjectName)
 %             %import a result of a new subject (and possibly study)
@@ -1309,12 +1273,7 @@ classdef FStudy < handle
             %
             items = this.myStudyInfoSet.getAllFLIMItems(subjectID,ch);
         end
-        
-        function items = getSelFLIMItems(this,subjectID,ch)
-            %
-            items = this.myStudyInfoSet.getSelFLIMItems(subjectID,ch);
-        end
-                
+                        
 %         function out = getResultFileChs(this,j)
 %             %
 %             out = this.myStudyInfoSet.getResultFileChs(j);

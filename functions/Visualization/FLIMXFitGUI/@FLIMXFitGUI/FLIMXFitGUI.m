@@ -219,7 +219,7 @@ classdef FLIMXFitGUI < handle
             ch = this.currentChannel;
             pstr = this.FLIMXObj.curSubject.getResultNames(ch,this.showInitialization);
             if(~isempty(pstr))
-                pstr = removeNonVisItems(pstr);
+                pstr = removeNonVisItems(pstr,this.generalParams.flimParameterView);
                 pstr(2:length(pstr)+1) = sort(pstr);
             end
             pstr{1} = 'Intensity';
@@ -1757,7 +1757,12 @@ classdef FLIMXFitGUI < handle
                     this.setupGUI();
                 end
                 if(new.isDirty(2) == 1)
+                    if(this.generalParams.flimParameterView ~= new.general.flimParameterView)
+                        this.FLIMXObj.fdt.unloadAllChannels();                        
+                    end
                     this.FLIMXObj.paramMgr.setParamSection('general',new.general);
+                    this.FLIMXObj.FLIMVisGUI.setupGUI();
+                    this.FLIMXObj.FLIMVisGUI.updateGUI([]);
                     this.setupGUI();
                 end
                 this.updateGUI(1);

@@ -176,15 +176,12 @@ switch data.basic.fitModel
     case 0
         set(handles.radioTciFit,'Value',0);
         set(handles.radioTailFit,'Value',1);
-        set(handles.radioTailFitNoIRF,'Value',0);
     case 1
         set(handles.radioTciFit,'Value',1);
         set(handles.radioTailFit,'Value',0);
-        set(handles.radioTailFitNoIRF,'Value',0);
     case 2
         set(handles.radioTciFit,'Value',0);
         set(handles.radioTailFit,'Value',0);
-        set(handles.radioTailFitNoIRF,'Value',1);
 end
 tcilen = length(data.basic.tciMask);
 stelen = length(data.basic.stretchedExpMask);

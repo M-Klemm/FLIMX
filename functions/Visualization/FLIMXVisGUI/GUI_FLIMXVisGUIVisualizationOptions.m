@@ -35,7 +35,7 @@ function varargout = GUI_FLIMXVisGUIVisualizationOptions(varargin)
 % vargin - structure with preferences and defaults
 %output: same as input, but altered according to user input
 
-% Last Modified by GUIDE v2.5 23-Jul-2015 14:12:30
+% Last Modified by GUIDE v2.5 21-Aug-2015 14:13:56
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -119,6 +119,7 @@ if(isempty(idx))
     idx = 10; %jet
 end
 set(handles.popupColormap,'Value',idx);
+set(handles.popupFLIMItems,'Value',data.general.flimParameterView);
 set(handles.checkInvertColormap,'Value',data.general.cmInvert);
 %plot colormap
 try
@@ -149,6 +150,7 @@ else
     set(handles.button_ETDRS_bg_color,'Visible','off');
     %set(handles.edit_ETDRS_bg_trans,'Visible','off');
 end
+set(handles.edit_ETDRS_bg_trans,'Visible','on','String',data.flimvis.ETDRS_subfield_bg_color(4));
 set(handles.offset_m3d_checkbox,'Value',data.flimvis.offset_m3d);
 set(handles.color_cuts_checkbox,'Value',data.flimvis.color_cuts);
 set(handles.show_cut_checkbox,'Value',data.flimvis.show_cut);
@@ -214,6 +216,16 @@ rdh.general.cmType = str;
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
+
+
+% --- Executes on selection change in popupFLIMItems.
+function popupFLIMItems_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+rdh.general.flimParameterView = get(hObject,'Value');       
+rdh.isDirty(2) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+updateGUI(handles,rdh);
+
 
 % --- Executes on selection change in popupStartupGUIs.
 function popupStartupGUIs_Callback(hObject, eventdata, handles)
@@ -526,6 +538,11 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function edit_ETDRS_bg_trans_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupFLIMItems_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

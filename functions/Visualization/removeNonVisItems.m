@@ -1,4 +1,4 @@
-function items = removeNonVisItems(items)
+function items = removeNonVisItems(items,mode)
 %=============================================================================================================
 %
 % @file     removeNonVisItems.m
@@ -41,3 +41,22 @@ items = items(~strcmpi(items,'reflectionMask'));
 items = items(~strcmpi(items,'EffectiveTime'));
 items = items(~strcmpi(items,'Intensity'));
 items = items(~strcmpi(items,'iVec'));
+%select specific items
+if(mode == 1) %simple
+    keep = {'Tau','AmplitudePercent','Offset','TauMean','Q','hShift','chi2'};    
+elseif(mode == 2) %expert
+    keep = {'Tau','AmplitudePercent','Offset','TauMean','Q','hShift','chi2','RAUC','RAUCIS','Amplitude','MaximumPosition','MaximumPhotons','chi2Tail'};    
+else %all
+    return
+end
+new = [];
+cLen = cellfun(@length,items);
+for i = 1:length(keep)
+    idxLen = cLen == length(keep{i}) | cLen == length(keep{i})+1;
+    idxStrCmp = strncmp(keep{i},items(idxLen),length(keep{i}));
+    if(any(idxStrCmp))
+        idxLen = find(idxLen);
+        new = [new; idxLen(idxStrCmp)];
+    end
+end
+items = items(new);

@@ -410,15 +410,7 @@ classdef FDTree < handle
                 study.setCutVec(subjectID,dim,cutVec);
             end
         end
-        
-        function setSelFLIMItems(this,studyName,subjectID,chan,items)
-            %set selected FLIM parameter for study studyName at subject and channel
-            study = this.getStudy(studyName);
-            if(~isempty(study))
-                study.setSelFLIMItems(subjectID,chan,items);
-            end
-        end
-        
+                
         function setStudyName(this,studyID,newStudyName)
             %set new study name
             study = this.getStudy(studyID);
@@ -538,6 +530,31 @@ classdef FDTree < handle
             if(~isempty(study))
                 study.importSubject(subjectObj);
             end
+        end
+        
+        function unloadAllChannels(this)
+            %remove all channels in all subjects in all studies from memory
+            studyNames = this.getStudyNames();
+            tStart = now;
+            lastUpdate = tStart;
+            oneSec = 1/24/60/60;
+            for i = 1:length(studyNames)
+                try
+                    tNow = datenummx(clock);  %fast
+                catch
+                    tNow = now;  %slower
+                end
+                study = this.getStudy(studyNames{i});
+                if(~isempty(study))
+                    study.unloadAllChannels();
+                end
+                if(tNow-lastUpdate > oneSec)
+                    [~, minutes, secs] = secs2hms((tNow-tStart)/oneSec/i*(length(studyNames)-i)); %mean cputime for finished runs * cycles left
+                    this.updateLongProgress(i/length(studyNames),sprintf('Time left: %dmin %.0fsec - Unloading study ''%s''',minutes,secs,studyNames{i}));
+                    lastUpdate = tNow;
+                end
+            end
+            this.updateLongProgress(0,'');
         end
         
         function updateSubjectChannel(this,subjectObj,ch,flag)
@@ -1150,17 +1167,7 @@ classdef FDTree < handle
                 items = [];
             end
         end
-        
-        function items = getSelFLIMItems(this,studyID,subjectID,chan)
-            %get the selected items of a study, subject and channel
-            study = this.getStudy(studyID);
-            if(~isempty(study))
-                items = study.getSelFLIMItems(subjectID,chan);
-            else
-                items = [];
-            end
-        end
-        
+                
 %         function out = getSubjectScalings(this,studyID,idx)
 %             %get subject scalings from study data
 %             study = this.getStudy(studyID);

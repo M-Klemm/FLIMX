@@ -54,7 +54,7 @@ function varargout = GUI_FLIMXFitGUIVisualizationOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_FLIMXFitGUIVisualizationOptions
 
-% Last Modified by GUIDE v2.5 17-Jul-2014 16:56:48
+% Last Modified by GUIDE v2.5 21-Aug-2015 14:35:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -179,6 +179,8 @@ set(handles.editExpSumMarkersize,'String',num2str(data.fluoDecay.plotExpSumMarke
 set(handles.editExpMarkersize,'String',num2str(data.fluoDecay.plotExpMarkersize,'%d'));
 set(handles.editIRFMarkersize,'String',num2str(data.fluoDecay.plotIRFMarkersize,'%d'));
 set(handles.editInitMarkersize,'String',num2str(data.fluoDecay.plotInitMarkersize,'%d'));
+
+set(handles.popupFLIMItems,'Value',data.general.flimParameterView);
 %startup
 if(data.general.openFitGUIonStartup && ~data.general.openVisGUIonStartup)
     set(handles.popupStartupGUIs,'Value',1);
@@ -649,6 +651,14 @@ rdh.fluoDecay.plotExpSumMarkerstyle = id2MarkerStyle(get(hObject,'Value'));
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
+% --- Executes on selection change in popupFLIMItems.
+function popupFLIMItems_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.general.flimParameterView = get(hObject,'Value');       
+rdh.isDirty(2) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+updateGUI(handles,rdh);
+
 % --- Executes on selection change in popupStartupGUIs.
 function popupStartupGUIs_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
@@ -847,6 +857,11 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function popupStartupGUIs_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupFLIMItems_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

@@ -958,7 +958,6 @@ classdef fluoSubject < handle
 %             if(isempty(subject))
 %                 subject = this.addSubject(subjectID);
 %             end
-            oldSelItems = this.myParent.myStudyInfoSet.getSelFLIMItems(subjectID,ch);
             %todo: remove old files
             this.myParent.removeChannel(subjectID,ch);
             %save mat files for measurements and results
@@ -966,13 +965,7 @@ classdef fluoSubject < handle
                 %save only result, we can assume we already have the measurement
                 %todo: make interface
                 this.myResult.saveMatFile2Disk(ch);
-                newAllItems = removeNonVisItems(this.getResultNames(ch,false));
-                newSelItems = intersect(oldSelItems,newAllItems);
-                if(isempty(newSelItems))
-                    newSelItems = newAllItems;
-                end
-                this.myParent.myStudyInfoSet.setAllFLIMItems(subjectID,ch,newAllItems);
-                this.myParent.myStudyInfoSet.setSelFLIMItems(subjectID,ch,newSelItems);
+                this.myParent.myStudyInfoSet.setAllFLIMItems(subjectID,ch,removeNonVisItems(this.getResultNames(ch,false),3));
             elseif(strcmp(flag,'measurement'))
                 %todo: make interface
                 this.myMeasurement.saveMatFile2Disk(ch);

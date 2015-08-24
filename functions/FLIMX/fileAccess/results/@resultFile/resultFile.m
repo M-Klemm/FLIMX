@@ -655,7 +655,9 @@ classdef resultFile < handle
         
         function results = makeResultStructs(this,y,x)
             %build result structure
-            for i = 1 : this.basicParams.nExp
+            bp = this.basicParams;
+            vp = this.volatilePixelParams;
+            for i = 1 : bp.nExp
                 a = sprintf('Amplitude%d',i);
                 ag = sprintf('AmplitudeGuess%d',i);
                 t = sprintf('Tau%d',i);
@@ -667,26 +669,26 @@ classdef resultFile < handle
                 results.(tg) = zeros(y,x);
                 results.(r) = zeros(y,x);
             end
-            for i = 1:(this.basicParams.nExp + this.volatilePixelParams.nScatter)
+            for i = 1:(bp.nExp + vp.nScatter)
                 r = sprintf('RAUCIS%d',i);
                 results.(r) = zeros(y,x);
             end
 %             results.tc1_corrected = zeros(y,x);
-            nTci = sum(this.basicParams.tciMask);
+            nTci = sum(bp.tciMask);
             if(nTci > 0)
                 for i = 1 : nTci
-                    cur_tci = this.basicParams.nExp - nTci + i;
+                    cur_tci = bp.nExp - nTci + i;
                     tci_str = sprintf('tc%d',cur_tci);
                     tcig_str = sprintf('tcGuess%d',cur_tci);
                     results.(tci_str) = zeros(y,x);
                     results.(tcig_str) = zeros(y,x);
-%                     if(this.basicParams.compMaxCorrTci)
+%                     if(bp.compMaxCorrTci)
 %                         tcic_str = sprintf('tc%d_corrected',cur_tci);
 %                         results.(tcic_str) = zeros(y,x);
 %                     end
                 end
             end
-            Betas = find(this.basicParams.stretchedExpMask);
+            Betas = find(bp.stretchedExpMask);
             if(~isempty(Betas))
                 for i = 1 : length(Betas)
                     se_str = sprintf('Beta%d',Betas(i));
@@ -694,7 +696,7 @@ classdef resultFile < handle
                 end
             end
             %todo: fix scatter allocation
-            for i = 1 : this.volatilePixelParams.nScatter
+            for i = 1 : vp.nScatter
                 a = sprintf('ScatterAmplitude%d',i);
                 s = sprintf('ScatterShift%d',i);
                 o = sprintf('ScatterOffset%d',i);
@@ -725,8 +727,8 @@ classdef resultFile < handle
             results.SlopeStartPosition = zeros(y,x);
             results.hShiftGuess = zeros(y,x);
             %toDo: fix allocation
-            results.x_vec = zeros(y,x,this.volatilePixelParams.nModelParamsPerCh);
-            results.iVec = zeros(y,x,this.volatilePixelParams.nModelParamsPerCh);            
+            results.x_vec = zeros(y,x,vp.nModelParamsPerCh);
+            results.iVec = zeros(y,x,vp.nModelParamsPerCh);            
             results.EffectiveTime = 0;
             results = orderfields(results);
         end

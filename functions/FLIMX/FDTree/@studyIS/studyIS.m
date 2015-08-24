@@ -44,7 +44,6 @@ classdef studyIS < handle
         resultCuts = cell(0,0); %cuts for each subject
         resultROICoordinates = cell(0,0); %rois for each subject        
         allFLIMItems = cell(0,0); %selected FLIM parameters, for each subject and channel
-        selFLIMItems = cell(0,0); %selected FLIM parameters, for each subject and channel
         IRFInfo = []; %information per channel: which IRF was used, sum of IRF
         arithmeticImageInfo = cell(0,2);
         viewColors = cell(2,0); %colors for views
@@ -76,7 +75,6 @@ classdef studyIS < handle
             this.subjectInfo = import.subjectInfo;
             this.subjectInfoCombi = import.subjectInfoCombi;
             this.allFLIMItems = import.allFLIMItems;
-            this.selFLIMItems = import.selFLIMItems;
             this.resultFileChs = import.resultFileChs;
             this.measurementFileChs = import.measurementFileChs;
             this.studyClusters = import.studyClusters;
@@ -319,18 +317,7 @@ classdef studyIS < handle
             this.allFLIMItems(idx,channel) = {items};
             this.setDirty(true);
         end
-        
-        function setSelFLIMItems(this,subName,channel,items)
-            %set selected FLIM parameters for subject subName
-            idx = this.subName2idx(subName);
-            if(isempty(idx) || channel < 1)
-                %subject not in study
-                return
-            end
-            this.selFLIMItems(idx,channel) = {items};
-            this.setDirty(true);
-        end
-        
+                
         function setCondColumn(this,colName,opt)
             %edit existing conditional column
             n = this.infoHeaderName2idx(colName);
@@ -412,7 +399,6 @@ classdef studyIS < handle
             this.resultROICoordinates(end+1) = cell(1,1);
             this.resultCuts(end+1) = cell(1,1);
             this.allFLIMItems(end+1,:) = cell(1,max(1,size(this.resultFileChs,2)));
-            this.selFLIMItems(end+1,:) = cell(1,max(1,size(this.resultFileChs,2)));
             %sort subjects
             this.sortSubjects();
             this.checkConditionRef([]);
@@ -461,7 +447,6 @@ classdef studyIS < handle
             this.resultFileChs(subjectPos,1:length(data.resultFileChs)) = data.resultFileChs;
             this.measurementFileChs(subjectPos,1:length(data.measurementFileChs)) = data.measurementFileChs;
             this.allFLIMItems(subjectPos,1:length(data.allFLIMItems)) = data.allFLIMItems;
-            this.selFLIMItems(subjectPos,1:length(data.selFLIMItems)) = data.selFLIMItems;
             
             %fill subject info fields with data
             for i = 1:length(data.infoHeaders)
@@ -576,23 +561,7 @@ classdef studyIS < handle
                 items = this.allFLIMItems{idx,channel};
             end
         end
-        
-        function items = getSelFLIMItems(this,subName,channel)
-            if(isempty(subName))
-                % get sel. FLIM parameters for all subjects
-                items = this.selFLIMItems;
-            else
-                %get selected FLIM parameters for subject subName
-                idx = this.subName2idx(subName);
-                if(isempty(idx) || channel < 1 || channel > size(this.resultFileChs,2))
-                    %subject not in study or channel not valid
-                    items = [];
-                    return
-                end
-                items = this.selFLIMItems{idx,channel};
-            end
-        end
-        
+                
         function export = makeExportStruct(this,subjectID)
             %make all data of this class as struct
             idx = this.subName2idx(subjectID);
@@ -606,7 +575,6 @@ classdef studyIS < handle
 %             data.subjectInfo = this.subjectInfo(idx,:);
 %             data.infoHeaders = this.infoHeaders;
 %             data.allFLIMItems = this.allFLIMItems(idx,:);
-%             data.selFLIMItems = this.selFLIMItems(idx,:);
             export.subjects = this.subjects(idx,:);
             export.infoHeaders = this.infoHeaders;
             %             export.subjectFilesHeaders = this.subjectFilesHeaders;
@@ -618,7 +586,6 @@ classdef studyIS < handle
             export.resultROICoordinates = this.resultROICoordinates(idx);
             export.resultCuts = this.resultCuts(idx);
             export.allFLIMItems = this.allFLIMItems(idx,:);
-            export.selFLIMItems = this.selFLIMItems(idx,:);
             export.IRFInfo = this.IRFInfo;
             export.arithmeticImageInfo = this.arithmeticImageInfo;
             export.viewColors = this.viewColors;
@@ -865,7 +832,6 @@ classdef studyIS < handle
 %             data.subjectInfo = this.subjectInfo(idx,:);
 %             data.infoHeaders = this.infoHeaders;
 %             data.allFLIMItems = this.allFLIMItems(idx,:);
-%             data.selFLIMItems = this.selFLIMItems(idx,:);
 %         end
         
         function data = getSubjectFilesData(this)
@@ -1004,7 +970,6 @@ classdef studyIS < handle
                 this.subjects(idx) = [];
                 this.subjectInfo(idx,:) = [];
                 this.allFLIMItems(idx,:) = [];
-                this.selFLIMItems(idx,:) = [];
             else
                 %remove last subject
                 this.resultFileChs = cell(0,0);
@@ -1014,7 +979,6 @@ classdef studyIS < handle
                 this.subjects = cell(0,0);
                 this.subjectInfo = cell(0,0);
                 this.allFLIMItems = cell(0,0);
-                this.selFLIMItems = cell(0,0);
             end
             this.setDirty(true);
         end
@@ -1027,7 +991,6 @@ classdef studyIS < handle
                 this.resultROICoordinates(idx) = cell(1,1);
                 this.resultCuts(idx) = cell(1,1);
                 this.allFLIMItems(idx) = cell(1,1);
-                this.selFLIMItems(idx) = cell(1,1);
                 this.setDirty(true);
             end            
         end
@@ -1234,7 +1197,6 @@ classdef studyIS < handle
                 this.resultROICoordinates = this.resultROICoordinates(idx);
                 this.resultCuts = this.resultCuts(idx);
                 this.allFLIMItems = this.allFLIMItems(idx,:);
-                this.selFLIMItems = this.selFLIMItems(idx,:);
                 this.setDirty(true);
             else
                 %sort subjects of imported study
@@ -1246,7 +1208,6 @@ classdef studyIS < handle
                 oldStudy.resultROICoordinates = oldStudy.resultROICoordinates(idx);
                 oldStudy.resultCuts = oldStudy.resultCuts(idx);
                 oldStudy.allFLIMItems = oldStudy.allFLIMItems(idx,:);
-                oldStudy.selFLIMItems = oldStudy.selFLIMItems(idx,:);
                 out = oldStudy;
             end
         end
@@ -1466,6 +1427,12 @@ classdef studyIS < handle
                         %now we need ROI info for MVGroups
                         oldStudy.studyClusters{2,i}.ROI = ROI;
                     end                    
+                end
+            end
+            
+            if(oldStudy.revision < 19)
+                if(isfield(oldStudy,'selFLIMItems'))
+                    oldStudy = rmfield(oldStudy,'selFLIMItems');
                 end
             end
                             
@@ -1702,27 +1669,6 @@ classdef studyIS < handle
                 dirty = true;
             end
             %             [testStudy.allFLIMItems,dTmp] = studyIS.checkFLIMItems(testStudy.allFLIMItems);
-            %             dirty = dirty || dTmp;
-            %selected FLIMItems
-            tmpLen = size(testStudy.selFLIMItems,2);
-            if(tmpLen < nrChannels)
-                testStudy.selFLIMItems(:,end+1:end+nrChannels-tmpLen) = cell(nrSubjects,nrChannels-tmpLen);
-                idx = ~cellfun('isempty',testStudy.resultFileChs(:,1)); %assume channel 1 as reference
-                testStudy.selFLIMItems(idx,tmpLen+1:nrChannels) = repmat(testStudy.selFLIMItems(idx,1),1,nrChannels-tmpLen);
-                dirty = true;
-            elseif(tmpLen > nrChannels)
-                testStudy.selFLIMItems = testStudy.selFLIMItems(:,1:nrChannels);
-                dirty = true;
-            end
-            tmpLen = size(testStudy.selFLIMItems,1);
-            if(tmpLen < nrSubjects)
-                testStudy.selFLIMItems(end+1:end+nrSubjects-tmpLen) = cell(nrSubjects-tmpLen,nrChannels);
-                dirty = true;
-            elseif(tmpLen > nrSubjects)
-                testStudy.selFLIMItems = testStudy.selFLIMItems(1:nrSubjects,:);
-                dirty = true;
-            end
-            %             [testStudy.selFLIMItems,dTmp] = studyIS.checkFLIMItems(testStudy.selFLIMItems);
             %             dirty = dirty || dTmp;
             %view colors
             if(isempty(testStudy.viewColors))

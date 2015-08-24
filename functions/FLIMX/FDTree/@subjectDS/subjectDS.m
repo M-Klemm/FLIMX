@@ -174,7 +174,7 @@ classdef subjectDS < handle
             [measurements, results] = this.myParent.getSubjectFilesStatus(this.name);
             if(any(results == chan))
                 %we have a result, load it
-                this.loadChannelResult(chan,[]);
+                this.loadChannelResult(chan);
             elseif(any(measurements == chan))
                 %we don't have approximation results, try to load measurement
                 this.loadChannelMeasurement(chan,false);
@@ -195,7 +195,6 @@ classdef subjectDS < handle
                     allItems = this.myParent.getAllFLIMItems(this.name,chan);
                     if(isempty(allItems))
                         this.myParent.setAllFLIMItems(this.name,chan,{'Intensity'});
-                        this.myParent.setSelFLIMItems(this.name,chan,{'Intensity'});
                     end
                     this.myFileInfo{chan,1} = mo.getFileInfoStruct(chan);
                     this.updateShortProgress(0,'');
@@ -203,10 +202,9 @@ classdef subjectDS < handle
             end
         end
         
-        function loadChannelResult(this,chan,newItems)
-            %load results in channel chan
-            if(nargin < 3); newItems = []; end
-            if(~this.channelResultIsLoaded(chan) || ~isempty(newItems))
+        function loadChannelResult(this,chan)
+            %load results in channel chan            
+            if(~this.channelResultIsLoaded(chan))
                 %try to load channel
                 this.updateShortProgress(0.5,sprintf('Importing (Ch %s)',num2str(chan)));
                 [resultObj, isASCIIResult] = this.myParent.getResultObj(this.name,chan); %todo: replace with subject object
@@ -214,7 +212,8 @@ classdef subjectDS < handle
                 allItems = this.myParent.getAllFLIMItems(this.name,chan);
                 if(isempty(allItems) && ~isempty(resultObj))
                     %check items (e.g. amps, taus) which are going to be loaded
-                    allItems = removeNonVisItems(resultObj.getResultNames(chan,false));
+                    %try to get the result items again
+                    allItems = removeNonVisItems(resultObj.getResultNames(chan,false),3);
                     if(~isempty(allItems))
                         this.myParent.setAllFLIMItems(this.name,chan,allItems);
                     end
@@ -228,31 +227,7 @@ classdef subjectDS < handle
                     return
                 end
                 this.myFileInfo{chan,1} = resultObj.getFileInfoStruct(chan);
-                allItems = union(allItems,removeNonVisItems(resultObj.getResultNames(chan,false)));
-                oldItems = this.myParent.getSelFLIMItems(this.name,chan);
-                if(nargin < 3 || isempty(newItems))
-                    %no specified items, check if we already have some
-                    if(isempty(oldItems))
-                        %no old items
-                        newItems = GUI_paramImportSelection(sort(allItems),[]);
-                        if(isempty(newItems))
-                            return
-                        end
-                        this.myParent.myStudyInfoSet.setSelFLIMItems(this.name,chan,newItems);
-                    else
-                        newItems = oldItems;
-                    end
-                else
-                    %we have a preset items list
-                    %that list may contain items which are not in the current subject
-                    newItems = intersect(allItems,newItems);                    
-                end
-                newItems = removeNonVisItems(newItems); %just to be sure
-                %get ROI and cuts before removing items
-%                 ROICoord = this.myParent.getResultROICoordinates(this.name,[]);
-%                 ROIType = this.myParent.getResultROIType(this.name);
-%                 ROISubType = this.myParent.getResultROISubType(this.name);
-                %ROISubTypeAnchor = this.myParent.getResultROISubTypeAnchor(this.name);
+                newItems = removeNonVisItems(allItems,this.FLIMXParamMgrObj.generalParams.flimParameterView);
                 cutVec = this.myParent.getResultCuts(this.name);
                 %we may update an exiting subject -> remove unwanted items
                 chObj = this.myChannels.getDataByID(chan);
@@ -316,7 +291,7 @@ classdef subjectDS < handle
                 this.updateShortProgress(1,sprintf('Importing (Ch %s)',num2str(chan))); %0.5
                 %make qs
                 %this.updateShortProgress(0.5,sprintf('Computing (Ch %s)',num2str(chan)));
-                this.makeQs(chan,'Amplitude','Tau');
+                %this.makeQs(chan,'Amplitude','Tau');
                 %this.makeTauMean(chan,'Amplitude','Tau');
                 %intensity image
                 hfd = this.getFDataObj(chan,'Intensity',1,1); %check only linear data
@@ -329,31 +304,10 @@ classdef subjectDS < handle
                     end
                 end
                 %make percentages
-                this.makePerData(chan,'Amplitude');
+                %this.makePerData(chan,'Amplitude');
                 %make arithmetic images
-                %this.myParent.clearArithmeticRIs();
-                %chItems = newItems; %this.getChannelItems(chan);
-%                 if(isempty(newItems))
-%                     dType = 'Amplitude';
-%                 else
-%                     dType = newItems{1};
-%                     dType = dType(isstrprop(dType, 'alpha'));
-%                 end
-%                 if(~isempty(ROICoord))%~isempty(chItems) && 
-%                     %set manual scaling for new items
-%                     this.setResultROICoordinates(dType,[],ROICoord);
-%                     %this.setROIVec(dType,'Y',ROIVec(4:6));
-%                 end
-%                 if(~isempty(ROIType) && length(ROIType) == 1)                                   
-%                     this.setResultROIType(dType,ROIType);
-%                 end                
-%                 if(~isempty(ROISubType) && length(ROISubType) == 1)
-%                     this.setResultROISubType(dType,ROISubType);
-%                 end
-%                 if(~isempty(ROISubTypeAnchor) && length(ROISubTypeAnchor) == 2)
-%                     this.setResultROISubTypeAnchor(dType,ROISubTypeAnchor);
-%                 end
-                if(~isempty(cutVec) && length(cutVec) == 6)%~isempty(chItems) && 
+                this.myParent.clearArithmeticRIs();
+                if(~isempty(cutVec) && length(cutVec) == 6)
                     %set cuts for new items
                     this.setCutVec('X',cutVec(1:3));
                     this.setCutVec('Y',cutVec(4:6));
@@ -699,7 +653,7 @@ classdef subjectDS < handle
             end
             [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
             %make sure channel was loaded from disk
-            this.loadChannelResult(aiParams.chA,[]);
+            this.loadChannelResult(aiParams.chA);
             fd = this.getFDataObj(aiParams.chA,dType{1},dTypeNr(1),1);
             if(isempty(fd))
                 return
@@ -720,7 +674,7 @@ classdef subjectDS < handle
             else %compare against another FLIMItem
                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemB);
                 %make sure channel was loaded from disk
-                this.loadChannelResult(aiParams.chB,[]);
+                this.loadChannelResult(aiParams.chB);
                 fd = this.getFDataObj(aiParams.chB,dType{1},dTypeNr(1),1);
                 if(isempty(fd))
                     return

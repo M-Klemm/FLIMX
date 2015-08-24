@@ -45,8 +45,7 @@ classdef FLIMXVisGUI < handle
         visParams = []; %options for visualization
         statParams = []; %options for statistics
         exportParams = []; %options for export
-        filtParams = []; %options for filtering
-        
+        filtParams = []; %options for filtering        
         generalParams = []; %general parameters
     end
 
@@ -641,8 +640,13 @@ classdef FLIMXVisGUI < handle
                 if(new.isDirty(1) == 1)
                     this.FLIMXObj.paramMgr.setParamSection('flimvis_gui',new.flimvis);
                 end
-                if(new.isDirty(2) == 1)
+                if(new.isDirty(2) == 1)                    
+                    if(this.generalParams.flimParameterView ~= new.general.flimParameterView)
+                        this.FLIMXObj.fdt.unloadAllChannels();                        
+                    end
                     this.FLIMXObj.paramMgr.setParamSection('general',new.general);
+                    this.FLIMXObj.FLIMFitGUI.setupGUI();
+                    this.FLIMXObj.FLIMFitGUI.updateGUI(1);
                 end
                 this.setupGUI();
                 this.updateGUI([]);
@@ -961,9 +965,9 @@ classdef FLIMXVisGUI < handle
             this.objHandles.ldo.drawCP(cp);
             this.objHandles.rdo.drawCP(cp);
             if(isempty(cp))
-                if(get(this.visHandles.enableMouse_check,'Value'))
-                    set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-                end
+%                 if(get(this.visHandles.enableMouse_check,'Value'))
+%                     set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
+%                 end
                 inFunction = []; %enable callback
                 return
             end
@@ -1269,65 +1273,8 @@ classdef FLIMXVisGUI < handle
                 s = 'l';
             end
             this.objHandles.(sprintf('%sdo',s)).makeSuppPlot();
-        end
-        
-%         function GUI_paraSel_Callback(this,hObject,eventdata)
-%             %(re-)select FLIMItems
-%             s = 'r';                       
-%             if(strcmp(get(hObject,'Tag'),'parasel_l_button'))
-%                 s = 'l';
-%             end
-%             if(this.fdt.getNrSubjects(this.getStudy(s),this.getView(s)) < 1)
-%                 return
-%             end
-%             subName = this.getSubject(s);
-%             studyName = this.getStudy(s);
-%             ch = this.getChannel(s);
-%             sel = this.fdt.getSelFLIMItems(studyName,subName,ch);
-%             all = this.fdt.getAllFLIMItems(studyName,subName,ch);
-%             if(isempty(sel) || isempty(all))
-%                 %no result file loaded yet
-%                 return
-%             end
-%             
-%             new = GUI_paramImportSelection(all,sel);
-%             if(isempty(new))
-%                 return
-%             end
-%             this.fdt.setSelFLIMItems(studyName,subName,ch,new);         
-%             this.setupGUI();
-%             this.updateGUI([]);
-%         end
-        
-%         function GUI_removeSubject_Callback(this,hObject,eventdata)
-%             %remove current subject from current study
-%             s = 'r';
-%             if(strcmp(get(hObject,'Tag'),'remove_ds_l_button'))
-%                 s = 'l';                
-%             elseif(strcmp(get(hObject,'Tag'),'remove_all_button'))
-%                 button = questdlg(sprintf('Do you really want to remove all Subjects?'),'Remove Subject','Yes','No','No');
-%                 switch button
-%                     case 'No'
-%                         return
-%                 end
-%                 this.fdt.removeAll();
-%                 this.objHandles.ldo.sethfdMain([]);
-%                 this.objHandles.rdo.sethfdMain([]);
-%                 this.setupGUI();
-%                 return
-%             end
-%             button = questdlg(sprintf('Do you really want to remove Subject ''%s''?',this.fdt.getSubjectName(this.getStudy(s),this.getSubject(s))),'Remove Subject','Yes','No','No');
-%             switch button
-%                 case 'No'
-%                     return
-%             end
-%             this.objHandles.ldo.sethfdMain([]);
-%             this.objHandles.rdo.sethfdMain([]);
-%             this.fdt.removeSubject(this.getStudy(s),this.getSubject(s));            
-%             this.setupGUI();
-%             this.updateGUI([]);            
-%         end
-        
+        end        
+                
         function menuExportExcel_Callback(this,hObject,eventdata)
             %
             tag = get(hObject,'Tag');
