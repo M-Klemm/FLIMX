@@ -1329,39 +1329,7 @@ classdef FDTree < handle
             out = this.cancelFlag;
         end
         
-        %% compute functions
-        function makeQs(this,studyID,subjectID,chan,dTypeA,dTypeB)
-            %compute Qs in subject and channel chan
-            study = this.getStudy(studyID);
-            if(~isempty(study))
-                study.makeQs(subjectID,chan,dTypeA,dTypeB);
-            end
-        end
-        
-        function makeTauMean(this,studyID,subjectID,chan,dTypeA,dTypeB)
-            %compute TauMean in subject and channel chan
-            study = this.getStudy(studyID);
-            if(~isempty(study))
-                study.makeTauMean(subjectID,chan,dTypeA,dTypeB);
-            end
-        end
-        
-        function makeIntensityImage(this,studyID,subjectID,chan,dType)
-            %compute intensity image in subject and channel chan
-            study = this.getStudy(studyID);
-            if(~isempty(study))
-                study.makeIntensityImage(subjectID,chan,dType);
-            end
-        end
-        
-        function makePerData(this,studyID,subjectID,chan,dType)
-            %compute percentage data in subject and channel chan for datatype dType (compute for all types if left empty)
-            study = this.getStudy(studyID);
-            if(~isempty(study))
-                study.makePerData(subjectID,chan,dType);
-            end
-        end
-        
+        %% compute functions                
         function makeGlobalObjMerged(this,chan,dType,id)
             %make global merged FData object
             ciMerged = [];

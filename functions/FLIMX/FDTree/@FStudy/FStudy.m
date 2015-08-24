@@ -1406,34 +1406,7 @@ classdef FStudy < handle
             out = this.myParent.FLIMXParamMgrObj;
         end
         
-        %% compute functions and other methods
-        function makeQs(this,subjectID,chan,dTypeA,dTypeB)
-            %compute Qs in subject and channel chan
-            subject = this.getSubject(subjectID);
-            if(isempty(subject))
-                error('Subject %d not in Tree',subjectID);
-            end
-            subject.makeQs(chan,dTypeA,dTypeB);
-        end
-        
-        function makeTauMean(this,subjectID,chan,dTypeA,dTypeB)
-            %compute TauMean in subject and channel chan
-            subject = this.getSubject(subjectID);
-            if(isempty(subject))
-                error('Subject %d not in Tree',subjectID);
-            end
-            subject.makeTauMean(chan,dTypeA,dTypeB);
-        end
-        
-        function makeIntensityImage(this,subjectID,chan,dType)
-            %compute intensity image in subject and channel chan
-            subject = this.getSubject(subjectID);
-            if(isempty(subject))
-                error('Subject %d not in Tree',subjectID);
-            end
-            subject.makeIntensityImage(chan,dType);
-        end
-        
+        %% compute functions and other methods                        
         function [cimg, lblx, lbly, cw] = makeViewCluster(this,vName,chan,clusterID)
             %make merged clusters for a study view
             cimg = []; lblx = []; lbly = [];
@@ -1451,16 +1424,7 @@ classdef FStudy < handle
                 [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,clusterObjs{i}.getROIImage([],0,1,0),clusterObjs{i}.getCIXLbl([],0,1,0),clusterObjs{i}.getCIYLbl([],0,1,0),cw);
             end
         end
-        
-        function makePerData(this,subjectID,chan,dType)
-            %compute percentage data in subject and channel chan for datatype dType (compute for all types if left empty)
-            subject = this.getSubject(subjectID);
-            if(isempty(subject))
-                error('Subject %d not in Tree',subjectID);
-            end
-            subject.makePerData(chan,dType);
-        end
-        
+                
         function [cimg lblx lbly colors logColors] = makeGlobalCluster(this,chan,clusterID)
             %make global cluster object
             [cimg lblx lbly colors logColors] = this.myParent.makeGlobalCluster(chan,clusterID);

@@ -289,22 +289,25 @@ classdef subjectDS < handle
                     end
                 end
                 this.updateShortProgress(1,sprintf('Importing (Ch %s)',num2str(chan))); %0.5
-                %make qs
-                %this.updateShortProgress(0.5,sprintf('Computing (Ch %s)',num2str(chan)));
-                %this.makeQs(chan,'Amplitude','Tau');
-                %this.makeTauMean(chan,'Amplitude','Tau');
                 %intensity image
                 hfd = this.getFDataObj(chan,'Intensity',1,1); %check only linear data
                 if(isempty(hfd))
                     if(isASCIIResult)
                         %we got a converted ascii file
-                        this.makeIntensityImage(chan,'Amplitude');
+                        ampItems = allItems(cellfun(@length,allItems)==10);
+                        ampItems = ampItems(strncmp('Amplitude',ampItems,9));
+                        if(~isempty(ampItems))
+                            int = resultObj.getPixelFLIMItem(chan,ampItems{1});
+                            for i=2:length(ampItems)
+                                %no checking if dimensions agree - todo?!
+                                int = int + resultObj.getPixelFLIMItem(chan,ampItems{i});
+                            end
+                            this.addObjID(0,chan,'Intensity',1,int);
+                        end
                     else
                         this.addObjID(0,chan,'Intensity',1,resultObj.getPixelFLIMItem(chan,'Intensity'));
                     end
                 end
-                %make percentages
-                %this.makePerData(chan,'Amplitude');
                 %make arithmetic images
                 this.myParent.clearArithmeticRIs();
                 if(~isempty(cutVec) && length(cutVec) == 6)
@@ -605,47 +608,7 @@ classdef subjectDS < handle
             out = this.myParent.FLIMXParamMgrObj;
         end
         
-        %% compute functions
-        function makeQs(this,ch,dTypeA,dTypeB)
-            %
-            chObj = this.myChannels.getDataByID(ch);
-            if(isempty(chObj))
-                return
-            else
-                chObj.makeQs(dTypeA,dTypeB);
-            end
-        end
-        
-        function makeTauMean(this,ch,dTypeA,dTypeB)
-            %
-            chObj = this.myChannels.getDataByID(ch);
-            if(isempty(chObj))
-                return
-            else
-                chObj.makeTauMean(dTypeA,dTypeB);
-            end
-        end
-        
-        function makeIntensityImage(this,ch,dType)
-            %
-            chObj = this.myChannels.getDataByID(ch);
-            if(isempty(chObj))
-                return
-            else
-                chObj.makeIntensityImage(dType);
-            end
-        end
-        
-        function makePerData(this,ch,dType)
-            %
-            chObj = this.myChannels.getDataByID(ch);
-            if(isempty(chObj))
-                return
-            else
-                chObj.makePerData(dType);
-            end
-        end
-        
+        %% compute functions        
         function makeArithmeticImage(this,aiName,aiParams)
             %compute arithmetic images (all if aiName is empty)
             if(isempty(aiName) || isempty(aiParams))

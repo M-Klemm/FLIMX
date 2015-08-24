@@ -368,95 +368,7 @@ classdef Channel < handle
             out = this.myParent.FLIMXParamMgrObj;
         end
         
-        %% compute functions
-%         
-        function makeQs(this,dTypeA,dTypeB)
-            %
-            %Q1= a1*T1*100/(a1*T1+a2*T2+a3*T3)
-            %prep const data
-            chunkA = this.getChunk(dTypeA);
-            chunkB = this.getChunk(dTypeB);
-            if(isempty(chunkA) || isempty(chunkB))
-                return
-                %error('Computation of Qs failed. One data-type was not found!');
-            end
-            %get matching running numbers
-            aNrs = chunkA.getMyIDs();
-            bNrs = chunkB.getMyIDs();
-            Nrs = intersect(aNrs,bNrs);
-            
-            %compute denominator
-            lower = 0;
-            for i=1:length(Nrs)
-                lower = lower + chunkA.getFDataObj(Nrs(i),1).rawImage...
-                    .* chunkB.getFDataObj(Nrs(i),1).rawImage;
-            end
-            %now make each q
-            for i=1:length(Nrs)
-                upper = 100 * chunkA.getFDataObj(Nrs(i),1).rawImage...
-                    .* chunkB.getFDataObj(Nrs(i),1).rawImage;
-                q = upper ./ lower;
-                q(isnan(q)) = 0;
-                this.addObjID(Nrs(i),'Q',chunkB.getFDataObj(Nrs(i),1).globalScale,q); %save q at specific position
-            end
-        end
-        
-        function makeTauMean(this,dTypeA,dTypeB)
-            %
-            %Tm= a1*T1+a2*T2+a3*T3/(a1+a2+a3)
-            %prep const data
-            chunkA = this.getChunk(dTypeA);
-            chunkB = this.getChunk(dTypeB);
-            if(isempty(chunkA) || isempty(chunkB))
-                return
-                %error('Computation of TauM failed. One data-type was not found!');
-            end
-            %get matching running numbers
-            aNrs = chunkA.getMyIDs();
-            bNrs = chunkB.getMyIDs();
-            Nrs = intersect(aNrs,bNrs);
-            
-            if(isempty(Nrs))
-                return
-            end
-            
-            %compute denominator
-            lower = 0;
-            for i=1:length(Nrs)
-                lower = lower + chunkA.getFDataObj(Nrs(i),1).rawImage;
-            end
-            %now make enumerator
-            upper = 0;
-            for i=1:length(Nrs)
-                upper = upper + chunkA.getFDataObj(Nrs(i),1).rawImage...
-                    .* chunkB.getFDataObj(Nrs(i),1).rawImage;
-            end
-            tm = upper ./ lower;
-            tm(isnan(tm)) = 0;
-            this.addObjID(0,'TauMean',chunkB.getFDataObj(Nrs(i),1).globalScale,tm); %save tm at specific position
-        end
-        
-        function makeIntensityImage(this,dType)
-            %
-            %prep const data
-            chunk = this.getChunk(dType);
-            %compute intensity image
-            int = [];
-            if(isempty(chunk))
-                return
-            end
-            ids = chunk.getMyIDs();
-            for i=1:chunk.getNrElements()
-                if(isempty(int))
-                    int = chunk.getFDataObj(ids(i),1).rawImage;
-                else
-                    %no checking if dimensions agree - todo?!
-                    int = int + (chunk.getFDataObj(ids(i),1).rawImage);
-                end 
-            end
-            this.addObjID(0,'Intensity',chunk.getFDataObj(ids(i),1).globalScale,int); %save tm at specific position
-        end
-        
+        %% compute functions                
         function [cimg, lblx, lbly, cw] = makeCluster(this,clusterID)
             % make and update cluster for spectral channel using cMVs                
             cimg = []; lblx = []; lbly = []; cw = [];
@@ -510,28 +422,7 @@ classdef Channel < handle
                     [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,ctemp,xtemp,ytemp,cw);
                 end
             end
-        end
-        
-        function makePerData(this,dType)
-            %
-            if(~isempty(dType))
-                chunk = this.getChunk(dType);
-                if(~isempty(chunk))
-                    [data, ids] = chunk.getPerData();
-                    for i = 1:size(data,1)
-                        this.addObjID(ids(i),sprintf('%sPercent',dType),1,squeeze(data(i,:,:)));
-                    end
-                end
-            else
-                %loop over all data types
-                for id=1:this.myChunks.queueLen
-                    [data, ids] = this.myChunks.getDataByPos(id).getPerData();
-                    for i = 1:size(data,1)
-                        this.addObjID(ids(i),sprintf('%sPercent',dType),this.myChunks.getDataByPos(id).globalScale,squeeze(data(i,:,:)));
-                    end
-                end
-            end
-        end        
+        end       
         
         function [cimg, lblx, lbly, cw] = makeViewCluster(this,clusterID)
             %make view cluster for current channel
