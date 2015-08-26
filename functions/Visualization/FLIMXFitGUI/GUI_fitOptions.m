@@ -54,7 +54,7 @@ function varargout = GUI_fitOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_fitOptions
 
-% Last Modified by GUIDE v2.5 18-Aug-2015 16:18:20
+% Last Modified by GUIDE v2.5 26-Aug-2015 09:42:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -209,7 +209,12 @@ for i = 1:5
     else
         set(handles.(sprintf('checkGFtc%d',i)),'Enable','on','Value',any(strcmp(sprintf('tc %d',i),data.basic.globalFitMaskSaveStr)));
     end
-end 
+end
+%anisotropy controls
+set(handles.editAnisoChannelShift,'String',data.basic.anisotropyChannelShift);
+set(handles.editAnisoGFactor,'String',data.basic.anisotropyGFactor);
+set(handles.editAnisoPerpenFactor,'String',data.basic.anisotropyPerpendicularFactor);
+set(handles.popupAnisoR0Method,'Value',data.basic.anisotropyR0Method);
 set(handles.checkIDec,'Value',data.basic.incompleteDecay);
 set(handles.editPhotons,'String',num2str(data.basic.photonThreshold));
 set(handles.checkSmoothInitFix,'Value',data.basic.fix2InitSmoothing);
