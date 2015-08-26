@@ -188,7 +188,7 @@ classdef subjectDS < handle
                 mo = this.myParent.getSubject4Approx(this.name);
                 if(~isempty(mo))
                     this.updateShortProgress(1,sprintf('Importing (Ch %s)',num2str(chan)));
-                    int = mo.getRawDataFlat(chan);
+                    int = mo.getROIDataFlat(chan);
                     if(~isempty(int))
                         this.addObjID(0,chan,'Intensity',1,int);
                     end
