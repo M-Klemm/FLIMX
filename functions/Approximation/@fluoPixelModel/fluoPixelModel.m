@@ -651,6 +651,8 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             end
             %make optimizer init vector
             iArray = this.divideGlobalFitXVec(nonLinBounds.init(:),true);
+            lbArray = this.divideGlobalFitXVec(nonLinBounds.lb(:),true);
+            ubArray = this.divideGlobalFitXVec(nonLinBounds.ub(:),true);
             igfArray = this.getFullXVec(this.currentChannel,this.divideGlobalFitXVec(nonLinBounds.initGuessFactor,true));
             for chIdx = 1:length(chList)
                 [amps, ~, ~, ~, scAmps, scShifts, scOset, ~, oset] = this.getXVecComponents(iArray(:,chIdx),true,chList(chIdx));
@@ -701,8 +703,8 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                         betas = ones(nSE,1)*0.5;
                 end
                 %         %amps,offset,hShift
-                [ampsLB, tausLB, tcisLB, betasLB, scAmpsLB, scShiftsLB, scOsetLB, hShiftLB, osetLB] = this.getXVecComponents(nonLinBounds(chIdx).lb,true,chList(chIdx));
-                [ampsUB, tausUB, tcisUB, betasUB, scAmpsUB, scShiftsUB, scOsetUB, hShiftUB, osetUB] = this.getXVecComponents(nonLinBounds(chIdx).ub,true,chList(chIdx));
+                [ampsLB, tausLB, tcisLB, betasLB, scAmpsLB, scShiftsLB, scOsetLB, hShiftLB, osetLB] = this.getXVecComponents(lbArray(:,chIdx),true,chList(chIdx));
+                [ampsUB, tausUB, tcisUB, betasUB, scAmpsUB, scShiftsUB, scOsetUB, hShiftUB, osetUB] = this.getXVecComponents(ubArray(:,chIdx),true,chList(chIdx));
                 hShift = rs(chIdx).hShiftGuess;
                 %if(hShift < 0)
                     hShiftUB = hShift + 10*this.getFileInfo(chList(chIdx)).timeChannelWidth;%-2*tciGuess; %hShift;
@@ -777,8 +779,8 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                         %                     scShiftsLB(end) = -10;                        
                         %                     scShiftsUB(end) = 10;%(idxSc-idxData).*this.getFileInfo(chList(chIdx)).timeChannelWidth;                        
                     end
-                    nonLinBounds(chIdx).lb = this.getNonConstantXVec(chList(chIdx),ampsLB,tausLB,tcisLB,betasLB,scAmpsLB,scShiftsLB,scOsetLB,hShiftLB,osetLB);
-                    nonLinBounds(chIdx).ub = this.getNonConstantXVec(chList(chIdx),ampsUB,tausUB,tcisUB,betasUB,scAmpsUB,scShiftsUB,scOsetUB,hShiftUB,osetUB);
+                    lbArray(:,chIdx) = this.getNonConstantXVec(chList(chIdx),ampsLB,tausLB,tcisLB,betasLB,scAmpsLB,scShiftsLB,scOsetLB,hShiftLB,osetLB);
+                    ubArray(:,chIdx) = this.getNonConstantXVec(chList(chIdx),ampsUB,tausUB,tcisUB,betasUB,scAmpsUB,scShiftsUB,scOsetUB,hShiftUB,osetUB);
                 end
                 % %         if(this.basicParams.heightMode == 2)
                 %             oset = rs(chIdx).OffsetGuess;
@@ -835,7 +837,11 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                         this.setInitializationData(chList(chIdx),id);
                     end
                 end
-            end            
+            end
+            lbArray = this.getFullXVec(this.currentChannel,lbArray);
+            ubArray = this.getFullXVec(this.currentChannel,ubArray);
+            nonLinBounds.lb(:) = this.joinGlobalFitXVec(this.getNonConstantXVec(this.currentChannel,lbArray),true);
+            nonLinBounds.ub(:) = this.joinGlobalFitXVec(this.getNonConstantXVec(this.currentChannel,ubArray),true);
             if(nargout == 3)
                 iArray = this.getFullXVec(this.currentChannel,iArray);
                 iArray(this.volatilePixelParams.globalFitMask,1) = mean(iArray(this.volatilePixelParams.globalFitMask,:),2);
@@ -844,7 +850,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     %overwrite guess init values with given global init values
                     iVec = allInitVec;
                 end
-            end            
+            end
         end
         
         function rs = makePreProcessResultStruct(this)

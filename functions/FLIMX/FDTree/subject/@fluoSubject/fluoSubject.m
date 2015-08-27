@@ -730,7 +730,7 @@ classdef fluoSubject < handle
                 end
 %                 data = zeros(fileInfo(ch).nrTimeChannels,fileInfo(ch).nrSpectralChannels,fileInfo(ch).ROIDataType);
                 scatterData = zeros(fileInfo(ch).nrTimeChannels,vp.nScatter,fileInfo(ch).nrSpectralChannels,ad.measurementROIInfo.ROIDataType);
-                cw = ones(apObj.fileInfo(ch).nrTimeChannels,fileInfo(ch).nrSpectralChannels,'single');
+                cw = ones(fileInfo(ch).nrTimeChannels,fileInfo(ch).nrSpectralChannels,'single');
                 for chTmp = 1:fileInfo(ch).nrSpectralChannels
                     %                     data(:,chTmp) = this.myMeasurement.getROIData(chTmp,[],y,x);
                     if(vp.nScatter > 0)
