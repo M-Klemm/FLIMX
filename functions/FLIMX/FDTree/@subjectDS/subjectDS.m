@@ -271,7 +271,7 @@ classdef subjectDS < handle
                     if(isempty(data_temp))
                         continue
                     end
-                    if(isASCIIResult && strncmpi('Amplitude',dType,9))
+                    if(isASCIIResult && strncmpi('Amplitude',dType,9) && length(dType) <= 11)
                         %scale amplitudes with IRF integral
                         %data_temp = data_temp .* this.myParent.myStudyInfoSet.getIRFInfo(chan);
                         data_temp = data_temp .* 10000;
