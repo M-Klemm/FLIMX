@@ -130,13 +130,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function updateGUI(handles,data)
 %general
-% def.basic_fit.approximationTarget   =   1; %1: lifetime; 2: anisotropy
-% def.basic_fit.anisotropyChannelShift=   0; %shift between channel 1 and 2 in time channels
-% def.basic_fit.anisotropyGFactor     =   1; %the g factor to take different detector sensitifities into account
-% def.basic_fit.anisotropyPerpendicularFactor = 2; %impact of the perpendicular intensity on the fluorescence (usually 2)
-% def.basic_fit.anisotropyR0Method    =   1; %method to compute r0; 1: directly from anisotropy; 2: using the fluorescence lifetime from the sum of both channels
-% def.basic_fit.reconvoluteWithIRF
-
 set(handles.popupApproxTarget,'Value',data.basic.approximationTarget);
 if(data.basic.approximationTarget == 2)
     %anisotropy
@@ -776,6 +769,7 @@ set(handles.fitOptionsFigure,'userdata',rdh);
 function popupApproxTarget_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
 rdh.basic.approximationTarget = get(hObject,'Value');
+rdh.isDirty(1) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
 updateGUI(handles, rdh);
 
@@ -783,6 +777,7 @@ updateGUI(handles, rdh);
 function popupAnisoR0Method_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
 rdh.basic.anisotropyR0Method = get(hObject,'Value');
+rdh.isDirty(1) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
 updateGUI(handles, rdh);
 

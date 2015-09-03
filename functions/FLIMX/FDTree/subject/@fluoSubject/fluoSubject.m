@@ -183,9 +183,14 @@ classdef fluoSubject < handle
                         ad.measurementROIInfo.ROISupport = [];
                     end
                     if(~isempty(this.myIRFMgr))
-                        [tmp, ad.IRF.name] = this.myIRFMgr.getIRF(ad.fileInfo.nrTimeChannels,this.basicParams.curIRFID,ad.fileInfo.tacRange,chList);
+                        if(this.basicParams.approximationTarget == 2 && chList > 2)
+                            ch = chList -2;
+                        else
+                            ch = chList;
+                        end
+                        [tmp, ad.IRF.name] = this.myIRFMgr.getIRF(ad.fileInfo.nrTimeChannels,this.basicParams.curIRFID,ad.fileInfo.tacRange,ch);
                         if(isempty(tmp))
-                            [tmp, ad.IRF.name] = this.myIRFMgr.getIRF(ad.fileInfo.nrTimeChannels,[],ad.fileInfo.tacRange,chList);
+                            [tmp, ad.IRF.name] = this.myIRFMgr.getIRF(ad.fileInfo.nrTimeChannels,[],ad.fileInfo.tacRange,ch);
                         end
                         ad.IRF.vector = uint16(tmp);
                     end
@@ -638,22 +643,41 @@ classdef fluoSubject < handle
             params.basicFit.optimizerInitStrategy = 1;
             ad = this.myResult.getAuxiliaryData(ch);
             %fix certain parameters to values from initialization
-%             if(~isempty(params.basicFit.fix2InitTargets))
-%                 %sStr = params.basicFit.(sprintf('constMaskSaveStrCh%d',ch));
-%                 for i = 1:length(params.basicFit.fix2InitTargets)
-%                     idx = find(strcmp('h-Shift (tc)',params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))),1);
-%                     if(~isempty(idx))
-%                         params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(idx) = [];
-%                         params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx) = [];
-%                     end
-%                     idx = find(strcmp('Scatter Shift 1',params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))),1);
-%                     if(~isempty(idx))
-%                         params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(idx) = [];
-%                         params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx) = [];
-%                     end
-%                 end
-%                 [vp, params.volatileChannel] = paramMgr.makeVolatileParams(params.basicFit,this.myMeasurement.nrSpectralChannels);
-%             end
+            %             if(~isempty(params.basicFit.fix2InitTargets))
+            %                 %sStr = params.basicFit.(sprintf('constMaskSaveStrCh%d',ch));
+            %                 for i = 1:length(params.basicFit.fix2InitTargets)
+            %                     idx = find(strcmp('h-Shift (tc)',params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))),1);
+            %                     if(~isempty(idx))
+            %                         params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(idx) = [];
+            %                         params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx) = [];
+            %                     end
+            %                     idx = find(strcmp('Scatter Shift 1',params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))),1);
+            %                     if(~isempty(idx))
+            %                         params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(idx) = [];
+            %                         params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx) = [];
+            %                     end
+            %                 end
+            %                 [vp, params.volatileChannel] = paramMgr.makeVolatileParams(params.basicFit,this.myMeasurement.nrSpectralChannels);
+            %             end            
+            if(params.basicFit.approximationTarget == 2 && params.basicFit.anisotropyR0Method == 2 && ch < 3)
+                idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Tau 2');
+                params.basicFit.(sprintf('constMaskSaveValCh%d',ch)) = double(params.basicFit.(sprintf('constMaskSaveValCh%d',ch)));
+                if(~any(idx))
+                    if(isempty(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))) || ~iscell(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))))
+                        params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)) = cell(0,0);
+                    end
+                    params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(end+1,1) = {'Tau 2'};
+                    params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(1,end+1) = 0;
+                end
+                %                 idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'hShift');
+                %                 if(~any(idx))
+                %                     if(isempty(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))) || ~iscell(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))))
+                %                         params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)) = cell(0,0);
+                %                     end
+                %                     params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(end+1,1) = {'hShift'};
+                %                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(1,end+1) = 0;
+                %                 end
+            end
             if(any(this.volatilePixelParams.globalFitMask))
                 allIRFs = cell(1,ad.fileInfo.nrSpectralChannels);
                 for ch = 1:ad.fileInfo.nrSpectralChannels
@@ -688,6 +712,27 @@ classdef fluoSubject < handle
                 if(sum(init(:)) > 0)
                     tmp.setInitializationData(ch,tmp.getNonConstantXVec(ch,init));
                 end
+                if(params.basicFit.approximationTarget == 2 && params.basicFit.anisotropyR0Method == 2 && ch < 3)
+                    idx = find(strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Tau 2'),1);
+                    if(~isempty(idx) && params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx) == 0)
+                        %update for tau 2 for anisotropy calculation
+                        tmp3 = this.myResult.getInitFLIMItem(3,'TauMean');
+                        if(size(tmp3,1) >= r && size(tmp3,2) >= c)
+                            val = tmp3(r,c);
+                        else
+                            val = [];
+                        end
+                        if(~isempty(val))
+                            vcp = tmp.getVolatileChannelParams(ch);
+                            idx = find(strcmp('Tau 2',tmp.volatilePixelParams.modelParamsString),1);
+                            if(vcp.cMask(idx))
+                                tmp2 = cumsum(abs(vcp.cMask));
+                                vcp.cVec(tmp2(idx)) = val;
+                                tmp.setVolatileChannelParams(ch,vcp);
+                            end
+                        end
+                    end
+                end
                 out{i} = tmp;
             end
         end
@@ -708,8 +753,26 @@ classdef fluoSubject < handle
             params.preProcessing = this.preProcessParams;
             params.computation = this.computationParams;
             params.bounds = this.boundsParams;
-            params.pixelFit = this.pixelFitParams;
-            
+            params.pixelFit = this.pixelFitParams;            
+            if(params.basicFit.approximationTarget == 2 && params.basicFit.anisotropyR0Method == 2 && ch < 3)
+                idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Tau 2');
+                params.basicFit.(sprintf('constMaskSaveValCh%d',ch)) = double(params.basicFit.(sprintf('constMaskSaveValCh%d',ch)));
+                if(~any(idx))
+                    if(isempty(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))) || ~iscell(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))))
+                        params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)) = cell(0,0);
+                    end
+                    params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(end+1,1) = {'Tau 2'};
+                    params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(1,end+1) = 0;
+                end
+%                 idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'hShift');
+%                 if(~any(idx))
+%                     if(isempty(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))) || ~iscell(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))))
+%                         params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)) = cell(0,0);
+%                     end
+%                     params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(end+1,1) = {'hShift'};
+%                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(1,end+1) = 0;
+%                 end
+            end
             if(any(vp.globalFitMask))
                 allIRFs = cell(1,this.myMeasurement.nrSpectralChannels);
                 for chTmp = 1:this.myMeasurement.nrSpectralChannels
@@ -723,16 +786,14 @@ classdef fluoSubject < handle
                         sStr{idx} = params.basicFit.fix2InitTargets{i};
                         params.basicFit.(sprintf('constMaskSaveStrCh%d',chTmp)) = sStr;
                         params.basicFit.(sprintf('constMaskSaveValCh%d',chTmp))(idx) = 0;
-                    end                    
+                    end
                     ad = this.myResult.getAuxiliaryData(chTmp);
                     fileInfo(chTmp) = ad.fileInfo;
                     allIRFs{chTmp} = ad.IRF.vector;
                 end
-%                 data = zeros(fileInfo(ch).nrTimeChannels,fileInfo(ch).nrSpectralChannels,fileInfo(ch).ROIDataType);
                 scatterData = zeros(fileInfo(ch).nrTimeChannels,vp.nScatter,fileInfo(ch).nrSpectralChannels,ad.measurementROIInfo.ROIDataType);
                 cw = ones(fileInfo(ch).nrTimeChannels,fileInfo(ch).nrSpectralChannels,'single');
                 for chTmp = 1:fileInfo(ch).nrSpectralChannels
-                    %                     data(:,chTmp) = this.myMeasurement.getROIData(chTmp,[],y,x);
                     if(vp.nScatter > 0)
                         scatterData(:,:,chTmp) = ad.scatter;
                     end
@@ -740,7 +801,6 @@ classdef fluoSubject < handle
                         cw(:,chTmp) = single(this.myMeasurement.getROIMerged(chTmp));
                     end
                 end
-                
             else
                 params.basicFit.(sprintf('constMaskSaveValCh%d',ch)) = double(params.basicFit.(sprintf('constMaskSaveValCh%d',ch)));
                 for i = 1:length(params.basicFit.fix2InitTargets)
@@ -756,7 +816,6 @@ classdef fluoSubject < handle
                 ad = this.myResult.getAuxiliaryData(ch);
                 fileInfo(ch) = ad.fileInfo;
                 allIRFs{ch} = ad.IRF.vector;
-%                 data = this.myMeasurement.getROIData(ch,[],y,x);
                 scatterData = ad.scatter;
                 if(params.basicFit.chiWeightingMode == 4)
                     cw = single(this.myMeasurement.getROIMerged(ch));
@@ -776,8 +835,8 @@ classdef fluoSubject < handle
             %make parameter structure needed for approximation            
             out = this.getApproxObjCopy(ch);
             %fix certain paramters to initialization values
-            if(~isempty(out.basicParams.fix2InitTargets))
-                bp = out.basicParams;
+            bp = out.basicParams;
+            if(~isempty(bp.fix2InitTargets))                
                 if(any(out.volatilePixelParams.globalFitMask))
                     for chTmp = 1:out.fileInfo(ch).nrSpectralChannels                        
                         bp.(sprintf('constMaskSaveValCh%d',chTmp)) = double(bp.(sprintf('constMaskSaveValCh%d',chTmp)));
@@ -792,6 +851,23 @@ classdef fluoSubject < handle
                     out.setVolatileChannelParams(ch,vcp);
                     %bp.(sprintf('constMaskSaveStrCh%d',ch)) = sStr;
                     %out.basicParams = bp;
+                end
+            end
+            if(bp.approximationTarget == 2 && bp.anisotropyR0Method == 2 && ch < 3)
+                idx = find(strcmp(bp.(sprintf('constMaskSaveStrCh%d',ch)),'Tau 2'),1);
+                if(~isempty(idx) && bp.(sprintf('constMaskSaveValCh%d',ch))(idx) == 0)
+                    %update for tau 2 for anisotropy calculation
+                    val = this.myResult.getPixelFLIMItem(3,'TauMean',y,x);
+                    if(~isempty(val))
+                        bp.(sprintf('constMaskSaveValCh%d',ch))(idx) = val;
+                        vcp = out.getVolatileChannelParams(ch);
+                        idx = find(strcmp('Tau 2',out.volatilePixelParams.modelParamsString),1);
+                        if(vcp.cMask(idx))
+                            tmp = cumsum(abs(vcp.cMask));
+                            vcp.cVec(tmp(idx)) = val;
+                            out.setVolatileChannelParams(ch,vcp);
+                        end
+                    end
                 end
             end
             %get data
@@ -1001,7 +1077,7 @@ classdef fluoSubject < handle
         end
         
         function vcp = updateFixedTargets(this,ch,y,x,bp,vcp,modelParamsString)
-            %
+            %update fixed parameters to their current values
             for i = 1:length(bp.fix2InitTargets)
                 sStr = bp.(sprintf('constMaskSaveStrCh%d',ch));
                 idx = find(strcmp(bp.fix2InitTargets{i},sStr),1);
@@ -1016,12 +1092,10 @@ classdef fluoSubject < handle
                     dTypeNrStr = num2str(dTypeNr);
                 end
                 val = this.myResult.getPixelFLIMItem(ch,sprintf('%sInit%s',dTypeStr{1},dTypeNrStr),y,x);
-                %val = this.myResult.getPixelFLIMItem(ch,bp.fix2InitTargets{i},y,x);
                 if(isempty(val))
                     %value not found in result
                     val = 0;
                 end
-                %bp.(sprintf('constMaskSaveValCh%d',ch))(idx) = val;
                 %update constant vector
                 idx = find(strcmp(bp.fix2InitTargets{i},modelParamsString),1);
                 if(vcp.cMask(idx))

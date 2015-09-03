@@ -232,6 +232,9 @@ classdef measurementInFDTree < measurementFile
         function raw = getRawData(this,ch)
             %get raw data for channel
             raw = [];
+            if(this.paramMgrObj.basicParams.approximationTarget == 2 && ch > 2)
+                return
+            end
             if(any(this.nonEmptyChannelList == ch))
                 if(~any(this.loadedChannelList == ch))
                     %we have to load it from disk first

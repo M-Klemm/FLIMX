@@ -669,16 +669,16 @@ classdef FLIMXFitGUI < handle
                 TotalPhotons = sum(data(:));
             end
             xAxis = this.FLIMXObj.curSubject.timeVector(1:length(data));
-            if(apObj.basicParams.approximationTarget == 1 || ch > 1)
+            if(apObj.basicParams.approximationTarget == 2 && ch == 4)
+                %anisotropy
+                dMin = min(data);
+                yScaleStr = 'linear';
+                yLbl = 'Anisotropy';                
+            else
                 %fluorescence lifetime
                 dMin = max(1e-2,min(data(data>0)));
                 yScaleStr = 'log';
                 yLbl = 'Photon-Frequency (counts)';
-            else
-                %anisotropy
-                dMin = min(data);
-                yScaleStr = 'linear';
-                yLbl = 'Anisotropy';
             end
             if(sum(x_vec(:)) == 0)
                 model = [];
@@ -1844,13 +1844,19 @@ classdef FLIMXFitGUI < handle
             %start actual fitting process
             this.setButtonStopSpinning(true);
             this.FLIMXObj.FLIMFit.setInitFitOnly(false);
-            %load all channels incase user has to specify borders, reflection mask, ...
+            %load all channels incase user has to specify borders, reflection mask, ...            
             for ch = 1:this.FLIMXObj.curSubject.nrSpectralChannels
                 this.currentChannel = ch; 
+            end            
+            if(params.basicFit.approximationTarget == 2 && params.basicFit.anisotropyR0Method == 2)
+                %incase of anisotropy compute channel 3 (sum of ch1 and ch2) first
+                chList = [3,1,2,4];
+            else
+                chList = 1:this.FLIMXObj.curSubject.nrSpectralChannels;
             end
-            for ch = 1:this.FLIMXObj.curSubject.nrSpectralChannels
-                this.currentChannel = ch;
-                if(isempty(this.FLIMXObj.FLIMFit.startFitProcess(ch,[],[])))
+            for ch = 1:length(chList)
+                this.currentChannel = chList(ch);
+                if(isempty(this.FLIMXObj.FLIMFit.startFitProcess(chList(ch),[],[])))
                     %fit was aborted
                     break
                 end
@@ -2305,7 +2311,7 @@ classdef FLIMXFitGUI < handle
             row = row+1;
             tstr{row,1} = 'Chi²';  tstr{row,2} = sprintf('%3.2f',chi2); tstr{row,3} = 'Chi² (Tail)'; tstr{row,4} = sprintf('%3.2f',chi2Tail);
             row = row+1;
-            tstr{row,1} = 'FuncEvals';  tstr{row,2} = sprintf('%d',FunctionEvaluations); tstr{row,3} = 'Time'; tstr{row,4} = sprintf('%3.1fs',time);
+            tstr{row,1} = 'FuncEvals';  tstr{row,2} = sprintf('%d',FunctionEvaluations); tstr{row,3} = 'Time'; tstr{row,4} = sprintf('%3.2fs',time);
             row = row+1;
             tstr{row,1} = 'Photons';  tstr{row,2} = sprintf('%d',nrPhotons); tstr{row,3} = ''; tstr{row,4} = '';
             set(hTable,'Data',tstr);

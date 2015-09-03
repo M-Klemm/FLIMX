@@ -248,16 +248,14 @@ classdef FLIMXParamMgr < paramMgr
             ini = checkStructConsistency(ini,this.getDefaults());
             %special treatment
             if(isfield(ini,'basic_fit'))
-                tmp = {''};
-                if(~isempty(ini.basic_fit.constMaskSaveStrCh1))
-                    tmp = textscan(ini.basic_fit.constMaskSaveStrCh1,'%s','delimiter','|','MultipleDelimsAsOne',1);
-                end                
-                ini.basic_fit.constMaskSaveStrCh1 = [tmp{:}];
-                tmp = {''};
-                if(~isempty(ini.basic_fit.constMaskSaveStrCh2))
-                    tmp = textscan(ini.basic_fit.constMaskSaveStrCh2,'%s','delimiter','|','MultipleDelimsAsOne',1);
-                end                
-                ini.basic_fit.constMaskSaveStrCh2 = [tmp{:}];
+                for i=1:16                    
+                    tmp = {''};
+                    str = sprintf('constMaskSaveStrCh%d',i);
+                    if(~isempty(ini.basic_fit.(str)))
+                        tmp = textscan(ini.basic_fit.(str),'%s','delimiter','|','MultipleDelimsAsOne',1);
+                    end
+                    ini.basic_fit.(str) = [tmp{:}];
+                end
                 tmp = {''};
                 if(~isempty(ini.basic_fit.globalFitMaskSaveStr))
                     tmp = textscan(ini.basic_fit.globalFitMaskSaveStr,'%s','delimiter','|','MultipleDelimsAsOne',1);
@@ -360,16 +358,14 @@ classdef FLIMXParamMgr < paramMgr
             ini = this.data;
             ini.about = this.about;
             %convert constants mask
-            str = '';
-            for i = 1:length(ini.basic_fit.constMaskSaveStrCh1)
-                str = strcat(str,ini.basic_fit.constMaskSaveStrCh1{i},'|');
+            for j=1:16
+                str = '';
+                str2 = sprintf('constMaskSaveStrCh%d',j);
+                for i = 1:length(ini.basic_fit.(str2))
+                    str = strcat(str,ini.basic_fit.(str2){i},'|');
+                end
+                ini.basic_fit.(str2) = str;
             end
-            ini.basic_fit.constMaskSaveStrCh1 = str;
-            str = '';
-            for i = 1:length(ini.basic_fit.constMaskSaveStrCh2)
-                str = strcat(str,ini.basic_fit.constMaskSaveStrCh2{i},'|');
-            end
-            ini.basic_fit.constMaskSaveStrCh2 = str;
             %convert init fix targets
             str = '';
             for i = 1:length(ini.basic_fit.fix2InitTargets)
