@@ -300,7 +300,10 @@ classdef subjectDS < handle
                             int = resultObj.getPixelFLIMItem(chan,ampItems{1});
                             for i=2:length(ampItems)
                                 %no checking if dimensions agree - todo?!
-                                int = int + resultObj.getPixelFLIMItem(chan,ampItems{i});
+                                int = int + resultObj.getPixelFLIMItem(chan,ampItems{i});                                
+                            end
+                            if(isASCIIResult)
+                                int = int.*10000;
                             end
                             this.addObjID(0,chan,'Intensity',1,int);
                         end
