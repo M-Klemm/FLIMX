@@ -79,14 +79,19 @@ classdef FScreenshot < FDisplay
                     %daspect(hAx,[1 1 max(this.mainExportGfx(:))/max(x,y)]);
                     if(this.visObj.exportParams.plotColorbar && this.mDispDim ~= 3)
                         cb = colorbar(hAx,'location',this.visObj.exportParams.colorbarLocation,'Fontsize',this.visObj.exportParams.labelFontSize);
-                        colormap(hAx,this.dynVisParams.cm);
+                        [dType, dTypeNr] = this.visObj.getFLIMItem(this.mySide);
+                        if(strcmp(dType,'Intensity'))
+                            colormap(hAx,gray(256));
+                        else
+                            colormap(hAx,this.dynVisParams.cm);
+                        end
                         cbLabels = this.makeColorBarLbls(3);
                         %set(cb,'Fontsize',this.visObj.exportParams.labelFontSize);
 %                         if(this.mDispDim == 2)
                             %special handling of colorbar for 2D plot
                             %clim = get(hAx,'CLim');
                             %cbLabels = linspace(clim(1),clim(2),length(this.dynVisParams.cm));
-                            [dType, dTypeNr] = this.visObj.getFLIMItem(this.mySide);
+                            
                             if(dTypeNr)
                                 dType = sprintf('%s %d',dType{1},dTypeNr);
                             else

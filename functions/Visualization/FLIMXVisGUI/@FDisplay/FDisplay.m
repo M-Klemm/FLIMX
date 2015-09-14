@@ -587,12 +587,12 @@ classdef FDisplay < handle
                 end
                 %z scaling
                 if(hfd{i}.MSZ)
-                    [~, MSZMin, MSZMax ] = hfd{i}.getMSZ();
-                    zMin(i) = MSZMin;
+                    zData = hfd{i}.getZScaling();
+                    zMin(i) = zData(2);
                     if(isinf(zMin))
                         zMin(i) = hfd{i}.getCImin();
                     end
-                    zMax(i) = MSZMax;
+                    zMax(i) = zData(3);
                     if(dispDim == 1)
                         %do z scaling here
                         current_img(current_img < zMin(i)) = zMin(i);
@@ -1000,11 +1000,11 @@ classdef FDisplay < handle
                                 zMax(i) = hfd{i}.getCImax(rc,rt,rs,ri);
                                 %z scaling
                                 if(hfd{i}.MSZ)
-                                    [~, MSZMin, MSZMax ] = hfd{i}.getMSZ();
+                                    zData = hfd{i}.getZScaling();
                                     if(MSZMin ~= -inf)
-                                        zMin(i) = MSZMin;
+                                        zMin(i) = zData(2);
                                     end
-                                    zMax(i) = MSZMax;
+                                    zMax(i) = zData(3);
                                 end
                             else
                                 %get data from object with the appropriate data format
@@ -1021,11 +1021,11 @@ classdef FDisplay < handle
                                 zMax(i) = hfdT.getCImax();
                                 %z scaling
                                 if(hfdT.MSZ)
-                                    [~, MSZMin, MSZMax ] = hfdT.getMSZ();
+                                    zData = hfdT.getZScaling();
                                     if(MSZMin ~= -inf)
-                                        zMin(i) = MSZMin;
+                                        zMin(i) = zData(2);
                                     end
-                                    zMax(i) = MSZMax;
+                                    zMax(i) = zData(3);
                                 end
                             end
                             
@@ -1210,7 +1210,9 @@ classdef FDisplay < handle
                     img_max = 0;
                 else
                     if(hfd{1}.MSZ)
-                        [~, img_min, img_max ] = hfd{1}.getMSZ();
+                        zData = hfd{1}.getZScaling();
+                        img_min = zData(2);
+                        img_max = zData(3);
                     else
                         img_min = hfd{1}.rawImgZSz(1);
                         img_max = hfd{1}.rawImgZSz(2);

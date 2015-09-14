@@ -799,6 +799,10 @@ classdef measurementFile < handle
                  if(df(1,2))
                      %fluoFileInfo
                      fluoFileInfo = this.getFileInfoStruct(ch);
+                     if(this.paramMgrObj.basicParams.approximationTarget == 2)
+                         %revert artificial change of spectral channels
+                         fluoFileInfo.nrSpectralChannels = 2;
+                     end
                      save(fn,'fluoFileInfo','-append');
                  end
                  if(df(1,3))

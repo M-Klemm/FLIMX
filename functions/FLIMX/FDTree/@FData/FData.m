@@ -154,55 +154,26 @@ classdef FData < handle
             this.rawImgZSz = val;  
         end                                                 
         
-%         function setResultROICoordinates(this,ROIType,ROICoord)
-%             %set ROI coordinates
-%             tmp = this.ROICoordinates;
-%             if(isempty(ROIType))
-%                 %set all ROI coordinates at once
-%                 if(size(ROICoord,1) == 7 && size(ROICoord,2) == 3 && size(ROICoord,3) >= 2)
-%                     tmp = int16(ROICoord);
-%                 end
-%             else
-%                 if(isempty(tmp) || size(tmp,1) ~= 7 || size(tmp,2) ~= 3)
-%                     tmp = zeros(7,3,2,'int16');
-%                 end
-%                 if(ROIType >= 1 && ROIType <= 7 && size(ROICoord,1) == 1 && size(ROICoord,2) == 3 && size(ROICoord,3) == 2)
-%                     tmp(ROIType,:,1:2) = int16(ROICoord);
-%                 elseif(ROIType >= 6 && ROIType <= 7 && size(ROICoord,1) == 1 && size(ROICoord,2) == 3 && size(ROICoord,3) > 2)
-%                     tmp(:,:,3:size(ROICoord,3)) = zeros(7,2,size(ROICoord,3)-2,'int16');
-%                     tmp(ROIType,:,:) = int16(ROICoord);
-%                 end
-%             end
-%             this.ROICoordinates = tmp;            
-% %             switch upper(ROIType)
-% %                 case 'X'
-% %                     this.MSX = logical(ROICoord(1));
-% %                     this.MSXMin = ROICoord(2);
-% %                     this.MSXMax = ROICoord(3);
-% %                 case 'Y'
-% %                     this.MSY = logical(ROICoord(1));
-% %                     this.MSYMin = ROICoord(2);
-% %                     this.MSYMax = ROICoord(3);
-% %                 case 'Z'
-% %                     this.MSZ = logical(ROICoord(1));
-% %                     if(this.sType == 2)
-% %                         %transform input to log10 space
-% %                         if(ROICoord(2) <= 0)
-% %                             ROICoord(2) = 0;
-% %                         else
-% %                             ROICoord(2) = log10(ROICoord(2));
-% %                         end
-% %                         if(ROICoord(3) <= 0)
-% %                             ROICoord(3) = -Inf;
-% %                         else
-% %                             ROICoord(3) = log10(ROICoord(3));
-% %                         end
-% %                     end
-% %                     this.MSZMin = ROICoord(2);
-% %                     this.MSZMax = ROICoord(3);
-% %             end
-%             this.clearCachedImage();
-%         end
+        function setZScaling(this,data)
+            %set z scaling; data = [flag min max]
+            this.MSZ = logical(data(1));
+            if(this.sType == 2)
+                %transform input to log10 space
+                if(data(2) <= 0)
+                    data(2) = 0;
+                else
+                    data(2) = log10(data(2));
+                end
+                if(data(3) <= 0)
+                    data(3) = -Inf;
+                else
+                    data(3) = log10(data(3));
+                end
+            end
+            this.MSZMin = data(2);
+            this.MSZMax = data(3);
+            this.clearCachedImage();
+        end
         
         function setCIROICoordinates(this,val)
             %set coordinates of cached ROI
@@ -308,13 +279,10 @@ classdef FData < handle
             end
         end
 
-%         function [MSZ MSZMin MSZMax step] = getMSZ(this,~)
-%             %get ROI parameters for z
-%             MSZ = double(this.MSZ);
-%             MSZMin = this.MSZMin;
-%             MSZMax = this.MSZMax;
-%             step = [];
-%         end
+        function out = getZScaling(this)
+            %get z scaling parameters
+            out = [double(this.MSZ), this.MSZMin, this.MSZMax];
+        end
         
         function out = get.isEmptyStat(this)
             %
@@ -406,6 +374,15 @@ classdef FData < handle
                 out = this.cachedImage.data;
             elseif(~isempty(ROIType) && ROIType == 0)
                 out = this.getFullImage();
+                if(this.MSZ)
+                    cim = this.getNonInfMin(2,out);
+                    %set possible "-inf" in ci to "cim"
+                    out(out < cim) = cim;
+                    zlim_min = this.getZlimMin(cim);
+                    zlim_max = this.MSZMax;
+                    out(out < zlim_min) = zlim_min;
+                    out(out > zlim_max) = zlim_max;
+                end
             else
                 out = [];
             end            

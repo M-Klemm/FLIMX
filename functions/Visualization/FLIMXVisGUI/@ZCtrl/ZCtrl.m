@@ -1,10 +1,10 @@
-classdef ROICtrl < handle
+classdef ZCtrl < handle
     %=============================================================================================================
     %
-    % @file     ROICtrl.m
+    % @file     ZCtrl.m
     % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
     % @version  1.0
-    % @date     July, 2015
+    % @date     September, 2015
     %
     % @section  LICENSE
     %
@@ -29,7 +29,7 @@ classdef ROICtrl < handle
     % POSSIBILITY OF SUCH DAMAGE.
     %
     %
-    % @brief    A class to handle UI controls for ROI selection / definition in FLIMXVisGUI
+    % @brief    A class to handle UI controls for z-scaling in FLIMXVisGUI
     %
     properties(SetAccess = protected,GetAccess = public)
         
@@ -40,57 +40,27 @@ classdef ROICtrl < handle
         myFDisplayL = [];
         myFDisplayR = [];
         
-        roi_type_popup = [];
-        roi_subtype_popup = []
-        roi_invert_check = [];
-        
-        x_check = [];
-        x_lo_dec_button = [];
-        x_lo_inc_button = [];
-        x_lo_edit = [];
-        x_u_dec_button = [];
-        x_u_inc_button = [];
-        x_u_edit = [];
-        x_text = [];
-        x_sz_text = [];
-        x_sz_edit = [];
-        
-        y_check = [];
-        y_lo_dec_button = [];
-        y_lo_inc_button = [];
-        y_lo_edit = [];
-        y_u_dec_button = [];
-        y_u_inc_button = [];
-        y_u_edit = [];
-        y_text = [];
-        y_sz_text = [];
-        y_sz_edit = [];
-        
-%         z_lo_dec_button = [];
-%         z_lo_inc_button = [];
-%         z_lo_edit = [];
-%         z_u_dec_button = [];
-%         z_u_inc_button = [];
-%         z_u_edit = [];
-%         z_check = [];
-%         z_text = [];
-%         z_sz_text = [];
-%         z_sz_edit = [];
+        z_lo_dec_button = [];
+        z_lo_inc_button = [];
+        z_lo_edit = [];
+        z_u_dec_button = [];
+        z_u_inc_button = [];
+        z_u_edit = [];
+        z_check = [];
+        z_text = [];
+        z_sz_text = [];
+        z_sz_edit = [];
     end
     
     properties (Dependent = true)
         myHFD = [];
-        editXlo = 0;
-        editYlo = 0;
-        editXu = 0;
-        editYu = 0;
-        ROIType = 0;
-        ROISubType = 0;
-        ROIInvertFlag = 0;
+        editZlo = 0;
+        editZu = 0;
+        checkZ = 0;
     end
     
     methods
-        function this = ROICtrl(visObj,s,FDisplayL,FDisplayR)
+        function this = ZCtrl(visObj,s,FDisplayL,FDisplayR)
             % Constructor for Scale.
             this.visObj = visObj;
             this.mySide = s;
@@ -106,39 +76,19 @@ classdef ROICtrl < handle
             out = out{1};
         end
         
-        function out = get.editXlo(this)
-            %get value of exit field x lower
-            out = str2double(get(this.x_lo_edit,'String'));
+        function out = get.editZlo(this)
+            %get value of edit field z lower
+            out = str2double(get(this.z_lo_edit,'String'));
         end
         
-        function out = get.editYlo(this)
-            %get value of exit field y lower
-            out = str2double(get(this.y_lo_edit,'String'));
+        function out = get.editZu(this)
+            %get value of edit field z upper
+            out = str2double(get(this.z_u_edit,'String'));
         end
         
-        function out = get.editXu(this)
-            %get value of exit field x upper
-            out = str2double(get(this.x_u_edit,'String'));
-        end
-        
-        function out = get.editYu(this)
-            %get value of exit field y upper
-            out = str2double(get(this.y_u_edit,'String'));
-        end
-        
-        function out = get.ROIType(this)
-            %get current ROI type
-            out = get(this.roi_type_popup,'Value')-1;
-        end        
-        
-        function out = get.ROISubType(this)
-            %get current ROI subtype
-            out = get(this.roi_subtype_popup,'Value');
-        end
-        
-        function out = get.ROIInvertFlag(this)
-            %get current state of ROI invert flag
-            out = get(this.roi_invert_check,'Value');
+        function out = get.checkZ(this)
+            %get value of check box 
+            out = get(this.z_check,'Value');
         end
         
         function enDisAble(this,argEn,argVis)
@@ -157,9 +107,9 @@ classdef ROICtrl < handle
                     argVis = 'off';
                 end
             end
-            dim =['x','y'];
-            for i = 1:2
-                set(this.(sprintf('%s_check',dim(i))),'Visible',argVis);
+            dim ='z';
+            for i = 1:1
+                %set(this.(sprintf('%s_check',dim(i))),'Visible',argVis);
                 set(this.(sprintf('%s_lo_dec_button',dim(i))),'Enable',argEn,'Visible',argVis);
                 set(this.(sprintf('%s_lo_edit',dim(i))),'Enable',argEn,'Visible',argVis);
                 set(this.(sprintf('%s_lo_inc_button',dim(i))),'Enable',argEn,'Visible',argVis);
@@ -172,22 +122,24 @@ classdef ROICtrl < handle
             end
         end
         
-%         function checkCallback(this,dim)
-%             %callback function of the check control
-%             current = get(this.(sprintf('%s_check',dim)),'Value');
-%             this.enDisAble(dim,current,'on');
-%             this.save();
-%             this.updateGUI();
-%         end
+        function checkCallback(this,dim)
+            %callback function of the check control
+            current = get(this.(sprintf('%s_check',dim)),'Value');
+            if(current)
+                flag = 'on';
+            else
+                flag = 'off';
+            end
+            this.enDisAble(flag,'on');
+            this.save();
+            this.updateGUI([]);
+        end
         
         function editCallback(this,dim,bnd)
             %callback function of the edit field
             current = str2double(get(this.(sprintf('%s_%s_edit',dim,bnd)),'String'));
             %check for validity
-            switch this.ROIType
-                case {2,3} %rectangles
-                    current = this.checkBnds(dim,bnd,current);
-            end
+            current = this.checkBnds(dim,bnd,current);
             set(this.(sprintf('%s_%s_edit',dim,bnd)),'String',current);
             this.save();
             this.updateGUI([]);
@@ -211,30 +163,24 @@ classdef ROICtrl < handle
                     otherBnd = 'lo';
             end
             other = [];
-            switch this.ROIType
-                case 1 %ETDRS grid
-                    switch target
-                        case 'inc'
-                            d = 1;
-                        case 'dec'
-                            d = -1;
-                    end
-                    switch dim
-                        case 'x'
-                            current = min(max(1,this.editXlo+d),hfd.rawImgXSz(2));
-                        case 'y'
-                            current = min(max(1,this.editYlo+d),hfd.rawImgXSz(2));
-                    end
-                case {2,3} %rectangles
+%             switch this.ROIType
+%                 case 1 %ETDRS grid
+%                     switch target
+%                         case 'inc'
+%                             d = 1;
+%                         case 'dec'
+%                             d = -1;
+%                     end
+%                     switch dim
+%                         case 'x'
+%                             current = min(max(1,this.editXlo+d),hfd.rawImgXSz(2));
+%                         case 'y'
+%                             current = min(max(1,this.editYlo+d),hfd.rawImgXSz(2));
+%                     end
+%                 case {2,3} %rectangles
                     current = this.(sprintf('%s%s',target,thisEdit))(dim);
                     %increase/decrease and check for validity
                     current = this.checkBnds(dim,thisBnd,current);
-                case {4,5} %circles
-                    current = this.(sprintf('%s%s',target,thisEdit))(dim);
-                    if(strcmp(thisBnd,'lo'))
-                        other = this.(sprintf('%s%s',target,otherEdit))(dim);
-                    end
-            end
             set(this.(sprintf('%s_%s_edit',dim,thisBnd)),'String',current);
             if(~isempty(other))
                 set(this.(sprintf('%s_%s_edit',dim,otherBnd)),'String',other);
@@ -242,115 +188,63 @@ classdef ROICtrl < handle
             this.save();
             this.updateGUI([]);
         end
-        
-        function popupCallback(this,type)
-            %callback function of popup to change ROI type / subtype
-            this.setupGUI();
-            this.updateGUI([]);
-        end
-        
-        function setStartPoint(this,coord)
-            %set coordinates(y,x) of ROI start point
-            ROICoord = this.getCurROIInfo();
-            ROICoord = ROICoord(:,2:end);
-            if(isempty(coord))
-                coord = [0,0];
-            end
-            ROICoord(:,1) = coord;
-            this.updateGUI(ROICoord);
-        end
-        
-        function setEndPoint(this,coord,saveFlag)
-            %set coordinates(y,x) of ROI end point
-            ROICoord = this.getCurROIInfo();
-            ROICoord = ROICoord(:,2:end);
-            if(isempty(coord))
-                coord = [0,0];
-            end
-            ROICoord(:,2) = coord;
-            if(this.ROIType == 1)
-                ROICoord(:,1) = coord;
-            end
-            if(saveFlag)
-                if(this.ROIType == 2 || this.ROIType == 3)
-                    ROICoord = sort(ROICoord,2);
-                end
-                this.updateGUI(ROICoord);
-                this.save();
-            else
-                this.updateGUI(ROICoord);
-            end          
-        end
-        
+                                
         function setupGUI(this)
             %setup GUI controls for current ROI Type
-            switch this.ROIType
-                case 1 %ETDRS grid
-                    set(this.roi_invert_check,'Visible','off');
-                    set(this.roi_subtype_popup,'Visible','on');
-                    this.enDisAble('off','off');
-                    set(this.x_check,'Visible','on');
-                    set(this.y_check,'Visible','on');
-                    set(this.x_lo_edit,'Visible','on','Enable','on');
-                    set(this.y_lo_edit,'Visible','on','Enable','on');
-                    set(this.x_lo_dec_button,'Enable','on','Visible','on');
-                    set(this.x_lo_inc_button,'Enable','on','Visible','on');
-                    set(this.y_lo_dec_button,'Enable','on','Visible','on');
-                    set(this.y_lo_inc_button,'Enable','on','Visible','on');
-                case {2,3} %rectangle
-%                     set(this.roi_invert_check,'Visible','on');
-                    set(this.roi_subtype_popup,'Visible','off');
-                    this.enDisAble('on','on');
-                case {4,5} %circle
-%                     set(this.roi_invert_check,'Visible','on');
-                    set(this.roi_subtype_popup,'Visible','off');
-                    this.enDisAble('on','on');
-                    set(this.y_sz_text','Enable','off','Visible','off');
-                    set(this.y_sz_edit,'Enable','off','Visible','off');
-                    %case {6,7} %polygon
-                    
-                otherwise %switch to 'none'
-                    set(this.roi_invert_check,'Visible','off');
-                    set(this.roi_subtype_popup,'Visible','off');
-                    this.enDisAble('off','off');
+            if(this.checkZ)
+                this.enDisAble('on','on');
+            else
+                this.enDisAble('off','on');
             end
         end
         
-        function updateGUI(this,ROICoord)
+        function updateGUI(this,data)
             %set GUI items to values from FDTree / FData object
-            if(isempty(ROICoord))
+            if(isempty(data))
                 hfd = this.myHFD;
                 if(isempty(hfd))
                     return
                 end
-                ROICoord = hfd.getROICoordinates(this.ROIType);
-                if(isempty(ROICoord) || ~any(ROICoord(:)))
-                    ROICoord = [hfd.rawImgYSz; hfd.rawImgXSz];
+                data = hfd.getZScaling();
+                if(isempty(data) || length(data) ~= 3 || ~any(data(:)))
+                    data = [0 hfd.rawImgZSz];
                 end
             end            
-            switch this.ROIType
-                case 1 %ETDRS grid                    
-                    set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
-                    set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
-                case {0,2,3} %rectangle
-                    set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
-                    set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
-                    set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
-                    set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
-                    set(this.y_sz_edit,'String',num2str(abs(ROICoord(1,2)-ROICoord(1,1)+1)));
-                    set(this.x_sz_edit,'String',num2str(abs(ROICoord(2,2)-ROICoord(2,1)+1)));
-                case {4,5} %circle
-                    set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
-                    set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
-                    set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
-                    set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
-                    d = 2*sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
-                    set(this.x_sz_edit,'String',num2str(FLIMXFitGUI.num4disp(d)));
-                case {6,7} %polygon
-                    
-                otherwise
-                    
+            %[cMin, cMax, ~, ~, gMax, flag] = this.getValuesFromGUI(dim,false);
+            if(data(1))
+                flag = 'on';
+            else
+                flag = 'off';
             end
+            this.enDisAble(flag,'on');
+            %set edit field values
+            set(this.z_check,'Value',data(1));
+            set(this.z_lo_edit,'String',FLIMXFitGUI.num4disp(data(2)));
+            set(this.z_u_edit,'String',FLIMXFitGUI.num4disp(data(3)));
+            set(this.z_sz_edit,'String',FLIMXFitGUI.num4disp(data(3)-data(2)));
+            
+%             if(~data(1))
+%                 %only change button behavior if ms is activated
+%                 return;
+%             end
+%             %disable buttons if currently at min/ max
+%             if(cMin == 1)
+%                 %     set(o.l_dec_button,'Enable','off');
+%             else
+%                 set(this.(sprintf('%s_lo_dec_button',dim)),'Enable','on');
+%             end
+%             if(gMax == cMax)
+%                 %     set(o.u_inc_button,'Enable','off');
+%             else
+%                 set(this.(sprintf('%s_u_inc_button',dim)),'Enable','on');
+%             end
+%             if(cMax == cMin)
+%                 set(this.(sprintf('%s_u_inc_button',dim)),'Enable','off');
+%                 set(this.(sprintf('%s_lo_dec_button',dim)),'Enable','off');
+%             else
+%                 set(this.(sprintf('%s_u_inc_button',dim)),'Enable','on');
+%                 set(this.(sprintf('%s_lo_dec_button',dim)),'Enable','on');
+%             end
         end
         
         
@@ -432,23 +326,23 @@ classdef ROICtrl < handle
 % %             end
 %         end
         
-        function out = getCurROIInfo(this)
-            %get coordinates of current ROI
-            %out = [invert,x1,x2]
-            %      [enable,y1,y2]
-            out = zeros(2,3,'int16');
-            hfd = this.myHFD;
-            out(1,1) = 1;
-            out(2,1) = this.ROIInvertFlag;
-            out(1,2) = hfd.yLbl2Pos(sscanf(get(this.y_lo_edit,'String'),'%i',1)); %sscanf(s,'%f',1);
-            out(2,2) = hfd.xLbl2Pos(sscanf(get(this.x_lo_edit,'String'),'%i',1));
-            if(this.ROIType == 1)
-                out(:,3) = out(:,2);
-            else
-                out(1,3) = hfd.yLbl2Pos(sscanf(get(this.y_u_edit,'String'),'%i',1));
-                out(2,3) = hfd.xLbl2Pos(sscanf(get(this.x_u_edit,'String'),'%i',1));                
-            end
-        end
+%         function out = getCurROIInfo(this)
+%             %get coordinates of current ROI
+%             %out = [invert,x1,x2]
+%             %      [enable,y1,y2]
+%             out = zeros(2,3,'int16');
+%             hfd = this.myHFD;
+%             out(1,1) = 1;
+%             out(2,1) = this.ROIInvertFlag;
+%             out(1,2) = hfd.yLbl2Pos(sscanf(get(this.y_lo_edit,'String'),'%i',1)); %sscanf(s,'%f',1);
+%             out(2,2) = hfd.xLbl2Pos(sscanf(get(this.x_lo_edit,'String'),'%i',1));
+%             if(this.ROIType == 1)
+%                 out(:,3) = out(:,2);
+%             else
+%                 out(1,3) = hfd.yLbl2Pos(sscanf(get(this.y_u_edit,'String'),'%i',1));
+%                 out(2,3) = hfd.xLbl2Pos(sscanf(get(this.x_u_edit,'String'),'%i',1));                
+%             end
+%         end
         
     end %methods
     
@@ -456,69 +350,69 @@ classdef ROICtrl < handle
         %internal methods
         function out = incMin(this,dim)
             %manual scaling: increase lower bound
-            [cMin, ~, step, gMin, gMax] = this.getValuesFromGUI(dim,false);
+            [cMin, ~, step, gMin, gMax] = this.getValuesFromGUI(dim);
             if(gMax < 1)
                 %B&H amplitudes
                 out = cMin+(gMax-gMin)*0.05;
             else
-                out = cMin+1;
-%                 if(isempty(step))
-%                     out = cMin+ceil((gMax-gMin)*0.05);                    
-%                 else
-%                     out = cMin+step*ceil((gMax-gMin)/step*0.05);
-%                 end
+                %out = cMin+1;
+                if(isempty(step))
+                    out = cMin+ceil((gMax-gMin)*0.05);                    
+                else
+                    out = cMin+step*ceil((gMax-gMin)/step*0.05);
+                end
             end
         end
         
         function out = decMin(this,dim)
             %manual scaling: decrease lower bound
-            [cMin, ~, step, gMin, gMax] = this.getValuesFromGUI(dim,false);
+            [cMin, ~, step, gMin, gMax] = this.getValuesFromGUI(dim);
             if(gMax < 1)
                 %B&H amplitudes
                 out = cMin-(gMax-gMin)*0.05;
             else
-                out = cMin-1;
-%                 if(isempty(step))
-%                     out = cMin-ceil((gMax-gMin+1)/20);                    
-%                 else
-%                     out = cMin-step*ceil((gMax-gMin+1)/step/20);
-%                 end
+                %out = cMin-1;
+                if(isempty(step))
+                    out = cMin-ceil((gMax-gMin+1)/20);                    
+                else
+                    out = cMin-step*ceil((gMax-gMin+1)/step/20);
+                end
             end
         end
         
         function out = incMax(this,dim)
             %manual scaling: increase lower bound
-            [~, cMax, step, gMin, gMax] = this.getValuesFromGUI(dim,false);
+            [~, cMax, step, gMin, gMax] = this.getValuesFromGUI(dim);
             if(gMax < 1)
                 %B&H amplitudes
                 out = cMax+(gMax-gMin)*0.05;
             else
-                out = cMax+1;
-%                 if(isempty(step))
-%                     out = cMax+ceil((gMax-gMin)*0.05);                    
-%                 else
-%                     out = cMax+step*ceil((gMax-gMin)/step*0.05);
-%                 end
+                %out = cMax+1;
+                if(isempty(step))
+                    out = cMax+ceil((gMax-gMin)*0.05);                    
+                else
+                    out = cMax+step*ceil((gMax-gMin)/step*0.05);
+                end
             end
         end
         
         function out = decMax(this,dim)
             %manual scaling: decrease lower bound
-            [~, cMax, step, gMin, gMax] = this.getValuesFromGUI(dim,false);
+            [~, cMax, step, gMin, gMax] = this.getValuesFromGUI(dim);
             if(gMax < 1)
                 %B&H amplitudes
                 out = cMax-(gMax-gMin)*0.05;
             else
-                out = cMax-1;
-%                 if(isempty(step))
-%                     out = cMax-ceil((gMax-gMin+1)/20);                    
-%                 else
-%                     out = cMax-step*ceil((gMax-gMin+1)/step/20);
-%                 end
+                %out = cMax-1;
+                if(isempty(step))
+                    out = cMax-ceil((gMax-gMin+1)/20);                    
+                else
+                    out = cMax-step*ceil((gMax-gMin+1)/step/20);
+                end
             end
         end        
         
-        function [cMin, cMax, step, gMin, gMax, flag] = getValuesFromGUI(this,dim,isMatrixPos)
+        function [cMin, cMax, step, gMin, gMax, flag] = getValuesFromGUI(this,dim)
             %get current ROI values, output is lin or per
             cMin=0; cMax=0; step = 1; gMin=0; gMax=0; flag=0;
             hfd = this.myHFD;
@@ -526,9 +420,15 @@ classdef ROICtrl < handle
                 return
             end
             %get current values
-            [cMin, cMax, step] = hfd.getROIParameters(this.ROIType,dim,isMatrixPos);
-            %[flag, cMin, cMax, step] = hfd.(sprintf('getMS%s',upper(dim)))(isMatrixPos);
-            tmp = hfd.(sprintf('rawImg%sSz',upper(dim)));
+            %[cMin, cMax, step] = hfd.getROIParameters(this.ROIType,dim,isMatrixPos);
+%             zData = hfd.getZScaling();
+%             flag = zData(1);
+%             cMin = zData(2);
+%             cMax = zData(3);            
+            flag = this.checkZ;
+            cMin = this.editZlo;
+            cMax = this.editZu;
+            tmp = hfd.rawImgZSz;
             if(isempty(tmp))
                 return
             end
@@ -541,15 +441,15 @@ classdef ROICtrl < handle
                 gMin = 10^gMin;
                 gMax = 10^gMax;
             end
-            if((strcmp(dim,'x') || strcmp(dim,'y')) && ~isMatrixPos)
-                gMin = hfd.xPos2Lbl(gMin);
-                gMax = hfd.xPos2Lbl(gMax);
-            end
+%             if((strcmp(dim,'x') || strcmp(dim,'y')) && ~isMatrixPos)
+%                 gMin = hfd.xPos2Lbl(gMin);
+%                 gMax = hfd.xPos2Lbl(gMax);
+%             end
         end
         
         function  val = checkBnds(this,dim,bnd,val)
             %check & correct new value of lower bound for over-/ underflows; update
-            [cMin, cMax, step, gMin, gMax] = this.getValuesFromGUI(dim,false);
+            [cMin, cMax, step, gMin, gMax] = this.getValuesFromGUI(dim);
             if(isnan(val))
                 val = 1;
             end
@@ -579,16 +479,17 @@ classdef ROICtrl < handle
             if(isempty(hfd))
                 return
             end
-            ROIInfo = this.getCurROIInfo();
-            if(strncmp('ConditionMVGroup',hfd.dType,16))
-                tmp = hfd.dType;
-                this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
-                hfd.setROICoordinates(this.ROIType,ROIInfo);
-            elseif(strncmp('GlobalMVGroup',hfd.dType,13))
-                hfd.setROICoordinates(this.ROIType,ROIInfo);
-            else
-                this.visObj.fdt.setResultROICoordinates(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),hfd.dType,hfd.id,this.ROIType,ROIInfo);
-            end
+            
+%             ROIInfo = this.getCurROIInfo();
+%             if(strncmp('ConditionMVGroup',hfd.dType,16))
+%                 tmp = hfd.dType;
+%                 this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
+%                 hfd.setROICoordinates(this.ROIType,ROIInfo);
+%             elseif(strncmp('GlobalMVGroup',hfd.dType,13))
+%                 hfd.setROICoordinates(this.ROIType,ROIInfo);
+%             else
+%                 this.visObj.fdt.setResultROICoordinates(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),hfd.dType,hfd.id,this.ROIType,ROIInfo);
+%             end
 %             if(ROIType == 1) %custom ROI
 %                 if(~isempty(dim))
 %                     minVal = hfd.(sprintf('%sLbl2Pos',dim))(str2double(get(this.(sprintf('%s_lo_edit',dim)),'String')));
@@ -596,8 +497,8 @@ classdef ROICtrl < handle
 %                     check = get(this.(sprintf('%s_check',dim)),'Value');
 %                 end
 %                 if(strcmp(dim,'z'))
-% %                     this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),hfd.dType,hfd.id);
-% %                     hfd.setResultROICoordinates(dim,[check minVal maxVal]);
+                    this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),hfd.dType,hfd.id);
+                    hfd.setZScaling([this.checkZ this.editZlo this.editZu]);
 %                 elseif(strncmp('ConditionMVGroup',hfd.dType,16))
 %                     tmp = hfd.dType;
 %                     this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
@@ -617,11 +518,8 @@ classdef ROICtrl < handle
         function setUIHandles(this)
             %builds the uicontrol handles for the ROICtrl object for axis ax
             s = this.mySide;
-            dims =['x','y','z'];
-            this.roi_type_popup = this.visObj.visHandles.(sprintf('roi_type_%s_popup',s));
-            this.roi_subtype_popup = this.visObj.visHandles.(sprintf('roi_subtype_%s_popup',s));
-            this.roi_invert_check = this.visObj.visHandles.(sprintf('roi_invert_%s_check',s));
-            for i=1:2
+            dims ='z';
+            for i=1:1
                 dim = dims(i);
                 this.(sprintf('%s_lo_dec_button',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_lo_dec_button',s,dim));
                 this.(sprintf('%s_lo_inc_button',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_lo_inc_button',s,dim));
@@ -629,7 +527,7 @@ classdef ROICtrl < handle
                 this.(sprintf('%s_u_dec_button',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_u_dec_button',s,dim));
                 this.(sprintf('%s_u_inc_button',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_u_inc_button',s,dim));
                 this.(sprintf('%s_u_edit',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_u_edit',s,dim));
-                %this.(sprintf('%s_check',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_check',s,dim));
+                this.(sprintf('%s_check',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_check',s,dim));
                 this.(sprintf('%s_text',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_text',s,dim));
                 this.(sprintf('%s_sz_text',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_sz_text',s,dim));
                 this.(sprintf('%s_sz_edit',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_sz_edit',s,dim));

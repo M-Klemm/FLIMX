@@ -239,10 +239,12 @@ classdef measurementInFDTree < measurementFile
                 if(~any(this.loadedChannelList == ch))
                     %we have to load it from disk first
                     if(this.loadRawData(ch))
-%                         if(~this.fileInfoLoaded)
-%                             this.fileInfoLoaded = true;
-%                         end
-                        raw = this.rawFluoData{ch};
+                        %                         if(~this.fileInfoLoaded)
+                        %                             this.fileInfoLoaded = true;
+                        %                         end
+                        if(any(this.loadedChannelList == ch))
+                            raw = this.rawFluoData{ch};
+                        end
                     end
                 else
                     raw = this.rawFluoData{ch};

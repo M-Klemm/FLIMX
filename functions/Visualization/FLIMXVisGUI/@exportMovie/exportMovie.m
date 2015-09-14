@@ -215,11 +215,11 @@ classdef exportMovie < handle
             zMax = double(hfd.getCImax(rc,rt,rs,ri));            
             %z scaling
             if(hfd.MSZ)
-                [~, MSZMin, MSZMax ] = hfd.getMSZ();
-                if(MSZMin ~= -inf)
-                    zMin = MSZMin;
+                zData = hfd.getZScaling();
+                if(zData(2) ~= -inf)
+                    zMin = zData(2);
                 end
-                zMax = MSZMax;
+                zMax = zData(3);
             end  
             current_img = (current_img - zMin)/(zMax-zMin);
             zMin = 0;

@@ -176,21 +176,21 @@ classdef FDataNormal < FData
             %set possible "-inf" in ci to "cim"
             ci(ci < cim) = cim;            
             %limit z
-%             if(this.MSZ)
-%                 zlim_min = this.getZlimMin(cim);
-%                 zlim_max = this.MSZMax;
-%                 ci(ci < zlim_min) = zlim_min;
-%                 ci(ci > zlim_max) = zlim_max;
-%                 cachedImage.info.ZMin = zlim_min;
-%                 cachedImage.info.ZMax = max(ci(:));
-%                 %labels
-%                 [cachedImage.info.ZLblMin, cachedImage.info.ZLblMax] = this.makeZlbls(zlim_min,zlim_max);                
-%             else
+            if(this.MSZ)
+                zlim_min = this.getZlimMin(cim);
+                zlim_max = this.MSZMax;
+                ci(ci < zlim_min) = zlim_min;
+                ci(ci > zlim_max) = zlim_max;
+                info.ZMin = zlim_min;
+                info.ZMax = max(ci(:));
+                %labels
+                [info.ZLblMin, info.ZLblMax] = this.makeZlbls(zlim_min,zlim_max);                
+            else
                 info.ZMin = cim;
                 info.ZMax = max(ci(:));
                 %labels
                 [info.ZLblMin, info.ZLblMax] = this.makeZlbls(info.ZMin,info.ZMax);
-%             end %limit z
+            end %limit z
                 [info.YSz, info.XSz] = size(ci);
                 info.XLblStart = [];
                 info.XLblTick = 1;

@@ -193,6 +193,7 @@ classdef FLIMXVisGUI < handle
                     this.objHandles.cuty.updateCtrls();
                     %ROI
                     this.objHandles.(sprintf('%sROI',s)).setupGUI();
+                    this.objHandles.(sprintf('%sZScale',s)).setupGUI();
                     %descriptive statistics
                     this.objHandles.(sprintf('%sdo',s)).makeDSTable();
                     %arithmetic images
@@ -367,6 +368,7 @@ classdef FLIMXVisGUI < handle
                 this.objHandles.(sprintf('%sdo',s)).sethfdMain([]);
                 %roi
                 this.objHandles.(sprintf('%sROI',s)).updateGUI([]);
+                this.objHandles.(sprintf('%sZScale',s)).updateGUI([]);
                 this.objHandles.(sprintf('%sdo',s)).updatePlots();                
                 if(strcmp(s,'l'))
                     %update cuts
@@ -577,7 +579,17 @@ classdef FLIMXVisGUI < handle
         %colorbar
         function updateColorbar(this)
             %update the colorbar to the current color map
-            temp(:,1,:) = this.dynParams.cm;
+            temp = zeros(length(this.dynParams.cm),2,3);
+            if(strcmp(this.getFLIMItem('l'),'Intensity'))
+                temp(:,1,:) = gray(size(temp,1));
+            else
+                temp(:,1,:) = this.dynParams.cm;
+            end
+            if(strcmp(this.getFLIMItem('r'),'Intensity'))
+                temp(:,2,:) = gray(size(temp,1));
+            else
+                temp(:,2,:) = this.dynParams.cm;
+            end
             image(temp,'Parent',this.visHandles.cm_axes);
             ytick = (0:0.25:1).*size(this.dynParams.cm,1);
             ytick(1) = 1;
@@ -1116,6 +1128,7 @@ classdef FLIMXVisGUI < handle
                 s = 'l';
             end                       
             this.updateGUI(s);
+            this.updateColorbar();
 %             this.objHandles.(sprintf('%sdo',s)).sethfdMain([]);
 %             this.objHandles.(sprintf('%sROI',s)).updateGUI([]);
 %             this.objHandles.(sprintf('%sdo',s)).updatePlots();       
@@ -1212,14 +1225,22 @@ classdef FLIMXVisGUI < handle
             end
             %find control type
             if(~isempty(strfind(tag,'edit')))
-                this.objHandles.(sprintf('%sROI',s1)).editCallback(dim,bnd);
+                if(strcmp(dim,'z'))
+                    this.objHandles.(sprintf('%sZScale',s1)).editCallback(dim,bnd);
+                else
+                    this.objHandles.(sprintf('%sROI',s1)).editCallback(dim,bnd);
+                end
             elseif(~isempty(strfind(tag,'button')))
                 if(~isempty(strfind(tag,'_dec_')))
                     target = 'dec';
                 else
                     target = 'inc';
                 end
-                this.objHandles.(sprintf('%sROI',s1)).buttonCallback(dim,bnd,target);
+                if(strcmp(dim,'z'))
+                    this.objHandles.(sprintf('%sZScale',s1)).buttonCallback(dim,bnd,target);
+                else
+                    this.objHandles.(sprintf('%sROI',s1)).buttonCallback(dim,bnd,target);
+                end
             elseif(~isempty(strfind(tag,'popup')))
                 if(~isempty(strfind(tag,'roi_subtype_')))
                     type = 'main';
@@ -1227,16 +1248,19 @@ classdef FLIMXVisGUI < handle
                     type = 'sub';
                 end
                 this.objHandles.(sprintf('%sROI',s1)).popupCallback(type);
-%             else %check
-%                 this.objHandles.(sprintf('%sROI',s1)).checkCallback(dim);
+            else %check
+                this.objHandles.(sprintf('%sZScale',s1)).checkCallback(dim);
             end
             %update ROI controls on other side
             if(~isempty(strfind(tag,'type_')))
                 this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
-            else
-                this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
-                if(~strcmp(dim,'z'))%update cuts only for x and y
+            else                
+                if(~strcmp(dim,'z'))
+                    this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
+                    %update cuts only for x and y
                     this.objHandles.(sprintf('cut%s',dim)).checkCallback();
+                else
+                    this.objHandles.(sprintf('%sZScale',s2)).updateGUI([]);
                 end
             end
             %make sure FDisplay rebuild merged statistics
@@ -1498,6 +1522,8 @@ classdef FLIMXVisGUI < handle
             this.objHandles.cuty = CutCtrl(this,'y',this.objHandles.ldo,this.objHandles.rdo);
             this.objHandles.lROI = ROICtrl(this,'l',this.objHandles.ldo,this.objHandles.rdo);
             this.objHandles.rROI = ROICtrl(this,'r',this.objHandles.ldo,this.objHandles.rdo);
+            this.objHandles.lZScale = ZCtrl(this,'l',this.objHandles.ldo,this.objHandles.rdo);
+            this.objHandles.rZScale = ZCtrl(this,'r',this.objHandles.ldo,this.objHandles.rdo);
             this.objHandles.AI = AICtrl(this); %arithmetic image
             this.objHandles.movObj = exportMovie(this);                        
             this.clearAxes([]);
@@ -1509,6 +1535,8 @@ classdef FLIMXVisGUI < handle
             this.updateGUI([]);
             this.objHandles.ldo.drawCP([]);
             this.objHandles.rdo.drawCP([]);
+            this.objHandles.lZScale.updateGUI([]);
+            this.objHandles.rZScale.updateGUI([]);
             set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
         end   
     end %methods protected   
