@@ -431,6 +431,9 @@ classdef resultFile < handle
                 out = this.getInitFLIMItem(ch,sprintf('Amplitude%d',nr)) .* this.getInitFLIMItem(ch,sprintf('Tau%d',nr));
                 %Q1= a1*T1*100/(a1*T1+a2*T2+a3*T3)
                 tmp = zeros(size(out));
+                if(isempty(tmp))
+                    return
+                end
                 for i = 1:this.basicParams.nExp
                     tmp = tmp + this.getInitFLIMItem(ch,sprintf('Amplitude%d',i)).* this.getInitFLIMItem(ch,sprintf('Tau%d',i));
                 end
