@@ -523,25 +523,25 @@ classdef FDisplay < handle
             rt = this.ROIType;
             rs = this.ROISubType;
             ri = this.ROIInvertFlag;
-            this.current_img_min = hfd{1}.getCImin(rc,rt,rs,ri);
+            this.current_img_min = single(hfd{1}.getCImin(rc,rt,rs,ri));
             if(isnan(this.current_img_min))
                 this.current_img_min = 0;
             end
-            this.current_img_max = hfd{1}.getCImax(rc,rt,rs,ri);
+            this.current_img_max = single(hfd{1}.getCImax(rc,rt,rs,ri));
             if(isnan(this.current_img_max))
                 this.current_img_max = this.current_img_min+eps(this.current_img_min);
             end  
-            this.current_img_lbl_min = hfd{1}.getCIminLbl(rc,rt,rs,ri);
+            this.current_img_lbl_min = single(hfd{1}.getCIminLbl(rc,rt,rs,ri));
             if(isnan(this.current_img_lbl_min))
                 this.current_img_lbl_min = 0;
             end            
-            this.current_img_lbl_max = max(hfd{1}.getCImaxLbl(rc,rt,rs,ri),this.current_img_lbl_min+1);
+            this.current_img_lbl_max = max(single(hfd{1}.getCImaxLbl(rc,rt,rs,ri)),this.current_img_lbl_min+1);
             if(length(hfd) > 1)
                 for i = 2:length(hfd)
-                    this.current_img_min = min(this.current_img_min,hfd{i}.getCImin(rc,rt,rs,ri));
-                    this.current_img_max = max(this.current_img_max,hfd{i}.getCImax(rc,rt,rs,ri));
-                    this.current_img_lbl_min = min(this.current_img_lbl_min,hfd{i}.getCIminLbl(rc,rt,rs,ri));
-                    this.current_img_lbl_max = max(this.current_img_lbl_max,hfd{i}.getCImaxLbl(rc,rt,rs,ri));
+                    this.current_img_min = min(this.current_img_min,single(hfd{i}.getCImin(rc,rt,rs,ri)));
+                    this.current_img_max = max(this.current_img_max,single(hfd{i}.getCImax(rc,rt,rs,ri)));
+                    this.current_img_lbl_min = min(this.current_img_lbl_min,single(hfd{i}.getCIminLbl(rc,rt,rs,ri)));
+                    this.current_img_lbl_max = max(this.current_img_lbl_max,single(hfd{i}.getCImaxLbl(rc,rt,rs,ri)));
                 end
             end
         end
@@ -603,8 +603,8 @@ classdef FDisplay < handle
                         zMax(i) = max(current_img(:));
                         zMin(i) = min(current_img(:));                        
                     else
-                        zMax(i) = hfd{i}.getCImax(rc,rt,rs,ri);
-                        zMin(i) = hfd{i}.getCImin(rc,rt,rs,ri);
+                        zMax(i) = single(hfd{i}.getCImax(rc,rt,rs,ri));
+                        zMin(i) = single(hfd{i}.getCImin(rc,rt,rs,ri));
                     end
                 end    
                 if((zMax - zMin) < 0.1)
@@ -1229,7 +1229,7 @@ classdef FDisplay < handle
                 return
             end
             %range = img_max - img_min;            
-            vec = linspace(img_min,img_max,nTicks);
+            vec = linspace(double(img_min),double(img_max),nTicks);
             out(:,1) = arrayfun(@FLIMXFitGUI.num4disp,vec,'UniformOutput',false);
         end
         
