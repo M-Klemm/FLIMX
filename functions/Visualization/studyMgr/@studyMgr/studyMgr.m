@@ -1241,7 +1241,7 @@ classdef studyMgr < handle
         end
         
         function menuImportExcel_Callback(this,hObject,eventdata)
-            %
+            %import subject info from excel file
             mode = 1;
             if(~isempty(this.fdt.getSubjectsNames(this.curStudyName,'-')))
                 choice = questdlg(sprintf('Either delete all current subject information for all subjects in study ''%s'' or update existing subject information and add new subjects?',this.curStudyName),'Importing Subject Information from Excel Data','Update and Add New','Delete Old Info','Abort','Update and Add New');
@@ -1250,7 +1250,7 @@ classdef studyMgr < handle
                         mode = 2;
                     case 'Delete Old Info'
                         mode = 1;
-                    case 'Abort'
+                    otherwise %'Abort'
                         return
                 end
             end
