@@ -1848,7 +1848,7 @@ classdef FLIMXFitGUI < handle
             for ch = 1:this.FLIMXObj.curSubject.nrSpectralChannels
                 this.currentChannel = ch; 
             end            
-            if(params.basicFit.approximationTarget == 2 && params.basicFit.anisotropyR0Method == 2)
+            if(this.FLIMXObj.curSubject.basicParams.approximationTarget == 2 && this.FLIMXObj.curSubject.basicFit.anisotropyR0Method == 2)
                 %incase of anisotropy compute channel 3 (sum of ch1 and ch2) first
                 chList = [3,1,2,4];
             else
