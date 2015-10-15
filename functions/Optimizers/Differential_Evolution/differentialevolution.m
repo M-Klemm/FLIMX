@@ -262,7 +262,7 @@ switch nargin
         DEParams.refreshtime3   = 40;  % in seconds
         DEParams.maxiter        = 100;
         DEParams.maxtime        = 60;  % in seconds
-        rand('state', 1); % always use the same population members
+        %rand('state', 1); % always use the same population members
     case 2
         error(textwrap2('Wrong number of input arguments.'));
     otherwise
@@ -493,8 +493,8 @@ if DEParams.useInitParams
     
     % check if initial member is on quantization grid
     if checkInitialMem
-%         [ignore, quantInitialMem] = considerparametercontraints__(...
-%             objFctParams, paramDefCell, parameterDimVector, initialMem); %#ok
+        %         [ignore, quantInitialMem] = considerparametercontraints__(...
+        %             objFctParams, paramDefCell, parameterDimVector, initialMem); %#ok
         quantInitialMem = checkBounds(initialMem',parameterBounds(:,1),parameterBounds(:,2))';
         for parNr = 1:D
             if ~isnan(initialMem(parNr)) && paramDefCell{parNr,3} > 0 && abs(initialMem(parNr) - quantInitialMem(parNr)) > eps
@@ -549,23 +549,23 @@ if (DEParams.maxtime <= 0) || (~isempty(maxclock) && etime(clock, maxclock) > 0)
     return
 end
 
-% get slave file directory
-if isempty(objFctHandle)
-    % do not generate slave files in testing mode
-    feedSlaveProc = false;
-end
-if feedSlaveProc
-    % build name of slave file directory
-    if isempty(slaveFileDir)
-        slaveFileDir = concatpath(tempdir2, 'differentialevolution');
-    end
-    % create slave file directory if not existing
-    if ~exist(slaveFileDir, 'dir')
-        mkdir(slaveFileDir);
-    end
-else
-    slaveFileDir = '';
-end
+% % get slave file directory
+% if isempty(objFctHandle)
+%     % do not generate slave files in testing mode
+%     feedSlaveProc = false;
+% end
+% if feedSlaveProc
+%     % build name of slave file directory
+%     if isempty(slaveFileDir)
+%         slaveFileDir = concatpath(tempdir2, 'differentialevolution');
+%     end
+%     % create slave file directory if not existing
+%     if ~exist(slaveFileDir, 'dir')
+%         mkdir(slaveFileDir);
+%     end
+% else
+%     slaveFileDir = '';
+% end
 
 % save 'time over'-file
 if ~isempty(objFctHandle)
@@ -610,9 +610,9 @@ end
 % clear persistent variables in subfunctions
 clear sendmailblat getparametername__ timeovercheck__ displayprogressinfo__
 clear displaybestmember__
-saveoptimizationresult__();
+% saveoptimizationresult__();
 % initialize function sendmailblat
-sendEmail = sendmailblat([], [], emailParams);
+sendEmail = []; %sendmailblat([], [], emailParams);
 
 % save current time
 startTime           = mbtime;
@@ -622,17 +622,17 @@ lastRefreshIterTime = -inf;
 
 % save current (empty) state
 state = 'Empty state before first iteration.';
-if saveHistory
-    saveoptimizationresult__(paramDefCell, parameterDimVector, optimInfo, [], [], [], [], 0, 0, ...
-        [], [], startTime, state, DEParams, [], [], objFctName, ...
-        objFctSettings, objFctParams, 1, 0);
-end
+% if saveHistory
+%     saveoptimizationresult__(paramDefCell, parameterDimVector, optimInfo, [], [], [], [], 0, 0, ...
+%         [], [], startTime, state, DEParams, [], [], objFctName, ...
+%         objFctSettings, objFctParams, 1, 0);
+% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % start main program loop %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-if(isNoWorker) 
-    disp(repmat('*', 1, textWidth)); 
+if(isNoWorker)
+    disp(repmat('*', 1, textWidth));
 end % ***************
 iterationNr         = 0;
 bestval             = ones(DEParams.maxReInitCnt+1,1) .* minMaxSign .* inf;
@@ -650,10 +650,10 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
     % Initialize or re-initialize population %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     initialization   = (iterationNr == 0);
-%     reinitialization = (valstddev < DEParams.minvalstddev) || (paramstddev < DEParams.minparamstddev) || ...
-%         (noChangeCounter >= DEParams.nochangeiter) || (nofevalCounter > DEParams.nofevaliter);
+    %     reinitialization = (valstddev < DEParams.minvalstddev) || (paramstddev < DEParams.minparamstddev) || ...
+    %         (noChangeCounter >= DEParams.nochangeiter) || (nofevalCounter > DEParams.nofevaliter);
     reinitialization = (valstddev < DEParams.minvalstddev || paramstddev < DEParams.minparamstddev || noChangeCounter >= DEParams.nochangeiter);
-
+    
     
     if initialization
         
@@ -674,8 +674,8 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
             if DEParams.useInitParams > 0
                 % get and quantize first member
                 firstMem = checkBounds(pop(1,:),parameterBounds(:,1),parameterBounds(:,2));
-%                 [ignore, firstMem] = considerparametercontraints__(...
-%                     objFctParams, paramDefCell, parameterDimVector, pop(1,:)); %#ok
+                %                 [ignore, firstMem] = considerparametercontraints__(...
+                %                     objFctParams, paramDefCell, parameterDimVector, pop(1,:)); %#ok
             end
             
             % generate equidistant vector
@@ -703,8 +703,8 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
             end
         end
         initialization = true;
-        startLoopTime = mbtime; 
-        % initialize population members from istart to NP randomly        
+        startLoopTime = mbtime;
+        % initialize population members from istart to NP randomly
         pop = computerandominitialization__(2, pop, istart:NP, paramDefCell, ...
             objFctSettings, parameterDimVector, XVmax, XVmin, validChkHandle);
         
@@ -718,19 +718,19 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
         if(isNoWorker)
             % re-initialization
             disp(sprintf('Re-initialition #%d of population in iteration %d.', reInitCnt-1, iterationNr));
-%             if valstddev < DEParams.minvalstddev
-%                 disp(sprintf('Evaluation value std. dev. below threshold (%g < %g).', ...
-%                     valstddev, DEParams.minvalstddev));
-%             elseif paramstddev < DEParams.minparamstddev
-%                 disp(sprintf('Mean parameter std. dev. below threshold (%g < %g).', ...
-%                     paramstddev, DEParams.minparamstddev));
-%             elseif noChangeCounter >= DEParams.nochangeiter
-%                 disp(sprintf('Population did not change in last %d iterations.', ...
-%                     DEParams.nochangeiter));
-%             elseif nofevalCounter > DEParams.nofevaliter
-%                 disp(sprintf('No function evaluations in the last %d iterations.', ...
-%                     DEParams.nofevaliter));
-%             end
+            %             if valstddev < DEParams.minvalstddev
+            %                 disp(sprintf('Evaluation value std. dev. below threshold (%g < %g).', ...
+            %                     valstddev, DEParams.minvalstddev));
+            %             elseif paramstddev < DEParams.minparamstddev
+            %                 disp(sprintf('Mean parameter std. dev. below threshold (%g < %g).', ...
+            %                     paramstddev, DEParams.minparamstddev));
+            %             elseif noChangeCounter >= DEParams.nochangeiter
+            %                 disp(sprintf('Population did not change in last %d iterations.', ...
+            %                     DEParams.nochangeiter));
+            %             elseif nofevalCounter > DEParams.nofevaliter
+            %                 disp(sprintf('No function evaluations in the last %d iterations.', ...
+            %                     DEParams.nofevaliter));
+            %             end
             disp(' ');
         end
         if minMaxSign > 0
@@ -754,37 +754,37 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
         reinitialization  = true;
         bestValConstCnt = 0;%-2*DEParams.maxBestValConstCnt; %twice as much time after reinit
         oldBestVal = 0;
-%         istart = 2;
-%         NPAdd = min(round(0.2*NP), NP-istart+1); %
-%         if NPAdd > 0
-%             memIndex = istart:istart+NPAdd-1;
-%             istart   = istart+NPAdd;
-%             pop      = computerandominitialization__(1, pop, memIndex, paramDefCell, ...
-%                 objFctSettings, parameterDimVector, XVmax, XVmin, validChkHandle);
-%         end
-%         %istart = max(1, round(0.2*NP)); % keep best twenty percent of the population members
-%         index = index(1:istart-1);
-%         pop(1:istart-1,:) = pop(index,:);
-%         val(1:istart-1)   = val(index);
-%         reinitialization  = true;
-%         % initialize population members from istart to NP randomly
-%         pop = computerandominitialization__(2, pop, istart:NP, paramDefCell, ...
-%             objFctSettings, parameterDimVector, XVmax, XVmin, validChkHandle);
-%         bestValConstCnt = 0;%-2*DEParams.maxBestValConstCnt; %twice as much time after reinit
-%         oldBestVal = 0;
+        %         istart = 2;
+        %         NPAdd = min(round(0.2*NP), NP-istart+1); %
+        %         if NPAdd > 0
+        %             memIndex = istart:istart+NPAdd-1;
+        %             istart   = istart+NPAdd;
+        %             pop      = computerandominitialization__(1, pop, memIndex, paramDefCell, ...
+        %                 objFctSettings, parameterDimVector, XVmax, XVmin, validChkHandle);
+        %         end
+        %         %istart = max(1, round(0.2*NP)); % keep best twenty percent of the population members
+        %         index = index(1:istart-1);
+        %         pop(1:istart-1,:) = pop(index,:);
+        %         val(1:istart-1)   = val(index);
+        %         reinitialization  = true;
+        %         % initialize population members from istart to NP randomly
+        %         pop = computerandominitialization__(2, pop, istart:NP, paramDefCell, ...
+        %             objFctSettings, parameterDimVector, XVmax, XVmin, validChkHandle);
+        %         bestValConstCnt = 0;%-2*DEParams.maxBestValConstCnt; %twice as much time after reinit
+        %         oldBestVal = 0;
     end
     
-    if initialization || reinitialization  
-        % startLoopTime = mbtime;        
+    if initialization || reinitialization
+        % startLoopTime = mbtime;
         % hard bound constraint
         pop = checkBounds(pop',parameterBounds(:,1),parameterBounds(:,2))';
         %save constrained parameters, do not save grided parameters
         %val = objFctHandle(checkQuantization(pop',parGridVector,parameterBounds(:,1)));
-%         popq = checkBounds(checkQuantization(pop',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2));
-%         val = zeros(size(popq,2),1);
-%         parfor i = 1:size(popq,2)
-%             val(i) = objFctHandle(popq(:,i));            
-%         end          
+        %         popq = checkBounds(checkQuantization(pop',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2));
+        %         val = zeros(size(popq,2),1);
+        %         parfor i = 1:size(popq,2)
+        %             val(i) = objFctHandle(popq(:,i));
+        %         end
         val = objFctHandle(checkBounds(checkQuantization(pop',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2)));
         nfeval.local = nfeval.local + size(pop,1);
         
@@ -797,45 +797,45 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
             bestValConstCnt = 0;
         else
             %current bestval is not significantly better than the old one
-            bestValConstCnt = bestValConstCnt +1; 
+            bestValConstCnt = bestValConstCnt +1;
         end
         oldBestVal = bestval(reInitCnt);
         bestmem(reInitCnt,:) = pop(idx,:); %pop(1,:);
         initval = bestval(reInitCnt);
         initmem = bestmem(reInitCnt,:);
         
-%         % save and display current state
-%         if mbtime - nextRefreshTime >= 0
-%             nextRefreshTime = nextRefreshTime + refreshtime * ...
-%                 (1 + floor((mbtime - nextRefreshTime) / refreshtime));
-%             disp(state);
-%             if saveHistory
-%                 saveoptimizationresult__(paramDefCell, parameterDimVector, optimInfo, ...
-%                     bestval, bestmem, bestval, bestmem, 0, 0, pop, val, startTime, ...
-%                     state, DEParams, allval, allmem, objFctName, ...
-%                     objFctSettings, objFctParams, 0, 0);
-%             end
-%         end
-%         
-%         % display progress information
-%         if mbtime - nextRefreshTime2 >= 0
-%             nextRefreshTime2 = nextRefreshTime2 + refreshtime2 * ...
-%                 (1 + floor((mbtime - nextRefreshTime2) / refreshtime2));
-%             displayprogressinfo__(startLoopTime, state, refreshtime3, ...
-%                 maxtime, maxclock, timeOver, nfeval, nOfPossibleMembers, pop, ...
-%                 bestval, allval, optimInfo, sendEmail);
-%         end
-%         
-%         % display mean function evaluation time
-%         if displayMeanEvalTime && nfeval.local == 5 && mbtime - startLoopTime > 1
-%             disp(sprintf('Mean function evaluation time after %d runs: %s\n', ...
-%                 nfeval.local, formattime((mbtime - startLoopTime) / nfeval.local)));
-%             displayMeanEvalTime = false;
-%         end
+        %         % save and display current state
+        %         if mbtime - nextRefreshTime >= 0
+        %             nextRefreshTime = nextRefreshTime + refreshtime * ...
+        %                 (1 + floor((mbtime - nextRefreshTime) / refreshtime));
+        %             disp(state);
+        %             if saveHistory
+        %                 saveoptimizationresult__(paramDefCell, parameterDimVector, optimInfo, ...
+        %                     bestval, bestmem, bestval, bestmem, 0, 0, pop, val, startTime, ...
+        %                     state, DEParams, allval, allmem, objFctName, ...
+        %                     objFctSettings, objFctParams, 0, 0);
+        %             end
+        %         end
+        %
+        %         % display progress information
+        %         if mbtime - nextRefreshTime2 >= 0
+        %             nextRefreshTime2 = nextRefreshTime2 + refreshtime2 * ...
+        %                 (1 + floor((mbtime - nextRefreshTime2) / refreshtime2));
+        %             displayprogressinfo__(startLoopTime, state, refreshtime3, ...
+        %                 maxtime, maxclock, timeOver, nfeval, nOfPossibleMembers, pop, ...
+        %                 bestval, allval, optimInfo, sendEmail);
+        %         end
+        %
+        %         % display mean function evaluation time
+        %         if displayMeanEvalTime && nfeval.local == 5 && mbtime - startLoopTime > 1
+        %             disp(sprintf('Mean function evaluation time after %d runs: %s\n', ...
+        %                 nfeval.local, formattime((mbtime - startLoopTime) / nfeval.local)));
+        %             displayMeanEvalTime = false;
+        %         end
         
-
-%         % check time        
-%         timeOver = timeovercheck__(startTime, maxtime, maxclock, timeOverFileName, timeOver);
+        
+        %         % check time
+        %         timeOver = timeovercheck__(startTime, maxtime, maxclock, timeOverFileName, timeOver);
         
         iterationNr = iterationNr + 1;
         if( isa(DEParams.iterPostProcess, 'function_handle') )
@@ -848,9 +848,9 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
         end
     end % if initialization || reinitialization
     
-%     if timeOver
-%         break
-%     end
+    %     if timeOver
+    %         break
+    %     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % compute competing population %
@@ -860,21 +860,21 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
     popold = pop;
     DEParams.iterationNr = iterationNr; %M. Klemm
     popnew = computenewpopulation(pop, bestmem(reInitCnt,:), DEParams);
-%     %make sure rndIdx are random memebers
-%     popnew = computerandominitialization__(2, popnew, rndIdx, paramDefCell, ...
-%             objFctSettings, parameterDimVector, XVmax, XVmin, validChkHandle);
+    %     %make sure rndIdx are random memebers
+    %     popnew = computerandominitialization__(2, popnew, rndIdx, paramDefCell, ...
+    %             objFctSettings, parameterDimVector, XVmax, XVmin, validChkHandle);
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % check which vectors are allowed to enter the new population %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     popnew = checkBounds(popnew',parameterBounds(:,1),parameterBounds(:,2))';
     %save constrained parameters, do not save grided parameters
-%     popnewq = checkBounds(checkQuantization(popnew',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2));
-%     tempval = zeros(size(popnewq,2),1);
-%     parfor i = 1:size(popnewq,2)
-%         tempval(i) = objFctHandle(popnewq(:,i));
-%     end    
-    tempval = objFctHandle(checkBounds(checkQuantization(popnew',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2)));    
+    %     popnewq = checkBounds(checkQuantization(popnew',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2));
+    %     tempval = zeros(size(popnewq,2),1);
+    %     parfor i = 1:size(popnewq,2)
+    %         tempval(i) = objFctHandle(popnewq(:,i));
+    %     end
+    tempval = objFctHandle(checkBounds(checkQuantization(popnew',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2)));
     nfeval.local = nfeval.local + size(popnew,1);
     
     idx = tempval < val;
@@ -890,7 +890,7 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
     else
         %current bestval is not significantly better than the old one
         bestValConstCnt = bestValConstCnt +1;
-    end    
+    end
     oldBestVal = bestval(reInitCnt);
     bestmem(reInitCnt,:) = pop(idx,:); %pop(1,:);
     
@@ -901,25 +901,25 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
         if(isNoWorker)
             disp(state);
         end
-        if saveHistory
-            saveoptimizationresult__(paramDefCell, parameterDimVector, optimInfo, ...
-                bestval(reInitCnt), bestmem(reInitCnt,:), bestvalhist, bestmemhist, valstddevhist, ...
-                paramstddevhist, pop, val, startTime, state, DEParams, allval, allmem, ...
-                objFctName, objFctSettings, objFctParams, 0, 0);
-        end
+        %         if saveHistory
+        %             saveoptimizationresult__(paramDefCell, parameterDimVector, optimInfo, ...
+        %                 bestval(reInitCnt), bestmem(reInitCnt,:), bestvalhist, bestmemhist, valstddevhist, ...
+        %                 paramstddevhist, pop, val, startTime, state, DEParams, allval, allmem, ...
+        %                 objFctName, objFctSettings, objFctParams, 0, 0);
+        %         end
     end
     
-%     % display progress information
-%     if mbtime - nextRefreshTime2 >= 0
-%         nextRefreshTime2 = nextRefreshTime2 + refreshtime2 * ...
-%             (1 + floor((mbtime - nextRefreshTime2) / refreshtime2));
-%         displayprogressinfo__(startLoopTime, state, refreshtime3, maxtime, ...
-%             maxclock, timeOver, nfeval, nOfPossibleMembers, pop, bestval, ...
-%             allval, optimInfo, sendEmail);
-%     end
+    %     % display progress information
+    %     if mbtime - nextRefreshTime2 >= 0
+    %         nextRefreshTime2 = nextRefreshTime2 + refreshtime2 * ...
+    %             (1 + floor((mbtime - nextRefreshTime2) / refreshtime2));
+    %         displayprogressinfo__(startLoopTime, state, refreshtime3, maxtime, ...
+    %             maxclock, timeOver, nfeval, nOfPossibleMembers, pop, bestval, ...
+    %             allval, optimInfo, sendEmail);
+    %     end
     
-%     % check time
-%     timeOver = timeovercheck__(startTime, maxtime, maxclock, timeOverFileName, timeOver);
+    %     % check time
+    %     timeOver = timeovercheck__(startTime, maxtime, maxclock, timeOverFileName, timeOver);
     
     %%%%%%%%%%%%%%%%%%%%
     % finish iteration %
@@ -929,11 +929,11 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
     index = ~isnan(val);
     valstddev   = std(val(index));
     paramstddev = max(std(pop(index,:),0,1)' ./ diff(cell2mat(paramDefCell(:,2)),1,2));
-%     
-%      && ...                    
+    %
+    %      && ...
     
     % check if population has changed
-    if( isequal(pop, popold) || ...%max(abs(bestval-val(index))) <= max(DEParams.TolFun,eps(bestval)) || all(max(abs(bsxfun(@minus,pop(index,:),bestmem)),[],1) <= DEParams.paramTolBoost * DEParams.tol) ||...            
+    if( isequal(pop, popold) || ...%max(abs(bestval-val(index))) <= max(DEParams.TolFun,eps(bestval)) || all(max(abs(bsxfun(@minus,pop(index,:),bestmem)),[],1) <= DEParams.paramTolBoost * DEParams.tol) ||...
             bestValConstCnt > DEParams.maxBestValConstCnt )
         noChangeCounter = noChangeCounter + 1;
         if(bestValConstCnt > DEParams.maxBestValConstCnt)
@@ -964,17 +964,17 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
         end
     end
     
-%     % check time
-%     if timeOver
-%         break
-%     end
+    %     % check time
+    %     if timeOver
+    %         break
+    %     end
     
-%     % display current state
-%     if ((DEParams.refreshiter > 0) && (rem(iterationNr, DEParams.refreshiter) == 0)) && ...
-%             mbtime - lastRefreshIterTime > 10
-%         lastRefreshIterTime = mbtime; % avoid many lines of output if no evaluations were done
-%         disp(sprintf('Iteration %d finished.', iterationNr));
-%     end
+    %     % display current state
+    %     if ((DEParams.refreshiter > 0) && (rem(iterationNr, DEParams.refreshiter) == 0)) && ...
+    %             mbtime - lastRefreshIterTime > 10
+    %         lastRefreshIterTime = mbtime; % avoid many lines of output if no evaluations were done
+    %         disp(sprintf('Iteration %d finished.', iterationNr));
+    %     end
     
     iterationNr = iterationNr + 1;
     if(isNoWorker && (mod(iterationNr,10) == 0 || iterationNr == DEParams.maxiter))
@@ -1012,8 +1012,8 @@ if(isNoWorker)
             state = sprintf('''%s'' finished after given amount of time.', optimInfo.title);
         elseif ~isempty(maxclock) && etime(clock, maxclock) > 0
             state = sprintf('''%s'' finished at given end time.', optimInfo.title);
-        elseif ~isempty(timeOverFileName) && ~existfile(timeOverFileName);
-            state = sprintf('''%s'' finished after ''time over''-file was deleted.', optimInfo.title);
+            %         elseif ~isempty(timeOverFileName) && ~existfile(timeOverFileName);
+            %             state = sprintf('''%s'' finished after ''time over''-file was deleted.', optimInfo.title);
         end
     end
     disp(textwrap2(state, textWidth));
@@ -1025,12 +1025,12 @@ if(isNoWorker)
 end
 
 % save final result
-if saveHistory
-    saveoptimizationresult__(paramDefCell, parameterDimVector, optimInfo, ...
-        bestval(reInitCnt), bestmem(reInitCnt,:), bestvalhist, bestmemhist, valstddevhist, paramstddevhist, ...
-        pop, val, startTime, state, DEParams, allval, allmem, objFctName, ...
-        objFctSettings, objFctParams, 1, 1);
-end
+% if saveHistory
+%     saveoptimizationresult__(paramDefCell, parameterDimVector, optimInfo, ...
+%         bestval(reInitCnt), bestmem(reInitCnt,:), bestvalhist, bestmemhist, valstddevhist, paramstddevhist, ...
+%         pop, val, startTime, state, DEParams, allval, allmem, objFctName, ...
+%         objFctSettings, objFctParams, 1, 1);
+% end
 if(isNoWorker)
     disp(repmat('*', 1, textWidth)); % ***************
     
@@ -1040,16 +1040,16 @@ if(isNoWorker)
     end
 end
 
-% remove all remaining slave files
-if exist(slaveFileDir, 'dir')
-    remainingSlaveFiles = findfiles(slaveFileDir, 'iteration_*_member_*_*.mat', 'nonrecursive');
-    deletewithsemaphores(remainingSlaveFiles);
-end
-
-% remove time-over file
-if existfile(timeOverFileName)
-    delete(timeOverFileName);
-end
+% % remove all remaining slave files
+% if exist(slaveFileDir, 'dir')
+%     remainingSlaveFiles = findfiles(slaveFileDir, 'iteration_*_member_*_*.mat', 'nonrecursive');
+%     deletewithsemaphores(remainingSlaveFiles);
+% end
+%
+% % remove time-over file
+% if existfile(timeOverFileName)
+%     delete(timeOverFileName);
+% end
 
 if nargout > 0
     % compute parameter set with best member
@@ -1073,6 +1073,7 @@ if nargout > 0
     bestFctParams = [];
     varargout = {bestmem, bestval, bestFctParams, iterationNr, nfeval.local};
 end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function timeOver = timeovercheck__(startTime, maxtime, maxclock, timeOverFile, timeOver)
@@ -1091,15 +1092,16 @@ if curTime - lastCheckTime > 1
     % only check once a second to save computation time
     timeOver = ...
         (~isempty(maxtime)      && ((curTime - startTime) > maxtime || maxtime == 0)) || ...
-        (~isempty(maxclock)     &&  etime(clock, maxclock) > 0) || ...
-        (~isempty(timeOverFile) && ~existfile(timeOverFile));
+        (~isempty(maxclock)     &&  etime(clock, maxclock) > 0);% || (~isempty(timeOverFile) && ~existfile(timeOverFile))
     lastCheckTime = curTime;
+end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function valid = alwaysvalid__(varargin) %#ok
 
 valid = true;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function checkinputs__(paramDefCell, objFctParams)
@@ -1172,6 +1174,7 @@ if ~isempty(objFctParams) && isstruct(objFctParams)
         end
     end
 end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function str = getparametername__(varargin)
@@ -1204,6 +1207,7 @@ elseif parameterDimVector(parNr) > 1
     end
 else
     str = paramDefCell{parNr,1};
+end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1272,13 +1276,14 @@ for k=1:maxNOfTests
         
         % consider parameter quantization
         quantmem2 = checkBounds(checkQuantization(randmem(:),parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2));
-%         [objFctParamsCell{n}, quantPop(n,:), quantmem2] = considerparametercontraints__([], ...
-%             paramDefCell, parameterDimVector, randmem); %#ok        
+        %         [objFctParamsCell{n}, quantPop(n,:), quantmem2] = considerparametercontraints__([], ...
+        %             paramDefCell, parameterDimVector, randmem); %#ok
         pop(n,:) = quantmem2;
     else
         % quantized member unique, step to next member
         nindex = nindex + 1;
     end
+end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1327,148 +1332,149 @@ if ~isempty(allval)
 end
 disp(' ');
 disp(str);
-
-% send E-mail
-if sendEmail && ~isempty(refreshtime3)
-    if isempty(nextRefreshTime3)
-        nextRefreshTime3 = mbtime + refreshtime3;
-    elseif mbtime - nextRefreshTime3 >= 0
-        if ~isempty(refreshtime3)
-            nextRefreshTime3 = nextRefreshTime3 + refreshtime3 * ...
-                (1 + floor((mbtime - nextRefreshTime3) / refreshtime3));
-        end
-        subject = 'Progress information';
-        if isfield(optimInfo, 'title')
-            subject = [subject, sprintf(' (%s, host %s)', optimInfo.title, gethostname)];
-        else
-            subject = [subject, sprintf(' (host %s)', gethostname)];
-        end
-        sendmailblat(subject, [state, sprintf('\n'), str]);
-    end
 end
+
+% % send E-mail
+% if sendEmail && ~isempty(refreshtime3)
+%     if isempty(nextRefreshTime3)
+%         nextRefreshTime3 = mbtime + refreshtime3;
+%     elseif mbtime - nextRefreshTime3 >= 0
+%         if ~isempty(refreshtime3)
+%             nextRefreshTime3 = nextRefreshTime3 + refreshtime3 * ...
+%                 (1 + floor((mbtime - nextRefreshTime3) / refreshtime3));
+%         end
+%         subject = 'Progress information';
+%         if isfield(optimInfo, 'title')
+%             subject = [subject, sprintf(' (%s, host %s)', optimInfo.title, gethostname)];
+%         else
+%             subject = [subject, sprintf(' (host %s)', gethostname)];
+%         end
+%         sendmailblat(subject, [state, sprintf('\n'), str]);
+%     end
+% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function saveoptimizationresult__(paramDefCell, parameterDimVector, optimInfo, ...
-    bestval, bestmem, bestvalhist, bestmemhist, valstddevhist, paramstddevhist, ...
-    pop, val, startTime, state, DEParams, allval, allmem, objFctName, ...
-    objFctSettings, objFctParams, forceResultFileNameDisplay, ...
-    forceFileUpload)
-
-persistent resultFileName nextFileUploadTime
-
-if nargin == 0
-    nextFileUploadTime = NaN;
-    resultFileName     = '';
-    return
-end
-
-D = size(paramDefCell, 1);
-hostname = gethostname;
-
-% save all interesing values in a structure using more meaningful variable names
-optimResult.title = optimInfo.title;
-optimInfo = rmfield(optimInfo, 'title');
-if ~isempty(fieldnames(optimInfo))
-    optimResult.info = optimInfo;
-end
-optimResult.state                    = state;
-optimResult.startTime                = datestr(mbdatevec(startTime), 31);
-optimResult.startClock               = mbdatevec(startTime);
-optimResult.currentTime              = datestr(clock, 31);
-optimResult.DEParams                 = DEParams;
-optimResult.paramDefCell             = paramDefCell;
-optimResult.hostname                 = hostname;
-optimResult.bestMember               = [];         % to be overwritten
-optimResult.objFctParams             = objFctParams;
-optimResult.boundaryValuesReached    = zeros(D,1); % to be overwritten
-optimResult.bestEvaluationValue      = bestval;
-optimResult.bestMemberHistory        = bestmemhist;
-optimResult.bestValueHistory         = bestvalhist;
-optimResult.costValueVarianceHistory = valstddevhist;
-optimResult.parameterStdDevHistory   = paramstddevhist;
-optimResult.currentPopulation        = pop';
-optimResult.currentCostValues        = val;
-optimResult.allEvaluationValues      = allval;
-optimResult.allTestedMembers         = allmem;
-parameterBounds = cell2mat(paramDefCell(:,2));
-%parGridVector   = cell2mat(paramDefCell(:,3));
-% overwrite values in objFctParams with best member
-if ~isempty(bestmem)
-    
-    bestmem = checkBounds(bestmem(:),parameterBounds(:,1),parameterBounds(:,2));
-%     [ignore, bestmem] = considerparametercontraints__([], paramDefCell, ...
-%         parameterDimVector, bestmem); %#ok
-    optimResult.bestMember = bestmem';
-    if strcmp(paramDefCell{1,1}, '_1')
-        optimResult = rmfield(optimResult, 'objFctParams');
-    else
-        parNr = 1;
-        while parNr <= D
-            index = parNr:parNr+parameterDimVector(parNr)-1;
-            optimResult.objFctParams.(getparametername__(parNr, 2)) = bestmem(index);
-            parNr = parNr + parameterDimVector(parNr);
-        end
-    end
-    for parNr = 1:D
-        optimResult.boundaryValuesReached(parNr) = any(bestmem(parNr) == paramDefCell{parNr,2});
-    end
-end
-optimResult.objFctSettings = objFctSettings;
-
-% get file number to avoid overwriting old results
-if isempty(resultFileName)
-    fileName = sprintf('%s_lastresultnumber.mat', objFctName);
-    if exist('./data', 'dir')
-        fileName = ['data/', fileName];
-    end
-    
-    % save current result file number
-    sem = setfilesemaphore(fileName);
-    if existfile(fileName)
-        load(fileName);
-        resultFileNr = mod(resultFileNr, 50) + 1; %#ok
-    else
-        resultFileNr = 1;
-    end
-    save(fileName, 'resultFileNr');
-    removefilesemaphore(sem);
-    
-    % build file name
-    resultFileName = sprintf('%s_result_%s_%02d.mat', objFctName, hostname, resultFileNr);
-    if exist('./data', 'dir')
-        resultFileName = ['data/', resultFileName];
-    end
-    forceResultFileNameDisplay = true;
-end
-
-if forceResultFileNameDisplay
-    disp(sprintf('Results are saved in file %s.', resultFileName));
-end
-
-% save data
-sem = setfilesemaphore(resultFileName);
-save(resultFileName, 'optimResult');
-removefilesemaphore(sem);
-
-if 0 % && ispc
-    % the following code is deactivated, as it uses a Perl script and an
-    % external FTP program to upload the current results to a server. Contact
-    % me if you are interested in this script.
-    fileUploadPeriod = 15*60; % in seconds
-    if isnan(nextFileUploadTime)
-        nextFileUploadTime = mbtime + fileUploadPeriod;
-    end
-    
-    if forceFileUpload || mbtime - nextFileUploadTime >= 0
-        nextFileUploadTime = mbtime + fileUploadPeriod;
-        try %#ok
-            % put file to server
-            % (this is a file access that is not protected by a semaphore, but
-            % different Matlab processes use different result file names)
-            system(sprintf('start /B putfiletoserver.pl %s', resultFileName));
-        end
-    end
-end
+% function saveoptimizationresult__(paramDefCell, parameterDimVector, optimInfo, ...
+%     bestval, bestmem, bestvalhist, bestmemhist, valstddevhist, paramstddevhist, ...
+%     pop, val, startTime, state, DEParams, allval, allmem, objFctName, ...
+%     objFctSettings, objFctParams, forceResultFileNameDisplay, ...
+%     forceFileUpload)
+%
+% persistent resultFileName nextFileUploadTime
+%
+% if nargin == 0
+%     nextFileUploadTime = NaN;
+%     resultFileName     = '';
+%     return
+% end
+%
+% D = size(paramDefCell, 1);
+% hostname = gethostname;
+%
+% % save all interesing values in a structure using more meaningful variable names
+% optimResult.title = optimInfo.title;
+% optimInfo = rmfield(optimInfo, 'title');
+% if ~isempty(fieldnames(optimInfo))
+%     optimResult.info = optimInfo;
+% end
+% optimResult.state                    = state;
+% optimResult.startTime                = datestr(mbdatevec(startTime), 31);
+% optimResult.startClock               = mbdatevec(startTime);
+% optimResult.currentTime              = datestr(clock, 31);
+% optimResult.DEParams                 = DEParams;
+% optimResult.paramDefCell             = paramDefCell;
+% optimResult.hostname                 = hostname;
+% optimResult.bestMember               = [];         % to be overwritten
+% optimResult.objFctParams             = objFctParams;
+% optimResult.boundaryValuesReached    = zeros(D,1); % to be overwritten
+% optimResult.bestEvaluationValue      = bestval;
+% optimResult.bestMemberHistory        = bestmemhist;
+% optimResult.bestValueHistory         = bestvalhist;
+% optimResult.costValueVarianceHistory = valstddevhist;
+% optimResult.parameterStdDevHistory   = paramstddevhist;
+% optimResult.currentPopulation        = pop';
+% optimResult.currentCostValues        = val;
+% optimResult.allEvaluationValues      = allval;
+% optimResult.allTestedMembers         = allmem;
+% parameterBounds = cell2mat(paramDefCell(:,2));
+% %parGridVector   = cell2mat(paramDefCell(:,3));
+% % overwrite values in objFctParams with best member
+% if ~isempty(bestmem)
+%
+%     bestmem = checkBounds(bestmem(:),parameterBounds(:,1),parameterBounds(:,2));
+% %     [ignore, bestmem] = considerparametercontraints__([], paramDefCell, ...
+% %         parameterDimVector, bestmem); %#ok
+%     optimResult.bestMember = bestmem';
+%     if strcmp(paramDefCell{1,1}, '_1')
+%         optimResult = rmfield(optimResult, 'objFctParams');
+%     else
+%         parNr = 1;
+%         while parNr <= D
+%             index = parNr:parNr+parameterDimVector(parNr)-1;
+%             optimResult.objFctParams.(getparametername__(parNr, 2)) = bestmem(index);
+%             parNr = parNr + parameterDimVector(parNr);
+%         end
+%     end
+%     for parNr = 1:D
+%         optimResult.boundaryValuesReached(parNr) = any(bestmem(parNr) == paramDefCell{parNr,2});
+%     end
+% end
+% optimResult.objFctSettings = objFctSettings;
+%
+% % get file number to avoid overwriting old results
+% if isempty(resultFileName)
+%     fileName = sprintf('%s_lastresultnumber.mat', objFctName);
+%     if exist('./data', 'dir')
+%         fileName = ['data/', fileName];
+%     end
+%
+%     % save current result file number
+%     sem = setfilesemaphore(fileName);
+%     if existfile(fileName)
+%         load(fileName);
+%         resultFileNr = mod(resultFileNr, 50) + 1; %#ok
+%     else
+%         resultFileNr = 1;
+%     end
+%     save(fileName, 'resultFileNr');
+%     removefilesemaphore(sem);
+%
+%     % build file name
+%     resultFileName = sprintf('%s_result_%s_%02d.mat', objFctName, hostname, resultFileNr);
+%     if exist('./data', 'dir')
+%         resultFileName = ['data/', resultFileName];
+%     end
+%     forceResultFileNameDisplay = true;
+% end
+%
+% if forceResultFileNameDisplay
+%     disp(sprintf('Results are saved in file %s.', resultFileName));
+% end
+%
+% % save data
+% sem = setfilesemaphore(resultFileName);
+% save(resultFileName, 'optimResult');
+% removefilesemaphore(sem);
+%
+% if 0 % && ispc
+%     % the following code is deactivated, as it uses a Perl script and an
+%     % external FTP program to upload the current results to a server. Contact
+%     % me if you are interested in this script.
+%     fileUploadPeriod = 15*60; % in seconds
+%     if isnan(nextFileUploadTime)
+%         nextFileUploadTime = mbtime + fileUploadPeriod;
+%     end
+%
+%     if forceFileUpload || mbtime - nextFileUploadTime >= 0
+%         nextFileUploadTime = mbtime + fileUploadPeriod;
+%         try %#ok
+%             % put file to server
+%             % (this is a file access that is not protected by a semaphore, but
+%             % different Matlab processes use different result file names)
+%             system(sprintf('start /B putfiletoserver.pl %s', resultFileName));
+%         end
+%     end
+% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function displaybestmember__(paramDefCell, parameterDimVector, bestval, bestmem, ...
@@ -1477,7 +1483,7 @@ function displaybestmember__(paramDefCell, parameterDimVector, bestval, bestmem,
 persistent lastbestmem lastSoundTime lastEmailTime lastSubject lastStr
 persistent maxNameLength hostname username
 
-minTimeBetweenEmails = 30; % avoid sending many E-mails shortly after another
+% minTimeBetweenEmails = 30; % avoid sending many E-mails shortly after another
 
 D = size(paramDefCell, 1);
 
@@ -1502,7 +1508,7 @@ if ~any(isnan(lastbestmem)) && any(size(bestmem) ~= size(lastbestmem))
     error('Internal error: bestmem and lastbestmem are of different size!');
 end
 if any(bestmem ~= lastbestmem) || forceParameterDisplay
-    sendEmailThisTime = 1;
+    %     sendEmailThisTime = 1;
     lastbestmem = bestmem;
     
     % display state
@@ -1559,146 +1565,147 @@ if any(bestmem ~= lastbestmem) || forceParameterDisplay
     % display information
     disp(str);
     
-    % play sound
-    if playSound && ~isempty(lastSoundTime) && mbtime - lastSoundTime > 60
-        [x, fs, bits] = wavread('applause.wav');
-        soundsc(x, fs, bits);
-        pause(length(x) / fs + 1);
-        lastSoundTime = mbtime;
-    end
+    %     % play sound
+    %     if playSound && ~isempty(lastSoundTime) && mbtime - lastSoundTime > 60
+    %         [x, fs, bits] = wavread('applause.wav');
+    %         soundsc(x, fs, bits);
+    %         pause(length(x) / fs + 1);
+    %         lastSoundTime = mbtime;
+    %     end
 else
-    sendEmailThisTime = 0;
+    %     sendEmailThisTime = 0;
 end
 
-if ~sendEmail
-    return
-end
+% if ~sendEmail
+%     return
+% end
 
-% send E-mail notification
-if sendEmailThisTime
-    % build subject and body
-    if bestval >= 1e-5
-        formatString = '%2.6f'; % always print zeros
-    else
-        formatString = '%2.6g'; % use exponential notation for small values
-    end
-    if forceParameterDisplay
-        if ~isempty(strfind(lower(state), 'initial'))
-            subject = sprintf(sprintf('Initial eval. value: %s', formatString), bestval);
-        else
-            subject = sprintf(sprintf('Best eval. value: %s', formatString), bestval);
-        end
-    else
-        subject = sprintf(sprintf('New best eval. value: %s', formatString), bestval);
-    end
-    if isfield(optimInfo, 'title')
-        subject = [subject, sprintf(' (%s, host %s)', optimInfo.title, gethostname)];
-    else
-        subject = [subject, sprintf(' (host %s)', gethostname)];
-    end
-    
-    if mbtime - lastEmailTime < minTimeBetweenEmails
-        % do not send now, save data for sending later
-        lastSubject       = subject;
-        lastStr           = str;
-        sendEmailThisTime = 0;
-    end
-    
-elseif ~isempty(lastSubject) && mbtime - lastEmailTime >= minTimeBetweenEmails
-    % restore data that was not sent until now
-    subject           = lastSubject;
-    str               = lastStr;
-    sendEmailThisTime = 1;
-end
-
-if sendEmailThisTime
-    sendmailblat(subject, str);
-    lastEmailTime = mbtime;
-    lastSubject   = [];
-    lastStr       = [];
+% % send E-mail notification
+% if sendEmailThisTime
+%     % build subject and body
+%     if bestval >= 1e-5
+%         formatString = '%2.6f'; % always print zeros
+%     else
+%         formatString = '%2.6g'; % use exponential notation for small values
+%     end
+%     if forceParameterDisplay
+%         if ~isempty(strfind(lower(state), 'initial'))
+%             subject = sprintf(sprintf('Initial eval. value: %s', formatString), bestval);
+%         else
+%             subject = sprintf(sprintf('Best eval. value: %s', formatString), bestval);
+%         end
+%     else
+%         subject = sprintf(sprintf('New best eval. value: %s', formatString), bestval);
+%     end
+%     if isfield(optimInfo, 'title')
+%         subject = [subject, sprintf(' (%s, host %s)', optimInfo.title, gethostname)];
+%     else
+%         subject = [subject, sprintf(' (host %s)', gethostname)];
+%     end
+%
+%     if mbtime - lastEmailTime < minTimeBetweenEmails
+%         % do not send now, save data for sending later
+%         lastSubject       = subject;
+%         lastStr           = str;
+%         sendEmailThisTime = 0;
+%     end
+%
+% elseif ~isempty(lastSubject) && mbtime - lastEmailTime >= minTimeBetweenEmails
+%     % restore data that was not sent until now
+%     subject           = lastSubject;
+%     str               = lastStr;
+%     sendEmailThisTime = 1;
+% end
+%
+% if sendEmailThisTime
+%     sendmailblat(subject, str);
+%     lastEmailTime = mbtime;
+%     lastSubject   = [];
+%     lastStr       = [];
+% end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function generatefilesforslaveprocess__(objFctHandle, objFctParams, ...
-    objFctSettings, paramDefCell, parameterDimVector, pop, allmem, ...
-    iterationNr, saveHistory, slaveFileDir, validChkHandle)
-
-if ~exist(slaveFileDir, 'dir')
-    return
-end
-
-% remove all existing slave files
-existingSlaveFiles = findfiles(slaveFileDir, 'iteration_*_member_*_*.mat', 'nonrecursive');
-deletewithsemaphores(existingSlaveFiles);
-
-% build slave file name
-slaveFileNameTemplate = concatpath(slaveFileDir, ...
-    sprintf('iteration_%02d_member_XX_parameters.mat', iterationNr));
-
-% generate new slave files
-NP = size(pop,1);
-if saveHistory
-    allmem = [allmem, nan(size(pop,2), NP)];
-else
-    allmem = nan(size(pop,2), NP);
-end
-nOfCols = size(allmem,2);
-parameterBounds = cell2mat(paramDefCell(:,2));
-parGridVector   = cell2mat(paramDefCell(:,3));
-
-for memberNr = NP:-1:1
-    testmem = pop(memberNr,:);
-    
-    % get constrained parameter vector
-    testmem = checkBounds(checkQuantization(testmem(:),parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2));
-%     [objFctParams, testmem] = considerparametercontraints__(...
-%         objFctParams, paramDefCell, parameterDimVector, testmem); %#ok
-    
-    if ~paramvecvalidity__(paramDefCell, objFctSettings, objFctParams, testmem, validChkHandle)
-        % parameter vector invalid
-        continue
-    end
-    
-    % check if the current parameter vector was tested before
-    index = find(all(abs(allmem - repmat(testmem', 1, nOfCols)) < eps, 1));
-    
-    if length(index) > 1
-        if(isNoWorker)
-            disp('Warning: More than one equal test vector in allmem (internal error?).');
-        end
-    elseif ~isempty(index)
-        continue
-    end
-    
-    % save testmem in allmem, so that no two files with the same parameters are saved
-    allmem(:,nOfCols-memberNr+1) = testmem';
-    
-    % get cell array of function arguments
-    if strcmp(paramDefCell{1,1}, '_1')
-        % pass parameters as vector
-        if iscell(objFctSettings)
-            argumentCell = [objFctSettings, {testmem}];
-        else
-            argumentCell = {objFctSettings,  testmem};
-        end
-    else
-        % pass parameters as structure objFctParams
-        if iscell(objFctSettings)
-            argumentCell = [objFctSettings, {objFctParams}];
-        else
-            argumentCell = {objFctSettings,  objFctParams};
-        end
-    end
-    
-    % save file
-    memberNrString = sprintf(sprintf('%%0%dd', ceil(log10(NP+1))), memberNr);
-    slaveFileName = strrep(slaveFileNameTemplate, 'XX', memberNrString);
-    sem = setfilesemaphore(slaveFileName);
-    objFctHandle; %#ok
-    argumentCell; %#ok
-    save(slaveFileName, 'objFctHandle', 'argumentCell');
-    removefilesemaphore(sem);
-end
+% function generatefilesforslaveprocess__(objFctHandle, objFctParams, ...
+%     objFctSettings, paramDefCell, parameterDimVector, pop, allmem, ...
+%     iterationNr, saveHistory, slaveFileDir, validChkHandle)
+%
+% if ~exist(slaveFileDir, 'dir')
+%     return
+% end
+%
+% % remove all existing slave files
+% existingSlaveFiles = findfiles(slaveFileDir, 'iteration_*_member_*_*.mat', 'nonrecursive');
+% deletewithsemaphores(existingSlaveFiles);
+%
+% % build slave file name
+% slaveFileNameTemplate = concatpath(slaveFileDir, ...
+%     sprintf('iteration_%02d_member_XX_parameters.mat', iterationNr));
+%
+% % generate new slave files
+% NP = size(pop,1);
+% if saveHistory
+%     allmem = [allmem, nan(size(pop,2), NP)];
+% else
+%     allmem = nan(size(pop,2), NP);
+% end
+% nOfCols = size(allmem,2);
+% parameterBounds = cell2mat(paramDefCell(:,2));
+% parGridVector   = cell2mat(paramDefCell(:,3));
+%
+% for memberNr = NP:-1:1
+%     testmem = pop(memberNr,:);
+%
+%     % get constrained parameter vector
+%     testmem = checkBounds(checkQuantization(testmem(:),parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2));
+% %     [objFctParams, testmem] = considerparametercontraints__(...
+% %         objFctParams, paramDefCell, parameterDimVector, testmem); %#ok
+%
+%     if ~paramvecvalidity__(paramDefCell, objFctSettings, objFctParams, testmem, validChkHandle)
+%         % parameter vector invalid
+%         continue
+%     end
+%
+%     % check if the current parameter vector was tested before
+%     index = find(all(abs(allmem - repmat(testmem', 1, nOfCols)) < eps, 1));
+%
+%     if length(index) > 1
+%         if(isNoWorker)
+%             disp('Warning: More than one equal test vector in allmem (internal error?).');
+%         end
+%     elseif ~isempty(index)
+%         continue
+%     end
+%
+%     % save testmem in allmem, so that no two files with the same parameters are saved
+%     allmem(:,nOfCols-memberNr+1) = testmem';
+%
+%     % get cell array of function arguments
+%     if strcmp(paramDefCell{1,1}, '_1')
+%         % pass parameters as vector
+%         if iscell(objFctSettings)
+%             argumentCell = [objFctSettings, {testmem}];
+%         else
+%             argumentCell = {objFctSettings,  testmem};
+%         end
+%     else
+%         % pass parameters as structure objFctParams
+%         if iscell(objFctSettings)
+%             argumentCell = [objFctSettings, {objFctParams}];
+%         else
+%             argumentCell = {objFctSettings,  objFctParams};
+%         end
+%     end
+%
+%     % save file
+%     memberNrString = sprintf(sprintf('%%0%dd', ceil(log10(NP+1))), memberNr);
+%     slaveFileName = strrep(slaveFileNameTemplate, 'XX', memberNrString);
+%     sem = setfilesemaphore(slaveFileName);
+%     objFctHandle; %#ok
+%     argumentCell; %#ok
+%     save(slaveFileName, 'objFctHandle', 'argumentCell');
+%     removefilesemaphore(sem);
+% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function valid = paramvecvalidity__(paramDefCell, objFctSettings, objFctParams, ...
@@ -1719,3 +1726,303 @@ else
         valid = validChkHandle(objFctSettings,    objFctParams);
     end
 end
+end
+
+function nowinseconds = mbtime()
+%MBTIME  Return serial date number converted to seconds
+%		TIME = MBTIME returns the serial date number as returned by function
+%		NOW converted to seconds.
+%
+%		Example:
+%		time = mbtime;
+%
+%		Markus Buehren
+%		Last modified 21.04.2008
+%
+%		See also NOW, CLOCK, DATENUM.
+
+% function datenummx is a mex-file found in toolbox/matlab/timefun
+nowinseconds = datenummx(clock)*86400;
+end
+
+function vec = mbdatevec(n)
+%MBDATEVEC  Return date vector for time in format as of function MBTIME.
+%		VEC = MBDATEVEC(N) returns the date vector VEC for the time N as
+%		returned by function MBTIME (serial date number converted to seconds).
+%
+%		Example:
+%		time = mbtime;
+%		vec = mbdatevec(time);
+%
+%		Markus Buehren
+%		Last modified 21.04.2008
+%
+%		See also MBTIME, DATEVEC.
+vec = datevec(n/86400);
+end
+
+function stringOut = textwrap2(stringIn, nOfColumns)
+%TEXTWRAP2  Wrap text string.
+%		OUT = TEXTWRAP2(IN, COL) wraps the given text string IN to fit into COL
+%		columns. The results is a string with line breaks '\n' inserted.
+%
+%		OUT = TEXTWRAP2(IN) uses a default number of 75 columns.
+%
+%		Note: This function uses the Matlab-function TEXTWRAP which returns a
+%		cell array with each cell containing one line of text.
+%
+%		Example:
+%		disp(textwrap2(myString, 75));
+%
+%		Markus Buehren
+%		Last modified 21.04.2008
+%
+%		See also TEXTWRAP.
+stringOut = '';
+if nargin < 2
+    nOfColumns = 75;
+end
+if ischar(stringIn)
+    stringIn = {stringIn}; % function textwrap requires a cell array as input
+end
+stringOutCell = textwrap(stringIn, nOfColumns);
+for k=1:length(stringOutCell)
+    stringOut = [stringOut, stringOutCell{k}, sprintf('\n')]; %#ok
+end
+stringOut(end) = ''; % remove last line break
+end
+
+function str = chompsep(str)
+%CHOMPSEP  Remove file separator at end of string.
+%		STR = CHOMPSEP(STR) returns the string STR with the file separator at
+%		the end of the string removed (if existing).
+%
+%		Example:
+%		str1 = chompseq('/usr/local/');
+%		str2 = chompseq('C:\Program Files\');
+%
+%		Markus Buehren
+%		Last modified 05.04.2009
+%
+%		See also CONCATPATH.
+if ~isempty(str) && str(end) == filesep
+    str(end) = '';
+end
+end
+
+function timeString = formattime(time, mode)
+%FORMATTIME  Return formatted time string.
+%		STR = FORMATTIME(TIME) returns a formatted time string for the given
+%		time difference TIME in seconds, i.e. '1 hour and 5 minutes' for TIME =
+%		3900.
+%
+%		FORMATTIME(TIME, MODE) uses the specified display mode ('long' or
+%		'short'). Default is long display.
+%
+%		Example:
+%		str = formattime(142, 'long');
+%
+%		FORMATTIME (without input arguments) shows further examples.
+%
+%		Markus Buehren
+%		Last modified 21.04.2008
+%
+%		See also ETIME.
+if nargin == 0
+    disp(sprintf('\nExamples for strings returned by function %s.m:', mfilename));
+    time = [0 1e-4 0.1 1 1.1 2 60 61 62 120 121 122 3600 3660 3720 7200 7260 7320 ...
+        3600*24 3600*25 3600*26 3600*48 3600*49 3600*50];
+    for k=1:length(time)
+        disp(sprintf('time = %6g, timeString = ''%s''', time(k), formattime(time(k))));
+    end
+    if nargout > 0
+        timeString = '';
+    end
+    return
+end
+if ~exist('mode', 'var')
+    mode = 'long';
+end
+if time < 0
+    disp('Warning: Time must be greater or equal zero.');
+    timeString = '';
+elseif time >= 3600*24
+    days = floor(time / (3600*24));
+    if days > 1
+        dayString = 'days';
+    else
+        dayString = 'day';
+    end
+    hours = floor(mod(time, 3600*24) / 3600);
+    if hours == 0
+        timeString = sprintf('%d %s', days, dayString);
+    else
+        if hours > 1
+            hourString = 'hours';
+        else
+            hourString = 'hour';
+        end
+        timeString = sprintf('%d %s and %d %s', days, dayString, hours, hourString);
+    end
+elseif time >= 3600
+    hours = floor(mod(time, 3600*24) / 3600);
+    if hours > 1
+        hourString = 'hours';
+    else
+        hourString = 'hour';
+    end
+    minutes = floor(mod(time, 3600) / 60);
+    if minutes == 0
+        timeString = sprintf('%d %s', hours, hourString);
+    else
+        if minutes > 1
+            minuteString = 'minutes';
+        else
+            minuteString = 'minute';
+        end
+        timeString = sprintf('%d %s and %d %s', hours, hourString, minutes, minuteString);
+    end
+elseif time >= 60
+    minutes = floor(time / 60);
+    if minutes > 1
+        minuteString = 'minutes';
+    else
+        minuteString = 'minute';
+    end
+    seconds = floor(mod(time, 60));
+    if seconds == 0
+        timeString = sprintf('%d %s', minutes, minuteString);
+    else
+        if seconds > 1
+            secondString = 'seconds';
+        else
+            secondString = 'second';
+        end
+        timeString = sprintf('%d %s and %d %s', minutes, minuteString, seconds, secondString);
+    end
+else
+    if time > 10
+        seconds = floor(time);
+    else
+        seconds = floor(time * 100) / 100;
+    end
+    if seconds > 0
+        if seconds ~= 1
+            timeString = sprintf('%.4g seconds', seconds);
+        else
+            timeString = '1 second';
+        end
+    else
+        timeString = sprintf('%.4g seconds', time);
+    end
+end
+switch mode
+    case 'long'
+        % do nothing
+    case 'short'
+        timeString = strrep(timeString, ' and ', ' ');
+        timeString = strrep(timeString, ' days', 'd');
+        timeString = strrep(timeString, ' day', 'd');
+        timeString = strrep(timeString, ' hours', 'h');
+        timeString = strrep(timeString, ' hour', 'h');
+        timeString = strrep(timeString, ' minutes', 'm');
+        timeString = strrep(timeString, ' minute', 'm');
+        timeString = strrep(timeString, ' seconds', 's');
+        timeString = strrep(timeString, ' second', 's');
+    otherwise
+        error('Mode ''%s'' unknown in function %s.', mode, mfilename);
+end
+end
+
+function dateStr = translatedatestr(dateStr)
+%TRANSLATEDATESTR  Translate german date string to english version.
+%		STR = TRANSLATEDATESTR(STR) converts a german date string like
+%		  13-Mär-2006 15:55:00
+%		to the english version
+%		  13-Mar-2006 15:55:00.
+%		This is needed on some systems if function DIR returns german date
+%		strings.
+%
+%		Markus Buehren
+%
+%		See also DATENUM2.
+dateStr = strrep(dateStr, 'Mrz', 'Mar');
+dateStr = strrep(dateStr, 'Mär', 'Mar');
+dateStr = strrep(dateStr, 'Mai', 'May');
+dateStr = strrep(dateStr, 'Okt', 'Oct');
+dateStr = strrep(dateStr, 'Dez', 'Dec');
+end
+
+function hostName = gethostname()
+%GETHOSTNAME  Get host name.
+%		HOSTNAME = GETHOSTNAME returns the name of the computer that MATLAB
+%		is running on. Function should work for both Linux and Windows.
+%
+%		Markus Buehren
+%		Last modified: 30.03.2009
+%
+%		See also GETUSERNAME.
+persistent hostNamePersistent
+if isempty(hostNamePersistent)
+    if ispc
+        hostName = getenv('COMPUTERNAME');
+    else
+        hostName = getenv('HOSTNAME');
+    end
+    
+    if isempty(hostName)
+        % the environment variable above was not existing
+        if ispc
+            systemCall = 'hostname';
+        else
+            systemCall = 'uname -n';
+        end
+        [status, hostName] = system(systemCall);
+        if status ~= 0
+            error('System call "%s" failed with return code %d.', systemCall, status);
+        end
+        hostName = hostName(1:end-1);
+    end
+    
+    % environment variable and system call might result different, so only
+    % allow upper case letters
+    hostName = upper(hostName);
+    
+    % save string for next function call
+    hostNamePersistent = hostName;
+else
+    % return string computed before
+    hostName = hostNamePersistent;
+end
+end
+
+function userName = getusername()
+%GETUSERNAME  Get user name.
+%		USERNAME = GETUSERNAME returns the login name of the current MATLAB
+%		user. Function should work for both Linux and Windows.
+%
+%		Markus Buehren
+%		Last modified: 20.04.2008
+%
+%		See also GETHOSTNAME.
+persistent userNamePersistent
+if isempty(userNamePersistent)
+    if ispc
+        userName = getenv('username');
+    else
+        systemCall = 'whoami';
+        [status, userName] = system(systemCall); %#ok
+        if status ~= 0
+            error('System call ''%s'' failed with return code %d.', systemCall, status);
+        end
+        userName = userName(1:end-1);
+    end
+    
+    % save string for next function call
+    userNamePersistent = userName;
+else
+    % return string computed before
+    userName = userNamePersistent;
+end
+end
+

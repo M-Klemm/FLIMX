@@ -424,7 +424,11 @@ classdef FData < handle
         function out = getCIminLbl(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
             %get label for minimum of current image
             if(ROIType == 0)
-                out = this.makeZlbls(this.rawImgZSz(1),this.rawImgZSz(2));
+                if(this.MSZ)
+                    out = this.makeZlbls(this.MSZMin,this.MSZMax);
+                else
+                    out = this.makeZlbls(this.rawImgZSz(1),this.rawImgZSz(2));
+                end
             else
                 if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
                     this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
@@ -436,7 +440,11 @@ classdef FData < handle
         function out = getCImaxLbl(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
             %get label for maximum of current image
             if(ROIType == 0)
-                [~,out] = this.makeZlbls(this.rawImgZSz(1),this.rawImgZSz(2));
+                if(this.MSZ)
+                    [~,out] = this.makeZlbls(this.MSZMin,this.MSZMax);
+                else
+                    [~,out] = this.makeZlbls(this.rawImgZSz(1),this.rawImgZSz(2));
+                end
             else
                 if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
                     this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);

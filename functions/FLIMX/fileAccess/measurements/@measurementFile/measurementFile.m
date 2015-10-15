@@ -544,7 +544,7 @@ classdef measurementFile < handle
                         out = this.makeROIData(channel);
                     else
                         if(isempty(this.roiFluoData{channel}))
-                            this.updateProgress(0.5,'rebuilding ROI');
+                            this.updateProgress(0.5,sprintf('rebuilding ROI channel %d',channel));
                             out = zeros(size(bl,1),size(bl,2),zR,this.ROIDataType);
                             parfor i = 1:size(bl,1)
                                 tmp = out(i,:,:);
@@ -554,7 +554,7 @@ classdef measurementFile < handle
                                 end
                                 out(i,:,:) = tmp;
                             end
-                            this.updateProgress(1,'ROI rebuild: 100% done');
+                            this.updateProgress(1,sprintf('ROI rebuild channel %d 100% done',channel));
                         end
                         this.roiFluoData{channel} = out;
                         this.roiFluoDataFlat{channel} = sum(uint32(out),3,'native');
