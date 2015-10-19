@@ -226,7 +226,7 @@ for fileNr = 1:nOfFiles
               
               % add file to ignore list
               oldSemaphoreFilesToIgnore{end+1} = currSemaphoreFileName; %#ok
-              disp(textwrap2(sprintf('Ignoring old semaphore of file %s (maybe not removed correctly).', ...
+              disp(textwrap2(sprintf('Ignoring old semaphore of file (maybe not removed correctly): %s .', ...
                                      fileName)));
               
               if debugMode

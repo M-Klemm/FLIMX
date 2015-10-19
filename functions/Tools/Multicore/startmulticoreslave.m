@@ -114,13 +114,63 @@ while 1
             end
             
             % check if variables to load are existing
-            if loadSuccessful && (~exist('functionHandles', 'var') || ~exist('parameters', 'var') || isempty(parameters))
-                loadSuccessful = false;
-                if showWarnings
-                    disp(textwrap2(sprintf(['Warning: Either variable ''%s'' or ''%s''', ...
-                        'or ''%s'' not existing after loading file %s.'], ...
-                        'functionHandles', 'parameters', parameterFileName)));
+            if(loadSuccessful)
+                if((~exist('functionHandles', 'var') || ~exist('parameters', 'var') || isempty(parameters)))
+                    loadSuccessful = false;
+                    if showWarnings
+                        disp(textwrap2(sprintf(['Warning: Either variable ''%s'' or ''%s''', ...
+                            'or ''%s'' not existing after loading file %s.'], ...
+                            'functionHandles', 'parameters', parameterFileName)));
+                    end
+                elseif(~iscell(parameters) || isempty(parameters{1}) || numel(parameters{1,1}{1,1}) < 1 || ~isa(parameters{1,1}{1,1}{1,1},'fluoPixelModel'))
+                    %file load seemed successfull, yet something went wrong
+                    %->wait and try again
+                    pause(0.5);
+                    try
+                        load(parameterFileName, 'functionHandles', 'parameters'); %% file access %%
+                    catch
+                        loadSuccessful = false;
+                        if showWarnings
+                            disp(sprintf('Warning: Unable to load parameter file %s.\n\r', parameterFileName));
+                            lastMsg = lastwarn;
+                            if ~isempty(lastMsg)
+                                disp(sprintf('Warning message issued when trying to load:\n%s\n\r', lastMsg));
+                            end
+                            displayerrorstruct;
+                        end
+                    end
+                    if(~iscell(parameters) || isempty(parameters{1}) || numel(parameters{1,1}{1,1}) < 1 || ~isa(parameters{1,1}{1,1}{1,1},'fluoPixelModel'))
+                        loadSuccessful = false;
+                    end
                 end
+            end
+            
+            if debugMode
+                if loadSuccessful
+                    disp(sprintf('Successfully loaded parameter file nr %d.', fileNr));
+                else
+                    disp(sprintf('Problems loading parameter file nr %d.', fileNr));
+                end
+            end
+            % remove semaphore and continue if loading was not successful
+            if ~loadSuccessful
+                removefilesemaphore(sem);
+                pause(0.5+0.5*rand);
+                continue
+            end
+            % remove parameter file
+            deleteSuccessful = mbdelete(parameterFileName, showWarnings); %% file access %%
+            if ~deleteSuccessful
+                % If deletion is not successful it can happen that other slaves or
+                % the master also use these parameters. To avoid this, ignore the
+                % loaded parameters
+                %loadSuccessful = false;
+                if debugMode
+                    disp(sprintf('Problems deleting parameter file nr %d. It will be ignored', fileNr));
+                end
+                removefilesemaphore(sem);
+                pause(0.5+0.5*rand);
+                continue
             end
             %check function handles
             for k=1:numel(parameters)
@@ -142,37 +192,11 @@ while 1
                     end
                 end
             end
-            
-            if debugMode
-                if loadSuccessful
-                    disp(sprintf('Successfully loaded parameter file nr %d.', fileNr));
-                else
-                    disp(sprintf('Problems loading parameter file nr %d.', fileNr));
-                end
-            end
-            
-            % remove parameter file
-            deleteSuccessful = mbdelete(parameterFileName, showWarnings); %% file access %%
-            if ~deleteSuccessful
-                % If deletion is not successful it can happen that other slaves or
-                % the master also use these parameters. To avoid this, ignore the
-                % loaded parameters
-                loadSuccessful = false;
-                if debugMode
-                    disp(sprintf('Problems deleting parameter file nr %d. It will be ignored', fileNr));
-                end
-            end
         else
-            loadSuccessful = false;
+            %loadSuccessful = false;
             if debugMode
                 disp('No parameter files found.');
             end
-        end
-        
-        % remove semaphore and continue if loading was not successful
-        if ~loadSuccessful
-            removefilesemaphore(sem);
-            continue
         end
         
         % Generate a temporary file which shows when the slave started working.
@@ -208,13 +232,13 @@ while 1
         % "clear functions" to ensure that the latest file versions are used,
         % no older versions in Matlab's memory.
         sessionDateStr = regexptokens(parameterFileName, 'parameters_(\d+)_\d+\.mat');
-        %     if ~strcmp(sessionDateStr, lastSessionDateStr)
-        %       clear functions
-        %
-        %       if debugMode
-        %         disp('New multicore session detected, "clear functions" called.');
-        %       end
-        %     end
+        if ~strcmp(sessionDateStr, lastSessionDateStr)
+            clear functions
+            
+            %if debugMode
+            disp('New multicore session detected, "clear functions" called.');
+            %end
+        end
         lastSessionDateStr = sessionDateStr;
         
         result = cell(size(parameters)); %#ok
@@ -229,8 +253,10 @@ while 1
             disp(sprintf('Slave finished job nr %d in %.2f seconds.', fileNr, mbtime - t0));
         end
         if(all(cellfun('isempty',result)))
-            fprintf('%s produced an empty result (nr %d). Result was not saved.',gethostname(),fileNr);
-            
+            fprintf('%s produced an empty result (nr %d; file %s). Result was not saved.',gethostname(),fileNr,parameterFileName);
+            %save(strrep(parameterFileName, 'parameters', 'error_param'),'parameters');
+            % remove working file
+            mbdelete(workingFile, showWarnings); %% file access %%
             % Save result. Use file semaphore of the parameter file to reduce the
             % overhead.
         elseif(exist(multicoreDir, 'dir')) %do nothing if multicore dir has been removed

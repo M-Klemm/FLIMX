@@ -35,7 +35,7 @@ function result = makePixelFit(apObjs,optimizationParams,aboutInfo)
 myAboutInfo = FLIMX.getVersionInfo();
 nrPixels = length(apObjs);
 result = [];
-if(nrPixels < 1 || ~iscell(apObjs) || ~isa(apObjs{1},'fluoPixelModel'))
+if(nrPixels < 1 || ~iscell(apObjs) || isempty(apObjs{1}) || ~isa(apObjs{1},'fluoPixelModel'))
     return
 end
 if(isdeployed())

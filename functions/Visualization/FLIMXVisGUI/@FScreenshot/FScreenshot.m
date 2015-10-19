@@ -77,7 +77,7 @@ classdef FScreenshot < FDisplay
 %                     this.h_m_ax = hOld;
                     %[y x] = size(this.mainExportGfx);
                     %daspect(hAx,[1 1 max(this.mainExportGfx(:))/max(x,y)]);
-                    if(this.visObj.exportParams.plotColorbar && this.mDispDim ~= 3)
+                    if(this.visObj.exportParams.plotColorbar)% && this.mDispDim ~= 3
                         cb = colorbar(hAx,'location',this.visObj.exportParams.colorbarLocation,'Fontsize',this.visObj.exportParams.labelFontSize);
                         [dType, dTypeNr] = this.visObj.getFLIMItem(this.mySide);
                         if(strcmp(dType,'Intensity'))
@@ -87,27 +87,28 @@ classdef FScreenshot < FDisplay
                         end
                         cbLabels = this.makeColorBarLbls(3);
                         %set(cb,'Fontsize',this.visObj.exportParams.labelFontSize);
-%                         if(this.mDispDim == 2)
-                            %special handling of colorbar for 2D plot
-                            %clim = get(hAx,'CLim');
-                            %cbLabels = linspace(clim(1),clim(2),length(this.dynVisParams.cm));
-                            
-                            if(dTypeNr)
-                                dType = sprintf('%s %d',dType{1},dTypeNr);
-                            else
-                                dType = dType{1};
-                            end
-                            idx = [1 1+round(length(this.dynVisParams.cm)/2) 1+length(this.dynVisParams.cm)];
-                            if(~isempty(strfind(lower(this.visObj.exportParams.colorbarLocation),'north')) || ~isempty(strfind(lower(this.visObj.exportParams.colorbarLocation),'south')))
-                                %idx = [1 get(cb,'XTick')];                                
-                                set(cb,'XTick',idx,'XTickLabel',cbLabels);
-                                xlabel(cb,dType);
-                            else
-                                %idx = [1 get(cb,'YTick')];                                
-                                set(cb,'YTick',idx,'YTickLabel',cbLabels);
-                                ylabel(cb,dType);
-                            end
-%                         end
+                        %                         if(this.mDispDim == 2)
+                        %special handling of colorbar for 2D plot
+                        %clim = get(hAx,'CLim');
+                        %cbLabels = linspace(clim(1),clim(2),length(this.dynVisParams.cm));
+                        
+                        if(dTypeNr)
+                            dType = sprintf('%s %d',dType{1},dTypeNr);
+                        else
+                            dType = dType{1};
+                        end
+                        %idx = [1 1+round(length(this.dynVisParams.cm)/2) 1+length(this.dynVisParams.cm)];
+                        idx = [cb.Limits(1) cb.Limits(1)+(cb.Limits(2)-cb.Limits(1))/2 cb.Limits(2)];
+                        if(~isempty(strfind(lower(this.visObj.exportParams.colorbarLocation),'north')) || ~isempty(strfind(lower(this.visObj.exportParams.colorbarLocation),'south')))
+                            %idx = [1 get(cb,'XTick')];
+                            set(cb,'XTick',idx,'XTickLabel',cbLabels);
+                            xlabel(cb,dType);
+                        else
+                            %idx = [1 get(cb,'YTick')];
+                            set(cb,'YTick',idx,'YTickLabel',cbLabels);
+                            ylabel(cb,dType);
+                        end
+                        %                         end
                     end                    
                     
                 case 'supp'

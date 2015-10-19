@@ -259,6 +259,9 @@ classdef FData < handle
         function [ROIlb, ROIub, stepSize] = getROIParameters(this,ROIType,dim,isMatrixPos)
             %get lower bound, upper bound and stepsize in x or y dimension for ROIType
             coord = this.getROICoordinates(ROIType);
+            if(isempty(coord))
+                coord = [this.rawImgYSz; this.rawImgXSz];
+            end
             stepSize = 1;
             if(strcmp(dim,'y'))
                 ROIlb = coord(1,1);
