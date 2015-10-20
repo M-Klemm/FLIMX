@@ -1205,11 +1205,15 @@ classdef studyMgr < handle
                     end
                 end
                 this.fdt.removeSubjectResult(this.curStudyName,subNrs(i));
+                if(rem(i,10)<eps)
+                    this.plotProgressbar(i/length(subNrs),[],sprintf('%2.0f%% - Deleting Subject Results',(i/length(subNrs))*100));
+                end
 %                 %check if deleted result is currently loaded in fitGUI
 %                 if(strcmp(this.FLIMXObj.curFluoFile.studyName,this.curStudyName) && strcmp(this.FLIMXObj.curFluoFile.datasetName,subName))
 %                     this.FLIMXObj.curResultObj.allocResults();
 %                 end
             end
+            this.plotProgressbar(0,[],'');
             this.updateGUI();
             this.visObj.setupGUI();
         end
