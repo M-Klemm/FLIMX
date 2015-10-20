@@ -677,6 +677,9 @@ classdef FLIMXFitGUI < handle
             else
                 %fluorescence lifetime
                 dMin = max(1e-2,min(data(data>0)));
+                if(isempty(dMin))
+                    dMin = 1e-2;
+                end
                 yScaleStr = 'log';
                 yLbl = 'Photon-Frequency (counts)';
             end
