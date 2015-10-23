@@ -186,7 +186,7 @@ classdef paramMgr < handle
             def.basic_fit.anisotropyGFactor     =   1; %the g factor to take different detector sensitifities into account
             def.basic_fit.anisotropyPerpendicularFactor = 2; %impact of the perpendicular intensity on the fluorescence (usually 2)
             def.basic_fit.anisotropyR0Method    =   1; %method to compute r0; 1: directly from anisotropy; 2: using the fluorescence lifetime from the sum of both channels            
-            def.basic_fit.risingEdgeErrorMargin =   2; %number of time channels model and data may differ at 80% of data maximum; only valid for fluorescence lifetime
+            def.basic_fit.risingEdgeErrorMargin =   4; %number of time channels model and data may differ at 80% of data maximum; only valid for fluorescence lifetime
             def.basic_fit.reconvoluteWithIRF    =   1; %switch reconvolution of model with IRF on (1) or off (0)
             def.basic_fit.lifetimeGap           =   1.3; %minimal gap/distance between lifetimes (relative factor, e.g. tau2 >= tau1 * factor)
             def.basic_fit.resultValidyCheckCnt  =   1; %retries for optimizer to get valid result (all amps & offset ~= zero)

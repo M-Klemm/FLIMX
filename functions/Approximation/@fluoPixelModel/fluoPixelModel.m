@@ -494,6 +494,12 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %compute model function
             model = zeros(this.getFileInfo(ch).nrTimeChannels,length(idxIgnored));
             [model(:,~idxIgnored), amps(:,~idxIgnored), scAmps(:,~idxIgnored), oset(~idxIgnored), exponentials(:,:,~idxIgnored)] = this.myChannels{ch}.compModel(xVec(:,~idxIgnored));
+            switch bp.fitModel
+                case {0,2} %tail fit
+                    [~, ~, chi2(~idxIgnored)] = this.myChannels{ch}.compFigureOfMerit(model(:,~idxIgnored),true);
+                case 1 %tci fit
+                    [~, ~, chi2(~idxIgnored)] = this.myChannels{ch}.compFigureOfMerit(model(:,~idxIgnored),false);
+            end
             exponentials(:,:,idxIgnored) = 0;
             %help optimizer to get shift right, if we are too far off             
             %[~, chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,tmp,[false; ~idxIgnored],this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
@@ -506,7 +512,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     idxNum = find(~idxIgnored);
                     idxNum = idxNum(idxHit);
                     idxIgnored(idxNum) = true;
-                    chi2(idxNum) = d(idxHit).*10000;
+                    chi2(idxNum) = chi2(idxNum)+d(idxHit).*10000;
                 end
                 if(all(idxIgnored == true))
                     chi2tail = chi2;
@@ -555,12 +561,12 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             end
             model = model(:,~idxIgnored);
             %do computation
-            switch bp.fitModel
-                case {0,2} %tail fit
-                    [~, ~, chi2(~idxIgnored)] = this.myChannels{ch}.compFigureOfMerit(model,true);
-                case 1 %tci fit
-                    [~, ~, chi2(~idxIgnored)] = this.myChannels{ch}.compFigureOfMerit(model,false);
-            end
+%             switch bp.fitModel
+%                 case {0,2} %tail fit
+%                     [~, ~, chi2(~idxIgnored)] = this.myChannels{ch}.compFigureOfMerit(model,true);
+%                 case 1 %tci fit
+%                     [~, ~, chi2(~idxIgnored)] = this.myChannels{ch}.compFigureOfMerit(model,false);
+%             end
 %             dr = model(this.myChannels{ch}.dMaxPos,:) ./ this.myChannels{ch}.dMaxVal;
 %             drIdx = abs(1-dr(:)) > 0.05;
 %             chi2Tmp = chi2(~idxIgnored);            
@@ -1231,7 +1237,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 idxNum = find(~idx);
                 idxNum = idxNum(idxHit);
                 idx(idxNum) = true;
-                chi2(idxNum) = d(idxHit).*-10000;
+                chi2(idxNum) = chi2(idxNum)+d(idxHit).*-10000;
                 %model(:,idxHit) = [];
                 idxRemain = ~idxHit;
             else

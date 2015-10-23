@@ -68,7 +68,11 @@ while 1
     parameterFileList = cell(0,0);
     if(~isempty(curDirs))
         for i = 1:length(curDirs)
-            parameterFileList = findfiles(fullfile(multicoreDir,curDirs(i).name), 'parameters_*.mat', 'nonrecursive');
+            try
+                parameterFileList = findfiles(fullfile(multicoreDir,curDirs(i).name), 'parameters_*.mat', 'nonrecursive');
+            catch
+                continue
+            end
             if(~isempty(parameterFileList))
                 break
             end

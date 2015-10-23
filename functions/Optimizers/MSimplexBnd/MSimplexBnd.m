@@ -142,7 +142,7 @@ func_evals = 0;
         xvec = [0 0];
         fv_tmp = [0 0];        
         for i = 1:n
-            xmat = repmat(x,1,6);
+            xmat = repmat(x,1,8);
             %determine shift of x(i)
             %maximum of: 10% of value (behavior if finminsearch); 1% of parameter interval; 2x quantization; user defined value
             dx = min(abs(ub(i)-lb(i))/2,max([abs(x(i)*0.90), abs(ub(i)-lb(i))/10, 2*quant(i)]));%, si(i)]); 
@@ -153,22 +153,31 @@ func_evals = 0;
             while(changeFlag && trials < 100)                
                 trials = trials +1;
                 changeFlag = false;
-                xvec = [xLow+x(i) xHigh+x(i) si(i)+xLow si(i)+xHigh x(i)+x(i)*0.05 x(i)-x(i)*0.05];
+                xvec = [xLow+x(i) xHigh+x(i) si(i)+xLow si(i)+xHigh x(i)*1.50 x(i)*0.50 x(i)*1.10 x(i)*0.90];
                 if(quant(i) ~= 0)
                     xvec = checkBounds(checkQuantization(xvec,quant(i),lb(i)),lb(i),ub(i));
                 else
                     xvec = checkBounds(xvec,lb(i),ub(i));
                 end
                 %check if values are exactly at the borders
-                if(abs(xvec(1) - lb(i)) <= eps && abs(xvec(1) - x(i)) > eps)
-                    %increase lower shift value
-                    xLow = xLow + max(quant(i),abs(ub(i)-lb(i))/100);
-                    changeFlag = true;
+                idx = abs(xvec(:) - lb(i)) <= eps & abs(xvec(:) - x(i)) > eps;
+                shift = max(quant(i),abs(ub(i)-lb(i))/100);
+                if(any(idx))
+                    %increase lower shift value                    
+                    xLow = xLow + shift; %max(quant(i),abs(ub(i)-lb(i))/100);
+                    xvec(idx) = xvec(idx) + shift;
+                    if(idx(1))
+                        changeFlag = true;
+                    end
                 end
-                if(abs(xvec(2) - ub(i)) <= eps && abs(xvec(2) - x(i)) > eps)
+                idx = abs(xvec(:) - ub(i)) <= eps & abs(xvec(:) - x(i)) > eps;
+                if(any(idx))
                     %decrease upper shift value
-                    xHigh = xHigh - max(quant(i),abs(ub(i)-lb(i))/100);
-                    changeFlag = true;
+                    xHigh = xHigh - shift; %max(quant(i),abs(ub(i)-lb(i))/100);
+                    xvec(idx) = xvec(idx) - shift;
+                    if(idx(2))
+                        changeFlag = true;
+                    end
                 end
                 if(changeFlag)
                     continue
@@ -176,7 +185,7 @@ func_evals = 0;
                 %compute cost function values                
                 xmat(i,:) = xvec;
                 fv_tmp = funfcn(xmat,varargin{:});
-                func_evals = func_evals + 6;                
+                func_evals = func_evals + 8;                
                 if(fv_tmp(1) == inf)
                     %this might be a tau and we might be to close to the previous tau
                     xLow = min(xHigh - abs(x(i)*0.10),xLow + max(quant(i),abs(ub(i)-lb(i))/100));
@@ -199,10 +208,16 @@ func_evals = 0;
 %                 end
 %             end
             [~,idx] = min(fv_tmp);
-            if(abs(fv(1) - fv_tmp(idx)) < fv(1)*0.05 || isinf(fv_tmp(idx)))
-                %difference of function value in comparison to initial solution is smaller than 5% -> use biggest distance to initial solution
-                [~,idx] = max(abs(xvec - x(i)));
-            end
+%             for j = 1:length(fv_tmp)-1
+%                 if(abs(fv(1) - fv_tmp(idx)) < fv(1)*0.05 || isinf(fv_tmp(idx)))
+%                     %difference of function value in comparison to initial solution is smaller than 5% -> use biggest distance to initial solution                    
+%                     fv_tmp(idx) = inf;
+%                     [~,idx] = min(fv_tmp);
+%                     %[~,idx] = max(abs(xvec - x(i)));
+%                 else
+%                     break
+%                 end                
+%             end
             fv(i+1) = fv_tmp(idx);
             %[fv(i+1) idx] = min(fv_tmp); %use best cost function value
             v(:,i+1) = xmat(:,idx);            

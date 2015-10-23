@@ -896,14 +896,52 @@ classdef fluoSubject < handle
             if(out.basicParams.optimizerInitStrategy == 2 || ~isempty(out.basicParams.fix2InitTargets))                
                 if(any(out.volatilePixelParams.globalFitMask))
                     for chTmp = 1:out.fileInfo(ch).nrSpectralChannels
-                        out.setInitializationData(chTmp,out.getNonConstantXVec(chTmp,this.getPixelFLIMItem(chTmp,'iVec',y,x)));
+                        %out.setInitializationData(chTmp,out.getNonConstantXVec(chTmp,this.getPixelFLIMItem(chTmp,'iVec',y,x)));
+                        xVec = this.getPixelFLIMItem(chTmp,'iVec',y,x);
+                        %make sure taus have the right distance, exclude stretched exponentials
+                        mask = find(~bp.stretchedExpMask)+bp.nExp;
+                        for i = 1:length(mask)-1 %bp.nExp+1 : 2*bp.nExp-1
+                            %idxIgnored(xVecCheck(mask(i),:).*bp.lifetimeGap > xVecCheck(mask(i+1),:)) = true;
+                            d = xVec(mask(i+1),:) - xVec(mask(i),:).*bp.lifetimeGap;
+                            if(d < 0)
+                                xVec(mask(i+1),:) = xVec(mask(i+1),:) - d + eps;
+                            end
+                        end
+                        %ensure tci ordering
+                        for i = 2*bp.nExp+1 : 2*bp.nExp+sum(bp.tciMask ~= 0)-1
+                            %idxIgnored(xVecCheck(i,:) > xVecCheck(i+1,:)) = true;
+                            d = xVec(i+1,:) - xVec(i,:);
+                            if(d < 0)
+                                xVec(i+1,:) = xVec(i+1,:) - d + eps;
+                            end
+                        end
+                        out.setInitializationData(chTmp,out.getNonConstantXVec(chTmp,xVec));
                     end
                 else
 %                     init = this.getPixelFLIMItem(ch,'x_vec',y,x); %use previous result if there is any
 %                     if(isempty(init) || ~any(init(:)))
 %                         init = this.getPixelFLIMItem(ch,'iVec',y,x);
 %                     end
-                    out.setInitializationData(ch,out.getNonConstantXVec(ch,this.getPixelFLIMItem(ch,'iVec',y,x)));
+                    %out.setInitializationData(ch,out.getNonConstantXVec(ch,this.getPixelFLIMItem(ch,'iVec',y,x)));
+                    xVec = this.getPixelFLIMItem(ch,'iVec',y,x);
+                    %make sure taus have the right distance, exclude stretched exponentials
+                    mask = find(~bp.stretchedExpMask)+bp.nExp;
+                    for i = 1:length(mask)-1 %bp.nExp+1 : 2*bp.nExp-1
+                        %idxIgnored(xVecCheck(mask(i),:).*bp.lifetimeGap > xVecCheck(mask(i+1),:)) = true;
+                        d = xVec(mask(i+1),:) - xVec(mask(i),:).*bp.lifetimeGap;
+                        if(d < 0)
+                            xVec(mask(i+1),:) = xVec(mask(i+1),:) - d + eps;
+                        end
+                    end
+                    %ensure tci ordering
+                    for i = 2*bp.nExp+1 : 2*bp.nExp+sum(bp.tciMask ~= 0)-1
+                        %idxIgnored(xVecCheck(i,:) > xVecCheck(i+1,:)) = true;
+                        d = xVec(i+1,:) - xVec(i,:);
+                        if(d < 0)
+                            xVec(i+1,:) = xVec(i+1,:) - d + eps;
+                        end
+                    end
+                    out.setInitializationData(ch,out.getNonConstantXVec(ch,xVec));
                 end
             end
         end
