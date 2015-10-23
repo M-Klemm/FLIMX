@@ -134,7 +134,7 @@ else %enough photons
                 case 0 %% brute force
                     %removed 10.03.2009                    
                 case 1 %% DE
-                    optParams.paramDefCell{4} = iVec;
+                    optParams.paramDefCell{4} = iVec(:,1);
                     [xVec, ~, ~, iter, feval] = ...
                         differentialevolution(optParams, optParams.paramDefCell, @apObj.costFcn, ...
                         [], [], optParams.emailParams, optParams.title);
@@ -143,7 +143,7 @@ else %enough photons
                     iter = output.iterations;
                     feval = output.funcCount;
                 case 3 %% fminsearchbnd
-                    [xVec,~,~,output] = fminsearchbnd(@apObj.costFcn, iVec, optParams.lb, optParams.ub, optParams);
+                    [xVec,~,~,output] = fminsearchbnd(@apObj.costFcn, iVec(:,1), optParams.lb, optParams.ub, optParams);
                     %                         [xVec,~,~,output] = fmincon(@apObj.costFcn, iVec, [],[],[],[],optParams.lb, optParams.ub,[], optParams);
                     iter = output.iterations;
                     feval = output.funcCount;
@@ -168,7 +168,7 @@ else %enough photons
                     options.Algorithm = 'Levenberg-Marquardt';
                     options.Display = 'off';
                     options.MaxFunEvals = 100;
-                    [xVec,resnorm,residual,exitflag,output] = lsqnonlin(fun,iVec,nonLinBounds.lb',nonLinBounds.ub',options);
+                    [xVec,resnorm,residual,exitflag,output] = lsqnonlin(fun,iVec(:,1),nonLinBounds.lb',nonLinBounds.ub',options);
                     iter = output.iterations;
                     feval = output.funcCount;
                     
@@ -182,7 +182,7 @@ else %enough photons
                     iter = output.funcCount;
                     feval = output.funcCount;
                 case 7 %optimize
-                    [sol, ~, ~, output] = optimize(@apObj.costFcn, iVec, optParams.lb, optParams.ub);
+                    [sol, ~, ~, output] = optimize(@apObj.costFcn, iVec(:,1), optParams.lb, optParams.ub);
                     xVec = sol;
                     iter = output.funcCount;
                     feval = output.funcCount;
