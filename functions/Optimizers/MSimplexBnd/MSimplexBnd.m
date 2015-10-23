@@ -56,7 +56,7 @@ function [x,fval,exitflag,output] = MSimplexBnd(funfcn,x,options,varargin)
 %     x = x';
 %     [n m] = size(x);
 % end
-x = mean(x,2);
+%x = mean(x,2);
 
 tStart = 0;%clock;
 userbreak = false;
@@ -101,6 +101,23 @@ end
 x = checkBounds(checkQuantization(x,quant,lb),options.lb(:),options.ub(:));
 itercount = 1;
 func_evals = 0;
+vTmp = zeros(n,n+1,m);
+fvTmp = zeros(m,n+1);
+v = zeros(n,n+1);
+fv = zeros(1,n+1);
+for nx = 1:m
+    [vTmp(:,:,nx), fvTmp(nx,:)] = init(x(:,nx));
+end
+%select best n+1 parameters
+for nx=1:n+1
+    [~,id] = min(fvTmp(:));
+    [r,c] = ind2sub([m,n+1],id);
+    v(:,nx) = vTmp(:,c,r);
+    fv(1,nx) = fvTmp(r,c);
+    fvTmp(id) = inf;
+end
+
+[x,fval,exitflag,output] = mainAlgorithm(v,fv,itercount);
 
 % switch lower(options.strategy)
 %     case 'dual'
@@ -132,7 +149,7 @@ func_evals = 0;
 %         [x,fval,exitflag,output] = mainAlgorithm(v,fv,itercount);
 % end
 
-    %function [v fv] = init(x,side)
+    function [v, fv] = init(x)
         %make simplex initialization
         v = zeros(n,n+1);
         v(:,1) = x(:);
@@ -226,9 +243,9 @@ func_evals = 0;
         % sort so v(1,:) has the lowest function value
         [fv,j] = sort(fv);
         v = v(:,j);
-    %end
+    end
 
-    %function [x,fval,exitflag,output] = mainAlgorithm(v,fv,itercount)
+    function [x,fval,exitflag,output] = mainAlgorithm(v,fv,itercount)
         
         % Main algorithm: iterate until
         % (a) the maximum coordinate difference between the current best point and the
@@ -344,8 +361,7 @@ func_evals = 0;
         end   % while
         
         x = v(:,1);
-        fval = fv(:,1);
-        
+        fval = fv(:,1);        
         output.iterations = itercount;
         output.funcCount = func_evals;
         output.algorithm = 'Nelder-Mead simplex direct search';
@@ -376,8 +392,7 @@ func_evals = 0;
 %                     ' the current x satisfies the termination criteria\n']);
                 exitflag = 1;
             end
-        end
-        
+        end        
         output.message = msg;
-    %end
+    end
 end

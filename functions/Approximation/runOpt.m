@@ -76,8 +76,9 @@ else %enough photons
                 iVec = prevXVec; %use result from previous optimization as initialization
             else
                 if(any(apObj.volatilePixelParams.globalFitMask))
+                    tmp = [];
                     for ch = 1:nrChannels
-                        tmp(:,ch) = apObj.getInitializationData(ch);
+                        tmp = [tmp,apObj.getInitializationData(ch)];
                     end
                     tmp = apObj.getFullXVec(apObj.currentChannel,tmp);
                     tmp(apObj.volatilePixelParams.globalFitMask,1) = mean(tmp(apObj.volatilePixelParams.globalFitMask,:),2);
@@ -86,8 +87,6 @@ else %enough photons
                     iVec = apObj.getInitializationData(apObj.currentChannel);
                 end
             end
-            %scale relative init stuff to current data
-            iVec = scaleInitVec2Data(iVec);
             %prepare fitted weighting
             if(apObj.basicParams.chiWeightingMode == 3)
                 cw = ones(apObj.fileInfo(apObj.currentChannel).nrTimeChannels,length(apObj.nonEmptyChannelList));
@@ -135,12 +134,12 @@ else %enough photons
                 case 0 %% brute force
                     %removed 10.03.2009                    
                 case 1 %% DE
-                    optParams.paramDefCell{4} = iVec(:);
+                    optParams.paramDefCell{4} = iVec;
                     [xVec, ~, ~, iter, feval] = ...
                         differentialevolution(optParams, optParams.paramDefCell, @apObj.costFcn, ...
                         [], [], optParams.emailParams, optParams.title);
                 case 2 %% MSimplexBnd
-                    [xVec,~,~,output] = MSimplexBnd(@apObj.costFcn, iVec(:), optParams);
+                    [xVec,~,~,output] = MSimplexBnd(@apObj.costFcn, iVec, optParams);
                     iter = output.iterations;
                     feval = output.funcCount;
                 case 3 %% fminsearchbnd
@@ -169,7 +168,7 @@ else %enough photons
                     options.Algorithm = 'Levenberg-Marquardt';
                     options.Display = 'off';
                     options.MaxFunEvals = 100;
-                    [xVec,resnorm,residual,exitflag,output] = lsqnonlin(fun,iVec(:),nonLinBounds.lb',nonLinBounds.ub',options);
+                    [xVec,resnorm,residual,exitflag,output] = lsqnonlin(fun,iVec,nonLinBounds.lb',nonLinBounds.ub',options);
                     iter = output.iterations;
                     feval = output.funcCount;
                     
@@ -183,7 +182,7 @@ else %enough photons
                     iter = output.funcCount;
                     feval = output.funcCount;
                 case 7 %optimize
-                    [sol, ~, ~, output] = optimize(@apObj.costFcn, iVec(:), optParams.lb, optParams.ub);
+                    [sol, ~, ~, output] = optimize(@apObj.costFcn, iVec, optParams.lb, optParams.ub);
                     xVec = sol;
                     iter = output.funcCount;
                     feval = output.funcCount;
@@ -342,22 +341,22 @@ for ch = 1:nrChannels
 end %for ch =
 result = orderfields(result);
 
-    function iVec = scaleInitVec2Data(iVec)
-        %scale amplitudes and offset of initialization to data maximum
-        if(isempty(iVec))
-            return
-        end
-        iArray = apObj.divideGlobalFitXVec(iVec,true);
-        iVec = [];
-        for chIdx = 1:length(chList)
-            maxPhotons = result(chIdx).MaximumPhotons(1,1);
-            [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents(iArray(:,chIdx),true,chList(chIdx));
-            amps = amps .* maxPhotons;
-            scAmps = scAmps .* maxPhotons;
-            iVec(:,chIdx) = apObj.getNonConstantXVec(chList(chIdx),amps,taus,tcis,betas,scAmps,scShifts,scOset,hShift,oset);
-        end
-        iVec = apObj.joinGlobalFitXVec(iVec,true);
-    end
+%     function iVec = scaleInitVec2Data(iVec,ch)
+%         %scale amplitudes and offset of initialization to data maximum
+%         if(isempty(iVec))
+%             return
+%         end
+%         iArray = apObj.divideGlobalFitXVec(iVec,true);
+%         %iVec = [];
+%         %for chIdx = 1:length(chList)
+%             maxPhotons = result(ch).MaximumPhotons(1,1);
+%             [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents(iArray(:,ch),true,chList(chIdx));
+%             amps = amps .* maxPhotons;
+%             scAmps = scAmps .* maxPhotons;
+%             iVec = apObj.getNonConstantXVec(ch,amps,taus,tcis,betas,scAmps,scShifts,scOset,hShift,oset);
+%         %end
+%         %iVec = apObj.joinGlobalFitXVec(iVec,true);
+%     end
 
     function bounds = getOptParams(opt,fitParams,allOptParams,bounds)
         %get parameters for optimizer opt

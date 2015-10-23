@@ -840,6 +840,9 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                         %set shifts 
                         [ampsI, tausI, tcisI, betasI, scAmpsI, scShiftsI, scOsetI, hi, osetI] = this.getXVecComponents(id,true,chList(chIdx));
                         id = this.getNonConstantXVec(chList(chIdx),ampsI,tausI,tcisI,betasI,scAmpsI,scShiftsI,scOsetI,hi,osetI);
+                    end
+                    if(length(id) == size(iArray,1))
+                        id = [id, iArray(:,chIdx)];
                         this.setInitializationData(chList(chIdx),id);
                     end
                 end

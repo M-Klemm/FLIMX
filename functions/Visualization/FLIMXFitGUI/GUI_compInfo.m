@@ -180,7 +180,9 @@ ylabel(handles.axesHostEff,'(ms)');
 title(handles.axesHostEff,'Average Time per Function Evaluation');
 set(handles.axesHostEff,'XTick',round(get(handles.axesHostEff,'XTick')));
 if(length(allHosts) == length(round(get(handles.axesHostEff,'XTick'))))
-    xticklabel_rotate(handles.axesHostEff,[],45,allHosts);
+    try
+        xticklabel_rotate(handles.axesHostEff,[],45,allHosts);
+    end
 end
 %set(handles.axesHostEff,'XTickLabel',allHosts);
 %ylim([0 ym]);

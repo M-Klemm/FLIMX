@@ -339,8 +339,8 @@ classdef FLIMX < handle
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 251;
-            out.client_revision = 326;
-            out.core_revision = 348;
+            out.client_revision = 327;
+            out.core_revision = 349;
             out.results_revision = 256;
             out.measurement_revision = 203;
         end
