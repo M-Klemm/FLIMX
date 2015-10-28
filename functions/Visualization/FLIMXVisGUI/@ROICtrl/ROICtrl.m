@@ -337,8 +337,8 @@ classdef ROICtrl < handle
                     set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
                     set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
                     set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
-                    set(this.y_sz_edit,'String',num2str(abs(ROICoord(1,2)-ROICoord(1,1)+1)));
-                    set(this.x_sz_edit,'String',num2str(abs(ROICoord(2,2)-ROICoord(2,1)+1)));
+                    set(this.y_sz_edit,'String',num2str(abs(ROICoord(1,2)-ROICoord(1,1))+1));
+                    set(this.x_sz_edit,'String',num2str(abs(ROICoord(2,2)-ROICoord(2,1))+1));
                 case {4,5} %circle
                     set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
                     set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));

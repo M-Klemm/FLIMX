@@ -103,51 +103,38 @@ itercount = 1;
 func_evals = 0;
 vTmp = zeros(n,n+1,m);
 fvTmp = zeros(m,n+1);
-v = zeros(n,n+1);
-fv = zeros(1,n+1);
 for nx = 1:m
     [vTmp(:,:,nx), fvTmp(nx,:)] = init(x(:,nx));
 end
-%select best n+1 parameters
-for nx=1:n+1
-    [~,id] = min(fvTmp(:));
-    [r,c] = ind2sub([m,n+1],id);
-    v(:,nx) = vTmp(:,c,r);
-    fv(1,nx) = fvTmp(r,c);
-    fvTmp(id) = inf;
+if(m > 1)
+    %select best n+1 parameters
+    v = zeros(n,n+1);
+    fv = zeros(1,n+1);
+    ci = 1;
+    for nx=1:m*n
+        [~,id] = min(fvTmp(:));
+        [r,c] = ind2sub([m,n+1],id);
+        if(ci > 1)
+            d = abs(bsxfun(@minus,v(:,1:ci-1),vTmp(:,c,r))./v(:,1:ci-1));
+            if(~all(max(d)) >= 0.05)
+                fvTmp(id) = inf;
+                continue
+            end
+        end
+        v(:,ci) = vTmp(:,c,r);
+        fv(1,ci) = fvTmp(r,c);
+        fvTmp(id) = inf;
+        ci=ci+1;
+        if(ci > n+1)
+            break;
+        end
+    end
+else
+    v = vTmp;
+    fv = fvTmp;
 end
 
 [x,fval,exitflag,output] = mainAlgorithm(v,fv,itercount);
-
-% switch lower(options.strategy)
-%     case 'dual'
-%         [v_n fv_n] = init(x,'negative');
-%         itercount = itercount + 1;
-%         [x_n,fval_n,exitflag_n,output_n] = mainAlgorithm(v_n,fv_n,itercount);
-%         
-%         [v_p fv_p] = init(x,'positive');
-%         % itercount = output_n.iterations + itercount + 1;
-%         % func_evals = output_n.funcCount + func_evals;
-%         [x_p,fval_p,exitflag_p,output_p] = mainAlgorithm(v_p,fv_p,itercount);
-%         
-%         if(fval_p < fval_n)
-%             x = x_p;
-%             fval = fval_p;
-%             exitflag = exitflag_p;
-%             output = output_p;
-%         else
-%             x = x_n;
-%             fval = fval_n;
-%             exitflag = exitflag_n;
-%             output = output_n;
-%         end
-%         output.iterations = output_n.iterations + output_p.iterations +2;
-%         output.funcCount = output_n.funcCount + output_p.funcCount;
-%     otherwise % {'negative','positive'} or something else
-%         [v fv] = init(x,options.strategy);
-%         itercount = itercount + 1;
-%         [x,fval,exitflag,output] = mainAlgorithm(v,fv,itercount);
-% end
 
     function [v, fv] = init(x)
         %make simplex initialization
@@ -214,16 +201,6 @@ end
                     changeFlag = true;
                 end
             end
-%             if(~isempty(side))
-%                 switch lower(side)
-%                     case 'positive'
-%                         xvec = xvec(2);
-%                         fv_tmp = fv_tmp(2);
-%                     case 'negative'
-%                         xvec = xvec(1);
-%                         fv_tmp = fv_tmp(1);
-%                 end
-%             end
             [~,idx] = min(fv_tmp);
 %             for j = 1:length(fv_tmp)-1
 %                 if(abs(fv(1) - fv_tmp(idx)) < fv(1)*0.05 || isinf(fv_tmp(idx)))

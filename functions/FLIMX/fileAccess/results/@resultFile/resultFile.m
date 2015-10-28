@@ -497,7 +497,7 @@ classdef resultFile < handle
             elseif(strncmp(pStr,'AmplitudePercent',16))
                 %make amplitude in percent
                 nr = str2double(pStr(17:end));
-                if(isnan(nr))
+                if(isnan(nr) || nr > this.basicParams.nExp)
                     out = [];
                     return
                 end
@@ -514,7 +514,7 @@ classdef resultFile < handle
             elseif(strncmp(pStr,'Q',1))
                 %make Q
                 nr = str2double(pStr(2:end));
-                if(isnan(nr))
+                if(isnan(nr) || nr > this.basicParams.nExp)
                     out = [];
                     return
                 end

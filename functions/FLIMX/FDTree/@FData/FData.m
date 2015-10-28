@@ -921,7 +921,7 @@ classdef FData < handle
         function data = getImgSeg(data,ROICoord,ROIType,ROISubType,ROIInvertFlag,fileInfo)
             %make current data segment respecting x / y scaling
             %data can be 2- or 3- dimensional
-            if(isempty(data))                
+            if(isempty(data) || isempty(ROICoord))                
                 return;
             end
             [y,x,z] = size(data);
