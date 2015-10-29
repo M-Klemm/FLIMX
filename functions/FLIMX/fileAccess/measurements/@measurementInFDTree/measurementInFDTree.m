@@ -147,6 +147,10 @@ classdef measurementInFDTree < measurementFile
             success = false;
             if(this.openChannel(ch))
                 fi = this.myFiles{1,ch}.fluoFileInfo;
+                if(isempty(fi))
+                    %file load did not work correctly
+                    return
+                end
                 %just a security check before we load the data
                 if(fi.channel == ch)
                     this.setRawData(ch,this.myFiles{1,ch}.rawData);

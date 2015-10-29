@@ -453,6 +453,15 @@ classdef fluoSubject < handle
             end
         end
         
+        function out = get.nonEmptyResultChannelList(this)
+            %get number of spectral channels
+            if(strcmp(this.resultType,'ASCII'))
+                out = this.myResult.nonEmptyChannelList;
+            else
+                out = this.myMeasurement.nonEmptyChannelList;
+            end
+        end
+        
         function out = get.nrSpectralChannels(this)
             %get number of spectral channels
             fi = this.getFileInfoStruct([]);

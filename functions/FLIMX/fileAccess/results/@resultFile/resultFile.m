@@ -766,7 +766,7 @@ classdef resultFile < handle
                 return
             end
             result = load(resFN);
-            %update result to latest versiob
+            %update result to latest version
             result = this.updateFitResultsStruct(result,this.paramMgrObj.getDefaults().about);
         end
         
@@ -784,7 +784,6 @@ classdef resultFile < handle
                 fileInfo = apObj.getFileInfo(ch);
                 if(~this.isInitResult(ch))
                     rs = this.makeResultStructs(1,1);
-%                     vShift = rs.vShift;
                     hShift = rs.hShift;
                     oset = rs.Offset;
                     xVec = squeeze(rs.x_vec);
@@ -796,7 +795,6 @@ classdef resultFile < handle
                     slopeStart = rs.SlopeStartPosition;
                     iVec = squeeze(rs.iVec);
                 else
-%                     vShift = this.results.init{ch,1}.vShift(y,x);
                     xVec = squeeze(this.results.init{ch,1}.x_vec(y,x,:));
                     hShift = this.results.init{ch,1}.hShift(y,x);
                     oset = this.results.init{ch,1}.Offset(y,x);                   
@@ -819,7 +817,6 @@ classdef resultFile < handle
                 x = min(x,this.resultSize(2));                
                 if(~this.isPixelResult(ch))
                     rs = this.makeResultStructs(1,1);
-%                     vShift = rs.vShift;
                     hShift = rs.hShift;
                     oset = rs.Offset;
                     xVec = squeeze(rs.x_vec);
@@ -831,7 +828,6 @@ classdef resultFile < handle
                     slopeStart = rs.SlopeStartPosition;
                     iVec = squeeze(rs.iVec);                 
                 else
-%                     vShift = this.results.pixel{ch,1}.vShift(y,x);
                     hShift = this.results.pixel{ch,1}.hShift(y,x);
                     oset = this.results.pixel{ch,1}.Offset(y,x);
                     xVec = squeeze(this.results.pixel{ch,1}.x_vec(y,x,:));                

@@ -1140,9 +1140,10 @@ classdef studyMgr < handle
                     %                     this.FLIMXObj.fdt.clearSubjectCI(this.curStudyName,subNrs(i));
                     
                     this.plotProgressbar(0.50,[],'50% - Updating File Info');
-                    for ch = 1:subject.nrSpectralChannels
-                        subject.updateSubjectChannel(ch,'');
-                        this.plotProgressbar(0.50+0.5*ch/subject.nrSpectralChannels,[],sprintf('%2.0f%% - Updating File Info',(0.50+0.5*ch/subject.nrSpectralChannels)*100));
+                    chList = subject.nonEmptyResultChannelList;
+                    for chIdx = 1:length(chList)
+                        subject.updateSubjectChannel(chList(chIdx),'');
+                        this.plotProgressbar(0.50+0.5*chIdx/length(chList),[],sprintf('%2.0f%% - Updating File Info',(0.50+0.5*chIdx/length(chList))*100));
                     end
                 end
                 this.plotProgressbar(0,[],'');

@@ -159,13 +159,17 @@ classdef measurementFile < handle
         function set.position(this,val)
             %get position
             this.fileInfo.position = val;
-            this.setDirtyFlags([],2,true);
+            if(~isempty(this.filesOnHDD))
+                this.setDirtyFlags([],2,true);
+            end
         end        
         
         function set.pixelResolution(this,val)
             %get pixel resolution
             this.fileInfo.pixelResolution = val;
-           this.setDirtyFlags([],2,true);
+            if(~isempty(this.filesOnHDD))
+                this.setDirtyFlags([],2,true);
+            end
         end
         
         %% output methods
@@ -965,8 +969,11 @@ classdef measurementFile < handle
             this.setDirtyFlags([],2,true);
         end
         
-        function setFileInfoStruct(this,fileInfo)
+        function setFileInfoStruct(this,fileInfo)            
             %set info (for batch job)
+            if(isempty(fileInfo))
+                return
+            end
             old = this.fileInfo;
             this.fileInfo.tacRange = fileInfo.tacRange;
             this.fileInfo.nrTimeChannels = fileInfo.nrTimeChannels;
