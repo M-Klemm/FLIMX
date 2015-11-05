@@ -494,11 +494,26 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %compute model function
             model = zeros(this.getFileInfo(ch).nrTimeChannels,length(idxIgnored));
             [model(:,~idxIgnored), amps(:,~idxIgnored), scAmps(:,~idxIgnored), oset(~idxIgnored), exponentials(:,:,~idxIgnored)] = this.myChannels{ch}.compModel(xVec(:,~idxIgnored));
+            %compute chi²
             switch bp.fitModel
                 case {0,2} %tail fit
                     [~, ~, chi2(~idxIgnored)] = this.myChannels{ch}.compFigureOfMerit(model(:,~idxIgnored),true);
                 case 1 %tci fit
                     [~, ~, chi2(~idxIgnored)] = this.myChannels{ch}.compFigureOfMerit(model(:,~idxIgnored),false);
+            end
+            %ensure amplitude ordering
+            if(bp.amplitudeOrder > 0 && bp.nExp > 1)
+                if(bp.amplitudeOrder == 1)
+                    n = 1;
+                else
+                    n = size(amps,1)-1;
+                end
+                for i = 1:n
+                    tmp = amps(i+1,:) - amps(i,:);
+                    idx = tmp > 0;%-0.05*amps(i,:);
+                    chi2(idx) = chi2(idx) + i*100 + abs(tmp(idx))*10;
+                    idxIgnored(idx) = true;
+                end
             end
             exponentials(:,:,idxIgnored) = 0;
             %help optimizer to get shift right, if we are too far off             
@@ -721,7 +736,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
 %                     hShiftUB = max([hShiftUB,hShift+10*this.getFileInfo(chList(chIdx)).timeChannelWidth],[],2);%(scShifts-scShiftsLB)*2],[],2);
 %                 end
                 scData = this.getScatterData(chList(chIdx));
-                if(this.basicParams.scatterEnable && ~isempty(scData))
+                if(this.basicParams.scatterEnable && ~isempty(scData) &&~any(isnan(scData(:))))
                     %scShift                    
                     nScatter = size(scData,2);
                     scSmooth = zeros(size(scData));
@@ -762,7 +777,10 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     end
                     if(this.basicParams.scatterIRF)
                         %move IRF to same position as model
-                        scShifts(end) = hShift;
+                        [~, dMaxPos] = max(fastsmooth(dataTmp(:),5,3,0),[],1);
+                        scShifts(end) = (dMaxPos-scMaxPos(end))*this.getFileInfo(chList(chIdx)).timeChannelWidth;%hShift;  
+                        scShiftsLB = scShifts(end);
+                        scShiftsUB = scShifts(end);
                         nScatter = nScatter-1;
                     end
                     %todo: take care of global fit!

@@ -279,4 +279,22 @@ classdef measurementInFDTree < measurementFile
             end
         end
     end %methods
+    
+    methods (Access = protected)
+        function setPosition(this,val)
+            %set position
+            this.fileInfo.position = val;
+            if(~isempty(this.filesOnHDD))
+                this.setDirtyFlags([],2,true);
+            end
+        end        
+        
+        function setPixelResolution(this,val)
+            %set pixel resolution
+            this.fileInfo.pixelResolution = val;
+            if(~isempty(this.filesOnHDD))
+                this.setDirtyFlags([],2,true);
+            end
+        end
+    end
 end %classdef

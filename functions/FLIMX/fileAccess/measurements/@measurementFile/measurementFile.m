@@ -157,19 +157,13 @@ classdef measurementFile < handle
         end
         
         function set.position(this,val)
-            %get position
-            this.fileInfo.position = val;
-            if(~isempty(this.filesOnHDD))
-                this.setDirtyFlags([],2,true);
-            end
+            %set position
+            this.setPosition(val);
         end        
         
         function set.pixelResolution(this,val)
-            %get pixel resolution
-            this.fileInfo.pixelResolution = val;
-            if(~isempty(this.filesOnHDD))
-                this.setDirtyFlags([],2,true);
-            end
+            %set pixel resolution
+            this.setPixelResolution(val);
         end
         
         %% output methods
@@ -950,6 +944,16 @@ classdef measurementFile < handle
     end %methods
     
     methods (Access = protected)
+        function setPosition(this,val)
+            %set position
+            this.fileInfo.position = val;
+        end        
+        
+        function setPixelResolution(this,val)
+            %set pixel resolution
+            this.fileInfo.pixelResolution = val;
+        end
+        
         function setDirtyFlags(this,ch,flagPos,val)
             %set one or multiple dirty flags to a new value
             if(isempty(ch))

@@ -75,7 +75,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             this.myParent = hPixel;
             this.myChannelNr = ch; 
             if(this.basicParams.incompleteDecay) %incomplete decay
-                ds = 2;
+                ds = 4;
             else %no incomplete decay
                 ds = 1;
             end
@@ -210,7 +210,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                     smoothData(:,i) = fastsmooth(data(:,i),3,3,0);
                 end
                 %remove offset from scatter data
-                data = bsxfun(@minus,data,min(smoothData(50:end-50,:),[],1));
+%                 data = bsxfun(@minus,data,min(smoothData(50:end-50,:),[],1));
                 %fill zero gaps
                 data(data < 0) = 0;
                 data = bsxfun(@times,data,1./max(data,[],1));                
@@ -227,6 +227,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                     nonZero(:,i) = circshift(nonZero(:,i), -rot);
                 end
                 data(~nonZero) = smoothData(~nonZero);
+                data(isnan(data)) = 0;
                 this.dataStorage.scatter.normalized = data;
             end
             out = this.dataStorage.scatter.normalized;
@@ -411,7 +412,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             bp = this.basicParams;
             nTimeCh = this.tLen;            
             if(bp.incompleteDecay)
-                nTimeCh = nTimeCh ./ 2;
+                nTimeCh = nTimeCh ./ 4;
             end
             vpp = this.volatilePixelParams;
             vcp = this.volatileChannelParams;
@@ -474,7 +475,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 end
             end            
             %% reconvolute
-            if(bp.fitModel ~= 2)
+            if(bp.reconvoluteWithIRF)
                 %determine reconv model length
                 [~, p] = log2(size(exponentialsLong,1)-1); %+ this.iLen -1
                 len_model_2 = pow2(p);    % smallest power of 2 > len_model
@@ -491,10 +492,12 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                     end
                     exponentialsLong(:,1:nExp,1:nVecs) = real(ifft(bsxfun(@times, fft(exponentialsLong(:,1:nExp,1:nVecs), len_model_2, 1), this.irfFFT), len_model_2, 1));
                 end
+            else
+                exponentialsLong(:,:,1:nVecs) = circShiftArrayNoLUT(squeeze(exponentialsLong(:,:,1:nVecs)),repmat(this.iMaxPos,nVecs,1));
             end
             %% incomplete decay
             if(bp.incompleteDecay)
-                exponentialsShort(1:nTimeCh,1:nExp,1:nVecs) = exponentialsLong(1:nTimeCh,:,1:nVecs) + exponentialsLong(nTimeCh+1:end,:,1:nVecs);
+                exponentialsShort(1:nTimeCh,1:nExp,1:nVecs) = exponentialsLong(1:nTimeCh,:,1:nVecs) + exponentialsLong(nTimeCh+1:2*nTimeCh,:,1:nVecs) + exponentialsLong(2*nTimeCh+1:3*nTimeCh,:,1:nVecs) + exponentialsLong(3*nTimeCh+1:end,:,1:nVecs);
             else
                 exponentialsShort(1:nTimeCh,1:nExp,1:nVecs) = exponentialsLong(1:nTimeCh,:,1:nVecs);
             end

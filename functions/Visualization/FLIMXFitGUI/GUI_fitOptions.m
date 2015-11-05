@@ -54,7 +54,7 @@ function varargout = GUI_fitOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_fitOptions
 
-% Last Modified by GUIDE v2.5 26-Aug-2015 09:42:06
+% Last Modified by GUIDE v2.5 05-Nov-2015 15:13:54
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -140,15 +140,20 @@ else
     set(handles.panelApproxModel,'Visible','on');
     set(handles.panelAnisotropy,'Visible','off');
 end
-set(handles.checkIRF,'Value',data.basic.reconvoluteWithIRF)
+set(handles.checkReconvolute,'Value',data.basic.reconvoluteWithIRF)
 if(data.basic.reconvoluteWithIRF)
     set(handles.popupIRF,'Visible','on');
 else
     set(handles.popupIRF,'Visible','off');
 end
 set(handles.popupNExp,'Value',data.basic.nExp);
-set(handles.editLifetimeGap,'String',num2str((data.basic.lifetimeGap-1)*100));
-set(handles.checkHybridFit,'Value',data.basic.hybridFit);
+if(data.basic.nExp == 1)
+    set(handles.popupAmplitudeOrder,'Value',data.basic.amplitudeOrder,'Enable','off');
+    set(handles.textAmplitudeOrder,'Enable','off');
+else
+    set(handles.popupAmplitudeOrder,'Value',1,'Enable','on');
+    set(handles.textAmplitudeOrder,'Enable','on');
+end
 switch data.basic.hybridFit
     case 0
         hybridHeightFlag = 'on';
@@ -369,6 +374,14 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %checkboxes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --- Executes on button press in checkReconvolute.
+function checkReconvolute_Callback(hObject, eventdata, handles)
+rdh = get(handles.fitOptionsFigure,'userdata');
+rdh.basic.reconvoluteWithIRF = get(hObject,'Value');
+rdh.isDirty(1) = 1;
+set(handles.fitOptionsFigure,'userdata',rdh);
+updateGUI(handles,rdh);
+
 % --- Executes on button press in checkHybridFit.
 function checkHybridFit_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
@@ -738,6 +751,15 @@ end
 rdh.basic.nExp = new;
 rdh.isDirty(1) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
+updateGUI(handles, rdh);
+
+% --- Executes on selection change in popupAmplitudeOrder.
+function popupAmplitudeOrder_Callback(hObject, eventdata, handles)
+rdh = get(handles.fitOptionsFigure,'userdata');
+rdh.basic.amplitudeOrder = get(hObject,'Value');
+rdh.isDirty(1) = 1;
+set(handles.fitOptionsFigure,'userdata',rdh);
+set(hObject,'Value',rdh.basic.nonLinOffsetFit);
 updateGUI(handles, rdh);
 
 % --- Executes on button press in popupOffsetFit.
@@ -1114,6 +1136,11 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function popupApproxTarget_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupAmplitudeOrder_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
