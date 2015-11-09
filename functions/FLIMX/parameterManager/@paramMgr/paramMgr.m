@@ -406,7 +406,7 @@ classdef paramMgr < handle
             def.options_msimplexbnd.MaxIter    	=	200;
             def.options_msimplexbnd.TolFun     	=	0.001;
             def.options_msimplexbnd.initNodes   =   0;
-            def.options_msimplexbnd.strategy    =   '';
+            def.options_msimplexbnd.multipleSeedsMode    =   4;
             
             def.options_fminsearchbnd.Display    	=	'none';
             def.options_fminsearchbnd.FunValCheck	=	'off';

@@ -148,12 +148,13 @@ else
 end
 set(handles.popupNExp,'Value',data.basic.nExp);
 if(data.basic.nExp == 1)
-    set(handles.popupAmplitudeOrder,'Value',data.basic.amplitudeOrder,'Enable','off');
+    set(handles.popupAmplitudeOrder,'Value',1,'Enable','off');
     set(handles.textAmplitudeOrder,'Enable','off');
 else
-    set(handles.popupAmplitudeOrder,'Value',1,'Enable','on');
+    set(handles.popupAmplitudeOrder,'Value',data.basic.amplitudeOrder,'Enable','on');
     set(handles.textAmplitudeOrder,'Enable','on');
 end
+set(handles.editLifetimeGap,'String',(data.basic.lifetimeGap-1)*100);
 switch data.basic.hybridFit
     case 0
         hybridHeightFlag = 'on';

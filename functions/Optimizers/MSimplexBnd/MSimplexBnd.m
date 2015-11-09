@@ -1,4 +1,4 @@
-function [x,fval,exitflag,output] = MSimplexBnd(funfcn,x,options,varargin)
+function [x,func_evals,exitflag,output] = MSimplexBnd(funfcn,x,options,varargin)
 %=============================================================================================================
 %
 % @file     MSimplexBnd.m
@@ -65,7 +65,6 @@ lb = options.lb(:);
 ub = options.ub(:);
 si = options.simplexInit(:);
 quant = options.quantization(:);
-%initNodes = options.initNodes;
 tolf = max(options.TolFun,10*eps(x(1)));
 tol = options.tol(:);
 maxfun = options.MaxFunEvals;
@@ -101,40 +100,76 @@ end
 x = checkBounds(checkQuantization(x,quant,lb),options.lb(:),options.ub(:));
 itercount = 1;
 func_evals = 0;
-vTmp = zeros(n,n+1,m);
-fvTmp = zeros(m,n+1);
-for nx = 1:m
-    [vTmp(:,:,nx), fvTmp(nx,:)] = init(x(:,nx));
-end
+
 if(m > 1)
-    %select best n+1 parameters
-    v = zeros(n,n+1);
-    fv = zeros(1,n+1);
-    ci = 1;
-    for nx=1:m*n
-        [~,id] = min(fvTmp(:));
-        [r,c] = ind2sub([m,n+1],id);
-        if(ci > 1)
-            d = abs(bsxfun(@minus,v(:,1:ci-1),vTmp(:,c,r))./v(:,1:ci-1));
-            if(~all(max(d)) >= 0.05)
-                fvTmp(id) = inf;
-                continue
+    switch options.multipleSeedsMode
+        case 1 %best seed function value
+            fv = funfcn(x,varargin{:});
+            [~,best] = min(fv);
+            x = x(:,best);
+            func_evals = func_evals + m;
+            [vTmp, fvTmp] = init(x);
+            [x,~,exitflag,output] = mainAlgorithm(vTmp,fvTmp);
+        case 2
+            %select best n+1 from all seeds
+            vTmp = zeros(n,n+1,m);
+            fvTmp = zeros(m,n+1);
+            for nx = 1:m
+                [vTmp(:,:,nx), fvTmp(nx,:)] = init(x(:,nx));
             end
-        end
-        v(:,ci) = vTmp(:,c,r);
-        fv(1,ci) = fvTmp(r,c);
-        fvTmp(id) = inf;
-        ci=ci+1;
-        if(ci > n+1)
-            break;
-        end
+            v = zeros(n,n+1);
+            fv = zeros(1,n+1);
+            ci = 1;
+            for nx=1:m*n
+                [~,id] = min(fvTmp(:));
+                [r,c] = ind2sub([m,n+1],id);
+                if(ci > 1)
+                    d = abs(bsxfun(@minus,v(:,1:ci-1),vTmp(:,c,r))./v(:,1:ci-1));
+                    if(~all(max(d)) >= 0.05)
+                        fvTmp(id) = inf;
+                        continue
+                    end
+                end
+                v(:,ci) = vTmp(:,c,r);
+                fv(1,ci) = fvTmp(r,c);
+                fvTmp(id) = inf;
+                ci=ci+1;
+                if(ci > n+1)
+                    break;
+                end
+            end
+            [x,~,exitflag,output] = mainAlgorithm(v,fv);
+        case 3 %compute all seeds
+            fv = zeros(1,m+1);
+            iterCnt = zeros(1,m);
+            funcCnt = zeros(1,m);
+            for nx = 1:m
+                [vTmp, fvTmp] = init(mean(x(:,:),2));
+                [x(:,nx),fv(nx),exitflag,output] = mainAlgorithm(vTmp,fvTmp);
+                iterCnt(nx) = itercount;
+                itercount = 1;
+                funcCnt(nx) = func_evals;
+                func_evals = 0;
+            end
+            iterCnt(nx) = itercount;
+            itercount = 1;
+            funcCnt(nx) = func_evals;
+            func_evals = 0;
+            [~,best] = min(fv);
+            x = x(:,best);
+            func_evals = sum(funcCnt(:));
+            output.iterations = sum(iterCnt(:));
+            output.funcCount = func_evals;
+        case 4 %mean of seeds
+            [vTmp, fvTmp] = init(mean(x,2));
+            [x,~,exitflag,output] = mainAlgorithm(vTmp,fvTmp);            
     end
 else
-    v = vTmp;
-    fv = fvTmp;
+    [vTmp, fvTmp] = init(x);
+    [x,~,exitflag,output] = mainAlgorithm(vTmp,fvTmp);
 end
 
-[x,fval,exitflag,output] = mainAlgorithm(v,fv,itercount);
+% [x,func_evals,exitflag,output] = mainAlgorithm(v,fv,itercount);
 
     function [v, fv] = init(x)
         %make simplex initialization
@@ -222,7 +257,7 @@ end
         v = v(:,j);
     end
 
-    function [x,fval,exitflag,output] = mainAlgorithm(v,fv,itercount)
+    function [x,fval,exitflag,output] = mainAlgorithm(v,fv)
         
         % Main algorithm: iterate until
         % (a) the maximum coordinate difference between the current best point and the
