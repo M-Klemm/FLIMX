@@ -79,11 +79,21 @@ while 1
         end
     end
     
-    % get last file that is not a semaphore file
+    
+    % Buehren 29.07.2012: Randomly select a parameter file. This minimizes the
+    % number of collisions (different Matlab sessions trying to access the same
+    % parameter file) when a large number of slave sessions is used.
     parameterFileName = '';
-    for fileNr = length(parameterFileList):-1:1
-        if isempty(strfind(parameterFileList{fileNr}, 'semaphore'))
-            parameterFileName = parameterFileList{fileNr};
+    fileIndex = randperm(length(parameterFileList));
+    for fileNr = 1:length(fileIndex)
+        if isempty(strfind(parameterFileList{fileIndex(fileNr)}, 'semaphore'))
+            parameterFileName = parameterFileList{fileIndex(fileNr)};
+
+%     % get last file that is not a semaphore file
+%     parameterFileName = '';
+%     for fileNr = length(parameterFileList):-1:1
+%         if isempty(strfind(parameterFileList{fileNr}, 'semaphore'))
+%             parameterFileName = parameterFileList{fileNr};
             break % leave the for-loop
         end
     end

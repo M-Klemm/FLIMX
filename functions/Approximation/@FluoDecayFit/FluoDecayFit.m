@@ -381,6 +381,8 @@ classdef FluoDecayFit < handle
             stratStr = this.computeMultipleFits(ch,1:1:totalPixel,false); %user aborted if stratStr is empty            
             %clean up stage
             if(~isempty(stratStr) && this.cleanupFitParams.enable > 0)
+                %update FLIMXFitGUI
+                this.FLIMXObj.FLIMFitGUI.setCurrentPos(1,1);
                 this.updateProgressLong(0.75,'Cleanup Pixel Approximation...');
                 stratStr = this.makeCleanUpFit(ch,false);
             end
@@ -691,7 +693,7 @@ classdef FluoDecayFit < handle
                     if(~isempty(data))
                         rawImg = abs(data{i,chIdx});
                         medImg = sffilt(kernel,rawImg,[fs fs]);
-                        hit = rawImg >= medImg*(1+th) | rawImg <= medImg*(1-th);
+                        hit = medImg ~= 0 & (rawImg >= medImg*(1+th) | rawImg <= medImg*(1-th));
                         secStageParams.pixelPool = [secStageParams.pixelPool; find(hit)];
                     end
                 end

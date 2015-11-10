@@ -960,14 +960,14 @@ idx = [data{:,3}] == [data{:,4}] & [data{:,3}] > 0;
 if(~isempty(idx) && any(idx))
     data{idx,3} = false;
 end
-rdh.basic.(sprintf('constMaskSaveStrCh%d',1)) = data([data{:,3}],1);%get(handles.popupChannel,'Value')
-rdh.basic.(sprintf('constMaskSaveStrCh%d',2)) = data([data{:,3}],1);
-rdh.basic.(sprintf('constMaskSaveValCh%d',get(handles.popupChannel,'Value'))) = [data{[data{:,3}],2}];
 if(get(handles.popupChannel,'Value') == 1)
-    ch = 2;
-else
     ch = 1;
+else
+    ch = 2;
 end
+rdh.basic.(sprintf('constMaskSaveStrCh%d',ch)) = data([data{:,3}],1);%;
+%rdh.basic.(sprintf('constMaskSaveStrCh%d',2)) = data([data{:,3}],1);
+rdh.basic.(sprintf('constMaskSaveValCh%d',ch)) = [data{[data{:,3}],2}];
 dstr = getTableData(ch,rdh.basic,rdh.bounds,rdh.volatilePixel);
 rdh.basic.(sprintf('constMaskSaveValCh%d',ch)) = [dstr{[data{:,3}],2}];
 rdh.basic.fix2InitTargets = data([data{:,4}],1);
