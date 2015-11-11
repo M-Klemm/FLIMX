@@ -54,7 +54,7 @@ function varargout = GUI_optOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_optOptions
 
-% Last Modified by GUIDE v2.5 19-Apr-2013 15:31:12
+% Last Modified by GUIDE v2.5 11-Nov-2015 10:57:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -136,8 +136,7 @@ set(handles.editDE_StopVal,'String',data.options_de.stopVal);
 set(handles.editMSB_Fun,'String',data.options_msimplexbnd.MaxFunEvals);
 set(handles.editMSB_Iter,'String',data.options_msimplexbnd.MaxIter);
 set(handles.editMSB_TolFun,'String',data.options_msimplexbnd.TolFun);
-set(handles.editMSB_InitNodes,'String',data.options_msimplexbnd.initNodes);
-set(handles.editMSB_Strategy,'String',data.options_msimplexbnd.strategy);
+set(handles.popupMSB_MultSeeds,'Value',data.options_msimplexbnd.multipleSeedsMode);
 %fminsearchbnd
 set(handles.editFMSB_Fun,'String',data.options_fminsearchbnd.MaxFunEvals);
 set(handles.editFMSB_Iter,'String',data.options_fminsearchbnd.MaxIter);
@@ -265,16 +264,9 @@ rdh.isDirty(2) = 1;
 set(handles.optOptionsFigure,'userdata',rdh);
 set(hObject,'String',num2str(rdh.optParams.options_msimplexbnd.TolFun));
 
-function editMSB_InitNodes_Callback(hObject, eventdata, handles)
+function popupMSB_MultSeeds_Callback(hObject, eventdata, handles)
 rdh = get(handles.optOptionsFigure,'userdata');
-rdh.optParams.options_msimplexbnd.initNodes = max(min(str2double(get(hObject,'String')),100),0);
-rdh.isDirty(2) = 1;
-set(handles.optOptionsFigure,'userdata',rdh);
-set(hObject,'String',num2str(rdh.optParams.options_msimplexbnd.initNodes));
-
-function editMSB_Strategy_Callback(hObject, eventdata, handles)
-rdh = get(handles.optOptionsFigure,'userdata');
-rdh.optParams.options_msimplexbnd.strategy = get(hObject,'String');
+rdh.optParams.options_msimplexbnd.multipleSeedsMode = get(hObject,'String');
 rdh.isDirty(2) = 1;
 set(handles.optOptionsFigure,'userdata',rdh);
 
@@ -524,12 +516,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 % --- Executes during object creation, after setting all properties.
-function editMSB_InitNodes_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-% --- Executes during object creation, after setting all properties.
-function editMSB_Strategy_CreateFcn(hObject, eventdata, handles)
+function popupMSB_MultSeeds_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
