@@ -91,11 +91,11 @@ settingsDefault.useWaitbar        = 0;
 settingsDefault.postProcessHandle = '';
 
 if debugMode
-  fprintf('*********** Start of function %s **********\n', mfilename);
-  startTime    = mbtime;
-  showWarnings = 1;
-  setTime      = 0;
-  removeTime   = 0;
+    fprintf('*********** Start of function %s **********\n', mfilename);
+    startTime    = mbtime;
+    showWarnings = 1;
+    setTime      = 0;
+    removeTime   = 0;
 end
 
 %%%%%%%%%%%%%%%%
@@ -105,77 +105,77 @@ narginchk(2, 3);
 
 % check function handle cell
 if isa(functionHandleCell, 'function_handle')
-  % expand to cell array
-  functionHandleCell = repmat({func2str(functionHandleCell)}, size(parameterCell));
+    % expand to cell array
+    functionHandleCell = repmat({func2str(functionHandleCell)}, size(parameterCell));
 elseif(ischar(functionHandleCell))
     functionHandleCell = repmat({functionHandleCell}, size(parameterCell));
 else
-  if ~iscell(functionHandleCell)
-    error('First input argument must be a function handle or a cell array of function handles.');
-  elseif any(size(functionHandleCell) ~= size(parameterCell))
-    error('Input cell arrays functionHandleCell and parameterCell must be of the same size.');
-  end
+    if ~iscell(functionHandleCell)
+        error('First input argument must be a function handle or a cell array of function handles.');
+    elseif any(size(functionHandleCell) ~= size(parameterCell))
+        error('Input cell arrays functionHandleCell and parameterCell must be of the same size.');
+    end
 end
 
 % check parameter cell
 if ~iscell(parameterCell)
-  error('Second input argument must be a cell array.');
+    error('Second input argument must be a cell array.');
 end
 
 % get settings
 if ~exist('settings', 'var')
-  % use default settings
-  settings = settingsDefault;
+    % use default settings
+    settings = settingsDefault;
 elseif ~isstruct(settings)
-  error('Third input argument must be struct.');
+    error('Third input argument must be struct.');
 else
-  % set default values where fields are missing
-  fieldNames = fieldnames(settingsDefault);
-  for k=1:length(fieldNames)
-    if ~isfield(settings, fieldNames{k})
-      settings.(fieldNames{k}) = settingsDefault.(fieldNames{k});
+    % set default values where fields are missing
+    fieldNames = fieldnames(settingsDefault);
+    for k=1:length(fieldNames)
+        if ~isfield(settings, fieldNames{k})
+            settings.(fieldNames{k}) = settingsDefault.(fieldNames{k});
+        end
     end
-  end
 end
 
 % check number of evaluations at once
 nrOfEvals = numel(parameterCell);
 nrOfEvalsAtOnce = settings.nrOfEvalsAtOnce;
 if nrOfEvalsAtOnce > nrOfEvals
-  nrOfEvalsAtOnce = nrOfEvals;
+    nrOfEvalsAtOnce = nrOfEvals;
 elseif nrOfEvalsAtOnce < 1
-  error('Parameter nrOfEvalsAtOnce must be greater or equal one.');
+    error('Parameter nrOfEvalsAtOnce must be greater or equal one.');
 end
 nrOfEvalsAtOnce = round(nrOfEvalsAtOnce);
 
 % check slave file directory
 if isempty(settings.multicoreDir)
-  % create default slave file directory if not existing
-  multicoreDir = fullfile(tempdir2, 'multicorefiles');
-  if ~exist(multicoreDir, 'dir')
-    try
-      mkdir(multicoreDir);
-    catch
-      error('Unable to create slave file directory %s.', multicoreDir);
+    % create default slave file directory if not existing
+    multicoreDir = fullfile(tempdir2, 'multicorefiles');
+    if ~exist(multicoreDir, 'dir')
+        try
+            mkdir(multicoreDir);
+        catch
+            error('Unable to create slave file directory %s.', multicoreDir);
+        end
     end
-  end
 else
-  multicoreDir = settings.multicoreDir;
-  if ~exist(multicoreDir, 'dir')
-    error('Slave file directory %s not existing.', multicoreDir);
-  end
+    multicoreDir = settings.multicoreDir;
+    if ~exist(multicoreDir, 'dir')
+        error('Slave file directory %s not existing.', multicoreDir);
+    end
 end
 
 % check maxEvalTimeSingle
 maxEvalTimeSingle = settings.maxEvalTimeSingle;
 if maxEvalTimeSingle < 0
-  error('Parameter maxEvalTimeSingle must be greater or equal zero.');
+    error('Parameter maxEvalTimeSingle must be greater or equal zero.');
 end
 
 % Initialize waitbar
 clear multicoreWaitbar
 if settings.useWaitbar
-  multicoreWaitbar('init0', @multicoreCancel1);
+    multicoreWaitbar('init0', @multicoreCancel1);
 end
 
 % compute the maximum waiting time for a complete job
@@ -206,7 +206,7 @@ parameterFileNameTemplate = fullfile(multicoreDir,sprintf('parameters_%s_XX.mat'
 % compute number of files/jobs
 nrOfFiles = ceil(nrOfEvals / nrOfEvalsAtOnce);
 if debugMode
-  fprintf('nrOfFiles = %d\n', nrOfFiles);
+    fprintf('nrOfFiles = %d\n', nrOfFiles);
 end
 
 % Initialize waitbar again
@@ -214,7 +214,7 @@ multicoreWaitbar('init1', nrOfFiles);
 p = [];%gcp('nocreate');%MKlemm
 % if(isempty(p))
 %     filesAtOnce = 1;
-% else    
+% else
 %     filesAtOnce = 2;
 % end
 % save parameter files with all parameter sets
@@ -222,95 +222,95 @@ multicoreCancelled = false;
 tStart = tic;
 lastUpdate = clock;
 for lastFileNrMaster = nrOfFiles:-1:1
-%     if(~isempty(p) && isa(parameterCell{1}{1},'function_handle'))
-%         %create workunits in parallel        
-%         for i = 1:min(filesAtOnce,lastFileNrMaster)
-%             curFileNr = lastFileNrMaster-i+1;
-%             parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
-%             pTemp = parameterCell{parIndex};
-%             f(i) = parfeval(p,pTemp{1},1,pTemp{2:end});
-%         end
-%     end
-fBps = 0;
-%         if(~isempty(p))
-%             [idx,parameters] = fetchNext(f);
-%             curFileNr = lastFileNrMaster-idx+1;
-%             parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
-%             parameters = {parameters};
-%         else
-            curFileNr = lastFileNrMaster; % for simpler copy&paste
-            parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
-            pTemp = parameterCell{parIndex}; %MKlemm
-            if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
-                parameters = {feval(pTemp{1},pTemp{2:end})};
-            else
-                parameters      = parameterCell(parIndex); %#ok
+    %     if(~isempty(p) && isa(parameterCell{1}{1},'function_handle'))
+    %         %create workunits in parallel
+    %         for i = 1:min(filesAtOnce,lastFileNrMaster)
+    %             curFileNr = lastFileNrMaster-i+1;
+    %             parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
+    %             pTemp = parameterCell{parIndex};
+    %             f(i) = parfeval(p,pTemp{1},1,pTemp{2:end});
+    %         end
+    %     end
+    fBps = 0;
+    %         if(~isempty(p))
+    %             [idx,parameters] = fetchNext(f);
+    %             curFileNr = lastFileNrMaster-idx+1;
+    %             parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
+    %             parameters = {parameters};
+    %         else
+    curFileNr = lastFileNrMaster; % for simpler copy&paste
+    parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
+    pTemp = parameterCell{parIndex}; %MKlemm
+    if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
+        parameters = {feval(pTemp{1},pTemp{2:end})};
+    else
+        parameters      = parameterCell(parIndex); %#ok
+    end
+    %         end
+    functionHandles = functionHandleCell(parIndex); %#ok
+    parameterFileName = strrep(parameterFileNameTemplate, 'XX', sprintf('%04d', curFileNr));
+    tic;
+    if(isempty(p))
+        if debugMode, t1 = mbtime; end
+        sem = setfilesemaphore(parameterFileName);
+        if debugMode, setTime = setTime + mbtime - t1; end
+        try
+            save(parameterFileName, 'functionHandles', 'parameters'); %% file access %%
+            if debugMode
+                disp(sprintf('Parameter file nr %d generated.', curFileNr));
             end
-%         end
-        functionHandles = functionHandleCell(parIndex); %#ok
-        parameterFileName = strrep(parameterFileNameTemplate, 'XX', sprintf('%04d', curFileNr));
-        tic;
-        if(isempty(p))
-            if debugMode, t1 = mbtime; end
-            sem = setfilesemaphore(parameterFileName);
-            if debugMode, setTime = setTime + mbtime - t1; end
-            try
-                save(parameterFileName, 'functionHandles', 'parameters'); %% file access %%
-                if debugMode
-                    disp(sprintf('Parameter file nr %d generated.', curFileNr));
-                end
-            catch ME
-                if showWarnings
-                    disp(textwrap2(sprintf('Warning: Unable to save file %s.', parameterFileName)));
-                    displayerrorstruct;
-                end
-            end
-            removefilesemaphore(sem);
-            fInfo = dir(parameterFileName);
-            if(~isempty(fInfo))
-                fBps = fInfo.bytes ./ toc ./1024;
-            else
-                toc;
-                fBps = 0;
-            end
-            multicoreWaitbar('update1', nrOfFiles, curFileNr,fBps);
-        else
-            f(abs(lastFileNrMaster-nrOfFiles-1)) = parfeval(p,@savewrap,1,parameterFileName,functionHandles,parameters);
-            if(etime(clock, lastUpdate) > 2)
-                bytes = 0;
-                idx = 0;
-                while(~isempty(idx))
-                    try
-                        [idx,sTmp] = fetchNext(f,0.001);
-                        if(~isempty(sTmp))
-                            if(sTmp.bytes)
-                                bytes = bytes+sTmp.bytes;
-                            else
-                                disp(sTmp.message);
-                            end
-                        end
-                    catch
-                        idx = [];
-                    end
-                end
-                fBps = bytes ./ etime(clock, lastUpdate) ./1024;
-                multicoreWaitbar('update1', nrOfFiles, curFileNr,fBps);
-                lastUpdate = clock;
+        catch ME
+            if showWarnings
+                disp(textwrap2(sprintf('Warning: Unable to save file %s.', parameterFileName)));
+                displayerrorstruct;
             end
         end
-        
-        % Update waitbar        
+        removefilesemaphore(sem);
+        fInfo = dir(parameterFileName);
+        if(~isempty(fInfo))
+            fBps = fInfo.bytes ./ toc ./1024;
+        else
+            toc;
+            fBps = 0;
+        end
+        multicoreWaitbar('update1', nrOfFiles, curFileNr,fBps);
+    else
+        f(abs(lastFileNrMaster-nrOfFiles-1)) = parfeval(p,@savewrap,1,parameterFileName,functionHandles,parameters);
+        if(etime(clock, lastUpdate) > 2)
+            bytes = 0;
+            idx = 0;
+            while(~isempty(idx))
+                try
+                    [idx,sTmp] = fetchNext(f,0.001);
+                    if(~isempty(sTmp))
+                        if(sTmp.bytes)
+                            bytes = bytes+sTmp.bytes;
+                        else
+                            disp(sTmp.message);
+                        end
+                    end
+                catch
+                    idx = [];
+                end
+            end
+            fBps = bytes ./ etime(clock, lastUpdate) ./1024;
+            multicoreWaitbar('update1', nrOfFiles, curFileNr,fBps);
+            lastUpdate = clock;
+        end
+    end
     
-%     for i = 1:min(filesAtOnce,lastFileNrMaster)
-%         if debugMode, t1 = mbtime; end
-%         removefilesemaphore(sem(i));
-%         if debugMode, removeTime = removeTime + mbtime - t1; end
-%     end
-
-  if multicoreCancelled
-    multicoreCancel2(lastFileNrMaster, nrOfFiles);
-    return
-  end
+    % Update waitbar
+    
+    %     for i = 1:min(filesAtOnce,lastFileNrMaster)
+    %         if debugMode, t1 = mbtime; end
+    %         removefilesemaphore(sem(i));
+    %         if debugMode, removeTime = removeTime + mbtime - t1; end
+    %     end
+    
+    if multicoreCancelled
+        multicoreCancel2(lastFileNrMaster, nrOfFiles);
+        return
+    end
 end
 if(~isempty(p))
     %wait for the last writes to finish
@@ -333,581 +333,595 @@ multicoreWaitbar('init2');
 % Call "clear functions" to ensure that the latest file versions are used,
 % no older versions in Matlab's memory.
 %clear functions
-
 firstRun = true;
 masterIsWorker = settings.masterIsWorker;
-while 1 % this while-loop will be left if all work is done
-  if masterIsWorker && ~firstRun
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % work down the file list from top %
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if debugMode
-      fprintf('********** 1. Working from top to bottom (file nr %d)\n', lastFileNrMaster);
-    end
-    curFileNr = lastFileNrMaster; % for simpler copy&paste
-    parameterFileName = strrep(parameterFileNameTemplate, 'XX', sprintf('%04d', curFileNr));
-    resultFileName    = strrep(parameterFileName, 'parameters', 'result' );
-    workingFileName   = strrep(parameterFileName, 'parameters', 'working');
-    parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
-
-    if multicoreCancelled
-      multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
-      return
-    end
-
-    if debugMode, t1 = mbtime; end
-    sem = setfilesemaphore(parameterFileName);
-    if debugMode, setTime = setTime + mbtime - t1; end
-
-    parameterFileExisting = ~isempty(dir(parameterFileName));
-    if parameterFileExisting
-      % If the parameter file is existing, no other process has started
-      % working on that job --> Remove parameter file, so that no slave
-      % process can load it. The master will do the current job.
-      mbdelete(parameterFileName, showWarnings);
-      if debugMode
-        fprintf('Parameter file nr %d deleted by master.\n', curFileNr);
-      end
-    end
-
-    % check if the current parameter set was evaluated before by a slave process
-    resultLoaded = false;
-    if parameterFileExisting
-      % If the master has taken the parameter file, there is no need to check
-      % for a result. Semaphore will be removed below.
-      if debugMode
-        fprintf('Not checking for result because parameter file nr %d was existing.\n', curFileNr);
-      end
-
-    else
-      % Another process has taken the parameter file. This branch is
-      % entered if master and slave "meet in the middle", i.e. if a slave
-      % has taken the parameter file of the job the master would have done
-      % next. In this case, the master will wait until the job was finished
-      % by the slave process or until the job has timed out.
-      curPauseTime = startPauseTime;
-      firstRun = true;
-      while 1 % this while-loop will be left if result was loaded or job timed out
-        if firstRun
-          % use the semaphore generated above
-          firstRun = false;
-        else
-          % set semaphore
-          if debugMode, t1 = mbtime; end
-          sem = setfilesemaphore(parameterFileName);
-          if debugMode, setTime = setTime + mbtime - t1; end
-        end
-
-        % Check if the result is available. The semaphore file of the
-        % parameter file is used for the following file accesses of the
-        % result file.
-        if ~isempty(dir(resultFileName))
-          [result, resultLoaded] = loadResultFile(resultFileName, showWarnings);
-          if resultLoaded && debugMode
-            fprintf('Result file nr %d loaded.\n', curFileNr);
-          end
-        else
-          resultLoaded = false;
-          if debugMode
-            fprintf('Result file nr %d was not found.\n', curFileNr);
-          end
-        end
-
-        if resultLoaded
-          % Save result
-          resultCell(parIndex) = result;
-          nrOfFilesSlaves = nrOfFilesSlaves + 1;
-          
-          % Run postprocessing function
-          postProcStruct.state            = 'after loading result';
-          postProcStruct.lastFileNrMaster = lastFileNrMaster;
-          postProcStruct.lastFileNrSlave  = lastFileNrSlave;
-          postProcStruct.resultIndices    = parIndex;
-          postProcStruct.resultCell       = resultCell;
-          postProcStruct.nrOfFiles        = nrOfFiles;
-          postProcStruct.nrOfFilesMaster  = nrOfFilesMaster;
-          postProcStruct.nrOfFilesSlaves  = nrOfFilesSlaves;
-          if ~isempty(settings.postProcessHandle)
-              if(~feval(settings.postProcessHandle, postProcStruct,settings.postProcessParams))
-                  multicoreCancel1();
-              end
-          end
-          
-          % Update waitbar
-          multicoreWaitbar('update2', nrOfFiles, nrOfFilesMaster, nrOfFilesSlaves);
-
-          % Leave while-loop immediately after result was loaded. Semaphore
-          % will be removed below.
-          break
-        end
-
-        % Check if the processing time (current time minus time stamp of
-        % working file) exceeds the maximum wait time. Still using the
-        % semaphore of the parameter file from above.
-        if ~isempty(dir(workingFileName))
-          if debugMode
-            fprintf('Master found working file nr %d.\n', curFileNr);
-          end
-
-          % Check if the job timed out by getting the time when the slave
-          % started working on that file. If the job has timed out, the
-          % master will do the job.
-          jobTimedOut = mbtime - getfiledate(workingFileName) * 86400 > maxMasterWaitTime;
-        else
-          % No working file has been found. The loop is immediately left
-          % and the master will do the job.
-          if showWarnings
-            fprintf('Warning: Working file %s not found.\n', workingFileName);
-          end
-          jobTimedOut = true;
-        end
-
-        if jobTimedOut
-          if debugMode
-            fprintf('Job nr %d has timed out.\n', curFileNr);
-          end
-          % As the slave process seems to be dead or too slow, the master
-          % will do the job itself (semaphore will be removed below).
-          break
-        else
-          if debugMode
-            fprintf('Job nr %d has NOT timed out.\n', curFileNr);
-          end
-        end
-
-        % If the job did not time out, remove semaphore and wait a moment
-        % before checking again
-        if debugMode, t1 = mbtime; end
-        removefilesemaphore(sem);
-        if debugMode, removeTime = removeTime + mbtime - t1; end
-
+while ~all(~cellfun(@isempty,resultCell)) %1 % this while-loop will be left if all work is done
+    if masterIsWorker && ~firstRun
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % work down the file list from top %
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         if debugMode
-          fprintf('Waiting for result (file nr %d).\n', curFileNr);
+            fprintf('********** 1. Working from top to bottom (file nr %d)\n', lastFileNrMaster);
         end
-
-        pause(curPauseTime);
-        curPauseTime = min(maxPauseTime, curPauseTime + startPauseTime);
-      end % while 1
-    end % if parameterFileExisting
-
-    % remove semaphore
-    if debugMode, t1 = mbtime; end
-    removefilesemaphore(sem);
-    if debugMode, removeTime = removeTime + mbtime - t1; end
-
-    if multicoreCancelled
-      multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
-      return
-    end
-
-    % evaluate function if the result could not be loaded
-    if ~resultLoaded
-      if debugMode
-        fprintf('Master evaluates job nr %d.\n', curFileNr);
-        t0 = mbtime;
-      end
-      for k = parIndex
-        if debugMode
-          %fprintf(' %d,', k);
-        end
-%         if iscell(parameterCell{k})
-%           resultCell{k} = feval(functionHandleCell{k}, parameterCell{k}{:});
-%         else
-%           resultCell{k} = feval(functionHandleCell{k}, parameterCell{k});
-%         end
-        pTemp = parameterCell{k}; %MKlemm        
-        if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
-            parameters = feval(pTemp{1},pTemp{2:end});
-            %parameters = {feval(pTemp{1},pTemp{2:end})};
-        else
-            %parameters      = pTemp;
-            if(iscell(pTemp))
-                parameters = pTemp;
-            else
-                parameters = pTemp;
-            end
-        end
-        resultCell{k} = feval(functionHandleCell{k}, parameters{:});
+        curFileNr = find(cellfun(@isempty,resultCell),1,'first');%lastFileNrMaster; % for simpler copy&paste
+        parameterFileName = strrep(parameterFileNameTemplate, 'XX', sprintf('%04d', curFileNr));
+        resultFileName    = strrep(parameterFileName, 'parameters', 'result' );
+        workingFileName   = strrep(parameterFileName, 'parameters', 'working');
+        parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
         
         if multicoreCancelled
-          multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
-          return
+            multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
+            return
         end
-      end
-      nrOfFilesMaster = nrOfFilesMaster + 1;
-      
-      % Run postprocessing function
-      postProcStruct.state            = 'after master evaluation';
-      postProcStruct.lastFileNrMaster = lastFileNrMaster;
-      postProcStruct.lastFileNrSlave  = lastFileNrSlave;
-      postProcStruct.resultIndices    = parIndex;
-      postProcStruct.resultCell       = resultCell;
-      postProcStruct.nrOfFiles        = nrOfFiles;
-      postProcStruct.nrOfFilesMaster  = nrOfFilesMaster;
-      postProcStruct.nrOfFilesSlaves  = nrOfFilesSlaves;
-      if ~isempty(settings.postProcessHandle)
-          if(~feval(settings.postProcessHandle, postProcStruct,settings.postProcessParams))
-              multicoreCancel1();
-          end
-      end
-
-      % Update waitbar
-      multicoreWaitbar('update2', nrOfFiles, nrOfFilesMaster, nrOfFilesSlaves);
-
-      if debugMode
-        fprintf('Master finished job nr %d in %.2f seconds.\n', curFileNr, mbtime - t0);
-      end
-    end
-
-    % move to next file
-    lastFileNrMaster = lastFileNrMaster + 1;
-    if debugMode
-      fprintf('Moving to next file (%d -> %d).\n', curFileNr, curFileNr + 1);
-    end
-
-  end % if masterIsWorker
-
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % Check if all work is done %
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % (lastFileNrMaster - 1) is the number of the file/job that was last computed/loaded when
-  % working down the list from top to bottom.
-  % (lastFileNrSlave + 1) is the number of the file/job that was last computed/loaded when
-  % checking for results from bottom to top.
-  if (lastFileNrMaster - 1) + 1 == (lastFileNrSlave + 1)
-    % all results have been collected, leave big while-loop
-    if debugMode
-      disp('********************************');
-      fprintf('All work is done (lastFileNrMaster = %d, lastFileNrSlave = %d).\n', lastFileNrMaster, lastFileNrSlave);
-    end
-    break
-  end
-
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % work down the file list from bottom to top and collect results %
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  if debugMode
-    fprintf('********** 2. Working from bottom to top (file nr %d)\n', lastFileNrSlave);
-  end
-
-  curPauseTime = startPauseTime;
-  while 1 % in this while-loop, lastFileNrSlave will be decremented if results are found
-    if lastFileNrSlave < 1
-      % all work is done
-      if debugMode
-        disp('********************************');
-        fprintf('All work is done (lastFileNrSlave = %d).\n', lastFileNrSlave);
-      end
-      break
-    end
-
-    curFileNr = lastFileNrSlave; % for simpler copy&paste
-    parameterFileName = strrep(parameterFileNameTemplate, 'XX', sprintf('%04d', curFileNr));
-    resultFileName    = strrep(parameterFileName, 'parameters', 'result' );
-    workingFileName   = strrep(parameterFileName, 'parameters', 'working');
-    parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
-
-    if multicoreCancelled
-      multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
-      return
-    end
-
-    % set semaphore (only for the parameter file to reduce overhead)
-    if debugMode, t1 = mbtime; end
-    sem = setfilesemaphore(parameterFileName);
-    if debugMode, setTime = setTime + mbtime - t1; end
-
-    % Check if the result is available (the semaphore file of the
-    % parameter file is used for the following file accesses of the
-    % result file)
-    if ~isempty(dir(resultFileName))
-      [result, resultLoaded] = loadResultFile(resultFileName, showWarnings);
-      if resultLoaded && debugMode
-        fprintf('Result file nr %d loaded.\n', curFileNr);
-      end
-    else
-      resultLoaded = false;
-      if debugMode
-        fprintf('Result file nr %d was not found.\n', curFileNr);
-      end
-    end
-
-    if resultLoaded
-      % Result was successfully loaded. Remove semaphore.
-      if debugMode, t1 = mbtime; end
-      removefilesemaphore(sem);
-      if debugMode, removeTime = removeTime + mbtime - t1; end
-
-      % Save result
-      resultCell(parIndex) = result;
-      nrOfFilesSlaves = nrOfFilesSlaves + 1;
-
-      % Run postprocessing function
-      postProcStruct.state            = 'after loading result';
-      postProcStruct.lastFileNrMaster = lastFileNrMaster;
-      postProcStruct.lastFileNrSlave  = lastFileNrSlave;
-      postProcStruct.resultIndices    = parIndex;
-      postProcStruct.resultCell       = resultCell;
-      postProcStruct.nrOfFiles        = nrOfFiles;
-      postProcStruct.nrOfFilesMaster  = nrOfFilesMaster;
-      postProcStruct.nrOfFilesSlaves  = nrOfFilesSlaves;
-      if ~isempty(settings.postProcessHandle)
-        if(~feval(settings.postProcessHandle, postProcStruct,settings.postProcessParams))
-            multicoreCancel1();
-        end
-      end
-
-      % Update waitbar
-      multicoreWaitbar('update2', nrOfFiles, nrOfFilesMaster, nrOfFilesSlaves);
-
-      % Reset variables
-      parameterFileFoundTime = NaN;
-      curPauseTime = startPauseTime;
-      parameterFileRegCounter = 0;
-
-      % Decrement lastFileNrSlave
-      lastFileNrSlave = lastFileNrSlave - 1;
-
-      % Check if all work is done
-      if (lastFileNrMaster - 1) + 1 == (lastFileNrSlave + 1)
-        % all results have been collected
-        break
-      else
-        if debugMode
-          fprintf('***** Moving to next file (%d -> %d).\n', curFileNr, curFileNr-1);
-        end
-
-        % move to next file
-        continue
-      end
-
-    else
-      % Result was not available.
-
-      % Check if parameter file is existing.
-      parameterFileExisting = ~isempty(dir(parameterFileName));
-
-      % Check if job timed out.
-      if parameterFileExisting
-        if debugMode
-          fprintf('Parameter file nr %d was existing.\n', curFileNr);
-        end
-
-        % If the parameter file is existing, no other process has started
-        % working on that job yet, which is most of the times normal.
-        if ~isnan(parameterFileFoundTime)
-          % If parameterFileFoundTime is not NaN, the same parameter file
-          % has been found before. Now check if the job has timed out,
-          % i.e. no slave process seems to be alive.
-          jobTimedOut = mbtime - parameterFileFoundTime > maxMasterWaitTime;
-        else
-          % Remember the current time to decide later if the job has timed out.
-          parameterFileFoundTime = mbtime;
-          jobTimedOut = false;
-        end
-      else
-        if debugMode
-          fprintf('Parameter file nr %d was NOT existing.\n', curFileNr);
-        end
-
-        % Parameter file has been taken by a slave, who should be working
-        % on the job.
-        if ~isempty(dir(workingFileName))
-          if debugMode
-            fprintf('Master found working file nr %d.\n', curFileNr);
-          end
-          % Check if the job has timed out using the time stamp of the
-          % working file.
-          jobTimedOut = mbtime - getfiledate(workingFileName) * 86400 > maxMasterWaitTime;
-        else
-          % Parameter file has been taken but no working file has been
-          % generated, which is not normal. The master will generate the
-          % parameter file again or do the job.
-          if showWarnings
-            fprintf('Warning: Working file %s not found.\n', workingFileName);
-          end
-          jobTimedOut = true;
-        end
-      end % if parameterFileExisting
-
-      % Do the job or generate parameter file again if job has timed out.
-      if jobTimedOut
-        if debugMode
-          fprintf('Job nr %d has timed out.\n', curFileNr);
-        end
-
+        
+        if debugMode, t1 = mbtime; end
+        sem = setfilesemaphore(parameterFileName);
+        if debugMode, setTime = setTime + mbtime - t1; end
+        
+        parameterFileExisting = ~isempty(dir(parameterFileName));
         if parameterFileExisting
-          % The job timed out and the parameter file was existing, so
-          % something seems to be wrong. A possible reason is that no
-          % slaves are alive anymore. The master will do the job.
-
-          % Remove parameter file so that no other slave process can load it.
-          mbdelete(parameterFileName, showWarnings);
-          if debugMode
-            fprintf('Parameter file nr %d deleted by master.\n', curFileNr);
-          end
-        else
-          % The job timed out and the parameter file was not existing.
-          % A possible reason is that a slave process was killed while
-          % working on the current job (if a slave is still working on
-          % the job and is just too slow, the parameter maxEvalTimeSingle
-          % should be chosen higher). The parameter file is generated
-          % again, hoping that another slave will finish the job. If all
-          % slaves are dead, the master will later do the job.
-          functionHandles = functionHandleCell(parIndex); %#ok
-          pTemp = parameterCell{parIndex}; %MKlemm
-          if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
-              parameters = {feval(pTemp{1},pTemp{2:end})};
-          else
-              parameters      = parameterCell(parIndex); %#ok
-          end
-          try
-            save(parameterFileName, 'functionHandles', 'parameters'); %% file access %%
+            % If the parameter file is existing, no other process has started
+            % working on that job --> Remove parameter file, so that no slave
+            % process can load it. The master will do the current job.
+            mbdelete(parameterFileName, showWarnings);
             if debugMode
-              fprintf('Parameter file nr %d was generated again (%d. time).\n', ...
-                curFileNr, parameterFileRegCounter);
+                fprintf('Parameter file nr %d deleted by master.\n', curFileNr);
             end
-          catch
-            if showWarnings
-              disp(textwrap2(sprintf('Warning: Unable to save file %s.', parameterFileName)));
-              displayerrorstruct;
-            end
-          end
-          parameterFileRegCounter = parameterFileRegCounter + 1;
         end
-
-        % Remove semaphore.
+        
+        % check if the current parameter set was evaluated before by a slave process
+        resultLoaded = false;
+        if parameterFileExisting
+            % If the master has taken the parameter file, there is no need to check
+            % for a result. Semaphore will be removed below.
+            if debugMode
+                fprintf('Not checking for result because parameter file nr %d was existing.\n', curFileNr);
+            end
+            
+        else
+            % Another process has taken the parameter file. This branch is
+            % entered if master and slave "meet in the middle", i.e. if a slave
+            % has taken the parameter file of the job the master would have done
+            % next. In this case, the master will wait until the job was finished
+            % by the slave process or until the job has timed out.
+            curPauseTime = startPauseTime;
+            firstRun = true;
+            while 1 % this while-loop will be left if result was loaded or job timed out
+                if firstRun
+                    % use the semaphore generated above
+                    firstRun = false;
+                else
+                    % set semaphore
+                    if debugMode, t1 = mbtime; end
+                    sem = setfilesemaphore(parameterFileName);
+                    if debugMode, setTime = setTime + mbtime - t1; end
+                end
+                
+                % Check if the result is available. The semaphore file of the
+                % parameter file is used for the following file accesses of the
+                % result file.
+                if ~isempty(dir(resultFileName))
+                    [result, resultLoaded] = loadResultFile(resultFileName, showWarnings);
+                    if resultLoaded && debugMode
+                        fprintf('Result file nr %d loaded.\n', curFileNr);
+                    end
+                else
+                    resultLoaded = false;
+                    if debugMode
+                        fprintf('Result file nr %d was not found.\n', curFileNr);
+                    end
+                end
+                
+                if resultLoaded
+                    % Save result
+                    resultCell(parIndex) = result;
+                    nrOfFilesSlaves = nrOfFilesSlaves + 1;
+                    
+                    % Run postprocessing function
+                    postProcStruct.state            = 'after loading result';
+                    postProcStruct.lastFileNrMaster = lastFileNrMaster;
+                    postProcStruct.lastFileNrSlave  = lastFileNrSlave;
+                    postProcStruct.resultIndices    = parIndex;
+                    postProcStruct.resultCell       = resultCell;
+                    postProcStruct.nrOfFiles        = nrOfFiles;
+                    postProcStruct.nrOfFilesMaster  = nrOfFilesMaster;
+                    postProcStruct.nrOfFilesSlaves  = nrOfFilesSlaves;
+                    if ~isempty(settings.postProcessHandle)
+                        if(~feval(settings.postProcessHandle, postProcStruct,settings.postProcessParams))
+                            multicoreCancel1();
+                        end
+                    end
+                    
+                    % Update waitbar
+                    multicoreWaitbar('update2', nrOfFiles, nrOfFilesMaster, nrOfFilesSlaves);
+                    
+                    % Leave while-loop immediately after result was loaded. Semaphore
+                    % will be removed below.
+                    break
+                end
+                
+                % Check if the processing time (current time minus time stamp of
+                % working file) exceeds the maximum wait time. Still using the
+                % semaphore of the parameter file from above.
+                if ~isempty(dir(workingFileName))
+                    if debugMode
+                        fprintf('Master found working file nr %d.\n', curFileNr);
+                    end
+                    
+                    % Check if the job timed out by getting the time when the slave
+                    % started working on that file. If the job has timed out, the
+                    % master will do the job.
+                    jobTimedOut = mbtime - getfiledate(workingFileName) * 86400 > maxMasterWaitTime;
+                else
+                    % No working file has been found. The loop is immediately left
+                    % and the master will do the job.
+                    if showWarnings
+                        fprintf('Warning: Working file %s not found.\n', workingFileName);
+                    end
+                    jobTimedOut = true;
+                end
+                
+                if jobTimedOut
+                    if debugMode
+                        fprintf('Job nr %d has timed out.\n', curFileNr);
+                    end
+                    % As the slave process seems to be dead or too slow, the master
+                    % will do the job itself (semaphore will be removed below).
+                    break
+                else
+                    if debugMode
+                        fprintf('Job nr %d has NOT timed out.\n', curFileNr);
+                    end
+                end
+                
+                % If the job did not time out, remove semaphore and wait a moment
+                % before checking again
+                if debugMode, t1 = mbtime; end
+                removefilesemaphore(sem);
+                if debugMode, removeTime = removeTime + mbtime - t1; end
+                
+                if debugMode
+                    fprintf('Waiting for result (file nr %d).\n', curFileNr);
+                end
+                
+                pause(curPauseTime);
+                curPauseTime = min(maxPauseTime, curPauseTime + startPauseTime);
+            end % while 1
+        end % if parameterFileExisting
+        
+        % remove semaphore
         if debugMode, t1 = mbtime; end
         removefilesemaphore(sem);
         if debugMode, removeTime = removeTime + mbtime - t1; end
-
+        
         if multicoreCancelled
-          multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
-          return
+            multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
+            return
         end
-
-        if parameterFileExisting  || parameterFileRegCounter > 2
-          % The current job has timed out and the parameter file was not
-          % generated again OR the same parameter file has been
-          % re-generated several times ==> The master will do the job.
-          if debugMode
-            fprintf('Master evaluates job nr %d.\n', curFileNr);
-            t0 = mbtime;
-          end
-          for k = parIndex
-%             if iscell(parameterCell{k})
-%               resultCell{k} = feval(functionHandleCell{k}, parameterCell{k}{:});
-%             else
-%               resultCell{k} = feval(functionHandleCell{k}, parameterCell{k});
-%             end
-            pTemp = parameterCell{k}; %MKlemm
-            if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
-                parameters = feval(pTemp{1},pTemp{2:end});
-            else
-                if(iscell(pTemp))
-                    parameters = pTemp;
+        
+        % evaluate function if the result could not be loaded
+        if ~resultLoaded
+            if debugMode
+                fprintf('Master evaluates job nr %d.\n', curFileNr);
+                t0 = mbtime;
+            end
+            for k = parIndex
+                if debugMode
+                    %fprintf(' %d,', k);
+                end
+                %         if iscell(parameterCell{k})
+                %           resultCell{k} = feval(functionHandleCell{k}, parameterCell{k}{:});
+                %         else
+                %           resultCell{k} = feval(functionHandleCell{k}, parameterCell{k});
+                %         end
+                pTemp = parameterCell{k}; %MKlemm
+                if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
+                    parameters = feval(pTemp{1},pTemp{2:end});
+                    %parameters = {feval(pTemp{1},pTemp{2:end})};
                 else
-                    parameters = pTemp;
+                    %parameters      = pTemp;
+                    if(iscell(pTemp))
+                        parameters = pTemp;
+                    else
+                        parameters = pTemp;
+                    end
+                end
+                resultCell{k} = feval(functionHandleCell{k}, parameters{:});
+                if multicoreCancelled
+                    multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
+                    return
                 end
             end
-            resultCell{k} = feval(functionHandleCell{k}, parameters{:});
-        
-            if multicoreCancelled
-              multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
-              return
+            nrOfFilesMaster = nrOfFilesMaster + 1;
+            
+            % Run postprocessing function
+            postProcStruct.state            = 'after master evaluation';
+            postProcStruct.lastFileNrMaster = lastFileNrMaster;
+            postProcStruct.lastFileNrSlave  = lastFileNrSlave;
+            postProcStruct.resultIndices    = parIndex;
+            postProcStruct.resultCell       = resultCell;
+            postProcStruct.nrOfFiles        = nrOfFiles;
+            postProcStruct.nrOfFilesMaster  = nrOfFilesMaster;
+            postProcStruct.nrOfFilesSlaves  = nrOfFilesSlaves;
+            if ~isempty(settings.postProcessHandle)
+                if(~feval(settings.postProcessHandle, postProcStruct,settings.postProcessParams))
+                    multicoreCancel1();
+                end
             end
-
-          end
-          nrOfFilesMaster = nrOfFilesMaster + 1;
-          
-          % Run postprocessing function
-          postProcStruct.state            = 'after master evaluation';
-          postProcStruct.lastFileNrMaster = lastFileNrMaster;
-          postProcStruct.lastFileNrSlave  = lastFileNrSlave;
-          postProcStruct.resultIndices    = parIndex;
-          postProcStruct.resultCell       = resultCell;
-          postProcStruct.nrOfFiles        = nrOfFiles;
-          postProcStruct.nrOfFilesMaster  = nrOfFilesMaster;
-          postProcStruct.nrOfFilesSlaves  = nrOfFilesSlaves;
-          if ~isempty(settings.postProcessHandle)
-              if(~feval(settings.postProcessHandle, postProcStruct,settings.postProcessParams))
-                  multicoreCancel1();
-              end
-          end
-
-          % Update waitbar
-          multicoreWaitbar('update2', nrOfFiles, nrOfFilesMaster, nrOfFilesSlaves);
-
-          if debugMode
-            fprintf('Master finished job nr %d in %.2f seconds.\n', curFileNr, mbtime - t0);
-          end
-
-          % Result has been computed, move to next file
-          lastFileNrSlave = lastFileNrSlave - 1;
-
-          % Reset number of times the current parameter file was generated
-          % again
-          parameterFileRegCounter = 0;
-
-          if debugMode
-            fprintf('Moving to next file (%d -> %d).\n', curFileNr, curFileNr-1);
-          end
-        else
-          % The parameter file has been generated again. The master does
-          % not do the job, lastFileNrSlave is not decremented.
-        end % if ~parameterFileExisting
-
-        % reset variables
-        parameterFileFoundTime = NaN;
-        curPauseTime = startPauseTime;
-      else
+            
+            % Update waitbar
+            multicoreWaitbar('update2', nrOfFiles, nrOfFilesMaster, nrOfFilesSlaves);
+            
+            if debugMode
+                fprintf('Master finished job nr %d in %.2f seconds.\n', curFileNr, mbtime - t0);
+            end
+        end
+        
+        % move to next file
+        lastFileNrMaster = lastFileNrMaster + 1;
         if debugMode
-          fprintf('Job nr %d has NOT timed out.\n', curFileNr);
+            fprintf('Moving to next file (%d -> %d).\n', curFileNr, curFileNr + 1);
         end
-
-        % Remove semaphore.
-        if debugMode, t1 = mbtime; end
-        removefilesemaphore(sem);
-        if debugMode, removeTime = removeTime + mbtime - t1; end
-
-        if ~masterIsWorker
-          % If the master is only coordinator, wait some time before
-          % checking again
-          if debugMode
-            fprintf('Coordinator is waiting %.2f seconds\n', curPauseTime);
-          end
-          pause(curPauseTime);
-          curPauseTime = min(maxPauseTime, curPauseTime + startPauseTime);
-        end
-      end % if jobTimedOut
-
-      if masterIsWorker
-        % If the master is also a worker, leave the while-loop if the
-        % result has not been loaded. Either the job timed out and was done
-        % by the master or the job has not been finished yet but is also
-        % not timed out, which is normal.
-        break
-      else
-        % If the master is only coordinator, stay in the while-loop.
-      end
-
-    end % if resultLoaded
-  end % while 1
-
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % Check if all work is done %
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % (see comment between the two while-loops)
-  if (lastFileNrMaster - 1) + 1 == (lastFileNrSlave + 1)
-    % all results have been collected, leave big while-loop
+        
+    end % if masterIsWorker
+    
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     % Check if all work is done %
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     % (lastFileNrMaster - 1) is the number of the file/job that was last computed/loaded when
+%     % working down the list from top to bottom.
+%     % (lastFileNrSlave + 1) is the number of the file/job that was last computed/loaded when
+%     % checking for results from bottom to top.
+%     if(~any(resultsFinished(:)))%(lastFileNrMaster - 1) + 1 == (lastFileNrSlave + 1)
+%         % all results have been collected, leave big while-loop
+%         if debugMode
+%             disp('********************************');
+%             fprintf('All work is done (lastFileNrMaster = %d, lastFileNrSlave = %d).\n', lastFileNrMaster, lastFileNrSlave);
+%         end
+%         break
+%     end
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % work down the file list from bottom to top and collect results %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if debugMode
-      disp('********************************');
-      fprintf('All work is done (lastFileNrMaster = %d, lastFileNrSlave = %d).\n', lastFileNrMaster, lastFileNrSlave);
+        fprintf('********** 2. Working from bottom to top (file nr %d)\n', lastFileNrSlave);
     end
-    break
-  end
-  
-  firstRun = false;
+    
+    resultFiles = rdir([multicoreDir, filesep, 'result_*.mat']);
+    resultFiles = resultFiles(~[resultFiles.isdir]);
+    curPauseTime = startPauseTime;
+    for i = 1:length(resultFiles) % in this while-loop, lastFileNrSlave will be decremented if results are found
+        %     if lastFileNrSlave < 1
+        %       % all work is done
+        %       if debugMode
+        %         disp('********************************');
+        %         fprintf('All work is done (lastFileNrSlave = %d).\n', lastFileNrSlave);
+        %       end
+        %       break
+        %     end
+        [~,name,~] = fileparts(resultFiles(i).name);
+        if(length(name) >= 10 && all(isstrprop(name(end-3:end),'digit')))
+            curFileNr = str2double(name(end-3:end));
+        else
+            %something is wrong with the file name
+            continue
+        end
+        %curFileNr = lastFileNrSlave; % for simpler copy&paste
+        parameterFileName = strrep(parameterFileNameTemplate, 'XX', sprintf('%04d', curFileNr));
+        resultFileName    = strrep(parameterFileName, 'parameters', 'result' );
+        workingFileName   = strrep(parameterFileName, 'parameters', 'working');
+        parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
+        
+        if multicoreCancelled
+            multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
+            return
+        end
+        
+        % set semaphore (only for the parameter file to reduce overhead)
+        if debugMode, t1 = mbtime; end
+        sem = setfilesemaphore(parameterFileName);
+        if debugMode, setTime = setTime + mbtime - t1; end
+        
+        % Check if the result is available (the semaphore file of the
+        % parameter file is used for the following file accesses of the
+        % result file)
+        if ~isempty(dir(resultFileName))
+            [result, resultLoaded] = loadResultFile(resultFileName, showWarnings);
+            if resultLoaded && debugMode
+                fprintf('Result file nr %d loaded.\n', curFileNr);
+            end
+        else
+            resultLoaded = false;
+            if debugMode
+                fprintf('Result file nr %d was not found.\n', curFileNr);
+            end
+        end
+        
+        if resultLoaded
+            % Result was successfully loaded. Remove semaphore.
+            if debugMode, t1 = mbtime; end
+            removefilesemaphore(sem);
+            if debugMode, removeTime = removeTime + mbtime - t1; end
+            
+            % Save result
+            resultCell(parIndex) = result;
+            nrOfFilesSlaves = nrOfFilesSlaves + 1;
+            % Run postprocessing function
+            postProcStruct.state            = 'after loading result';
+            postProcStruct.lastFileNrMaster = lastFileNrMaster;
+            postProcStruct.lastFileNrSlave  = lastFileNrSlave;
+            postProcStruct.resultIndices    = parIndex;
+            postProcStruct.resultCell       = resultCell;
+            postProcStruct.nrOfFiles        = nrOfFiles;
+            postProcStruct.nrOfFilesMaster  = nrOfFilesMaster;
+            postProcStruct.nrOfFilesSlaves  = nrOfFilesSlaves;
+            if ~isempty(settings.postProcessHandle)
+                if(~feval(settings.postProcessHandle, postProcStruct,settings.postProcessParams))
+                    multicoreCancel1();
+                end
+            end
+            
+            % Update waitbar
+            multicoreWaitbar('update2', nrOfFiles, nrOfFilesMaster, nrOfFilesSlaves);
+            
+            % Reset variables
+            parameterFileFoundTime = NaN;
+            curPauseTime = startPauseTime;
+            parameterFileRegCounter = 0;
+            
+            % Decrement lastFileNrSlave
+            lastFileNrSlave = lastFileNrSlave - 1;
+            
+%             % Check if all work is done
+%             if (lastFileNrMaster - 1) + 1 == (lastFileNrSlave + 1)
+%                 % all results have been collected
+%                 break
+%             else
+%                 if debugMode
+%                     fprintf('***** Moving to next file (%d -> %d).\n', curFileNr, curFileNr-1);
+%                 end
+%                 
+%                 % move to next file
+%                 continue
+%             end
+            
+        else
+            % Result was not available.
+            
+            % Check if parameter file is existing.
+            parameterFileExisting = ~isempty(dir(parameterFileName));
+            
+            % Check if job timed out.
+            if parameterFileExisting
+                if debugMode
+                    fprintf('Parameter file nr %d was existing.\n', curFileNr);
+                end
+                
+                % If the parameter file is existing, no other process has started
+                % working on that job yet, which is most of the times normal.
+                if ~isnan(parameterFileFoundTime)
+                    % If parameterFileFoundTime is not NaN, the same parameter file
+                    % has been found before. Now check if the job has timed out,
+                    % i.e. no slave process seems to be alive.
+                    jobTimedOut = mbtime - parameterFileFoundTime > maxMasterWaitTime;
+                else
+                    % Remember the current time to decide later if the job has timed out.
+                    parameterFileFoundTime = mbtime;
+                    jobTimedOut = false;
+                end
+            else
+                if debugMode
+                    fprintf('Parameter file nr %d was NOT existing.\n', curFileNr);
+                end
+                
+                % Parameter file has been taken by a slave, who should be working
+                % on the job.
+                if ~isempty(dir(workingFileName))
+                    if debugMode
+                        fprintf('Master found working file nr %d.\n', curFileNr);
+                    end
+                    % Check if the job has timed out using the time stamp of the
+                    % working file.
+                    jobTimedOut = mbtime - getfiledate(workingFileName) * 86400 > maxMasterWaitTime;
+                else
+                    % Parameter file has been taken but no working file has been
+                    % generated, which is not normal. The master will generate the
+                    % parameter file again or do the job.
+                    if showWarnings
+                        fprintf('Warning: Working file %s not found.\n', workingFileName);
+                    end
+                    jobTimedOut = true;
+                end
+            end % if parameterFileExisting
+            
+            % Do the job or generate parameter file again if job has timed out.
+            if jobTimedOut
+                if debugMode
+                    fprintf('Job nr %d has timed out.\n', curFileNr);
+                end
+                
+                if parameterFileExisting
+                    % The job timed out and the parameter file was existing, so
+                    % something seems to be wrong. A possible reason is that no
+                    % slaves are alive anymore. The master will do the job.
+                    
+                    % Remove parameter file so that no other slave process can load it.
+                    mbdelete(parameterFileName, showWarnings);
+                    if debugMode
+                        fprintf('Parameter file nr %d deleted by master.\n', curFileNr);
+                    end
+                else
+                    % The job timed out and the parameter file was not existing.
+                    % A possible reason is that a slave process was killed while
+                    % working on the current job (if a slave is still working on
+                    % the job and is just too slow, the parameter maxEvalTimeSingle
+                    % should be chosen higher). The parameter file is generated
+                    % again, hoping that another slave will finish the job. If all
+                    % slaves are dead, the master will later do the job.
+                    functionHandles = functionHandleCell(parIndex); %#ok
+                    pTemp = parameterCell{parIndex}; %MKlemm
+                    if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
+                        parameters = {feval(pTemp{1},pTemp{2:end})};
+                    else
+                        parameters      = parameterCell(parIndex); %#ok
+                    end
+                    try
+                        save(parameterFileName, 'functionHandles', 'parameters'); %% file access %%
+                        if debugMode
+                            fprintf('Parameter file nr %d was generated again (%d. time).\n', ...
+                                curFileNr, parameterFileRegCounter);
+                        end
+                    catch
+                        if showWarnings
+                            disp(textwrap2(sprintf('Warning: Unable to save file %s.', parameterFileName)));
+                            displayerrorstruct;
+                        end
+                    end
+                    parameterFileRegCounter = parameterFileRegCounter + 1;
+                end
+                
+                % Remove semaphore.
+                if debugMode, t1 = mbtime; end
+                removefilesemaphore(sem);
+                if debugMode, removeTime = removeTime + mbtime - t1; end
+                
+                if multicoreCancelled
+                    multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
+                    return
+                end
+                
+                if parameterFileExisting  || parameterFileRegCounter > 2
+                    % The current job has timed out and the parameter file was not
+                    % generated again OR the same parameter file has been
+                    % re-generated several times ==> The master will do the job.
+                    if debugMode
+                        fprintf('Master evaluates job nr %d.\n', curFileNr);
+                        t0 = mbtime;
+                    end
+                    for k = parIndex
+                        %             if iscell(parameterCell{k})
+                        %               resultCell{k} = feval(functionHandleCell{k}, parameterCell{k}{:});
+                        %             else
+                        %               resultCell{k} = feval(functionHandleCell{k}, parameterCell{k});
+                        %             end
+                        pTemp = parameterCell{k}; %MKlemm
+                        if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
+                            parameters = feval(pTemp{1},pTemp{2:end});
+                        else
+                            if(iscell(pTemp))
+                                parameters = pTemp;
+                            else
+                                parameters = pTemp;
+                            end
+                        end
+                        resultCell{k} = feval(functionHandleCell{k}, parameters{:});
+                        if multicoreCancelled
+                            multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
+                            return
+                        end
+                        
+                    end
+                    nrOfFilesMaster = nrOfFilesMaster + 1;
+                    
+                    % Run postprocessing function
+                    postProcStruct.state            = 'after master evaluation';
+                    postProcStruct.lastFileNrMaster = lastFileNrMaster;
+                    postProcStruct.lastFileNrSlave  = lastFileNrSlave;
+                    postProcStruct.resultIndices    = parIndex;
+                    postProcStruct.resultCell       = resultCell;
+                    postProcStruct.nrOfFiles        = nrOfFiles;
+                    postProcStruct.nrOfFilesMaster  = nrOfFilesMaster;
+                    postProcStruct.nrOfFilesSlaves  = nrOfFilesSlaves;
+                    if ~isempty(settings.postProcessHandle)
+                        if(~feval(settings.postProcessHandle, postProcStruct,settings.postProcessParams))
+                            multicoreCancel1();
+                        end
+                    end
+                    
+                    % Update waitbar
+                    multicoreWaitbar('update2', nrOfFiles, nrOfFilesMaster, nrOfFilesSlaves);
+                    
+                    if debugMode
+                        fprintf('Master finished job nr %d in %.2f seconds.\n', curFileNr, mbtime - t0);
+                    end
+                    
+                    % Result has been computed, move to next file
+                    lastFileNrSlave = lastFileNrSlave - 1;
+                    
+                    % Reset number of times the current parameter file was generated
+                    % again
+                    parameterFileRegCounter = 0;
+                    
+                    if debugMode
+                        fprintf('Moving to next file (%d -> %d).\n', curFileNr, curFileNr-1);
+                    end
+                else
+                    % The parameter file has been generated again. The master does
+                    % not do the job, lastFileNrSlave is not decremented.
+                end % if ~parameterFileExisting
+                
+                % reset variables
+                parameterFileFoundTime = NaN;
+                curPauseTime = startPauseTime;
+            else
+                if debugMode
+                    fprintf('Job nr %d has NOT timed out.\n', curFileNr);
+                end
+                
+                % Remove semaphore.
+                if debugMode, t1 = mbtime; end
+                removefilesemaphore(sem);
+                if debugMode, removeTime = removeTime + mbtime - t1; end
+                
+                if ~masterIsWorker
+                    % If the master is only coordinator, wait some time before
+                    % checking again
+                    if debugMode
+                        fprintf('Coordinator is waiting %.2f seconds\n', curPauseTime);
+                    end
+                    pause(curPauseTime);
+                    curPauseTime = min(maxPauseTime, curPauseTime + startPauseTime);
+                end
+            end % if jobTimedOut
+            
+            if masterIsWorker
+                % If the master is also a worker, leave the while-loop if the
+                % result has not been loaded. Either the job timed out and was done
+                % by the master or the job has not been finished yet but is also
+                % not timed out, which is normal.
+                break
+            else
+                % If the master is only coordinator, stay in the while-loop.
+            end
+            
+        end % if resultLoaded
+    end % while 1
+    
+    if ~masterIsWorker %M.Klemm
+        % If the master is only coordinator, wait some time before
+        % checking again
+        if debugMode
+            fprintf('Coordinator is waiting %.2f seconds\n', curPauseTime);
+        end
+        pause(curPauseTime);
+        curPauseTime = min(maxPauseTime, curPauseTime + startPauseTime);
+    end
+    
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     % Check if all work is done %
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     % (see comment between the two while-loops)
+%     if(all(~cellfun(@isempty,resultCell)))% (lastFileNrMaster - 1) + 1 == (lastFileNrSlave + 1)
+%         % all results have been collected, leave big while-loop
+%         if debugMode
+%             disp('********************************');
+%             fprintf('All work is done (lastFileNrMaster = %d, lastFileNrSlave = %d).\n', lastFileNrMaster, lastFileNrSlave);
+%         end
+%         break
+%     end
+    
+    firstRun = false;
 end % while 1
 
 % Delete waitbar
@@ -915,17 +929,17 @@ multicoreWaitbar('delete');
 [status, message, ~] = rmdir(multicoreDir,'s');
 
 if debugMode
-  fprintf('\nSummary:\n--------\n');
-  fprintf('%2d jobs at all\n',         nrOfFiles);
-  fprintf('%2d jobs done by master\n', nrOfFilesMaster);
-  fprintf('%2d jobs done by slaves\n', nrOfFilesSlaves);
-  overallTime = mbtime - startTime;
-  fprintf('Processing took %.1f seconds.\n', overallTime);
-  fprintf('Overhead caused by setting  semaphores: %.1f seconds (%.1f%%).\n', ...
-    setTime,    100*setTime    / overallTime);
-  fprintf('Overhead caused by removing semaphores: %.1f seconds (%.1f%%).\n', ...
-    removeTime, 100*removeTime / overallTime);
-  fprintf('\n*********** End of function %s **********\n', mfilename);
+    fprintf('\nSummary:\n--------\n');
+    fprintf('%2d jobs at all\n',         nrOfFiles);
+    fprintf('%2d jobs done by master\n', nrOfFilesMaster);
+    fprintf('%2d jobs done by slaves\n', nrOfFilesSlaves);
+    overallTime = mbtime - startTime;
+    fprintf('Processing took %.1f seconds.\n', overallTime);
+    fprintf('Overhead caused by setting  semaphores: %.1f seconds (%.1f%%).\n', ...
+        setTime,    100*setTime    / overallTime);
+    fprintf('Overhead caused by removing semaphores: %.1f seconds (%.1f%%).\n', ...
+        removeTime, 100*removeTime / overallTime);
+    fprintf('\n*********** End of function %s **********\n', mfilename);
 end
 
 % Ask user for feedback
@@ -936,54 +950,54 @@ end
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % I don't like using nested functions, but they are useful for handling
 % callbacks.
-  function multicoreCancel1
-    % This function is called by function cancelCallback if the user
-    % pressed the "Cancel" button in the waitbar window.
-    fprintf('Function %s cancelled upon user request.\n', mfilename);
+    function multicoreCancel1
+        % This function is called by function cancelCallback if the user
+        % pressed the "Cancel" button in the waitbar window.
+        fprintf('Function %s cancelled upon user request.\n', mfilename);
+        
+        % set variable multicoreCancelled
+        multicoreCancelled = true;
+        
+    end % function
 
-    % set variable multicoreCancelled
-    multicoreCancelled = true;
-
-  end % function
-
-  function multicoreCancel2(minFileNr, maxFileNr)
-    % This function is called from somewhere in the large while-loop if the
-    % variable multicoreCancelled is true.
-
-    % Initialize waitbar again
-    multicoreWaitbar('init3');
-
-    % Remove all remaining parameter files
-    for fileNrTmp = minFileNr:maxFileNr
-      curFileNr = fileNrTmp; % for simpler copy&paste
-      parameterFileName = strrep(parameterFileNameTemplate, 'XX', sprintf('%04d', curFileNr));
-
-      if debugMode, t1 = mbtime; end
-      sem = setfilesemaphore(parameterFileName);
-      if debugMode
-        setTime = setTime + mbtime - t1;
-        parameterFileExistingTmp = ~isempty(dir(parameterFileName));
-      end
-
-      mbdelete(parameterFileName, showWarnings);
-      if debugMode, t1 = mbtime; end
-      removefilesemaphore(sem);
-      if debugMode, removeTime = removeTime + mbtime - t1; end
-
-      multicoreWaitbar('update3', minFileNr, maxFileNr, fileNrTmp);
-      if debugMode && parameterFileExistingTmp
-        fprintf('Parameter file nr %d deleted.\n', curFileNr);
-      end
-    end
-
-    % Delete waitbar
-    multicoreWaitbar('delete');
-
-    % Set return value to empty cell
-    resultCell = {};
-    [status, message, ~] = rmdir(multicoreDir,'s');
-
-  end % function
+    function multicoreCancel2(minFileNr, maxFileNr)
+        % This function is called from somewhere in the large while-loop if the
+        % variable multicoreCancelled is true.
+        
+        % Initialize waitbar again
+        multicoreWaitbar('init3');
+        
+        % Remove all remaining parameter files
+        for fileNrTmp = minFileNr:maxFileNr
+            curFileNr = fileNrTmp; % for simpler copy&paste
+            parameterFileName = strrep(parameterFileNameTemplate, 'XX', sprintf('%04d', curFileNr));
+            
+            if debugMode, t1 = mbtime; end
+            sem = setfilesemaphore(parameterFileName);
+            if debugMode
+                setTime = setTime + mbtime - t1;
+                parameterFileExistingTmp = ~isempty(dir(parameterFileName));
+            end
+            
+            mbdelete(parameterFileName, showWarnings);
+            if debugMode, t1 = mbtime; end
+            removefilesemaphore(sem);
+            if debugMode, removeTime = removeTime + mbtime - t1; end
+            
+            multicoreWaitbar('update3', minFileNr, maxFileNr, fileNrTmp);
+            if debugMode && parameterFileExistingTmp
+                fprintf('Parameter file nr %d deleted.\n', curFileNr);
+            end
+        end
+        
+        % Delete waitbar
+        multicoreWaitbar('delete');
+        
+        % Set return value to empty cell
+        resultCell = {};
+        [status, message, ~] = rmdir(multicoreDir,'s');
+        
+    end % function
 
 end % function startmulticoremaster
 
@@ -1015,39 +1029,39 @@ lasterror('reset');
 
 % try to load file
 try
-  result = []; % (only for M-Lint)
-  load(resultFileName, 'result'); %% file access %%
-  resultLoaded = true;
+    result = []; % (only for M-Lint)
+    load(resultFileName, 'result'); %% file access %%
+    resultLoaded = true;
 catch %#ok
-  resultLoaded = false;
-  if showWarnings
-    fprintf('Warning: Unable to load file %s.\n', resultFileName);
-    displayerrorstruct;
-  end
+    resultLoaded = false;
+    if showWarnings
+        fprintf('Warning: Unable to load file %s.\n', resultFileName);
+        displayerrorstruct;
+    end
 end
 
 % display warning (if any)
 if showWarnings
-  lastMsg = lastwarn;
-  if ~isempty(lastMsg)
-    fprintf('Warning issued when trying to load file %s:\n%s\n', ...
-      resultFileName, lastMsg);
-  end
+    lastMsg = lastwarn;
+    if ~isempty(lastMsg)
+        fprintf('Warning issued when trying to load file %s:\n%s\n', ...
+            resultFileName, lastMsg);
+    end
 end
 
 % check if variable 'result' is existing
 if resultLoaded && ~exist('result', 'var')
-  if showWarnings
-    fprintf('Warning: Variable ''%s'' not existing after loading file %s.\n', ...
-      'result', resultFileName);
-  end
-  resultLoaded = false;
+    if showWarnings
+        fprintf('Warning: Variable ''%s'' not existing after loading file %s.\n', ...
+            'result', resultFileName);
+    end
+    resultLoaded = false;
 end
 
 if resultLoaded
-  % it seems that loading was successful
-  % try to remove result file
-  mbdelete(resultFileName, showWarnings); %% file access %%
+    % it seems that loading was successful
+    % try to remove result file
+    mbdelete(resultFileName, showWarnings); %% file access %%
 end
 
 end % function
@@ -1059,32 +1073,32 @@ function multicoreWaitbar(command, varargin)
 persistent useWaitbar initialized waitbarHandle waitbarMessage fractionReady
 persistent clockStart1 clockStart2 clockInit0 clockUpdate multicoreCancelHandle
 if isempty(initialized)
-  initialized   = 0;
-  useWaitbar    = 0;
-  fractionReady = 0;
+    initialized   = 0;
+    useWaitbar    = 0;
+    fractionReady = 0;
 end
 
 switch command
-  case 'init0'
-    % called after the first input argument checks
-
-    % save persistent variables
-    multicoreCancelHandle = varargin{1};
-    useWaitbar = 1;
-
-    % remember time
-    clockInit0  = clock;
-    clockUpdate = clock;
-
-    % nothing else to do now
-    return
-
-  otherwise
-    % nothing to do
+    case 'init0'
+        % called after the first input argument checks
+        
+        % save persistent variables
+        multicoreCancelHandle = varargin{1};
+        useWaitbar = 1;
+        
+        % remember time
+        clockInit0  = clock;
+        clockUpdate = clock;
+        
+        % nothing else to do now
+        return
+        
+    otherwise
+        % nothing to do
 end
 
 if ~useWaitbar
-  return
+    return
 end
 
 tag = 'Multicore waitbar';
@@ -1092,134 +1106,134 @@ waitbarExisting = ~isempty(waitbarHandle) && ishandle(waitbarHandle);
 updateNow = etime(clock, clockUpdate) > 1.0;
 
 switch command
-  case 'init1'
-    % called before parameter file generation
-
-    % change waitbar message
-    nrOfFiles = varargin{1};
-    waitbarMessage = sprintf('Generating parameter files.\n0/%d done.\n\n', nrOfFiles);
-    fractionReady = 0;
-
-    % remember time
-    clockStart1 = clock;
-    clockUpdate = clock;
-
-  case 'update1'
-    % update during parameter file generation
-    if updateNow
-      nrOfFiles = varargin{1};
-      lastFileNrMaster    = varargin{2};
-      nrOfFilesReady = lastFileNrMaster - 1;
-      fractionReady = 1 - (nrOfFilesReady / nrOfFiles); % lastFileNrMaster decreases from nrOfFiles to 1
-      if fractionReady > 0
-        timeLeft = etime(clock, clockStart1) * (1 - fractionReady) / fractionReady;
-        waitbarMessage = sprintf('Generating parameter files.\n%d/%d done.\nest. time left: %s\napprox. speed: %.2f kB/s', ...
-          nrOfFiles - nrOfFilesReady, nrOfFiles, formatTime(round(timeLeft), 'short'), varargin{3});
-      else
-        waitbarMessage = '';
-      end
-    end
-
-  case 'init2'
-    % called before start of big while-loop
-
-    % change waitbar message
-    waitbarMessage = sprintf('0.0%% done by master\n0.0%% done by slaves\n0.0%% done overall\n');
-    fractionReady  = 0;
-
-    % force update, as first function evaluation may take a long time
-    updateNow = 1;
-
-    % remember time
-    clockStart2 = clock;
-    clockUpdate = clock;
-
-  case 'update2'
-    % update after function evaluation
-    if updateNow
-      nrOfFiles       = varargin{1};
-      nrOfFilesMaster = varargin{2};
-      nrOfFilesSlaves = varargin{3};
-      nrOfFilesReady  = nrOfFilesMaster + nrOfFilesSlaves;
-
-      if 1%nrOfFilesReady > 1 % master should have checked for results at least once
+    case 'init1'
+        % called before parameter file generation
         
-        fractionReady = nrOfFilesReady / nrOfFiles;
-
-        if nrOfFilesSlaves > 0
-          nrOfFilesSlavesTmp = nrOfFilesSlaves + 0.5; % tweak for better estimation
-        else
-          nrOfFilesSlavesTmp = nrOfFilesSlaves;
+        % change waitbar message
+        nrOfFiles = varargin{1};
+        waitbarMessage = sprintf('Generating parameter files.\n0/%d done.\n\n', nrOfFiles);
+        fractionReady = 0;
+        
+        % remember time
+        clockStart1 = clock;
+        clockUpdate = clock;
+        
+    case 'update1'
+        % update during parameter file generation
+        if updateNow
+            nrOfFiles = varargin{1};
+            lastFileNrMaster    = varargin{2};
+            nrOfFilesReady = lastFileNrMaster - 1;
+            fractionReady = 1 - (nrOfFilesReady / nrOfFiles); % lastFileNrMaster decreases from nrOfFiles to 1
+            if fractionReady > 0
+                timeLeft = etime(clock, clockStart1) * (1 - fractionReady) / fractionReady;
+                waitbarMessage = sprintf('Generating parameter files.\n%d/%d done.\nest. time left: %s\napprox. speed: %.2f kB/s', ...
+                    nrOfFiles - nrOfFilesReady, nrOfFiles, formatTime(round(timeLeft), 'short'), varargin{3});
+            else
+                waitbarMessage = '';
+            end
         end
-        filesPerSecond = ...
-          nrOfFilesMaster    / etime(clock, clockStart2) + ...
-          nrOfFilesSlavesTmp / etime(clock, clockStart1);
-        timeLeft = (nrOfFiles - nrOfFilesReady) / filesPerSecond;
-
-        waitbarMessage = sprintf('%.1f%% done by master\n%.1f%% done by slaves\n%.1f%% done overall\nest. time left: %s (%s)', ...
-          100 * nrOfFilesMaster / nrOfFiles, 100 * nrOfFilesSlaves / nrOfFiles, ...
-          100 * nrOfFilesReady  / nrOfFiles, formatTime(round(timeLeft), 'short'),...
-          datestr(addtodate(now,round(timeLeft),'second'),'HH:MM:SS'));
-      else
-        waitbarMessage = '';
-      end
-    end
-
-  case 'init3'
-    % called after user cancellation
-
-    % change waitbar message
-    waitbarMessage = sprintf('Removing parameter files.\n0.0%% done.\n\n');
-    fractionReady = 0;
-
-    % remember time
-    clockStart1 = clock;
-    clockUpdate = clock;
-
-  case 'update3'
-    % update during deleting parameter files (if user cancelled)
-    if updateNow
-      minFileNr = varargin{1};
-      maxFileNr = varargin{2};
-      lastFileNrMaster    = varargin{3};
-      nrOfFiles = maxFileNr - minFileNr + 1;
-      fractionReady = (lastFileNrMaster - minFileNr + 1) / nrOfFiles;
-      timeLeft = etime(clock, clockStart1) * (1 - fractionReady) / fractionReady;
-      waitbarMessage = sprintf('Removing parameter files.\n%.1f%% done.\nest. time left: %s\n', ...
-        100 * fractionReady, formatTime(round(timeLeft), 'short'));
-    end
-
-  case 'delete'
-    % delete waitbar
-    if waitbarExisting
-      delete(waitbarHandle);
-    end
-    initialized = 0;
-    return
-
-  otherwise
-    error('Command "%s" unknown.', command);
+        
+    case 'init2'
+        % called before start of big while-loop
+        
+        % change waitbar message
+        waitbarMessage = sprintf('0.0%% done by master\n0.0%% done by slaves\n0.0%% done overall\n');
+        fractionReady  = 0;
+        
+        % force update, as first function evaluation may take a long time
+        updateNow = 1;
+        
+        % remember time
+        clockStart2 = clock;
+        clockUpdate = clock;
+        
+    case 'update2'
+        % update after function evaluation
+        if updateNow
+            nrOfFiles       = varargin{1};
+            nrOfFilesMaster = varargin{2};
+            nrOfFilesSlaves = varargin{3};
+            nrOfFilesReady  = nrOfFilesMaster + nrOfFilesSlaves;
+            
+            if 1%nrOfFilesReady > 1 % master should have checked for results at least once
+                
+                fractionReady = nrOfFilesReady / nrOfFiles;
+                
+                if nrOfFilesSlaves > 0
+                    nrOfFilesSlavesTmp = nrOfFilesSlaves + 0.5; % tweak for better estimation
+                else
+                    nrOfFilesSlavesTmp = nrOfFilesSlaves;
+                end
+                filesPerSecond = ...
+                    nrOfFilesMaster    / etime(clock, clockStart2) + ...
+                    nrOfFilesSlavesTmp / etime(clock, clockStart1);
+                timeLeft = (nrOfFiles - nrOfFilesReady) / filesPerSecond;
+                
+                waitbarMessage = sprintf('%.1f%% done by master\n%.1f%% done by slaves\n%.1f%% done overall\nest. time left: %s (%s)', ...
+                    100 * nrOfFilesMaster / nrOfFiles, 100 * nrOfFilesSlaves / nrOfFiles, ...
+                    100 * nrOfFilesReady  / nrOfFiles, formatTime(round(timeLeft), 'short'),...
+                    datestr(addtodate(now,round(timeLeft),'second'),'HH:MM:SS'));
+            else
+                waitbarMessage = '';
+            end
+        end
+        
+    case 'init3'
+        % called after user cancellation
+        
+        % change waitbar message
+        waitbarMessage = sprintf('Removing parameter files.\n0.0%% done.\n\n');
+        fractionReady = 0;
+        
+        % remember time
+        clockStart1 = clock;
+        clockUpdate = clock;
+        
+    case 'update3'
+        % update during deleting parameter files (if user cancelled)
+        if updateNow
+            minFileNr = varargin{1};
+            maxFileNr = varargin{2};
+            lastFileNrMaster    = varargin{3};
+            nrOfFiles = maxFileNr - minFileNr + 1;
+            fractionReady = (lastFileNrMaster - minFileNr + 1) / nrOfFiles;
+            timeLeft = etime(clock, clockStart1) * (1 - fractionReady) / fractionReady;
+            waitbarMessage = sprintf('Removing parameter files.\n%.1f%% done.\nest. time left: %s\n', ...
+                100 * fractionReady, formatTime(round(timeLeft), 'short'));
+        end
+        
+    case 'delete'
+        % delete waitbar
+        if waitbarExisting
+            delete(waitbarHandle);
+        end
+        initialized = 0;
+        return
+        
+    otherwise
+        error('Command "%s" unknown.', command);
 end
 
 if ~initialized && ~isempty(waitbarMessage)  %&& (...
     %(fractionReady  > 0.05 && etime(clock, clockInit0) >  5.0) || ...
     %etime(clock, clockInit0) > 10.0)
-  
-  % remove all waitbars generated before
-  delete(findobj('Tag', tag));
-
-  % generate new waitbar
-  waitbarHandle = waitbar(fractionReady, waitbarMessage, 'Name', 'Multicore progress', 'Tag', tag, ...
-    'CreateCancelBtn', {@cancelCallback, multicoreCancelHandle});
-  set(waitbarHandle, 'HandleVisibility', 'on', 'CloseRequestFcn', 'closereq');
-  initialized = 1;
-  clockUpdate = clock;
+    
+    % remove all waitbars generated before
+    delete(findobj('Tag', tag));
+    
+    % generate new waitbar
+    waitbarHandle = waitbar(fractionReady, waitbarMessage, 'Name', 'Multicore progress', 'Tag', tag, ...
+        'CreateCancelBtn', {@cancelCallback, multicoreCancelHandle});
+    set(waitbarHandle, 'HandleVisibility', 'on', 'CloseRequestFcn', 'closereq');
+    initialized = 1;
+    clockUpdate = clock;
 end
 
 if initialized && waitbarExisting && updateNow
-  % update waitbar
-  waitbar(fractionReady, waitbarHandle, waitbarMessage);
-  clockUpdate = clock;
+    % update waitbar
+    waitbar(fractionReady, waitbarHandle, waitbarMessage);
+    clockUpdate = clock;
 end
 
 end % function
@@ -1263,114 +1277,114 @@ function timeString = formatTime(time, mode)
 %		See also ETIME.
 
 if nargin == 0
-  fprintf('\nExamples for strings returned by function %s.m:\n', mfilename);
-  time = [0 1e-4 0.1 1 1.1 2 60 61 62 120 121 122 3600 3660 3720 7200 7260 7320 ...
-    3600*24 3600*25 3600*26 3600*48 3600*49 3600*50];
-  for k=1:length(time)
-    fprintf('time = %6g, timeString = ''%s''\n', time(k), formatTime(time(k)));
-  end
-  if nargout > 0
-    timeString = '';
-  end
-  return
+    fprintf('\nExamples for strings returned by function %s.m:\n', mfilename);
+    time = [0 1e-4 0.1 1 1.1 2 60 61 62 120 121 122 3600 3660 3720 7200 7260 7320 ...
+        3600*24 3600*25 3600*26 3600*48 3600*49 3600*50];
+    for k=1:length(time)
+        fprintf('time = %6g, timeString = ''%s''\n', time(k), formatTime(time(k)));
+    end
+    if nargout > 0
+        timeString = '';
+    end
+    return
 end
 
 if ~exist('mode', 'var')
-  mode = 'long';
+    mode = 'long';
 end
 
 if time < 0
-  disp('Warning: Time must be greater or equal zero.');
-  timeString = '';
+    disp('Warning: Time must be greater or equal zero.');
+    timeString = '';
 elseif time >= 3600*24
-  days = floor(time / (3600*24));
-  if days > 1
-    dayString = 'days';
-  else
-    dayString = 'day';
-  end
-  hours = floor(mod(time, 3600*24) / 3600);
-  if hours == 0
-    timeString = sprintf('%d %s', days, dayString);
-  else
-    if hours > 1
-      hourString = 'hours';
+    days = floor(time / (3600*24));
+    if days > 1
+        dayString = 'days';
     else
-      hourString = 'hour';
+        dayString = 'day';
     end
-    timeString = sprintf('%d %s and %d %s', days, dayString, hours, hourString);
-  end
-
+    hours = floor(mod(time, 3600*24) / 3600);
+    if hours == 0
+        timeString = sprintf('%d %s', days, dayString);
+    else
+        if hours > 1
+            hourString = 'hours';
+        else
+            hourString = 'hour';
+        end
+        timeString = sprintf('%d %s and %d %s', days, dayString, hours, hourString);
+    end
+    
 elseif time >= 3600
-  hours = floor(mod(time, 3600*24) / 3600);
-  if hours > 1
-    hourString = 'hours';
-  else
-    hourString = 'hour';
-  end
-  minutes = floor(mod(time, 3600) / 60);
-  if minutes == 0
-    timeString = sprintf('%d %s', hours, hourString);
-  else
-    if minutes > 1
-      minuteString = 'minutes';
+    hours = floor(mod(time, 3600*24) / 3600);
+    if hours > 1
+        hourString = 'hours';
     else
-      minuteString = 'minute';
+        hourString = 'hour';
     end
-    timeString = sprintf('%d %s and %d %s', hours, hourString, minutes, minuteString);
-  end
-
+    minutes = floor(mod(time, 3600) / 60);
+    if minutes == 0
+        timeString = sprintf('%d %s', hours, hourString);
+    else
+        if minutes > 1
+            minuteString = 'minutes';
+        else
+            minuteString = 'minute';
+        end
+        timeString = sprintf('%d %s and %d %s', hours, hourString, minutes, minuteString);
+    end
+    
 elseif time >= 60
-  minutes = floor(time / 60);
-  if minutes > 1
-    minuteString = 'minutes';
-  else
-    minuteString = 'minute';
-  end
-  seconds = floor(mod(time, 60));
-  if seconds == 0
-    timeString = sprintf('%d %s', minutes, minuteString);
-  else
-    if seconds > 1
-      secondString = 'seconds';
+    minutes = floor(time / 60);
+    if minutes > 1
+        minuteString = 'minutes';
     else
-      secondString = 'second';
+        minuteString = 'minute';
     end
-    timeString = sprintf('%d %s and %d %s', minutes, minuteString, seconds, secondString);
-  end
-
+    seconds = floor(mod(time, 60));
+    if seconds == 0
+        timeString = sprintf('%d %s', minutes, minuteString);
+    else
+        if seconds > 1
+            secondString = 'seconds';
+        else
+            secondString = 'second';
+        end
+        timeString = sprintf('%d %s and %d %s', minutes, minuteString, seconds, secondString);
+    end
+    
 else
-  if time > 10
-    seconds = floor(time);
-  else
-    seconds = floor(time * 100) / 100;
-  end
-  if seconds > 0
-    if seconds ~= 1
-      timeString = sprintf('%.4g seconds', seconds);
+    if time > 10
+        seconds = floor(time);
     else
-      timeString = '1 second';
+        seconds = floor(time * 100) / 100;
     end
-  else
-    timeString = sprintf('%.4g seconds', time);
-  end
+    if seconds > 0
+        if seconds ~= 1
+            timeString = sprintf('%.4g seconds', seconds);
+        else
+            timeString = '1 second';
+        end
+    else
+        timeString = sprintf('%.4g seconds', time);
+    end
 end
 
 switch mode
-  case 'long'
-    % do nothing
-  case 'short'
-    timeString = strrep(timeString, ' and ', ' ');
-    timeString = strrep(timeString, ' days', 'd');
-    timeString = strrep(timeString, ' day', 'd');
-    timeString = strrep(timeString, ' hours', 'h');
-    timeString = strrep(timeString, ' hour', 'h');
-    timeString = strrep(timeString, ' minutes', 'm');
-    timeString = strrep(timeString, ' minute', 'm');
-    timeString = strrep(timeString, ' seconds', 's');
-    timeString = strrep(timeString, ' second', 's');
-  otherwise
-    error('Mode ''%s'' unknown in function %s.', mode, mfilename);
+    case 'long'
+        % do nothing
+    case 'short'
+        timeString = strrep(timeString, ' and ', ' ');
+        timeString = strrep(timeString, ' days', 'd');
+        timeString = strrep(timeString, ' day', 'd');
+        timeString = strrep(timeString, ' hours', 'h');
+        timeString = strrep(timeString, ' hour', 'h');
+        timeString = strrep(timeString, ' minutes', 'm');
+        timeString = strrep(timeString, ' minute', 'm');
+        timeString = strrep(timeString, ' seconds', 's');
+        timeString = strrep(timeString, ' second', 's');
+    otherwise
+        error('Mode ''%s'' unknown in function %s.', mode, mfilename);
 end
 
 end % function
