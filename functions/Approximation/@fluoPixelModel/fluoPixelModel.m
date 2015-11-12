@@ -742,7 +742,11 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     scSmooth = zeros(size(scData));
                     idxSc = zeros(nScatter,1);
                     for i = 1:nScatter
-                        scSmooth(:,i) = fastsmooth(scData(:,i),3,3,0);
+                        if(i ~= nScatter)
+                            scSmooth(:,i) = fastsmooth(scData(:,i),3,3,0);
+                        else
+                            scSmooth(:,i) = scData(:,i);
+                        end
                         [scMaxVal(i), scMaxPos(i)] = max(scSmooth(:,i),[],1);
                         %get slope position of scatter data and measurement data
                         idxSc(i) = find(scData(1:scMaxPos(i),i) <= scMaxVal(i)/10,1,'last');
@@ -778,7 +782,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     if(this.basicParams.scatterIRF)
                         %move IRF to same position as model
                         [~, dMaxPos] = max(fastsmooth(dataTmp(:),5,3,0),[],1);
-                        scShifts(end) = (dMaxPos-scMaxPos(end))*this.getFileInfo(chList(chIdx)).timeChannelWidth;%hShift;  
+                        scShifts(end) = -(dMaxPos-scMaxPos(end))*this.getFileInfo(chList(chIdx)).timeChannelWidth;%hShift;  
                         scShiftsLB = scShifts(end);
                         scShiftsUB = scShifts(end);
                         nScatter = nScatter-1;

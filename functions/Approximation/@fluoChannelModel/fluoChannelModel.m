@@ -219,8 +219,10 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 for i = 1:nScatter
                     smoothData(:,i) = circshift(fastsmooth(data(:,i),3,3,0),rot);
                     %remove 10 points from the borders
-                    nonZero(1:find(nonZero,1,'first')+5,i) = false;
-                    nonZero(find(nonZero,1,'last')-5:end,i) = false;
+                    if(sum(nonZero > nTime/2))
+                        nonZero(1:find(nonZero,1,'first')+5,i) = false;
+                        nonZero(find(nonZero,1,'last')-5:end,i) = false;
+                    end
                     nonZero(:,i) = circshift(nonZero(:,i), rot);
                     smoothData(:,i) = interp1(find(nonZero(:,i)),smoothData(nonZero(:,i),i),1:nTime)';
                     smoothData(:,i) = circshift(smoothData(:,i), -rot);
