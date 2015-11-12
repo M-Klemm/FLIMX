@@ -151,7 +151,7 @@ if(data.basic.nExp == 1)
     set(handles.popupAmplitudeOrder,'Value',1,'Enable','off');
     set(handles.textAmplitudeOrder,'Enable','off');
 else
-    set(handles.popupAmplitudeOrder,'Value',data.basic.amplitudeOrder,'Enable','on');
+    set(handles.popupAmplitudeOrder,'Value',data.basic.amplitudeOrder+1,'Enable','on');
     set(handles.textAmplitudeOrder,'Enable','on');
 end
 set(handles.editLifetimeGap,'String',(data.basic.lifetimeGap-1)*100);
@@ -757,7 +757,7 @@ updateGUI(handles, rdh);
 % --- Executes on selection change in popupAmplitudeOrder.
 function popupAmplitudeOrder_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
-rdh.basic.amplitudeOrder = get(hObject,'Value');
+rdh.basic.amplitudeOrder = get(hObject,'Value')-1;
 rdh.isDirty(1) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
 set(hObject,'Value',rdh.basic.nonLinOffsetFit);
