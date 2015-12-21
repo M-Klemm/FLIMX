@@ -650,13 +650,13 @@ classdef subjectDS < handle
             end
             %save arithmetic image
             this.addObjID(0,aiParams.chA,aiName,1,data);
-            ROICoord = this.myParent.getResultROICoordinates(this.name,[]);
+%             ROICoord = this.myParent.getResultROICoordinates(this.name,[]);
             cutVec = this.myParent.getResultCuts(this.name);
-            if(~isempty(ROICoord))
-                %set manual scaling for new items
-                this.setResultROICoordinates(dType{1},[],ROICoord);
-                %this.setROIVec(dType{1},'Y',ROICoord(4:6));
-            end
+%             if(~isempty(ROICoord))
+%                 %set manual scaling for new items
+%                 this.setResultROICoordinates(dType{1},[],ROICoord);
+%                 %this.setROIVec(dType{1},'Y',ROICoord(4:6));
+%             end
             if(~isempty(cutVec))
                 %set cuts for new items
                 this.setCutVec('X',cutVec(1:3));

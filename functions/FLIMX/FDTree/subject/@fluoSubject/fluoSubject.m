@@ -165,15 +165,33 @@ classdef fluoSubject < handle
             ad.IRF.vector = [];
             ad.IRF.name = '';
             ad.scatter = [];
+            updateAllChs = false;
             if(isempty(this.myMeasurement))
                 this.myResult.setAuxiliaryData(1,ad);
             else
                 if(isempty(chList))
+                    updateAllChs = true;
                     chList = 1:this.nrSpectralChannels;
                 end
                 if(isvector(chList) && ~isscalar(chList))
-                    for ch = chList
-                        this.updateAuxiliaryData(ch);
+                    for ch = chList                        
+                        %because of updating the parameters, the nr of
+                        %spectral channels could have changed (switching
+                        %between lifetime and anisotropy)
+                        if(ch > this.nrSpectralChannels)
+                            this.myResult.setAuxiliaryData(ch,[]);
+                        else
+                            this.updateAuxiliaryData(ch);                            
+                        end                        
+                    end
+                    if(updateAllChs && chList(end) < this.nrSpectralChannels)
+                        %we switched to anisotropy -> make auxdata for channels 3 and 4
+                        chList = setdiff(1:this.nrSpectralChannels,chList);
+                        for ch = chList
+                            if(ch > this.nrSpectralChannels)
+                                this.updateAuxiliaryData(ch);
+                            end
+                        end
                     end
                     return
                 elseif(isscalar(chList))
@@ -250,9 +268,9 @@ classdef fluoSubject < handle
                                     offset = curScatterFile.getInitFLIMItem(chList,'Offset');                                        
                                     tmp = curScatterFile.getROIMerged(chList);
                                     if(max(tmp(:)) >= 2^16 && strcmp(ad.measurementROIInfo.ROIDataType,'uint16'))
-                                        ad.scatter = zeros(ad.fileInfo.nrTimeChannels,this.volatilePixelParams.nScatter,'uint32');
+                                        ad.scatter = zeros(ad.fileInfo.nrTimeChannels,this.volatilePixelParams.nScatter-this.basicParams.scatterIRF,'uint32');
                                     else
-                                        ad.scatter = zeros(ad.fileInfo.nrTimeChannels,this.volatilePixelParams.nScatter,ad.measurementROIInfo.ROIDataType);
+                                        ad.scatter = zeros(ad.fileInfo.nrTimeChannels,this.volatilePixelParams.nScatter-this.basicParams.scatterIRF,ad.measurementROIInfo.ROIDataType);
                                     end
                                     tmp = squeeze(curScatterFile.getInitData(chList,[]));  %tmp =  curScatterFile.getROIMerged(chList);
                                     %substract offset
@@ -263,13 +281,13 @@ classdef fluoSubject < handle
                                 end
                             end
                         end
-                        if(this.basicParams.scatterIRF)
-                            if(isempty(ad.scatter))
-                                ad.scatter = ad.IRF.vector;
-                            else
-                                ad.scatter(:,end) = ad.IRF.vector;
-                            end
-                        end
+%                         if(this.basicParams.scatterIRF)
+%                             if(isempty(ad.scatter))
+%                                 ad.scatter = ad.IRF.vector;
+%                             else
+%                                 ad.scatter(:,end) = ad.IRF.vector;
+%                             end
+%                         end
                     end
                     this.myResult.setAuxiliaryData(chList,ad);
                 end

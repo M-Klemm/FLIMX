@@ -677,12 +677,12 @@ classdef resultFile < handle
                 results.(r) = zeros(y,x);
             end
 %             results.tc1_corrected = zeros(y,x);
-            nTci = sum(bp.tciMask);
+            tcis = find(bp.tciMask);
+            nTci = length(tcis);
             if(nTci > 0)
                 for i = 1 : nTci
-                    cur_tci = bp.nExp - nTci + i;
-                    tci_str = sprintf('tc%d',cur_tci);
-                    tcig_str = sprintf('tcGuess%d',cur_tci);
+                    tci_str = sprintf('tc%d',tcis(i));
+                    tcig_str = sprintf('tcGuess%d',tcis(i));
                     results.(tci_str) = zeros(y,x);
                     results.(tcig_str) = zeros(y,x);
 %                     if(bp.compMaxCorrTci)
