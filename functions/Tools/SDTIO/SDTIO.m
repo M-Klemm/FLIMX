@@ -63,15 +63,14 @@ classdef SDTIO < handle
         function [tacRange, adc_res, nrSpectralChannels, rawXSz, rawYSz] = ReadHeader(obj)
             if obj.FileInformation.RefreshHeader == 1
                 try
-                    if obj.ReadInfo();
+                    if(obj.ReadInfo())
                         %To-Do: Prüfen ob Res, Height, Width >0
                         tacRange = double(obj.m_SDTReadInfo.pSPCData(1).tac_range/obj.m_SDTReadInfo.pSPCData(1).tac_gain);
                         adc_res = double(obj.m_SDTReadInfo.pSPCData(1).adc_resolution);
                         nrSpectralChannels = double(obj.m_SDTReadInfo.iNumSPCData);
-                        %Already checked if size is given für image, fifo or
-                        %normal type
-                        rawXSz = double(obj.m_SDTReadInfo.pSPCData(1).img_size_x);
-                        rawYSz = double(obj.m_SDTReadInfo.pSPCData(1).img_size_y);
+                        %Already checked if size is given for image, fifo or normal type
+                        rawXSz = max(1,double(obj.m_SDTReadInfo.pSPCData(1).img_size_x));
+                        rawYSz = max(1,double(obj.m_SDTReadInfo.pSPCData(1).img_size_y));
                     else
                         tacRange = 0;
                         adc_res = 1;
@@ -87,8 +86,16 @@ classdef SDTIO < handle
                     rawYSz = 1;
                     return
                 end
+            else
+                tacRange = double(obj.m_SDTReadInfo.pSPCData(1).tac_range/obj.m_SDTReadInfo.pSPCData(1).tac_gain);
+                adc_res = double(obj.m_SDTReadInfo.pSPCData(1).adc_resolution);
+                nrSpectralChannels = double(obj.m_SDTReadInfo.iNumSPCData);
+                %Already checked if size is given for image, fifo or normal type
+                rawXSz = max(1,double(obj.m_SDTReadInfo.pSPCData(1).img_size_x));
+                rawYSz = max(1,double(obj.m_SDTReadInfo.pSPCData(1).img_size_y));
             end
         end
+        
         function raw = ReadData(obj, iDataBlock, pfProgress)
             %Update the file if there was any change or maybe it doesnt
             %exists anylonger
@@ -100,7 +107,7 @@ classdef SDTIO < handle
             %header again
             if obj.FileInformation.RefreshHeader == 1
                 try
-                    ReadInfo();
+                    obj.ReadInfo();
                 catch
                     error('File Header is not consistent');
                     return
@@ -183,7 +190,7 @@ classdef SDTIO < handle
                                 raw = [];
                             end
                         else
-                            raw = fread(fid, double(blk{block_no}.block_length/type_len), type_str);
+                            raw = fread(obj.m_hInFile, double(blk{block_no}.block_length/type_len), type_str);
                         end
                         if(isempty(raw))
                             return
@@ -195,7 +202,7 @@ classdef SDTIO < handle
                         end
                     else
                         raw = [];
-                        fclose(fid);
+                        fclose(obj.m_hInFile);
                         error('Cannot read data block');
                         return
                     end
