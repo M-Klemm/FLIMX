@@ -170,11 +170,16 @@ classdef FLIMXVisGUI < handle
             colormap(this.visHandles.cm_axes,this.dynParams.cm);
             for j = 1:length(side)                
                 s = side(j);                      
-                set(this.visHandles.(sprintf('study_%s_pop',s)),'Value',min(get(this.visHandles.(sprintf('study_%s_pop',s)),'Value'),length(studies)),'String',studies);
+                curStudy = this.getStudy(s); %current study name and index  
+                curStudyIdx = find(strcmp(curStudy,studies),1);
+                if(isempty(curStudyIdx) || curStudyIdx ~= get(this.visHandles.(sprintf('study_%s_pop',s)),'Value'))
+                    set(this.visHandles.(sprintf('study_%s_pop',s)),'Value',min(get(this.visHandles.(sprintf('study_%s_pop',s)),'Value'),length(studies)),'String',studies);                    
+                else
+                    set(this.visHandles.(sprintf('study_%s_pop',s)),'String',studies,'Value',curStudyIdx);
+                end    
                 %update views
                 views = this.fdt.getStudyViewsStr(this.getStudy(s)); 
-                set(this.visHandles.(sprintf('view_%s_pop',s)),'String',views,'Value',min(get(this.visHandles.(sprintf('view_%s_pop',s)),'Value'),length(views))); 
-                curStudy = this.getStudy(s);  %current study name and index                
+                set(this.visHandles.(sprintf('view_%s_pop',s)),'String',views,'Value',min(get(this.visHandles.(sprintf('view_%s_pop',s)),'Value'),length(views)));                              
                 curView = this.getView(s);          %current view name
                 nrSubs = this.fdt.getNrSubjects(curStudy,curView);    %Number of subjects                                
                 if(~nrSubs)
@@ -878,7 +883,15 @@ classdef FLIMXVisGUI < handle
             %out = get(this.visHandles.(sprintf('study_%s_pop',s)),'Value');
             nr = get(this.visHandles.(sprintf('study_%s_pop',s)),'Value');
             str = get(this.visHandles.(sprintf('study_%s_pop',s)),'String');
-            name = str{nr};
+            if(iscell(str))
+                name = str{nr};
+            elseif(ischar(str))
+                %nothing to do
+                name = str;
+            else
+                nr = 1;
+                name = 'Default';
+            end
         end
         
         function [name, nr] = getView(this,s)
@@ -949,18 +962,20 @@ classdef FLIMXVisGUI < handle
         
         function GUI_mouseMotion_Callback(this,hObject,eventdata)
             %executes on mouse move in window 
-            persistent inFunction
-            if ~isempty(inFunction), return; end
+            oneSec = 1/24/60/60;
+            persistent inFunction lastUpdate
+            if(isempty(lastUpdate))
+                lastUpdate = now;
+            end            
+            if(~isempty(inFunction) && now - lastUpdate < 5*oneSec), return; end
             inFunction = 1;  %prevent callback re-entry
-            %update at most 50 times per second (every 0.02 sec)
-            persistent lastUpdate
+            %update at most 100 times per second (every 0.01 sec)            
             try
                 tNow = datenummx(clock);  %fast
             catch
                 tNow = now;  %slower
-            end
-            oneSec = 1/24/60/60;
-            if ~isempty(lastUpdate) && tNow - lastUpdate < 0.02*oneSec
+            end            
+            if ~isempty(lastUpdate) && tNow - lastUpdate < 0.010*oneSec
                 inFunction = [];  %enable callback
                 return;
             end

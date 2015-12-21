@@ -155,12 +155,7 @@ else
     set(handles.textAmplitudeOrder,'Enable','on');
 end
 set(handles.editLifetimeGap,'String',(data.basic.lifetimeGap-1)*100);
-switch data.basic.hybridFit
-    case 0
-        hybridHeightFlag = 'on';
-    case 1
-        hybridHeightFlag = 'off';
-end
+set(handles.checkHybridFit,'Value',data.basic.hybridFit);
 set(handles.popupOffsetFit,'Value',data.basic.nonLinOffsetFit);
 if(isempty(data.IRFStr))
     set(handles.popupIRF,'String','no IRF found','Value',1);

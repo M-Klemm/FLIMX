@@ -174,7 +174,7 @@ classdef FDisplay < handle
         
         function drawCP(this,cp)
             %draw current point into 2D plots
-            if isMultipleCall();  return;  end
+            %if isMultipleCall();  return;  end
             hfd = this.gethfd();
             dim = this.mDispDim;
             if(isempty(hfd{1}) || length(hfd) > 1 || dim > 2)

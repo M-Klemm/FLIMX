@@ -1126,7 +1126,7 @@ classdef FLIMXFitGUI < handle
         end
         
         function GUI_popupStudy_Callback(this,hObject,eventdata)
-            %callback to change subject name
+            %callback to change study name
             try
                 set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/></html>',FLIMX.getAnimationPath()));
                 drawnow;
@@ -2310,13 +2310,13 @@ classdef FLIMXFitGUI < handle
                 
             end
             row = row+apObj.volatilePixelParams.nScatter+2;
-            tstr{row,1} = 'Offset';  tstr{row,2} = sprintf('%3.1f',osetS); tstr{row,3} = 'Shift'; tstr{row,4} = sprintf('%3.1fps',hShift);
+            tstr{row,1} = 'Offset';  tstr{row,2} = sprintf('%3.2f',osetS); tstr{row,3} = 'Shift'; tstr{row,4} = sprintf('%3.1fps',hShift);
             row = row+1;
             tstr{row,1} = 'Chi²';  tstr{row,2} = sprintf('%3.2f',chi2); tstr{row,3} = 'Chi² (Tail)'; tstr{row,4} = sprintf('%3.2f',chi2Tail);
             row = row+1;
             tstr{row,1} = 'FuncEvals';  tstr{row,2} = sprintf('%d',FunctionEvaluations); tstr{row,3} = 'Time'; tstr{row,4} = sprintf('%3.2fs',time);
             row = row+1;
-            tstr{row,1} = 'Photons';  tstr{row,2} = sprintf('%d',nrPhotons); tstr{row,3} = ''; tstr{row,4} = '';
+            tstr{row,1} = 'Photons';  tstr{row,2} = FLIMXFitGUI.num4disp(nrPhotons); tstr{row,3} = ''; tstr{row,4} = '';
             set(hTable,'Data',tstr);
         end
         
