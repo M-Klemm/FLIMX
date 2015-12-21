@@ -422,30 +422,30 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 t = repmat(this.time(:,1),1,nVecs);
                 tSingle = single(t(:,1));
             end     
-            if(vpp.nScatter > 0)
+            if((vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)) > 0)
                 %shiftAndLinearOpt function will move all components by hShift -> compensate scatter shifts here
-                tcis = [tcis; bsxfun(@minus,scShifts,hShift)];                
-            end
-            tciHShiftFine = [tciHShiftFine; scHShiftsFine];
+                tcis = [tcis; bsxfun(@minus,scShifts,hShift)]; 
+                tciHShiftFine = [tciHShiftFine; scHShiftsFine];
+            end            
             %% allocate memory for temporary vatiables
             if(isempty(exponentialsLong) || size(exponentialsLong,1) ~= size(t,1) || size(exponentialsLong,3) < nVecs || size(exponentialsLong,2) ~= nExp || size(exponentialsShort,2) ~= nExp+vpp.nScatter)
-                exponentialsLong = ones(size(t,1),nExp,nVecs);
+                exponentialsLong = ones(size(t,1),nExp+(bp.scatterEnable && bp.scatterIRF),nVecs);
                 exponentialsShort = ones(nTimeCh,nExp+vpp.nScatter,nVecs);
                 exponentialsOffset = ones(nTimeCh,nExp+vpp.nScatter+1,nVecs,'single');                
             end
             if(~isempty(this.dataStorage.scatter.raw))
                 scVec = repmat(this.getScatterData(),[1,1,nVecs]);
             else
-                scVec = zeros(size(exponentialsShort,1),vpp.nScatter,nVecs);
+                scVec = zeros(size(exponentialsShort,1),vpp.nScatter-bp.scatterIRF,nVecs);
             end
             
             %% get approximation for current parameters
             data = this.getMeasurementData();
             %% prepare scatter
-            for i = 1:vpp.nScatter
-                scVec(:,i,:) = bsxfun(@plus,squeeze(scVec(:,i,:)),scOset(i,:));
-%                 scVec(:,i,:) = circShiftArray(bsxfun(@times, squeeze(scVec(:,i,:)),scAmps(i,:)).*this.dMaxVal,scShifts(i,:));
-            end
+%             for i = 1:vpp.nScatter
+%                 scVec(:,i,:) = bsxfun(@plus,squeeze(scVec(:,i,:)),scOset(i,:));
+% %                 scVec(:,i,:) = circShiftArray(bsxfun(@times, squeeze(scVec(:,i,:)),scAmps(i,:)).*this.dMaxVal,scShifts(i,:));
+%             end
 %                 this.myStartPos = max(this.fileInfo.StartPosition + min(scShifts(:)), this.fileInfo.StartPosition);
 %                 this.myEndPos = min([this.fileInfo.EndPosition + min(scShifts(:)), this.fileInfo.EndPosition, nTimeCh]);
             %% make exponentials
@@ -458,7 +458,12 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 %'normal' exponentials
                 for i = find(~bp.stretchedExpMask)
                     exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@times, t(:,1:nVecs), taus(i,:)));
-                end                
+                end
+                if(bp.scatterEnable && bp.scatterIRF)
+                    nExp = nExp+1;
+                    exponentialsLong(:,nExp,1:nVecs) = zeros(size(t,1),1,nVecs);
+                    exponentialsLong(1,nExp,1:nVecs) = 1;
+                end
             else
                 %no hybrid fit
                 %stretched exponentials
@@ -470,8 +475,15 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                     exponentialsLong(:,i,1:nVecs) = bsxfun(@times, exp(-bsxfun(@times, t(:,1:nVecs), taus(i,:))), amps(i,:));
                 end
                 %scatter
-                for i = 1:vpp.nScatter
-                    exponentialsShort(:,nExp+i,1:nVecs) = bsxfun(@times, squeeze(scVec(:,i,1:nVecs)),scAmps(i,:));
+                if(bp.scatterEnable && bp.scatterIRF)
+                    nExp = nExp+1;
+                    exponentialsLong(:,nExp,1:nVecs) = zeros(size(t,1),1,nVecs);
+                    exponentialsLong(1,nExp,1:nVecs) = 1;
+                end
+                if(~isempty(bp.scatterStudy))
+                    for i = 1:vpp.nScatter
+                        exponentialsShort(:,nExp+i,1:nVecs) = bsxfun(@times, squeeze(scVec(:,i,1:nVecs)),scAmps(i,:));
+                    end
                 end
             end            
             %% reconvolute
@@ -493,7 +505,9 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                     exponentialsLong(:,1:nExp,1:nVecs) = real(ifft(bsxfun(@times, fft(exponentialsLong(:,1:nExp,1:nVecs), len_model_2, 1), this.irfFFT), len_model_2, 1));
                 end
             else
-                exponentialsLong(:,:,1:nVecs) = circShiftArrayNoLUT(squeeze(exponentialsLong(:,:,1:nVecs)),repmat(this.iMaxPos,nVecs,1));
+                for i = 1:size(exponentialsLong,2)
+                    exponentialsLong(:,i,1:nVecs) = circShiftArrayNoLUT(squeeze(exponentialsLong(:,i,1:nVecs)),repmat(this.iMaxPos,nVecs,1));
+                end
             end
             %% incomplete decay
             if(bp.incompleteDecay)
@@ -504,29 +518,29 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             %% normalize model to max=1
             exponentialsShort(:,1:nExp,1:nVecs) = bsxfun(@times,exponentialsShort(:,1:nExp,1:nVecs),1./max(exponentialsShort(:,1:nExp,1:nVecs),[],1));
             
-            if(vpp.nScatter > 0)
+            if((vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)) > 0)
                 exponentialsShort(:,nExp+1:nExp+vpp.nScatter,1:nVecs) = scVec(:,:,1:nVecs);
             end
             %% move to position of data maximum + hShift - tci
             if(this.useMex && this.dLen == 1024 && size(exponentialsShort,2) <= 16 && nVecs <= 256) %&& strcmp(bp.timeInterpMethod,'linear')
                 %[exponentialsOffset(:,1:nExp+vpp.nScatter,1:nVecs), ao] = shiftAndLinearOpt_mex(exponentialsShort(1:nTimeCh,:,1:nVecs),t(1:nTimeCh,1),data,this.dataStorage.measurement.nonZeroMask,hShift,tcis,tciHShiftFine,oset,this.linLB,this.linUB,bp.timeInterpMethod);
-                [exponentialsOffset(:,1:nExp+vpp.nScatter,1:nVecs), ao] = shiftAndLinearOpt_mex(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.dataStorage.measurement.nonZeroMask,...
+                [exponentialsOffset(:,1:nExp+(vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)),1:nVecs), ao] = shiftAndLinearOpt_mex(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.dataStorage.measurement.nonZeroMask,...
                     single(hShift),single(tcis),single(tciHShiftFine),single(oset),this.linLB,this.linUB,true);
             elseif(this.useMex && this.dLen > 1024 && this.dLen <= 4096 && size(exponentialsShort,2) <= 16 && nVecs <= 256)
-                [exponentialsOffset(:,1:nExp+vpp.nScatter,1:nVecs), ao] = shiftAndLinearOpt4096_mex(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.dataStorage.measurement.nonZeroMask,...
+                [exponentialsOffset(:,1:nExp+(vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)),1:nVecs), ao] = shiftAndLinearOpt4096_mex(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.dataStorage.measurement.nonZeroMask,...
                     single(hShift),single(tcis),single(tciHShiftFine),single(oset),this.linLB,this.linUB,true);
             else
-                [exponentialsOffset(:,1:nExp+vpp.nScatter,1:nVecs), ao] = shiftAndLinearOpt(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.dataStorage.measurement.nonZeroMask,...
+                [exponentialsOffset(:,1:nExp+(vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)),1:nVecs), ao] = shiftAndLinearOpt(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.dataStorage.measurement.nonZeroMask,...
                     single(hShift),single(tcis),single(tciHShiftFine),single(oset),this.linLB,this.linUB,false);                              
             end
             if(~any(vcp.cMask < 0))
                 ao(1,:,:) = [amps; scAmps; oset];
             end
             exponentialsOffset(:,end,1:nVecs) = ones(nTimeCh,nVecs,1,'single');            
-            ampsOut = double(squeeze(ao(1,1:nExp,:)));
+            ampsOut = double(squeeze(ao(1,1:bp.nExp,:)));
             osetOut = double(squeeze(ao(1,end,:)));
             if(vpp.nScatter > 0)
-                scAmpsOut = double(squeeze(ao(1,nExp+1:nExp+vpp.nScatter,:)));
+                scAmpsOut = double(squeeze(ao(1,bp.nExp+1:bp.nExp+vpp.nScatter,:)));
             else
                 scAmpsOut = zeros(0,nVecs);
             end

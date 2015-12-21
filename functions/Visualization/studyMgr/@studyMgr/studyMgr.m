@@ -959,6 +959,9 @@ classdef studyMgr < handle
         function menuDeleteSubject_Callback(this,hObject,eventdata)
             %delete subject from current study
             subjects = sort(this.selectedSubjects,'descend');
+            if(isempty(subjects))
+                return
+            end
             askUser = true;
             for i = 1:length(subjects)
                 subName = this.fdt.getSubjectName(this.curStudyName,subjects(i));

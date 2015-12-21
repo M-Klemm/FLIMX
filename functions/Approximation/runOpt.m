@@ -39,7 +39,7 @@ chList = apObj.nonEmptyChannelList;
 nrChannels = length(chList);%nrChannels = nr global fit channels!
 %preprocess data
 [result, nonLinBounds] = apObj.makeDataPreProcessing([]);
-if(any([result.TotalPhotons] < apObj.basicParams.photonThreshold)) %too few photons
+if(any([result.TotalPhotons] < apObj.basicParams.photonThreshold) && apObj.basicParams.approximationTarget == 1) %too few photons
     msg = 'Not enough Photons for Approximation!';
 else %enough photons
     %restrict tci & hShift to >= starting point

@@ -518,7 +518,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             exponentials(:,:,idxIgnored) = 0;
             %help optimizer to get shift right, if we are too far off             
             %[~, chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,tmp,[false; ~idxIgnored],this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
-            if(bp.approximationTarget == 1 || ch > 1) %only for fluorescence lifetime
+            if(bp.approximationTarget == 1 || ch < 4) %only for fluorescence lifetime
                 %compute model FWHM positions
                 [~,fwhmPos] = max(bsxfun(@gt,model(:,~idxIgnored),max(model(:,~idxIgnored),[],1)*0.8),[],1);
                 d = abs(bsxfun(@minus,fwhmPos,this.myChannels{ch}.dFWHMPos));
@@ -614,7 +614,8 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                         this.preProcessParams.offsetStartPos,this.getFileInfo(chList(chIdx)).StartPosition,this.basicParams.heightMode);
                     rs(chIdx).StartPosition = this.getFileInfo(chList(chIdx)).StartPosition;
                     rs(chIdx).EndPosition = max(2,min(this.getFileInfo(chList(chIdx)).EndPosition,fluoPixelModel.getEndPos(dataTmp)));
-                    rs(chIdx).TotalPhotons = sum(dataTmp(rs(chIdx).StartPosition:rs(chIdx).EndPosition));
+                    tmp = dataTmp(rs(chIdx).StartPosition:rs(chIdx).EndPosition);
+                    rs(chIdx).TotalPhotons = sum(tmp(~isnan(tmp)));
                     irfTmp = this.getIRF(chList(chIdx));
                     [~,fwhmDPos] = max(bsxfun(@gt,dataTmp,max(dataTmp(:),[],1)*0.75),[],1);
                     [~,fwhmIPos] = max(bsxfun(@gt,irfTmp,max(irfTmp(:),[],1)*0.75),[],1);
@@ -622,9 +623,14 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     this.SlopeStartPosition = rs(chIdx).SlopeStartPosition;
                     %TODO: check that initial values are within bounds!
                 end
-                %make bounds
+                %make bounds                
                 allBounds(chIdx,1).bounds_tci.ub = min(allBounds(chIdx,1).bounds_tci.ub,(rs(chIdx).MaximumPosition - rs(chIdx).StartPosition-1)*this.getFileInfo(chList(chIdx)).timeChannelWidth);
-                [nonLinBoundsCh(chIdx), linBounds(chIdx,1)] = fluoPixelModel.getBoundsPerChannel(rs(chIdx).MaximumPhotons,rs(chIdx).OffsetGuess,this.basicParams,this.volatilePixelParams.nScatter,this.getVolatileChannelParams(chList(chIdx)).cMask,allBounds(chIdx,1));
+                [nonLinBoundsCh(chIdx), tmp] = fluoPixelModel.getBoundsPerChannel(rs(chIdx).MaximumPhotons,rs(chIdx).OffsetGuess,this.basicParams,this.volatilePixelParams.nScatter,this.getVolatileChannelParams(chList(chIdx)).cMask,allBounds(chIdx,1));
+                if(~isempty(tmp))
+                    linBounds(chIdx,1) = tmp;
+                else
+                    linBounds = [];
+                end
                 if(globalIVec && any(allInitVec(:,1)) && this.pixelFitParams.pixelJitter > 0)
                     iArray = this.divideGlobalFitXVec(allInitVec(:,1),true);
                     %outer loops runs over channels
@@ -655,7 +661,11 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                         nonLinBoundsCh(chIdx).ub = this.getNonConstantXVec(chList(chIdx),ampsUB,tausUB,tcisUB,betasUB,scAmpsUB,scShiftsUB,scOsetUB,hShiftUB,osetUB);
                     end
                 end
-                this.myChannels{chList(chIdx)}.setLinearBounds(linBounds(chIdx,1));
+                if(~isempty(linBounds))
+                    this.myChannels{chList(chIdx)}.setLinearBounds(linBounds(chIdx,1));
+                else
+                    this.myChannels{chList(chIdx)}.setLinearBounds([]);
+                end
             end
             if(length(chList) > 1)
                 nonLinBounds = nonLinBoundsCh(1);
@@ -775,14 +785,14 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                             scShifts(1) = (idxData - idxSc(1))*this.getFileInfo(chList(chIdx)).timeChannelWidth; %+hShift
                         end
                     end
-                    if(this.basicParams.scatterIRF)
-                        %move IRF to same position as model
-                        [~, dMaxPos] = max(fastsmooth(dataTmp(:),5,3,0),[],1);
-                        scShifts(end) = (dMaxPos-scMaxPos(end))*this.getFileInfo(chList(chIdx)).timeChannelWidth;%hShift;  
-                        scShiftsLB = scShifts(end);
-                        scShiftsUB = scShifts(end);
-                        nScatter = nScatter-1;
-                    end
+%                     if(this.basicParams.scatterIRF)
+%                         %move IRF to same position as model
+%                         [~, dMaxPos] = max(fastsmooth(dataTmp(:),5,3,0),[],1);
+%                         scShifts(end) = (dMaxPos-scMaxPos(end))*this.getFileInfo(chList(chIdx)).timeChannelWidth;%hShift;  
+%                         scShiftsLB = scShifts(end);
+%                         scShiftsUB = scShifts(end);
+%                         nScatter = nScatter-1;
+%                     end
                     %todo: take care of global fit!
                     if(nScatter > 0)
                         %adapt bounds                        
@@ -962,10 +972,10 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 nVecs = size(xVec,2);
                 varargout{9} = round(xVec(end-1,:)./this.fileInfo(ch).timeChannelWidth); %hShift
                 %% take care of tci
-                varargout{3} = zeros(bp.nExp,nVecs); %tcis 
+                varargout{3} = zeros(bp.nExp+(bp.scatterEnable && bp.scatterIRF),nVecs); %tcis 
                 %combine hShift and tci
                 tciMask = logical(bp.tciMask);
-                tci_tmp = bsxfun(@times,ones(bp.nExp,nVecs),xVec(end-1,:)./this.fileInfo(ch).timeChannelWidth); %hShift
+                tci_tmp = bsxfun(@times,ones(bp.nExp+(bp.scatterEnable && bp.scatterIRF),nVecs),xVec(end-1,:)./this.fileInfo(ch).timeChannelWidth); %hShift
                 tci_tmp(tciMask,:) = tci_tmp(tciMask,:)+xVec(pos+1 : pos+nTci,:)./this.fileInfo(ch).timeChannelWidth; %hShift and tci
                 tci_tmp = bsxfun(@minus,tci_tmp,varargout{9}); %substract rounded shift -> fine shift (and tcis) remain
                 varargout{3}(tciMask,:) = round(tci_tmp(tciMask,:)); %rounded tcis
@@ -1385,17 +1395,21 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             [~, iPos] = max(irf(:));
             len = min(dLen-dPos,length(irf)-iPos);
             dataT = data(dPos:dPos+len).*tVec(2:len+2);
+            dataT = dataT(~isnan(dataT));
             irfT = irf(iPos:iPos+len).*tVec(2:len+2); %iPos:iPos+len
-            mD = sum(dataT)/sum(data(dPos:dPos+len));
+            data = data(dPos:dPos+len);
+            data = data(~isnan(data));
+            mD = sum(dataT)/sum(data);
             mI = sum(irfT)/sum(irf(iPos:iPos+len));
             tauMean = abs(mD - mI);
         end
         
         function [oGuess, SlopeStartPosition, d_max] = makeOffsetGuess(data,d_max,offsetStartPos,fitStartPos,heightMode)
             %make an educated guess for the current offset
-            dataStartPos = find(data,1);
+            dataStartPos = find(data > 0 & ~isnan(data),1);
             SlopeStartPosition = fluoPixelModel.getStartPos(data);
             oGuess = data(dataStartPos:max(dataStartPos+1,SlopeStartPosition));
+            oGuess = oGuess(~isnan(oGuess));
             % if(length(oGuess) < 10)
             %     %we have too few datapoints for a reliable estimate, try to get more
             %     oGuess = data(min(offsetStartPos,SlopeStartPosition):SlopeStartPosition);
