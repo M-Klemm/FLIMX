@@ -62,11 +62,11 @@ classdef measurementInFDTree < measurementFile
             end
             files = rdir(fullfile(this.getMyFolder(),'*.mat'));
             for i = 1:length(files)
-                [~,fileName] = fileparts(files(i,1).name);                
+                [~,fileName] = fileparts(files(i,1).name);
                 if(strncmpi(fileName,this.fileStub,12) && length(fileName) == 16)
                     chIdx = str2double(fileName(15:16));
                     if(~isempty(chIdx))
-                        this.filesOnHDD(1,chIdx) = true;                        
+                        this.filesOnHDD(1,chIdx) = true;
                     end
                 end
             end
@@ -74,72 +74,72 @@ classdef measurementInFDTree < measurementFile
         end
         
         function success = openChannel(this,ch)
-             %load measurement data from mat file
-             success = false;
-             if(isempty(ch))
-                 return
-             end
-             if(length(this.myFiles) < ch)
-                 this.checkMyFiles();
-                 if(length(this.myFiles) < ch)
-                     %didn't help
-                     return
-                 end
-             end
-             if(~isempty(this.myFiles{1,ch}))
-                 %nothing to do
-                 success = true;
-                 return
-             end
-             %create matfile object
-             fn = this.getMeasurementFileName(ch,[]);
-             if(~exist(fn,'file'))
-                 return
-             end
-             try
-                 this.myFiles{1,ch} = matfile(fn,'Writable',false);
-             catch ME
-                 %todo: error handling
-                 return
-             end
-             if(any(strcmp(who(this.myFiles{1,ch}),'measurement')))
-                 %this is a pre-version 203 file
-                 measurement = this.myFiles{1,ch}.measurement;
-                 %check revision
-                 if(measurement.revision < 201)
-                     measurement.fluoFileInfo.ROIDataType = 'uint16';
-                     measurement.fluoFileInfo.channel = measurement.channel;
-                     measurement.fluoFileInfo.StartPosition = this.getStartPosition(measurement.fluoFileInfo.channel);
-                     measurement.fluoFileInfo.EndPosition = this.getEndPosition(measurement.fluoFileInfo.channel);
-                     measurement.fluoFileInfo.reflectionMask = this.getReflectionMask(measurement.fluoFileInfo.channel);
-                     [measurement.fluoFileInfo.rawYSz, measurement.fluoFileInfo.rawXSz, z] = size(measurement.rawData);
-                     measurement.fluoFileInfo.ROICoordinates = [];
-                 end
-                 if(measurement.revision < 202)
-                     measurement.fluoFileInfo.position = 'OS';
-                     measurement.fluoFileInfo.pixelResolution = 58.66666666666; %just some default value
-                 end
-                 %convert to new format of version 203
-                 rawData = measurement.rawData;                 
-                 fluoFileInfo = measurement.fluoFileInfo;                 
-                 ROIInfo = this.getDefaultROIInfo();
-                 ROIInfo.ROICoordinates = fluoFileInfo.ROICoordinates;
-                 ROIInfo.ROIDataType = fluoFileInfo.ROIDataType; 
-                 fluoFileInfo = rmfield(fluoFileInfo,{'ROIDataType','ROICoordinates'});
-                 auxInfo.sourceFile = measurement.sourceFile;
-                 auxInfo.revision = FLIMX.getVersionInfo().measurement_revision;
-                 %overwrite old file
-                 save(fn,'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo','-v7.3');
-                 success = this.openChannel(ch);
-                 return
-             end
-             if(~all(ismember(who(this.myFiles{1,ch}),{'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'})))
-                 %something went wrong
-                 this.myFiles(1,ch) = cell(1,1);
-                 return
-             end
-             %check revision
-             success = true;
+            %load measurement data from mat file
+            success = false;
+            if(isempty(ch))
+                return
+            end
+            if(length(this.myFiles) < ch)
+                this.checkMyFiles();
+                if(length(this.myFiles) < ch)
+                    %didn't help
+                    return
+                end
+            end
+            if(~isempty(this.myFiles{1,ch}))
+                %nothing to do
+                success = true;
+                return
+            end
+            %create matfile object
+            fn = this.getMeasurementFileName(ch,[]);
+            if(~exist(fn,'file'))
+                return
+            end
+            try
+                this.myFiles{1,ch} = matfile(fn,'Writable',false);
+            catch ME
+                %todo: error handling
+                return
+            end
+            if(any(strcmp(who(this.myFiles{1,ch}),'measurement')))
+                %this is a pre-version 203 file
+                measurement = this.myFiles{1,ch}.measurement;
+                %check revision
+                if(measurement.revision < 201)
+                    measurement.fluoFileInfo.ROIDataType = 'uint16';
+                    measurement.fluoFileInfo.channel = measurement.channel;
+                    measurement.fluoFileInfo.StartPosition = this.getStartPosition(measurement.fluoFileInfo.channel);
+                    measurement.fluoFileInfo.EndPosition = this.getEndPosition(measurement.fluoFileInfo.channel);
+                    measurement.fluoFileInfo.reflectionMask = this.getReflectionMask(measurement.fluoFileInfo.channel);
+                    [measurement.fluoFileInfo.rawYSz, measurement.fluoFileInfo.rawXSz, z] = size(measurement.rawData);
+                    measurement.fluoFileInfo.ROICoordinates = [];
+                end
+                if(measurement.revision < 202)
+                    measurement.fluoFileInfo.position = 'OS';
+                    measurement.fluoFileInfo.pixelResolution = 58.66666666666; %just some default value
+                end
+                %convert to new format of version 203
+                rawData = measurement.rawData;
+                fluoFileInfo = measurement.fluoFileInfo;
+                ROIInfo = this.getDefaultROIInfo();
+                ROIInfo.ROICoordinates = fluoFileInfo.ROICoordinates;
+                ROIInfo.ROIDataType = fluoFileInfo.ROIDataType;
+                fluoFileInfo = rmfield(fluoFileInfo,{'ROIDataType','ROICoordinates'});
+                auxInfo.sourceFile = measurement.sourceFile;
+                auxInfo.revision = FLIMX.getVersionInfo().measurement_revision;
+                %overwrite old file
+                save(fn,'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo','-v7.3');
+                success = this.openChannel(ch);
+                return
+            end
+            if(~all(ismember(who(this.myFiles{1,ch}),{'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'})))
+                %something went wrong
+                this.myFiles(1,ch) = cell(1,1);
+                return
+            end
+            %check revision
+            success = true;
         end
         
         function success = loadRawData(this,ch)
@@ -161,7 +161,7 @@ classdef measurementInFDTree < measurementFile
                     end
                     success = true;
                 end
-            end            
+            end
         end
         
         function success = loadFileInfo(this,ch)
@@ -190,7 +190,7 @@ classdef measurementInFDTree < measurementFile
                     if(isfield(ri.ROISupport,'roiAdaptiveBinLevels'))
                         this.roiBinLevels{ch} = ri.ROISupport.roiAdaptiveBinLevels;
                     end
-                end 
+                end
                 if(length(this.roiInfoLoaded) < ch || ~this.roiInfoLoaded(ch))
                     
                 end
@@ -252,9 +252,9 @@ classdef measurementInFDTree < measurementFile
                     end
                 else
                     raw = this.rawFluoData{ch};
-                end                
+                end
             end
-        end  
+        end
         
         function out = getMyFolder(this)
             %return current working folder
@@ -283,14 +283,22 @@ classdef measurementInFDTree < measurementFile
     methods (Access = protected)
         function setPosition(this,val)
             %set position
+            for i = 1:length(this.nonEmptyChannelList)
+                %load fileinfo of all channels
+                this.getFileInfoStruct(this.nonEmptyChannelList(i));
+            end
             this.fileInfo.position = val;
             if(~isempty(this.filesOnHDD))
                 this.setDirtyFlags([],2,true);
             end
-        end        
+        end
         
         function setPixelResolution(this,val)
             %set pixel resolution
+            for i = 1:length(this.nonEmptyChannelList)
+                %load fileinfo of all channels
+                this.getFileInfoStruct(this.nonEmptyChannelList(i));
+            end
             this.fileInfo.pixelResolution = val;
             if(~isempty(this.filesOnHDD))
                 this.setDirtyFlags([],2,true);

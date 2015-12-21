@@ -39,10 +39,10 @@ classdef measurementFile < handle
         rawXSz = 0;
         rawYSz = 0;
         fileInfo = []; %struct with timing related parameters
-        ROIDataType = 'uint16';        
-        fileStub = 'measurement_';        
-        fileExt = '.mat';  
-                
+        ROIDataType = 'uint16';
+        fileStub = 'measurement_';
+        fileExt = '.mat';
+        
         fileInfoLoaded = false;
         rawFluoData = cell(0,0);
         rawFluoDataFlat = cell(0,0);
@@ -80,7 +80,7 @@ classdef measurementFile < handle
     
     methods
         function this = measurementFile(hPM)
-            %constructor            
+            %constructor
             this.setParamMgrHandle(hPM);
             this.setFileInfoStruct(measurementFile.getDefaultFileInfo());
             this.fileInfoLoaded = false;
@@ -101,9 +101,9 @@ classdef measurementFile < handle
             out.roiFluoData = this.roiFluoData;
             out.rawFluoDataFlat = this.rawFluoDataFlat;
             out.roiFluoDataFlat = this.roiFluoDataFlat;
-            out.roiMerged = this.roiMerged;            
+            out.roiMerged = this.roiMerged;
         end
-        %% input methods        
+        %% input methods
         function setProgressCallback(this,cb)
             %set callback function for short progress bar
             this.progressCb(end+1) = {cb};
@@ -128,7 +128,7 @@ classdef measurementFile < handle
             %set handle to parameter manager
             this.paramMgrObj = hPM;
         end
-                
+        
         function setReflectionMask(this,channel,val)
             %set reflection mask for channel
             this.fileInfo.reflectionMask(channel) = {val};
@@ -153,13 +153,13 @@ classdef measurementFile < handle
                 this.ROIDataType = val;
                 this.clearROIData();
                 this.setDirtyFlags([],4,true);
-            end            
+            end
         end
         
         function set.position(this,val)
             %set position
             this.setPosition(val);
-        end        
+        end
         
         function set.pixelResolution(this,val)
             %set pixel resolution
@@ -186,7 +186,7 @@ classdef measurementFile < handle
         function out = get.useMex4StaticBin(this)
             %
             if(isempty(this.useMexFlags))
-                this.useMexFlags(1) = this.testStaticBinMex();            
+                this.useMexFlags(1) = this.testStaticBinMex();
             end
             out = this.useMexFlags(1);
         end
@@ -218,7 +218,7 @@ classdef measurementFile < handle
                 out = param.roiAdaptiveBinEnable;
             end
         end
-            
+        
         function out = get.roiAdaptiveBinThreshold(this)
             %
             if(isempty(this.paramMgrObj))
@@ -328,7 +328,7 @@ classdef measurementFile < handle
                 fileInfo.channel = channel;
             end
             fileInfo.rawXSz = this.rawXSz;
-            fileInfo.rawYSz = this.rawYSz;            
+            fileInfo.rawYSz = this.rawYSz;
             fileInfo.position = this.fileInfo.position;
             fileInfo.pixelResolution = this.fileInfo.pixelResolution;
         end
@@ -356,7 +356,7 @@ classdef measurementFile < handle
         function out = get.position(this)
             %get tac range
             out = this.fileInfo.position;
-        end        
+        end
         
         function out = get.pixelResolution(this)
             %get tac range
@@ -441,40 +441,40 @@ classdef measurementFile < handle
                 roi = ones(4,1);
                 roi(2) = xR;
                 roi(4) = yR;
-            end            
+            end
             if(length(this.roiFluoDataFlat) < channel || isempty(this.roiFluoDataFlat{channel}))
-                if(this.roiAdaptiveBinEnable || (bp.approximationTarget == 2 && channel > 2))                    
+                if(this.roiAdaptiveBinEnable || (bp.approximationTarget == 2 && channel > 2))
                     this.getROIData(channel,[],[]);
-%                     flat = sum(raw,3);
-%                     [dataYSz,dataXSz] = size(flat);
-%                     roiX = roi(1):roi(2);
-%                     roiY = roi(3):roi(4);
-%                     binFactors = zeros(length(roiY),length(roiX));
-%                     out = zeros(length(roiY),length(roiX));
-%                     nPixel = length(roiY)*length(roiX);
-%                     %calculate coordinates of init grid
-%                     [pxYcoord, pxXcoord] = ind2sub([length(roiY),length(roiX)],1:nPixel);
-%                     for px = 1:nPixel
-%                         binLevel = 0;
-%                         maxBinLevelReached = false;
-%                         %now we add up so many pixels until we reach the target
-%                         while(~all(out(pxYcoord(px),pxXcoord(px))) && ~maxBinLevelReached)
-%                             binLevel = binLevel+1;
-%                             [idx,maxBinLevelReached] = measurementFile.getAdaptiveBinningInd(roiY(pxYcoord(px)),roiX(pxXcoord(px)),binLevel,dataYSz,dataXSz,maxBinFactor);
-%                             val = flat(idx);
-%                             val = sum(val(:));
-%                             if(val >= target)
-%                                 %binFactors(pxYcoord(px),pxXcoord(px)) = binLevel;
-%                                 out(pxYcoord(px),pxXcoord(px)) = val;
-%                             end
-%                         end
-%                         %if we did get enough photons use max binning for this pixel
-%                         binFactors(pxYcoord(px),pxXcoord(px)) = binLevel;
-%                         out(pxYcoord(px),pxXcoord(px)) = val;
-%                     end
+                    %                     flat = sum(raw,3);
+                    %                     [dataYSz,dataXSz] = size(flat);
+                    %                     roiX = roi(1):roi(2);
+                    %                     roiY = roi(3):roi(4);
+                    %                     binFactors = zeros(length(roiY),length(roiX));
+                    %                     out = zeros(length(roiY),length(roiX));
+                    %                     nPixel = length(roiY)*length(roiX);
+                    %                     %calculate coordinates of init grid
+                    %                     [pxYcoord, pxXcoord] = ind2sub([length(roiY),length(roiX)],1:nPixel);
+                    %                     for px = 1:nPixel
+                    %                         binLevel = 0;
+                    %                         maxBinLevelReached = false;
+                    %                         %now we add up so many pixels until we reach the target
+                    %                         while(~all(out(pxYcoord(px),pxXcoord(px))) && ~maxBinLevelReached)
+                    %                             binLevel = binLevel+1;
+                    %                             [idx,maxBinLevelReached] = measurementFile.getAdaptiveBinningInd(roiY(pxYcoord(px)),roiX(pxXcoord(px)),binLevel,dataYSz,dataXSz,maxBinFactor);
+                    %                             val = flat(idx);
+                    %                             val = sum(val(:));
+                    %                             if(val >= target)
+                    %                                 %binFactors(pxYcoord(px),pxXcoord(px)) = binLevel;
+                    %                                 out(pxYcoord(px),pxXcoord(px)) = val;
+                    %                             end
+                    %                         end
+                    %                         %if we did get enough photons use max binning for this pixel
+                    %                         binFactors(pxYcoord(px),pxXcoord(px)) = binLevel;
+                    %                         out(pxYcoord(px),pxXcoord(px)) = val;
+                    %                     end
                     out = this.roiFluoDataFlat{channel};
                     %this.roiBinLevels{channel} = binFactors;
-                else   
+                else
                     bin = this.roiStaticBinningFactor;
                     if(bin == 0)
                         out = int32(sum(raw(roi(3):roi(4),roi(1):roi(2),:),3));
@@ -482,7 +482,7 @@ classdef measurementFile < handle
                         out = sffilt(@sum,sum(raw(roi(3):roi(4),roi(1):roi(2),:),3),[2*bin+1 2*bin+1]);
                     end
                     this.roiFluoDataFlat(channel) = {out};
-                end                
+                end
             else
                 out = this.roiFluoDataFlat{channel};
                 if(length(this.roiBinLevels) >= channel)
@@ -496,7 +496,7 @@ classdef measurementFile < handle
         function out = getROIAdaptiveBinLevels(this,channel)
             %get binning levels determined by adaptive binning in channel
             out = [];
-            if(~this.roiAdaptiveBinEnable)                
+            if(~this.roiAdaptiveBinEnable)
                 return
             end
             if(length(this.roiBinLevels) < channel || isempty(this.roiBinLevels{channel}))
@@ -504,7 +504,7 @@ classdef measurementFile < handle
             end
             if(~(length(this.roiBinLevels) < channel || isempty(this.roiBinLevels{channel})))
                 out = this.roiBinLevels{channel};
-            end                
+            end
         end
         
         function out = getROIData(this,channel,y,x)
@@ -522,54 +522,62 @@ classdef measurementFile < handle
                 roi(2) = xR;
                 roi(4) = yR;
             end
-            if(~isempty(y) && ~isempty(x) && (length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel})) && (~this.roiAdaptiveBinEnable || ~(length(this.roiBinLevels) < channel || isempty(this.roiBinLevels{channel}))))
-                %no pre binning, do binning for pixel (y,x) on the fly                
-                if(~this.roiAdaptiveBinEnable)
-                    bin = this.roiStaticBinningFactor;
-                    out = eval([this.ROIDataType '(sum(reshape(raw(max(roi(3)+y-bin-1,1):min(roi(3)+y+bin-1,yR), max(roi(1)+x-bin-1,1):min(roi(1)+x+bin-1,xR), :),[],zR),1))'])';
-                else
-                    bl = this.getROIAdaptiveBinLevels(channel);
-                    if(y <= size(bl,1) && x <= size(bl,2))
-                        idx = getAdaptiveBinningIndex(roi(3)+y-1,roi(1)+x-1,bl(y,x),yR,xR,100);
-                        out = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')';
-                    end
+            if(yR <= 1 && xR <= 1)
+                %raw data has only a single pixel -> nothing to do
+                out = raw;
+                if(~isempty(y) && ~isempty(x) && ~isempty(out))
+                    out = squeeze(out(1,1,:));
                 end
             else
-                if(length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel}))
-                    %try to load this channel, cut and bin raw data                       
-                    bl = this.getROIAdaptiveBinLevels(channel);
-                    if(isempty(bl))
-                        out = this.makeROIData(channel);
+                if(~isempty(y) && ~isempty(x) && (length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel})) && (~this.roiAdaptiveBinEnable || ~(length(this.roiBinLevels) < channel || isempty(this.roiBinLevels{channel}))))
+                    %no pre binning, do binning for pixel (y,x) on the fly
+                    if(~this.roiAdaptiveBinEnable)
+                        bin = this.roiStaticBinningFactor;
+                        out = eval([this.ROIDataType '(sum(reshape(raw(max(roi(3)+y-bin-1,1):min(roi(3)+y+bin-1,yR), max(roi(1)+x-bin-1,1):min(roi(1)+x+bin-1,xR), :),[],zR),1))'])';
                     else
-                        if(isempty(this.roiFluoData{channel}))
-                            this.updateProgress(0.5,sprintf('rebuilding ROI channel %d',channel));
-                            out = zeros(size(bl,1),size(bl,2),zR,this.ROIDataType);
-                            parfor i = 1:size(bl,1)
-                                tmp = out(i,:,:);
-                                for j = 1:size(bl,2)
-                                    idx = getAdaptiveBinningIndex(roi(3)+i-1,roi(1)+j-1,bl(i,j),yR,xR,100);
-                                    tmp(1,j,:) = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')';
-                                end
-                                out(i,:,:) = tmp;
-                            end
-                            this.updateProgress(1,sprintf('ROI rebuild channel %d 100% done',channel));
+                        bl = this.getROIAdaptiveBinLevels(channel);
+                        if(y <= size(bl,1) && x <= size(bl,2))
+                            idx = getAdaptiveBinningIndex(roi(3)+y-1,roi(1)+x-1,bl(y,x),yR,xR,100);
+                            out = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')';
                         end
-                        this.roiFluoData{channel} = out;
-                        this.roiFluoDataFlat{channel} = sum(uint32(out),3,'native');
-                        this.updateProgress(0,'');
                     end
-                    if(isempty(out) && bp.approximationTarget ~= 2)
-                        return
-                    end
-                    this.setDirtyFlags(channel,4,true);
-                    this.saveMatFile2Disk(channel);
                 else
-                    out = this.roiFluoData{channel};
+                    if(length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel}))
+                        %try to load this channel, cut and bin raw data
+                        bl = this.getROIAdaptiveBinLevels(channel);
+                        if(isempty(bl))
+                            out = this.makeROIData(channel);
+                        else
+                            if(isempty(this.roiFluoData{channel}))
+                                this.updateProgress(0.5,sprintf('rebuilding ROI channel %d',channel));
+                                out = zeros(size(bl,1),size(bl,2),zR,this.ROIDataType);
+                                parfor i = 1:size(bl,1)
+                                    tmp = out(i,:,:);
+                                    for j = 1:size(bl,2)
+                                        idx = getAdaptiveBinningIndex(roi(3)+i-1,roi(1)+j-1,bl(i,j),yR,xR,100);
+                                        tmp(1,j,:) = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')';
+                                    end
+                                    out(i,:,:) = tmp;
+                                end
+                                this.updateProgress(1,sprintf('ROI rebuild channel %d 100% done',channel));
+                            end
+                            this.roiFluoData{channel} = out;
+                            this.roiFluoDataFlat{channel} = sum(uint32(out),3,'native');
+                            this.updateProgress(0,'');
+                        end
+                        if(isempty(out) && bp.approximationTarget ~= 2)
+                            return
+                        end
+                        this.setDirtyFlags(channel,4,true);
+                        this.saveMatFile2Disk(channel);
+                    else
+                        out = this.roiFluoData{channel};
+                    end
+                    if(~isempty(y) && ~isempty(x))
+                        out = squeeze(out(y,x,:));
+                    end
                 end
-                if(~isempty(y) && ~isempty(x))
-                    out = squeeze(out(y,x,:));
-                end
-            end            
+            end
             if(bp.approximationTarget == 2 && ~isMultipleCall() && channel > 2)
                 %get anisotropy data from channel 1 and 2 (ch1 is parallel; ch2 is perpendicular)
                 if(this.nrSpectralChannels >= 2)
@@ -595,7 +603,7 @@ classdef measurementFile < handle
         function out = getROIMerged(this,channel)
             %get the ROI merged to a single decay
             if(length(this.roiMerged) < channel || isempty(this.roiMerged{channel}))
-                %merge raw ROI to single decay                
+                %merge raw ROI to single decay
                 raw = this.getRawData(channel);
                 if(isvector(raw))
                     this.roiMerged(channel) = {raw};
@@ -617,6 +625,7 @@ classdef measurementFile < handle
                 out = [];
             else
                 out = this.initData{ch};
+                bl = zeros(size(out,1),size(out,2));
             end
             %get grid size
             if(isempty(this.paramMgrObj))
@@ -637,13 +646,21 @@ classdef measurementFile < handle
                         raw = this.getRawData(2); %senkrecht
                         [yR,xR,zR] = size(raw);
                         pS = zeros(size(bl,1),size(bl,2),zR,'like',pP);
-                        parfor i = 1:size(bl,1)
-                            tmp = pS(i,:,:);
-                            for j = 1:size(bl,2)
-                                idx = getAdaptiveBinningIndex(roiY(i),roiX(j),bl(i,j),yR,xR,100);
-                                tmp(1,j,:) = circshift(sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')',bp.anisotropyChannelShift);
+                        if(yR <= 1 && xR <= 1)
+                            if(~isa(raw,class(pP)))
+                                eval(sprintf('pS = %s(raw);',class(pP)));
+                            else
+                                pS = raw;
                             end
-                            pS(i,:,:) = tmp;
+                        else
+                            parfor i = 1:size(bl,1)
+                                tmp = pS(i,:,:);
+                                for j = 1:size(bl,2)
+                                    idx = getAdaptiveBinningIndex(roiY(i),roiX(j),bl(i,j),yR,xR,100);
+                                    tmp(1,j,:) = circshift(sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')',bp.anisotropyChannelShift);
+                                end
+                                pS(i,:,:) = tmp;
+                            end
                         end
                         %pP(isnan(pP)) = 0;
                         %pS(isnan(pS)) = 0;
@@ -657,7 +674,7 @@ classdef measurementFile < handle
                     end
                 else
                     %fluorescence lifetime data
-                    %merge raw ROI to single decay                    
+                    %merge raw ROI to single decay
                     raw = this.getRawData(ch);
                     out = zeros(gridSz,gridSz,this.nrTimeChannels);
                     if(isempty(raw))
@@ -671,7 +688,7 @@ classdef measurementFile < handle
                             param = this.paramMgrObj.getParamSection('init_fit');
                             targetPhotons = int32(param.gridPhotons);
                         end
-                    end                    
+                    end
                     [~,bl,out] = getAdaptiveBinROI(raw,roiX,roiY,targetPhotons,int32(50),false);
                 end
                 this.updateProgress(1,sprintf('ROI preparation channel %d 100%% done',ch));
@@ -743,7 +760,7 @@ classdef measurementFile < handle
             end
         end
         
-         function [rawData, fluoFileInfo, auxInfo, ROIInfo] = makeExportVars(this,ch)
+        function [rawData, fluoFileInfo, auxInfo, ROIInfo] = makeExportVars(this,ch)
             %save measurement data in separate structure
             fluoFileInfo = []; auxInfo = []; ROIInfo = [];
             rawData = this.getRawData(ch);
@@ -756,112 +773,112 @@ classdef measurementFile < handle
             auxInfo.sourceFile = [name ext];
             fluoFileInfo = this.getFileInfoStruct(ch);
             ROIInfo = this.getROIInfo();
-         end
-         
-         function saveMatFile2Disk(this,ch)
+        end
+        
+        function saveMatFile2Disk(this,ch)
             %save result channel to disk
             %fn = this.getMeasurementFileName(ch,'');
             this.exportMatFile(ch,'');
-         end
+        end
         
-         function exportMatFile(this,ch,folder)
-             %save measurement data to disk
-%              [rawData, fluoFileInfo, auxInfo, ROIInfo] = this.makeExportVars(ch);
-%              if(isempty(rawData))
-%                  return
-%              end
-             fn = this.getMeasurementFileName(ch,folder);
-             [pathstr, ~, ~]= fileparts(fn);
-             if(~isdir(pathstr))
-                 mkdir(pathstr);
-             end
-             %saveVars = {'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'};
-             df = this.getDirtyFlags(ch,1:4);
-             if(all(df) || ~exist(fn,'file'))
-                 rawData = this.getRawData(ch);
-                 fluoFileInfo = this.getFileInfoStruct(ch);
-                 auxInfo.revision = this.FLIMXAboutInfo.measurement_revision;
-                 %out.channel = ch;
-                 [~, name, ext] = fileparts(this.getSourceFile());
-                 auxInfo.sourceFile = [name ext];
-                 ROIInfo = this.getROIInfo(ch);
-                 save(fn,'rawData','fluoFileInfo','auxInfo','ROIInfo','-v7.3');
-             else
-                 if(df(1,1))
-                     %rawData
-                     rawData = this.getRawData(ch);
-                     if(~isempty(rawData))
-                         save(fn,'rawData','-append');
-                     end
-                 end
-                 if(df(1,2))
-                     %fluoFileInfo
-                     fluoFileInfo = this.getFileInfoStruct(ch);
-                     if(this.paramMgrObj.basicParams.approximationTarget == 2)
-                         %revert artificial change of spectral channels
-                         fluoFileInfo.nrSpectralChannels = 2;
-                     end
-                     save(fn,'fluoFileInfo','-append');
-                 end
-                 if(df(1,3))
-                     %auxInfo
-                     auxInfo.revision = this.FLIMXAboutInfo.measurement_revision;
-                     %out.channel = ch;
-                     [~, name, ext] = fileparts(this.getSourceFile());
-                     auxInfo.sourceFile = [name ext];
-                     save(fn,'auxInfo','-append');
-                 end
-                 if(df(1,4))
-                     %ROIInfo
-                     ROIInfo = this.getROIInfo(ch);
-                     save(fn,'ROIInfo','-append');
-                 end
-             end
-             this.setDirtyFlags(ch,1:4,false);
-%              saveVars = saveVars(this.dirtyFlags);
-%              if(~isempty(saveVars))
-% %                  file = matfile(fn,'Writable',true);
-% %                  file.ROIInfo = ROIInfo;
-%                  save(fn,saveVars{:},'-append');
-%              end
-         end
-         
-         function out = getMyFolder(this)
+        function exportMatFile(this,ch,folder)
+            %save measurement data to disk
+            %              [rawData, fluoFileInfo, auxInfo, ROIInfo] = this.makeExportVars(ch);
+            %              if(isempty(rawData))
+            %                  return
+            %              end
+            fn = this.getMeasurementFileName(ch,folder);
+            [pathstr, ~, ~]= fileparts(fn);
+            if(~isdir(pathstr))
+                mkdir(pathstr);
+            end
+            %saveVars = {'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'};
+            df = this.getDirtyFlags(ch,1:4);
+            if(all(df) || ~exist(fn,'file'))
+                rawData = this.getRawData(ch);
+                fluoFileInfo = this.getFileInfoStruct(ch);
+                auxInfo.revision = this.FLIMXAboutInfo.measurement_revision;
+                %out.channel = ch;
+                [~, name, ext] = fileparts(this.getSourceFile());
+                auxInfo.sourceFile = [name ext];
+                ROIInfo = this.getROIInfo(ch);
+                save(fn,'rawData','fluoFileInfo','auxInfo','ROIInfo','-v7.3');
+            else
+                if(df(1,1))
+                    %rawData
+                    rawData = this.getRawData(ch);
+                    if(~isempty(rawData))
+                        save(fn,'rawData','-append');
+                    end
+                end
+                if(df(1,2))
+                    %fluoFileInfo
+                    fluoFileInfo = this.getFileInfoStruct(ch);
+                    if(this.paramMgrObj.basicParams.approximationTarget == 2)
+                        %revert artificial change of spectral channels
+                        fluoFileInfo.nrSpectralChannels = 2;
+                    end
+                    save(fn,'fluoFileInfo','-append');
+                end
+                if(df(1,3))
+                    %auxInfo
+                    auxInfo.revision = this.FLIMXAboutInfo.measurement_revision;
+                    %out.channel = ch;
+                    [~, name, ext] = fileparts(this.getSourceFile());
+                    auxInfo.sourceFile = [name ext];
+                    save(fn,'auxInfo','-append');
+                end
+                if(df(1,4))
+                    %ROIInfo
+                    ROIInfo = this.getROIInfo(ch);
+                    save(fn,'ROIInfo','-append');
+                end
+            end
+            this.setDirtyFlags(ch,1:4,false);
+            %              saveVars = saveVars(this.dirtyFlags);
+            %              if(~isempty(saveVars))
+            % %                  file = matfile(fn,'Writable',true);
+            % %                  file.ROIInfo = ROIInfo;
+            %                  save(fn,saveVars{:},'-append');
+            %              end
+        end
+        
+        function out = getMyFolder(this)
             %returns working folder
             %supposed to be overloaded by childs
             out = cd;
-         end
+        end
         
-         %% computation methods
-         function out = makeROIData(this,channel)
-             %bin raw data using binFactor and save in object
-             out = [];
-             if(length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel}))
-                 %try to load this channel
-                 raw = this.getRawData(channel);
-                 if(isempty(raw))
-                     return
-                 end
-                 [y, x, z] = size(raw);
-                 roi = this.ROICoordinates(:);
-                 if(length(roi) ~= 4)
-                     roi = ones(4,1);
-                     roi(2) = x;
-                     roi(4) = y;
-                 end
-                 %bin raw data
-                 computationParams = this.paramMgrObj.getParamSection('computation');
-                 generalParams = this.paramMgrObj.getParamSection('general');
-                 binFactor = this.roiStaticBinningFactor;
-                 if(binFactor > 0)
-                     this.updateProgress(0.5,sprintf('ROI preparation channel %d',channel));
-                 end
-%                  pool = gcp('nocreate');
-%                  if(~isempty(pool))
-%                      ps = 4*pool.NumWorkers;
-%                  else
-%                      ps = 0;
-%                  end                 
+        %% computation methods
+        function out = makeROIData(this,channel)
+            %bin raw data using binFactor and save in object
+            out = [];
+            if(length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel}))
+                %try to load this channel
+                raw = this.getRawData(channel);
+                if(isempty(raw))
+                    return
+                end
+                [y, x, z] = size(raw);
+                roi = this.ROICoordinates(:);
+                if(length(roi) ~= 4)
+                    roi = ones(4,1);
+                    roi(2) = x;
+                    roi(4) = y;
+                end
+                %bin raw data
+                computationParams = this.paramMgrObj.getParamSection('computation');
+                generalParams = this.paramMgrObj.getParamSection('general');
+                binFactor = this.roiStaticBinningFactor;
+                if(binFactor > 0)
+                    this.updateProgress(0.5,sprintf('ROI preparation channel %d',channel));
+                end
+                %                  pool = gcp('nocreate');
+                %                  if(~isempty(pool))
+                %                      ps = 4*pool.NumWorkers;
+                %                  else
+                %                      ps = 0;
+                %                  end
                 if(computationParams.useMatlabDistComp == 0 || binFactor < 1 || generalParams.saveMaxMem || (~this.roiAdaptiveBinEnable || this.roiAdaptiveBinEnable && ~isa(raw,'uint16')))
                     %force to run binning on matlab code
                     if(this.roiAdaptiveBinEnable)
@@ -893,24 +910,24 @@ classdef measurementFile < handle
                             out = getStaticBinROI(raw,uint16(roi),uint16(binFactor));
                         end
                     end
-                end   
-                 %save ROI data in object
-                 if(~isempty(out))
-                     this.roiFluoData(channel) = {out};
-                     this.roiFluoDataFlat{channel} = sum(uint32(out),3,'native');
-                 end
-                 this.saveMatFile2Disk(channel);
-                 this.updateProgress(0,'');
-             end
-         end
+                end
+                %save ROI data in object
+                if(~isempty(out))
+                    this.roiFluoData(channel) = {out};
+                    this.roiFluoDataFlat{channel} = sum(uint32(out),3,'native');
+                end
+                this.saveMatFile2Disk(channel);
+                this.updateProgress(0,'');
+            end
+        end
         
         function clearRawData(this,ch)
             %clear raw data to save memory, clear all channels if ch is empty
             if(isempty(ch))
                 this.rawFluoData = cell(0,0);
             elseif(isscalar(ch) && any(ch == this.nonEmptyChannelList))
-                this.rawFluoData{ch} = [];                
-            end            
+                this.rawFluoData{ch} = [];
+            end
         end
         
         function clearROIData(this)
@@ -918,7 +935,7 @@ classdef measurementFile < handle
             this.roiFluoData = cell(this.nrSpectralChannels,1);
             this.roiFluoDataFlat = cell(this.nrSpectralChannels,1);
             this.roiMerged = cell(this.nrSpectralChannels,1);
-            this.roiSupport = cell(this.nrSpectralChannels,1);            
+            this.roiSupport = cell(this.nrSpectralChannels,1);
             this.initData = cell(this.nrSpectralChannels,1);
             this.fileInfo.reflectionMask = cell(this.nrSpectralChannels,1);
             this.fileInfo.StartPosition = num2cell(ones(this.nrSpectralChannels,1));
@@ -946,11 +963,19 @@ classdef measurementFile < handle
     methods (Access = protected)
         function setPosition(this,val)
             %set position
+            for i = 1:length(this.nonEmptyChannelList)
+                %load fileinfo of all channels
+                this.getFileInfoStruct(this.nonEmptyChannelList(i));
+            end
             this.fileInfo.position = val;
-        end        
+        end
         
         function setPixelResolution(this,val)
             %set pixel resolution
+            for i = 1:length(this.nonEmptyChannelList)
+                %load fileinfo of all channels
+                this.getFileInfoStruct(this.nonEmptyChannelList(i));
+            end
             this.fileInfo.pixelResolution = val;
         end
         
@@ -973,7 +998,7 @@ classdef measurementFile < handle
             this.setDirtyFlags([],2,true);
         end
         
-        function setFileInfoStruct(this,fileInfo)            
+        function setFileInfoStruct(this,fileInfo)
             %set info (for batch job)
             if(isempty(fileInfo))
                 return
@@ -992,8 +1017,8 @@ classdef measurementFile < handle
             this.rawXSz = fileInfo.rawXSz;
             this.rawYSz = fileInfo.rawYSz;
             this.fileInfo.position = fileInfo.position;
-            this.fileInfo.pixelResolution = fileInfo.pixelResolution;            
-            this.fileInfoLoaded = true;            
+            this.fileInfo.pixelResolution = fileInfo.pixelResolution;
+            this.fileInfoLoaded = true;
             this.setDirtyFlags([],2,true);
         end
         
@@ -1010,7 +1035,7 @@ classdef measurementFile < handle
                 this.fileInfo.EndPosition{channel} = endP;
             end
             this.setDirtyFlags([],2,true);
-        end 
+        end
         
         function setRawData(this,channel,data)
             %set raw data for channel
@@ -1034,7 +1059,7 @@ classdef measurementFile < handle
         end
     end %methods (Access = protected)
     
-    methods(Static)        
+    methods(Static)
         function out = sWnd3D(xl,xu,yl,yu,d,raw,pres,hwb)
             % xl - lower bound x
             % xu - upper bound x
@@ -1081,11 +1106,11 @@ classdef measurementFile < handle
                 end
                 %close(hwb);
                 % even slower
-%                 t_start = clock;
-%                 out = sffilt(@sum,raw(yl:yu,xl:xu,:),[2*d+1 2*d+1]);
-%                 etime(clock,t_start)
+                %                 t_start = clock;
+                %                 out = sffilt(@sum,raw(yl:yu,xl:xu,:),[2*d+1 2*d+1]);
+                %                 etime(clock,t_start)
             end
-%             out_flat = sum(out,3);
+            %             out_flat = sum(out,3);
         end
         
         function fi = getDefaultFileInfo()
@@ -1102,7 +1127,7 @@ classdef measurementFile < handle
             %fi.ROICoordinates = [];
             %fi.ROIDataType = 'uint16';
             fi.rawXSz = 0;
-            fi.rawYSz = 0;            
+            fi.rawYSz = 0;
             fi.pixelResolution = 34.375; %just some default value: 58.666 (old) | 34.375 (new) µm / pixel
             fi.position = 'OS'; %OD "oculus dexter" = "right eye"; OS "oculus sinister" = "left eye"
         end
