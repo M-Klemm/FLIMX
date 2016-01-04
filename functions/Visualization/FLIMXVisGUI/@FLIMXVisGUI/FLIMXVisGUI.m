@@ -874,7 +874,11 @@ classdef FLIMXVisGUI < handle
                 %study/view does contain subjects
                 nr = get(this.visHandles.(sprintf('dataset_%s_pop',s)),'Value');
                 subs = get(this.visHandles.(sprintf('dataset_%s_pop',s)),'String');           
-                name = subs{nr};
+                if(iscell(subs))
+                    name = subs{nr};
+                else
+                    name = subs;
+                end
             end
         end
         
