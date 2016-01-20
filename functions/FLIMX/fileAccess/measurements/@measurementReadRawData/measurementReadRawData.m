@@ -168,7 +168,7 @@ classdef measurementReadRawData < measurementFile
             if(this.nrTimeChannels == 0)
                 this.readFluoFileInfo();
             end
-            if(channel > this.nrSpectralChannels)
+            if(channel > this.fileInfo.nrSpectralChannels)
                 %we don't have that channel
                 return
             end

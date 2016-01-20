@@ -101,7 +101,6 @@ classdef SDTIO < handle
             %exists anylonger
             if ~(obj.UpdateFile())
                 error('File does not exist anylonger');
-                return;
             end
             %If there is a new version of the file, we need to read the
             %header again
@@ -110,10 +109,11 @@ classdef SDTIO < handle
                     obj.ReadInfo();
                 catch
                     error('File Header is not consistent');
-                    return
                 end
             end
-            
+            if(length(obj.m_SDTReadInfo.pSPCDataBlockInfo) < iDataBlock)
+                error('Datablock %d does not exist',iDataBlock);
+            end
             pReqDBI = obj.m_SDTReadInfo.pSPCDataBlockInfo(iDataBlock);
             fseek(obj.m_hInFile, pReqDBI.uFileOffset, 'bof');
             
@@ -133,7 +133,6 @@ classdef SDTIO < handle
                     type_len = 8;
                 otherwise
                     error('Data type not recognized cannot read block');
-                    return
             end
             %Description how to read the data for different Block Types
             %To-Do: Case über alle Fälle an Daten anhand des "uBlockType"
@@ -204,7 +203,6 @@ classdef SDTIO < handle
                         raw = [];
                         fclose(obj.m_hInFile);
                         error('Cannot read data block');
-                        return
                     end
                 case 112 %MCS_TA_BLOCK
                 case 128 %IMG_MCS_BLOCK
@@ -435,7 +433,6 @@ classdef SDTIO < handle
                 catch
                     info = 0;
                     error('File does not exist');
-                    return;
                 end
                 file = dir(obj.FileInformation.Name);
                 obj.FileInformation.LastChange = file.date;
