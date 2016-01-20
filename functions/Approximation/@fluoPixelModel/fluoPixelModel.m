@@ -1291,19 +1291,6 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             end
         end
         
-        function [out, msg] = testShiftLinOpt4096()
-            %returns true is a mex file can be used for shift and linear optimization computation with up to 4096 time channels
-            try
-                z = zeros(1,1,'single');
-                shiftAndLinearOpt4096_mex(zeros(4096,0,0,'single'),ones(4096,1,'single'),single([]),false,z,z,z,z,z,z,true,true); %test computation
-                out = true;
-                msg = '';
-            catch ME
-                msg = sprintf('Using shiftAndLinearOpt_mex failed. Mex file was found but failed to run: %s',ME.message);
-                out = false;
-            end
-        end
-        
         function [nonLinBounds, linBounds] = getBoundsPerChannel(d_max,offset,basicFitParams,nScatter,cMask,allBounds)
             %get lower & upper bounds, initialization, quantization_inits, tolerances for optimization
             if(basicFitParams.nExp < 4)

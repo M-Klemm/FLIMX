@@ -143,9 +143,8 @@ function buttonMexTest_Callback(hObject, eventdata, handles)
 
 data{1,1} = 'Static Binning';
 data{2,1} = 'Adaptive Binning';
-data{3,1} = 'Linear Optimization (1024)';
-data{4,1} = 'Linear Optimization (4096)';
-data(:,2) = num2cell(false(4,1));
+data{3,1} = 'Linear Optimization';
+data(:,2) = num2cell(false(3,1));
 
 if(measurementFile.testStaticBinMex())
     data{1,2} = true;
@@ -155,9 +154,6 @@ if(measurementFile.testAdaptiveBinMex())
 end
 if(fluoPixelModel.testShiftLinOpt1024())
     data{3,2} = true;
-end
-if(fluoPixelModel.testShiftLinOpt4096())
-    data{4,2} = true;
 end
 set(handles.tableMexSupport,'Data',data);
 
