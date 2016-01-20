@@ -99,12 +99,17 @@ classdef importFolderGUI < handle
                 for i = 1:length(this.currentFiles)                    
                     out{i,1} = this.currentFiles(i,1).name;
                     idx = strfind(out{i,1},filesep);
-                    if(length(idx) > 1)
+                    if(get(this.visHandles.popupSubjectNameGuess,'Value') == 1 && length(idx) > 1)
                         %proposal for subject name from folder
                         out{i,2} = out{i,1}(idx(end-1)+1:idx(end)-1);
-                    else
+                    elseif(get(this.visHandles.popupSubjectNameGuess,'Value') == 2 || length(idx) <= 1)
                         %proposal for subject name from file
                         [~, out{i,2}, ~] = fileparts(out{i,1});
+                    else
+                        %proposal for subject name from folder + file
+                        folderN = out{i,1}(idx(end-1)+1:idx(end)-1);
+                        [~,fileN,~] = fileparts(out{i,1});
+                        out{i,2} = [folderN '_' fileN];
                     end
                 end
             end
@@ -161,6 +166,12 @@ classdef importFolderGUI < handle
             this.setupGUI();
         end
         
+        function GUI_popupSubjectNameGuess_Callback(this,hObject, eventdata)
+            %user changed subject name proposal source
+            set(this.visHandles.tableSubjects,'Data',[]);
+            this.setupGUI();
+        end
+        
         function GUI_radioStudy_Callback(this,hObject, eventdata)
             %user changed study source
             this.setupGUI();
@@ -203,7 +214,7 @@ classdef importFolderGUI < handle
                         subject.preProcessParams.roiBinning = 0;
                         subject.importMeasurement(mask{i,1});
                     end
-                    [hours minutes secs] = secs2hms(etime(clock,tStart)/i*(nSubjects-i)); %mean cputime for finished runs * cycles left
+                    [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(nSubjects-i)); %mean cputime for finished runs * cycles left
                     this.plotProgressbar(i/nSubjects,[],...
                         sprintf('Progress: %d/%d (%02.1f%%) - Time left: %dh %dmin %.0fsec', i,nSubjects,100*i/nSubjects,hours,minutes,secs));
                 end
@@ -335,6 +346,7 @@ classdef importFolderGUI < handle
             set(this.visHandles.buttonCancel,'Callback',@this.GUI_buttonCancel_Callback);
             %popups
             set(this.visHandles.popupStudySel,'Callback',@this.GUI_popupStudySel_Callback);
+            set(this.visHandles.popupSubjectNameGuess,'Callback',@this.GUI_popupSubjectNameGuess_Callback);
             %radio buttons
             set(this.visHandles.radioExistingStudy,'Callback',@this.GUI_radioStudy_Callback);
             set(this.visHandles.radioNewStudy,'Callback',@this.GUI_radioStudy_Callback);
