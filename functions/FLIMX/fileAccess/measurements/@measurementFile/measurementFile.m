@@ -51,6 +51,7 @@ classdef measurementFile < handle
         roiSupport = cell(0,0);
         roiBinLevels = cell(0,0);
         roiMerged = cell(0,0);
+        roiMergedMask = [];
         initData = cell(0,0);
         useMexFlags = [];
         
@@ -476,7 +477,9 @@ classdef measurementFile < handle
                     %this.roiBinLevels{channel} = binFactors;
                 else
                     bin = this.roiStaticBinningFactor;
-                    if(bin == 0)
+                    if(isempty(raw))
+                        out = [];
+                    elseif(bin == 0)
                         out = int32(sum(raw(roi(3):roi(4),roi(1):roi(2),:),3));
                     else
                         out = sffilt(@sum,sum(raw(roi(3):roi(4),roi(1):roi(2),:),3),[2*bin+1 2*bin+1]);
@@ -537,8 +540,11 @@ classdef measurementFile < handle
                     else
                         bl = this.getROIAdaptiveBinLevels(channel);
                         if(y <= size(bl,1) && x <= size(bl,2))
-                            idx = getAdaptiveBinningIndex(roi(3)+y-1,roi(1)+x-1,bl(y,x),yR,xR,100);
-                            out = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')';
+                            [binXcoord, binYcoord, binRho, binRhoU] = makeBinMask(100);
+                            idx = getAdaptiveBinningIndex(roi(3)+y-1,roi(1)+x-1,bl(y,x),yR,xR,binXcoord, binYcoord, binRho, binRhoU);
+                            %out = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')';
+                            raw = reshape(raw,[yR*xR,zR]);
+                            out = sum(raw(idx, :),1,'native')';
                         end
                     end
                 else
@@ -550,15 +556,21 @@ classdef measurementFile < handle
                         else
                             if(isempty(this.roiFluoData{channel}))
                                 this.updateProgress(0.5,sprintf('rebuilding ROI channel %d',channel));
-                                out = zeros(size(bl,1),size(bl,2),zR,this.ROIDataType);
-                                parfor i = 1:size(bl,1)
-                                    tmp = out(i,:,:);
-                                    for j = 1:size(bl,2)
-                                        idx = getAdaptiveBinningIndex(roi(3)+i-1,roi(1)+j-1,bl(i,j),yR,xR,100);
-                                        tmp(1,j,:) = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')';
-                                    end
-                                    out(i,:,:) = tmp;
-                                end
+                                out = getAdaptiveBinRebuild(raw,roi,bl);
+%                                 tic;out2 = getAdaptiveBinRebuild_mex(raw,roi,bl);toc
+%                                 tic;out3 = gather(getAdaptiveBinRebuild(gRaw,roi,bl));toc
+%                                 out = zeros(size(bl,1),size(bl,2),zR,this.ROIDataType);
+%                                 [binXcoord, binYcoord, binRho, binRhoU] = makeBinMask(100);
+%                                 raw = reshape(raw,[yR*xR,zR]);
+%                                 parfor i = 1:size(bl,1)
+%                                     tmp = out(i,:,:);
+%                                     for j = 1:size(bl,2)
+%                                         idx = getAdaptiveBinningIndex(roi(3)+i-1,roi(1)+j-1,bl(i,j),yR,xR,binXcoord, binYcoord, binRho, binRhoU);
+%                                         %tmp(1,j,:) = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')';
+%                                         tmp(1,j,:) = sum(raw(idx, :),1,'native')';
+%                                     end
+%                                     out(i,:,:) = tmp;
+%                                 end
                                 this.updateProgress(1,sprintf('ROI rebuild channel %d 100% done',channel));
                             end
                             this.roiFluoData{channel} = out;
@@ -569,7 +581,9 @@ classdef measurementFile < handle
                             return
                         end
                         this.setDirtyFlags(channel,4,true);
-                        this.saveMatFile2Disk(channel);
+                        if(this.roiAdaptiveBinEnable)
+                            this.saveMatFile2Disk(channel);
+                        end
                     else
                         out = this.roiFluoData{channel};
                     end
@@ -608,7 +622,18 @@ classdef measurementFile < handle
                 if(isvector(raw))
                     this.roiMerged(channel) = {raw};
                 elseif(~isempty(raw) && ndims(raw) == 3)
-                    this.roiMerged(channel) = {sum(reshape(raw(this.ROICoordinates(3):this.ROICoordinates(4),this.ROICoordinates(1):this.ROICoordinates(2),:),[],size(raw,3)),1)'};
+                    raw = raw(this.ROICoordinates(3):this.ROICoordinates(4),this.ROICoordinates(1):this.ROICoordinates(2),:);
+                    rawFlat = sum(raw,3);
+                    mv = max(rawFlat(:));
+                    if(isempty(this.roiMergedMask))
+                        mask = rawFlat >= mv/10;
+                        this.roiMergedMask = mask;
+                    else
+                        mask = this.roiMergedMask;
+                    end
+                    raw = reshape(raw,[size(raw,1)*size(raw,2),size(raw,3)]);
+                    this.roiMerged(channel) = {sum(raw(mask(:),:),1)'};
+                    %this.roiMerged(channel) = {sum(reshape(raw(this.ROICoordinates(3):this.ROICoordinates(4),this.ROICoordinates(1):this.ROICoordinates(2),:),[],size(raw,3)),1)'};
                 end
             end
             if(length(this.roiMerged) < channel || isempty(this.roiMerged{channel}))
@@ -645,21 +670,28 @@ classdef measurementFile < handle
                         [pP,bl] = this.getInitData(1,targetPhotons); %parallel
                         raw = this.getRawData(2); %senkrecht
                         [yR,xR,zR] = size(raw);
-                        pS = zeros(size(bl,1),size(bl,2),zR,'like',pP);
-                        if(yR <= 1 && xR <= 1)
-                            if(~isa(raw,class(pP)))
-                                eval(sprintf('pS = %s(raw);',class(pP)));
-                            else
-                                pS = raw;
-                            end
+                        if(gridSz == 1 && param.gridPhotons == 0)
+                            [pS,~] = this.getInitData(2,0);
                         else
-                            parfor i = 1:size(bl,1)
-                                tmp = pS(i,:,:);
-                                for j = 1:size(bl,2)
-                                    idx = getAdaptiveBinningIndex(roiY(i),roiX(j),bl(i,j),yR,xR,100);
-                                    tmp(1,j,:) = circshift(sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')',bp.anisotropyChannelShift);
+                            pS = zeros(size(bl,1),size(bl,2),zR,'like',pP);
+                            if(yR <= 1 && xR <= 1)
+                                if(~isa(raw,class(pP)))
+                                    eval(sprintf('pS = %s(raw);',class(pP)));
+                                else
+                                    pS = raw;
                                 end
-                                pS(i,:,:) = tmp;
+                            else
+                                [binXcoord, binYcoord, binRho, binRhoU] = makeBinMask(100);
+                                raw = reshape(raw,[yR*xR,zR]);
+                                parfor i = 1:size(bl,1)
+                                    tmp = pS(i,:,:);
+                                    for j = 1:size(bl,2)
+                                        idx = getAdaptiveBinningIndex(roiY(i),roiX(j),bl(i,j),yR,xR,binXcoord, binYcoord, binRho, binRhoU);
+                                        %tmp(1,j,:) = circshift(sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')',bp.anisotropyChannelShift);
+                                        tmp(1,j,:) = circshift(sum(raw(idx, :),1,'native')',bp.anisotropyChannelShift);
+                                    end
+                                    pS(i,:,:) = tmp;
+                                end
                             end
                         end
                         %pP(isnan(pP)) = 0;
@@ -675,12 +707,11 @@ classdef measurementFile < handle
                 else
                     %fluorescence lifetime data
                     %merge raw ROI to single decay
-                    raw = this.getRawData(ch);
-                    out = zeros(gridSz,gridSz,this.nrTimeChannels);
+                    raw = this.getRawData(ch);                    
+                    out = zeros(gridSz,gridSz,this.nrTimeChannels);                    
                     if(isempty(raw))
                         return
                     end
-                    %get target nr of photons
                     if(isempty(targetPhotons))
                         if(isempty(this.paramMgrObj))
                             targetPhotons = int32(100000);
@@ -689,7 +720,14 @@ classdef measurementFile < handle
                             targetPhotons = int32(param.gridPhotons);
                         end
                     end
-                    [~,bl,out] = getAdaptiveBinROI(raw,roiX,roiY,targetPhotons,int32(50),false);
+                    if(gridSz == 1 && targetPhotons == 0)
+                        out(1,1,:) = this.getROIMerged(ch);
+                        bl = 0;
+                    else
+                        %get target nr of photons
+                        
+                        [~,bl,out] = getAdaptiveBinROI(raw,roiX,roiY,targetPhotons,int32(50),false);
+                    end
                 end
                 this.updateProgress(1,sprintf('ROI preparation channel %d 100%% done',ch));
                 this.initData{ch} = out;
@@ -853,6 +891,9 @@ classdef measurementFile < handle
         function out = makeROIData(this,channel)
             %bin raw data using binFactor and save in object
             out = [];
+            if(isMultipleCall())
+                return
+            end
             if(length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel}))
                 %try to load this channel
                 raw = this.getRawData(channel);
@@ -879,7 +920,7 @@ classdef measurementFile < handle
                 %                  else
                 %                      ps = 0;
                 %                  end
-                if(computationParams.useMatlabDistComp == 0 || binFactor < 1 || generalParams.saveMaxMem || (~this.roiAdaptiveBinEnable || this.roiAdaptiveBinEnable && ~isa(raw,'uint16')))
+                if(computationParams.useMatlabDistComp == 0 || binFactor < 1 || generalParams.saveMaxMem || this.roiAdaptiveBinEnable && ~isa(raw,'uint16'))
                     %force to run binning on matlab code
                     if(this.roiAdaptiveBinEnable)
                         [roiX,roiY] = compGridCoordinates(roi,0);
@@ -896,16 +937,17 @@ classdef measurementFile < handle
                         target = int32(this.roiAdaptiveBinThreshold);
                         maxBin = int32(this.roiAdaptiveBinMax);
                         [roiX,roiY] = compGridCoordinates(roi,0);
-                        if(this.useMex4AdaptiveBin && this.nrTimeChannels == 1024)
-                            [~,binLevels,out] = getAdaptiveBinROI_mex(raw,roiX,roiY,target,maxBin,true);
+                        if(this.useMex4AdaptiveBin && this.nrTimeChannels <= 1024)
+                            [~,binLevels,out] = getAdaptiveBinROI_mex(raw,roiX,roiY,target,maxBin,true);                            
                         else
                             [~,binLevels,out] = getAdaptiveBinROI(raw,roiX,roiY,target,maxBin,false);
                         end
                         this.roiBinLevels{channel} = binLevels;
                         this.setDirtyFlags(channel,4,true);
                     else
-                        if(this.useMex4StaticBin && this.nrTimeChannels == 1024)
-                            out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));
+                        if(this.useMex4StaticBin && this.nrTimeChannels <= 1024)
+                            out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));%toc
+                            %tic;out = gather(getStaticBinROI(gpuArray(raw),roi,binFactor));toc
                         else
                             out = getStaticBinROI(raw,uint16(roi),uint16(binFactor));
                         end
@@ -935,6 +977,7 @@ classdef measurementFile < handle
             this.roiFluoData = cell(this.nrSpectralChannels,1);
             this.roiFluoDataFlat = cell(this.nrSpectralChannels,1);
             this.roiMerged = cell(this.nrSpectralChannels,1);
+            this.roiMergedMask = [];
             this.roiSupport = cell(this.nrSpectralChannels,1);
             this.initData = cell(this.nrSpectralChannels,1);
             this.fileInfo.reflectionMask = cell(this.nrSpectralChannels,1);

@@ -33,7 +33,8 @@ function [roiFlat, binLevels, roiFull] = getAdaptiveBinROI(raw,roiX,roiY,targetP
 %
 flat = int32(sum(raw,3));
 [yR,xR,zR] = size(raw);
-rawClass = class(raw);
+raw = reshape(raw,[yR*xR,zR]);
+%rawClass = class(raw);
 [dataYSz,dataXSz] = size(flat);
 dataYSz = int32(dataYSz);
 dataXSz = int32(dataXSz);
@@ -50,7 +51,7 @@ end
 nPixel = roiYLen*roiXLen;
 %calculate coordinates of output grid
 [pxYcoord, pxXcoord] = ind2sub([roiYLen,roiXLen],1:nPixel);
-[~, ~, ~, binRhoU] = makeBinMask(maxBinFactor);
+[binXcoord, binYcoord, binRho, binRhoU] = makeBinMask(maxBinFactor);
 parfor px = 1:nPixel
     %coarse search
     maxBinLevelReached = false;
@@ -62,7 +63,7 @@ parfor px = 1:nPixel
         binFactor = binFactor+1;
         binLevel = int32(find(binFactor == binRhoU,1,'first'));
         if(~isempty(binLevel))
-            [idx,maxBinLevelReached] = getAdaptiveBinningIndex(roiY(pxYcoord(px)),roiX(pxXcoord(px)),binLevel(1),dataYSz,dataXSz,maxBinFactor);
+            [idx,maxBinLevelReached] = getAdaptiveBinningIndex(roiY(pxYcoord(px)),roiX(pxXcoord(px)),binLevel(1),dataYSz,dataXSz,binXcoord, binYcoord, binRho, binRhoU);
             val = sum(flat(idx),'native');
         end
     end
@@ -76,24 +77,25 @@ parfor px = 1:nPixel
     val = int32(0);
     while(~maxBinLevelReached && val < targetPhotons)
         binLevel = binLevel+1;
-        [idx,maxBinLevelReached] = getAdaptiveBinningIndex(roiY(pxYcoord(px)),roiX(pxXcoord(px)),binLevel,dataYSz,dataXSz,maxBinFactor);
+        [idx,maxBinLevelReached] = getAdaptiveBinningIndex(roiY(pxYcoord(px)),roiX(pxXcoord(px)),binLevel,dataYSz,dataXSz,binXcoord, binYcoord, binRho, binRhoU);
         val = sum(flat(idx),'native');
     end  
     roiFlat(px) = val;%pxYcoord(px),pxXcoord(px)
     binLevels(px) = binLevel(1);
-    if(optimize4Codegen)
-        %% use this for codegen!
-        [iY,iX] = ind2sub([yR,xR],idx);
-        tmp = zeros(length(idx),zR,rawClass);
-        for i = 1:length(idx)
-            tmp(i,:) = raw(iY(i),iX(i),:);
-        end
-        %roiFull(pxYcoord(px),pxXcoord(px),:) = sum(tmp,1,'native');
-        roiFull(px,1,:) = sum(tmp,1,'native');
-    else
+%     if(optimize4Codegen)
+%         %% use this for codegen!
+%         [iY,iX] = ind2sub([yR,xR],idx);
+%         tmp = zeros(length(idx),zR,rawClass);
+%         for i = 1:length(idx)
+%             tmp(i,:) = raw(iY(i),iX(i),:);
+%         end
+%         %roiFull(pxYcoord(px),pxXcoord(px),:) = sum(tmp,1,'native');
+%         roiFull(px,1,:) = sum(tmp,1,'native');
+%     else
         %% use this for matlab execution!
-        roiFull(px,1,:) = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native');
-    end
+        %roiFull(px,1,:) = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native'); %slow
+        roiFull(px,1,:) = sum(raw(idx, :),1,'native');
+%     end
 end
 roiFull = reshape(roiFull,roiYLen,roiXLen,zR);
 end

@@ -159,6 +159,9 @@ end
 if all(isnan(A(:))), B = A; return, end
 
 sizA = uint16(size(A));
+if(useGPU)
+    sizA = gpuArray(double(sizA));
+end
 if nargin==2
     % default kernel size is 3 or 3x3 or 3x3x3
     if isvector(A)
@@ -256,7 +259,11 @@ end
 
 %% Creating the index arrays (INT32)
 inc = zeros([3 2*siz+1],'like',sizA);
-siz = int32(siz);
+if(useGPU)
+    
+else
+    siz = int32(siz);
+end
 [inc(1,:,:,:), inc(2,:,:,:), inc(3,:,:,:)] = ndgrid(...
     [0:-1:-siz(1) 1:siz(1)],...
     [0:-1:-siz(2) 1:siz(2)],...
@@ -264,7 +271,11 @@ siz = int32(siz);
 inc = reshape(inc,[1 3 prod(2*single(siz)+1)]);
 
 I = zeros([sizB 3],'like',sizA);
-sizB = int32(sizB);
+if(useGPU)
+    
+else
+    sizB = int32(sizB);
+end
 [I(:,:,:,1), I(:,:,:,2), I(:,:,:,3)] = ndgrid(...
     (1:sizB(1))+siz(1),...
     (1:sizB(2))+siz(2),...

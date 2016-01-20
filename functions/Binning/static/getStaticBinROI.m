@@ -51,8 +51,24 @@ else
     end
     out = reshape(out,roiYLen,roiXLen,siz(3));
 end
-%% GPU version
-% out = sffilt(@sum,data(roiCoord(3):roiCoord(4),roiCoord(1):roiCoord(2),:),[2*binFactor+1 2*binFactor+1],uint16(0),1);
-
+%% GPU version a
+% if(binFactor == 0)
+%     out = uint16(data(roiY,roiX,:));
+% else
+%     out = zeros(roiYLen,roiXLen,siz(3),'like',data);
+%     for i = 1:siz(3)
+%         out(:,:,i) = sffilt(@sum,data(roiCoord(3):roiCoord(4),roiCoord(1):roiCoord(2),i),[2*binFactor+1 2*binFactor+1],uint16(0),1);
+%     end
+% end
+%% GPU version b
+% if(binFactor == 0)
+%     out = uint16(data(roiY,roiX,:));
+% else
+%     out = zeros(roiYLen*roiXLen,1,siz(3),'like',data);
+%     for px = 1:nPixel
+%         out(px,1,:) = sum(reshape(data(max(roiY(pxYcoord(px))-binFactor,1):min(roiY(pxYcoord(px))+binFactor,siz(1)), max(roiX(pxXcoord(px))-binFactor,1):min(roiX(pxXcoord(px))+binFactor,siz(2)), :),[],siz(3)),1,'native');
+%     end
+%     out = reshape(out,roiYLen,roiXLen,siz(3));
+% end
 
 

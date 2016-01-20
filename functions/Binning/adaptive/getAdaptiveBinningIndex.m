@@ -1,4 +1,4 @@
-function [idx,maxBinLevelReached] = getAdaptiveBinningIndex(pixelYPos,pixelXPos,binLevel,dataYSz,dataXSz,maxBinFactor)
+function [idx,maxBinLevelReached] = getAdaptiveBinningIndex(pixelYPos,pixelXPos,binLevel,dataYSz,dataXSz,binXcoord, binYcoord, binRho, binRhoU)
 %=============================================================================================================
     %
     % @file     getAdaptiveBinningIndex.m
@@ -31,13 +31,13 @@ function [idx,maxBinLevelReached] = getAdaptiveBinningIndex(pixelYPos,pixelXPos,
     %
     % @brief    A function to calculate the index of the adaptive binning
     %
-persistent maxBin binXcoord binYcoord binRho binRhoU
-if(isempty(maxBin))
-    maxBin = int8(maxBinFactor);
-end
-if(isempty(binXcoord) || maxBin ~= maxBinFactor)
-    [binXcoord, binYcoord, binRho, binRhoU] = makeBinMask(maxBinFactor);
-end
+% persistent maxBin binXcoord binYcoord binRho binRhoU
+% if(isempty(maxBin))
+%     maxBin = int8(maxBinFactor);
+% end
+% if(isempty(binXcoord) || maxBin ~= maxBinFactor)
+%     [binXcoord, binYcoord, binRho, binRhoU] = makeBinMask(maxBinFactor);
+% end
 binLevel = binLevel(1);
 if(binLevel >= length(binRhoU))
     binLevel = int32(length(binRhoU));
