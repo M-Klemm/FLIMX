@@ -209,6 +209,10 @@ classdef fluoSubject < handle
                         [tmp, ad.IRF.name] = this.myIRFMgr.getIRF(ad.fileInfo.nrTimeChannels,this.basicParams.curIRFID,ad.fileInfo.tacRange,ch);
                         if(isempty(tmp))
                             [tmp, ad.IRF.name] = this.myIRFMgr.getIRF(ad.fileInfo.nrTimeChannels,[],ad.fileInfo.tacRange,ch);
+                            if(isempty(tmp))
+                                tmp = zeros(ad.fileInfo.nrTimeChannels,1);
+                                tmp(1,1) = 1;
+                            end
                         end
                         ad.IRF.vector = uint16(tmp);
                     end
@@ -643,6 +647,28 @@ classdef fluoSubject < handle
                 out = this.myResult.getPixelFLIMItem(ch,pStr,y,x);
             else
                 out = this.myResult.getPixelFLIMItem(ch,pStr);
+            end
+            if(strncmp(pStr,'AnisotropyQuick',15) && ~isempty(out) && sum(out(:)) == 0 && this.basicParams.approximationTarget == 2)
+                %build AnisotropyQuick
+                i1 = this.myMeasurement.getROIData(1,[],[]);
+                [~,m1] = max(i1,[],3);
+                i4 = this.myMeasurement.getROIData(4,[],[]);
+                if(isempty(i4))
+                    return
+                end
+                siz = size(m1);
+                out = zeros(siz);
+                tMax = size(i4,3);
+                for i = 1:numel(m1)
+                    [i1,i2] = ind2sub(siz,i);
+                    out(i1,i2) = mean(i4(i1,i2,max(1,m1(i1,i2)):min(tMax,m1(i1,i2)+2)));
+                end
+                rs.AnisotropyQuick = out;
+                this.myResult.addResultStruct(ch,rs);
+                %optional: select only one pixel
+                if(nargin == 5 && ~isempty(out))
+                    out = squeeze(out(max(1,min(size(out,1),y)),max(1,min(size(out,2),x)),:));
+                end
             end
         end
         
@@ -1163,7 +1189,7 @@ classdef fluoSubject < handle
                 end
                 %update constant vector
                 idx = find(strcmp(bp.fix2InitTargets{i},modelParamsString),1);
-                if(vcp.cMask(idx))
+                if(~isempty(idx) && vcp.cMask(idx))
                     tmp = cumsum(abs(vcp.cMask));
                     vcp.cVec(tmp(idx)) = val;
                 end

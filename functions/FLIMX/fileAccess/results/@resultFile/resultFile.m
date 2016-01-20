@@ -472,7 +472,6 @@ classdef resultFile < handle
 %                 end
             end
             %post processing
-            %toDo: get timeChannelWidth from somewhere
             if(strncmp(pStr,'MaximumPosition',15) && ~isempty(out) && ~isempty(this.getFileInfoStruct(ch)))
                 out = out .* this.getFileInfoStruct(ch).timeChannelWidth;                
             end
@@ -510,7 +509,7 @@ classdef resultFile < handle
                     end
                 end
                 out(isnan(out)) = 0;
-                out = 100*out./sum(tmp,3);
+                out = 100*out./sum(abs(tmp),3);
             elseif(strncmp(pStr,'Q',1))
                 %make Q
                 nr = str2double(pStr(2:end));
@@ -729,6 +728,9 @@ classdef resultFile < handle
             results.TauMeanGuess = zeros(y,x);
             results.SlopeStartPosition = zeros(y,x);
             results.hShiftGuess = zeros(y,x);
+            if(this.basicParams.approximationTarget == 2)
+                results.AnisotropyQuick = zeros(y,x);
+            end
             %toDo: fix allocation
             results.x_vec = zeros(y,x,vp.nModelParamsPerCh);
             results.iVec = zeros(y,x,vp.nModelParamsPerCh);            
