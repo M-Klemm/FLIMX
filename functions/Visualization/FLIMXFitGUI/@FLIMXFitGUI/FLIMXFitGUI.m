@@ -1675,7 +1675,8 @@ classdef FLIMXFitGUI < handle
                 this.volatilePixelParams,...
                 this.FLIMXObj.curSubject.getVolatileChannelParams(0),...
                 this.FLIMXObj.paramMgr.getParamSection('bounds'),...
-                str,mask,this.FLIMXObj.fdt.getStudyNames());
+                str,mask,this.FLIMXObj.fdt.getStudyNames(),...
+                this.currentChannel);
             if(~isempty(new))
                 if(new.isDirty(1) == 1)
                     this.FLIMXObj.paramMgr.setParamSection('basic_fit',new.basic);
@@ -2285,7 +2286,7 @@ classdef FLIMXFitGUI < handle
                 tstr{row,5} = 'beta';
             end
             [amps, taus, ~, betas, scAmps, scShifts, scOset, hShift, ~] = apObj.getXVecComponents(xVec,false,apObj.currentChannel);
-            as = sum([amps(:); scAmps(:);]);
+            as = sum(abs([amps(:); scAmps(:);]));
             bCnt = 1;
             for l = 1:apObj.basicParams.nExp
                 tstr{l+row,1} = sprintf('Exp. %d',l);

@@ -101,7 +101,8 @@ rdh.studiesStr = varargin{9};
 rdh.isDirty = [0 0 0]; %flags which part was changed, 1-basic, 2-init, 3-pixel
 updateGUI(handles, rdh);  
 set(handles.fitOptionsFigure,'userdata',rdh);
-
+set(handles.popupChannel,'Value',min(varargin{10},length(get(handles.popupChannel,'String'))));
+updateGUI(handles, rdh);
 % UIWAIT makes GUI_fitOptions wait for user response (see UIRESUME)
 uiwait(handles.fitOptionsFigure);
 
@@ -135,10 +136,12 @@ if(data.basic.approximationTarget == 2)
     %anisotropy
     set(handles.panelApproxModel,'Visible','off');
     set(handles.panelAnisotropy,'Visible','on');
+    set(handles.popupChannel,'String',num2cell(1:4)');
 else
     %lifetime
     set(handles.panelApproxModel,'Visible','on');
     set(handles.panelAnisotropy,'Visible','off');
+    set(handles.popupChannel,'String',num2cell(1:2)','Value',min(2,get(handles.popupChannel,'Value')));
 end
 set(handles.checkReconvolute,'Value',data.basic.reconvoluteWithIRF)
 if(data.basic.reconvoluteWithIRF)
@@ -955,11 +958,7 @@ idx = [data{:,3}] == [data{:,4}] & [data{:,3}] > 0;
 if(~isempty(idx) && any(idx))
     data{idx,3} = false;
 end
-if(get(handles.popupChannel,'Value') == 1)
-    ch = 1;
-else
-    ch = 2;
-end
+ch = get(handles.popupChannel,'Value');
 rdh.basic.(sprintf('constMaskSaveStrCh%d',ch)) = data([data{:,3}],1);%;
 %rdh.basic.(sprintf('constMaskSaveStrCh%d',2)) = data([data{:,3}],1);
 rdh.basic.(sprintf('constMaskSaveValCh%d',ch)) = [data{[data{:,3}],2}];
