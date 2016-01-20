@@ -66,7 +66,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             this.computationParams = params.computation;
             %this.volatilePixelParams = params.volatilePixel;
             this.basicParams = params.basicFit; %this rebuilds volatile pixel params            
-            neChs = find(~cellfun('isempty',allIRF));
+            neChs = find(~cellfun('isempty',allIRF));%length(fileInfo);%
             %call channel class Constructor
             for ch = neChs
                 %                 if(this.basicParams.neighborFit)
@@ -318,7 +318,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
         function out = getVolatileChannelParams(this,ch)
             %get getVolatileChannelParams for channel ch
             out = [];
-            if(length(this.params.volatileChannel) >= ch)
+            if(length(this.params.volatileChannel) >= ch && ~isempty(this.params.volatileChannel{ch}))
                 out = this.params.volatileChannel{ch};
             else
                 %make volatile channel parameters
@@ -466,22 +466,24 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %idxIgnored = false(size(xVec,2),1);
             bp = this.basicParams;
             chi2 = zeros(1,size(xVec,2));
-            %ensure tau ordering
-            %exclude stretched exponentials
-            mask = find(~bp.stretchedExpMask)+bp.nExp;
-            for i = 1:length(mask)-1 %bp.nExp+1 : 2*bp.nExp-1
-                %idxIgnored(xVecCheck(mask(i),:).*bp.lifetimeGap > xVecCheck(mask(i+1),:)) = true;
-                tmp = floor(xVecCheck(mask(i+1),:) - xVecCheck(mask(i),:).*bp.lifetimeGap).*-1000;
-                idx = tmp > 0;
-                chi2(idx) = chi2(idx) + tmp(idx);
+            if(~(bp.approximationTarget == 2 && ch == 2))
+                %ensure tau ordering
+                %exclude stretched exponentials
+                mask = find(~bp.stretchedExpMask)+bp.nExp;
+                for i = 1:length(mask)-1 %bp.nExp+1 : 2*bp.nExp-1
+                    %idxIgnored(xVecCheck(mask(i),:).*bp.lifetimeGap > xVecCheck(mask(i+1),:)) = true;
+                    tmp = floor(xVecCheck(mask(i+1),:) - xVecCheck(mask(i),:).*bp.lifetimeGap).*-1000;
+                    idx = tmp > 0;
+                    chi2(idx) = chi2(idx) + tmp(idx);
+                end
+                %ensure tci ordering
+                for i = 2*bp.nExp+1 : 2*bp.nExp+sum(bp.tciMask ~= 0)-1
+                    %idxIgnored(xVecCheck(i,:) > xVecCheck(i+1,:)) = true;
+                    tmp = floor(xVecCheck(i+1,:) - xVecCheck(i,:)) .*-1000;
+                    idx = tmp > 0;
+                    chi2(idx) = chi2(idx) + tmp(idx);
+                end
             end
-            %ensure tci ordering
-            for i = 2*bp.nExp+1 : 2*bp.nExp+sum(bp.tciMask ~= 0)-1
-                %idxIgnored(xVecCheck(i,:) > xVecCheck(i+1,:)) = true;
-                tmp = floor(xVecCheck(i+1,:) - xVecCheck(i,:)) .*-1000;
-                idx = tmp > 0;
-                chi2(idx) = chi2(idx) + tmp(idx);
-            end            
             amps = zeros(bp.nExp,size(xVec,2));
             scAmps = zeros(this.volatilePixelParams.nScatter,size(xVec,2));
             oset = zeros(1,size(xVec,2));            
@@ -518,7 +520,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             exponentials(:,:,idxIgnored) = 0;
             %help optimizer to get shift right, if we are too far off             
             %[~, chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,tmp,[false; ~idxIgnored],this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
-            if(bp.approximationTarget == 1 || ch < 4) %only for fluorescence lifetime
+            if(ch < 4) %only for fluorescence lifetime %bp.approximationTarget == 1 || 
                 %compute model FWHM positions
                 [~,fwhmPos] = max(bsxfun(@gt,model(:,~idxIgnored),max(model(:,~idxIgnored),[],1)*0.8),[],1);
                 d = abs(bsxfun(@minus,fwhmPos,this.myChannels{ch}.dFWHMPos));
@@ -527,7 +529,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     idxNum = find(~idxIgnored);
                     idxNum = idxNum(idxHit);
                     idxIgnored(idxNum) = true;
-                    chi2(idxNum) = chi2(idxNum)+d(idxHit).*10000;
+                    chi2(idxNum) = max(chi2(idxNum)+d(idxHit).*10000,(d(idxHit)/10+1)*10.*chi2(idxNum));
                 end
                 if(all(idxIgnored == true))
                     chi2tail = chi2;
@@ -1280,7 +1282,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %returns true is a mex file can be used for shift and linear optimization computation with up to 1024 time channels
             try
                 z = zeros(1,1,'single');
-                shiftAndLinearOpt_mex(zeros(1024,0,0,'single'),ones(1024,1,'single'),single([]),false,z,z,z,z,z,z,true); %test computation
+                shiftAndLinearOpt_mex(zeros(1024,0,0,'single'),ones(1024,1,'single'),single([]),false,z,z,z,z,z,z,true,true); %test computation
                 out = true;
                 msg = '';
             catch ME
@@ -1293,7 +1295,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %returns true is a mex file can be used for shift and linear optimization computation with up to 4096 time channels
             try
                 z = zeros(1,1,'single');
-                shiftAndLinearOpt4096_mex(zeros(4096,0,0,'single'),ones(4096,1,'single'),single([]),false,z,z,z,z,z,z,true); %test computation
+                shiftAndLinearOpt4096_mex(zeros(4096,0,0,'single'),ones(4096,1,'single'),single([]),false,z,z,z,z,z,z,true,true); %test computation
                 out = true;
                 msg = '';
             catch ME
@@ -1438,7 +1440,12 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %avg = sWnd1DAvg(data_vec(1:d1_pos+5),3); %use 5 points after max as well (smoother max), sliding window: 3x2+1=7
             %look for the rising egde only before the signal rose to 1/8th of the maximum
             fwemAPos = find(bsxfun(@lt,avg(1:end-5),max(avg(:),[],1)/6),1,'last')+1;
-            start_pos = find(fastGrad(avg(1:fwemAPos)) <= 0,1, 'last')+1; %start 5 points prior to max
+            p1 = find(avg,1);
+            if(p1 >= fwemAPos)
+                start_pos = 1;
+            else
+                start_pos = find(fastGrad(avg(p1:fwemAPos)) <= 0,1, 'last')+p1; %start 5 points prior to max
+            end
             if(isempty(start_pos))
                 start_pos = 1;
             end

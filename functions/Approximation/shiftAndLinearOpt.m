@@ -1,4 +1,4 @@
-function [expModels, ao]  = shiftAndLinearOpt(expModels,t,measData,dataNonZeroMask,hShift,tcis,tciHShiftFine,oset,linLB,linUB,optimize4Codegen)
+function [expModels, ao]  = shiftAndLinearOpt(expModels,t,measData,dataNonZeroMask,hShift,tcis,tciHShiftFine,oset,linLB,linUB,fitOsetFlag,optimize4CodegenFlag)
 %=============================================================================================================
 %
 % @file     shiftAndLinearOpt.m
@@ -35,7 +35,7 @@ nParam = length(linLB);
 ao = zeros(1,size(tcis,1)+1,size(expModels,3),'like',t);
 linOptFlag = false;
 % linInterpFlag = false;
-osetFlag = false;
+% fitOsetFlag = false;
 if(~isempty(measData) && nParam > 0)
     data = measData(dataNonZeroMask);
     linOptFlag = true;
@@ -49,12 +49,12 @@ end
 % if(strcmp(interpMethod,'linear'))
 %     linInterpFlag = true;
 % end
-if(any(oset))
-    osetFlag = true;
-end
+% if(any(oset))
+%     fitOsetFlag = true;
+% end
 % tol=0;
 for j = 1:size(expModels,3)
-    if(optimize4Codegen)
+    if(optimize4CodegenFlag)
         %% use this for codegen!
         for i = 1:size(tcis,1)
             expModels(:,i,j) = circshift(expModels(:,i,j),hShift(j) + tcis(i,j));
@@ -68,15 +68,15 @@ for j = 1:size(expModels,3)
     %interpolate
     if(isempty(tciFlags))
         if(abs(tciHShiftFine(1,j)) > eps)
-            expModels(:,:,j) = qinterp1(t,expModels(:,:,j),t + (tciHShiftFine(1,j)).*t(2,1),optimize4Codegen);
+            expModels(:,:,j) = qinterp1(t,expModels(:,:,j),t + (tciHShiftFine(1,j)).*t(2,1),optimize4CodegenFlag);
         end
     else
         if(abs(tciHShiftFine(1,j)) > eps)
-            expModels(:,1:tciFlags(1)-1,j) = qinterp1(t,expModels(:,1:tciFlags(1)-1,j),t + (tciHShiftFine(1,j)).*t(2,1),optimize4Codegen);
+            expModels(:,1:tciFlags(1)-1,j) = qinterp1(t,expModels(:,1:tciFlags(1)-1,j),t + (tciHShiftFine(1,j)).*t(2,1),optimize4CodegenFlag);
         end
         for i = 1:length(tciFlags)
             if(abs(tciHShiftFine(tciFlags(i),j)) > eps)
-                expModels(:,tciFlags(i),j) = qinterp1(t,expModels(:,tciFlags(i),j),t + (tciHShiftFine(tciFlags(i),j)).*t(2,1),optimize4Codegen);
+                expModels(:,tciFlags(i),j) = qinterp1(t,expModels(:,tciFlags(i),j),t + (tciHShiftFine(tciFlags(i),j)).*t(2,1),optimize4CodegenFlag);
             end
         end
     end
@@ -91,27 +91,27 @@ for j = 1:size(expModels,3)
     %             end
     %         end
     
-    if(optimize4Codegen)
+    if(optimize4CodegenFlag)
         %% use this for codegen!
-        %     for i = 1:size(tcis,1)
-        %         expModels(:,i,j) = expModels(:,i,j)./max(expModels(:,i,j));
-        %     end
+        for i = 1:size(tcis,1)
+            expModels(:,i,j) = expModels(:,i,j)./max(expModels(:,i,j));
+        end
     else
         %% use this for matlab execution
         expModels(:,1:size(tcis,1),j) = bsxfun(@times,expModels(:,1:size(tcis,1),j),1./max(expModels(:,1:size(tcis,1),j)));
     end
     %determine amplitudes
     if(linOptFlag)
-        if(osetFlag) %offset is already set
-            %ao(1,1:nParam,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask,1:nParam,j),data(:,1)-oset(j),tol),linLB,linUB);
-            ao(1,1:nParam,j) = checkBounds(expModels(dataNonZeroMask,1:nParam,j)\(data(:,1)-oset(j)),linLB,linUB);
-            ao(1,end,j) = oset(j);
-        else %fit offset
+        if(fitOsetFlag) %fit offset
             %determine amplitudes and offset
             tmp(:,1:nParam-1) = expModels(:,:,j);
             tmp(:,end) = ones(length(t),1,'like',t);
-            %ao(1,:,j) = checkBounds(LinNonNeg(tmp(dataNonZeroMask,:),data(:,1),tol),linLB,linUB);
+            %ao(1,:,j) = checkBounds(LinNonNeg(tmp(dataNonZeroMask,:),data(:,1)),linLB,linUB);
             ao(1,:,j) = checkBounds(tmp(dataNonZeroMask,:)\data(:,1),linLB,linUB);
+        else%offset is already set
+            %ao(1,1:nParam,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask,1:nParam,j),data(:,1)-oset(j)),linLB,linUB);
+            ao(1,1:nParam,j) = checkBounds(expModels(dataNonZeroMask,1:nParam,j)\(data(:,1)-oset(j)),linLB,linUB);
+            ao(1,end,j) = oset(j);
         end
     end
 end
