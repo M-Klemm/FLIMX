@@ -529,7 +529,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     idxNum = find(~idxIgnored);
                     idxNum = idxNum(idxHit);
                     idxIgnored(idxNum) = true;
-                    chi2(idxNum) = max(chi2(idxNum)+d(idxHit).*10000,(d(idxHit)/10+1)*10.*chi2(idxNum));
+                    chi2(idxNum) = (d(idxHit)/10+1)*10.*chi2(idxNum); %max(chi2(idxNum)+d(idxHit).*10000,(d(idxHit)/10+1)*10.*chi2(idxNum));
                 end
                 if(all(idxIgnored == true))
                     chi2tail = chi2;
@@ -1270,7 +1270,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 idxNum = find(~idx);
                 idxNum = idxNum(idxHit);
                 idx(idxNum) = true;
-                chi2(idxNum) = chi2(idxNum)+d(idxHit).*-10000;
+                chi2(idxNum) = (-d(idxHit)/10+1)*10.*chi2(idxNum); %chi2(idxNum)+d(idxHit).*-10000; 
                 %model(:,idxHit) = [];
                 idxRemain = ~idxHit;
             else
