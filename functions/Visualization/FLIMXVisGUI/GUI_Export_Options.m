@@ -35,7 +35,7 @@ function varargout = GUI_Export_Options(varargin)
 % vargin - structure with preferences and defaults
 %output: same as input, but altered according to user input
 
-% Last Modified by GUIDE v2.5 14-Feb-2012 19:26:40
+% Last Modified by GUIDE v2.5 25-Jan-2016 18:44:54
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -108,8 +108,15 @@ end
 function updateGUI(handles,data)
 set(handles.editDpi,'String',num2str(data.dpi));
 set(handles.checkColorbar,'Value',data.plotColorbar);
+if(data.plotColorbar)
+    visStr = 'on';
+else
+    visStr = 'off';
+end
 idx = find(strcmp(data.colorbarLocation,get(handles.popupColorbarLocation,'String')),1);
-set(handles.popupColorbarLocation,'Value',idx);
+set(handles.popupColorbarLocation,'Value',idx,'Visible',visStr);
+set(handles.textColorbarLocation,'Visible',visStr);
+set(handles.checkBox,'Value',data.plotBox);
 set(handles.editPlotLinewidth,'String',num2str(data.plotLinewidth));
 set(handles.editLabelFontsize,'String',num2str(data.labelFontSize));
 set(handles.popupAspectRatio,'Value',data.autoAspectRatio+1);
@@ -146,6 +153,13 @@ updateGUI(handles,rdh.prefs);
 function checkColorbar_Callback(hObject, eventdata, handles)
 rdh = get(handles.exportOptionsGUIFigure,'userdata');
 rdh.prefs.plotColorbar = get(hObject,'Value');
+set(handles.exportOptionsGUIFigure,'userdata',rdh);
+updateGUI(handles,rdh.prefs);
+
+% --- Executes on button press in checkBox.
+function checkBox_Callback(hObject, eventdata, handles)
+rdh = get(handles.exportOptionsGUIFigure,'userdata');
+rdh.prefs.plotBox = get(hObject,'Value');
 set(handles.exportOptionsGUIFigure,'userdata',rdh);
 updateGUI(handles,rdh.prefs);
 

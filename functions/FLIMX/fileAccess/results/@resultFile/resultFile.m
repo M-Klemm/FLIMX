@@ -854,13 +854,13 @@ classdef resultFile < handle
                 %switch off hybrid fitting for result display
                 %replace hybrid fit parameters with their corresponding results
                 apObj.basicParams.hybridFit = 0;
-                for chIdx = 1:apObj.nrChannels
-                    apObj.basicParams.(sprintf('constMaskSaveStrCh%d',chIdx)) = {''};
-                end
-%                 vcp = apObj.getVolatileChannelParams(ch);
-%                 vcp.cMask = zeros(size(vcp.cMask));
-%                 vcp.cVec = [];
-%                 apObj.setVolatileChannelParams(ch,vcp);
+                %                 vcp = apObj.getVolatileChannelParams(ch);
+                %                 vcp.cMask = zeros(size(vcp.cMask));
+                %                 vcp.cVec = [];
+                %                 apObj.setVolatileChannelParams(ch,vcp);
+            end
+            for chIdx = 1:apObj.nrChannels
+                apObj.basicParams.(sprintf('constMaskSaveStrCh%d',chIdx)) = {''};
             end
         end
         

@@ -225,7 +225,7 @@ classdef FLIMXParamMgr < paramMgr
                 end
                 
                 if(ini.about.client_revision < 326)
-                    if(isfield(ini,'basic_fit')) %add a second channel to statistics parameters
+                    if(isfield(ini,'basic_fit'))
                         if(isfield(ini.basic_fit,'risingEdgeErrorMargin') && ini.basic_fit.risingEdgeErrorMargin < 4)
                             ini.basic_fit.risingEdgeErrorMargin = 4;
                             ini_isdirty = true;
@@ -233,6 +233,14 @@ classdef FLIMXParamMgr < paramMgr
                     end
                 end
                 
+                if(ini.about.config_revision < 255)
+                    if(isfield(ini,'basic_fit')) %rename errorMode field
+                        if(isfield(ini.basic_fit,'errorMode'))
+                            ini.basic_fit.figureOfMeritModifier = ini.basic_fit.errorMode;
+                            ini_isdirty = true;
+                        end
+                    end
+                end
                 if(ini_isdirty || ini.about.client_revision < this.about.client_revision || ini.about.config_revision < this.about.config_revision)
                     %generic version mismatch
                     ini = rmfield(ini,{'about'});

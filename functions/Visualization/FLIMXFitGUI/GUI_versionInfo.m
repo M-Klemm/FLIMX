@@ -183,11 +183,6 @@ catch ME
     errordlg(sprintf('Error compiling ''shiftAndLinearOptMexWin''\n\nIdentifier: %s\nMessage: %s',ME.identifier,ME.message),'MEX-File Gen. Error');
 end
 buttonMexTest_Callback(handles.buttonMexTest, eventdata, handles);
-try
-    coder -build shiftAndLinearOpt4096MexWin.prj
-catch ME
-    errordlg(sprintf('Error compiling ''shiftAndLinearOpt4096MexWin''\n\nIdentifier: %s\nMessage: %s',ME.identifier,ME.message),'MEX-File Gen. Error');
-end
 %update GUI
 buttonMexTest_Callback(handles.buttonMexTest, eventdata, handles);
 set(hObject,'String','Create Files');

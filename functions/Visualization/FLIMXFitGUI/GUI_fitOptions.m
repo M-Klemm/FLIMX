@@ -54,7 +54,7 @@ function varargout = GUI_fitOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_fitOptions
 
-% Last Modified by GUIDE v2.5 05-Nov-2015 15:13:54
+% Last Modified by GUIDE v2.5 07-Mar-2016 17:17:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -227,9 +227,16 @@ switch data.basic.neighborFit
         set(handles.popupNBPixels,'Value',3);
 end
 set(handles.editNBWeight,'String',num2str(data.basic.neighborWeight));
-set(handles.popupPPErrorMode,'Value',data.basic.errorMode);
-set(handles.popupChiWeighting,'Value',data.basic.chiWeightingMode);
-switch data.basic.errorMode
+set(handles.popupFigureOfMerit,'Value',data.basic.figureOfMerit);
+set(handles.popupFigureOfMeritModifier,'Value',data.basic.figureOfMeritModifier);
+if(data.basic.figureOfMerit == 1)
+    set(handles.popupChiWeighting,'Value',data.basic.chiWeightingMode,'Visible','on');
+    set(handles.textChiWeighting,'Visible','on');
+else
+    set(handles.popupChiWeighting,'Value',data.basic.chiWeightingMode,'Visible','off');
+    set(handles.textChiWeighting,'Visible','off');
+end
+switch data.basic.figureOfMeritModifier
     case 2
         set(handles.textErrorMPixelP1,'String','Boost Factor','Visible','on');
         set(handles.textErrorMPixelP2,'String','pre-Max Window-Size','Visible','on');
@@ -854,10 +861,19 @@ rdh.pixel.optimizer(2) = get(hObject,'Value')-1;
 rdh.isDirty(3) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
 
-% --- Executes on selection change in popupPPErrorMode.
-function popupPPErrorMode_Callback(hObject, eventdata, handles)
+
+% --- Executes on selection change in popupFigureOfMerit.
+function popupFigureOfMerit_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
-rdh.basic.errorMode = get(hObject,'Value');
+rdh.basic.figureOfMerit = get(hObject,'Value');
+rdh.isDirty(1) = 1;
+set(handles.fitOptionsFigure,'userdata',rdh);
+updateGUI(handles, rdh);
+
+% --- Executes on selection change in popupPPfigureOfMeritModifier.
+function popupFigureOfMeritModifier_Callback(hObject, eventdata, handles)
+rdh = get(handles.fitOptionsFigure,'userdata');
+rdh.basic.figureOfMeritModifier = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
 updateGUI(handles, rdh);
@@ -994,7 +1010,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 % --- Executes during object creation, after setting all properties.
-function popupPPErrorMode_CreateFcn(hObject, eventdata, handles)
+function popupFigureOfMeritModifier_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
@@ -1136,6 +1152,11 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function popupAmplitudeOrder_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupFigureOfMerit_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

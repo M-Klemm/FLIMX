@@ -94,7 +94,7 @@ else %enough photons
                     %use initialization as weights for chi computation
                     if(~isempty(apObj.currentChannel))
                         idx = apObj.nonEmptyChannelList == apObj.currentChannel;
-                        cw(:,idx) = apObj.getModel(apObj.currentChannel,iVec);
+                        cw(:,idx) = apObj.getModel(apObj.currentChannel,iVec(:,1));
                     end
                     apObj.setChiWeightData(cw);
                 elseif(~isempty(prevXVec))
@@ -246,16 +246,16 @@ else %enough photons
                 oset = osetH;
                 scAmps = ampsScH;
             end
-            switch apObj.basicParams.heightMode
-                %                     case 1 %auto height
-                %                         amps = amps;%./result(ch).MaximumPhotons(1,1);
-                %                         scAmps = scAmps;%./result(ch).MaximumPhotons(1,1);
-                case 2 %fixed height
-                    as = sum([amps; scAmps oset]);
-                    amps = amps./as.*result(ch).MaximumPhotons(1,1);
-                    scAmps = scAmps./as.*result(ch).MaximumPhotons(1,1);
-                    oset = oset./as.*result(ch).MaximumPhotons(1,1);
-            end
+%             switch apObj.basicParams.heightMode
+%                 %                     case 1 %auto height
+%                 %                         amps = amps;%./result(ch).MaximumPhotons(1,1);
+%                 %                         scAmps = scAmps;%./result(ch).MaximumPhotons(1,1);
+%                 case 2 %fixed height
+%                     as = sum([amps; scAmps oset]);
+%                     amps = amps./as.*result(ch).MaximumPhotons(1,1);
+%                     scAmps = scAmps./as.*result(ch).MaximumPhotons(1,1);
+%                     oset = oset./as.*result(ch).MaximumPhotons(1,1);
+%             end
             xVec = apObj.getFullXVec(chList(ch),amps,taus,tcis,betas,scAmps,scShifts,scOset,hShift,oset);
             %xVec(end) = xVec(end) ./ result(ch).MaximumPhotons(1,1);
             % check if all amps are > 0 and values are not at borders

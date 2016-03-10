@@ -62,8 +62,7 @@ for j = 1:size(expModels,3)
     else
         %% use this for matlab execution
         expModels(:,:,j) = circShiftArrayNoLUT(squeeze(expModels(:,:,j)),hShift(j) + tcis(:,j));
-    end
-    
+    end    
     tciFlags = find(diff(tciHShiftFine(:,j)))+1;
     %interpolate
     if(isempty(tciFlags))
@@ -79,18 +78,7 @@ for j = 1:size(expModels,3)
                 expModels(:,tciFlags(i),j) = qinterp1(t,expModels(:,tciFlags(i),j),t + (tciHShiftFine(tciFlags(i),j)).*t(2,1),optimize4CodegenFlag);
             end
         end
-    end
-    %         for i = 1:size(tcis,1)
-    %             if(abs(tciHShiftFine(i,j)) > eps)
-    %                 if(linInterpFlag)
-    %                     expModels(:,i,j) = qinterp1(t,expModels(:,i,j),t + (tciHShiftFine(i,j)).*t(2,1));
-    %                 else
-    %                     expModels(:,i,j) = interp1(t,expModels(:,i,j),t + (tciHShiftFine(i,j)).*t(2,1),interpMethod);
-    %                 end
-    %                 expModels(:,i,j) = expModels(:,i,j)./max(expModels(:,i,j));
-    %             end
-    %         end
-    
+    end        
     if(optimize4CodegenFlag)
         %% use this for codegen!
         for i = 1:size(tcis,1)
@@ -101,7 +89,7 @@ for j = 1:size(expModels,3)
         expModels(:,1:size(tcis,1),j) = bsxfun(@times,expModels(:,1:size(tcis,1),j),1./max(expModels(:,1:size(tcis,1),j)));
     end
     %determine amplitudes
-    if(linOptFlag)
+    if(linOptFlag)        
         if(fitOsetFlag) %fit offset
             %determine amplitudes and offset
             tmp(:,1:nParam-1) = expModels(:,:,j);

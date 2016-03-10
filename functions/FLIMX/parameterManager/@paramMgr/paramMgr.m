@@ -243,7 +243,8 @@ classdef paramMgr < handle
             def.basic_fit.ErrorMP1              =	10;
             def.basic_fit.ErrorMP2              =	5;
             def.basic_fit.ErrorMP3              =	5;
-            def.basic_fit.errorMode             =	1; % chi² 1: nothing(default), 2:+ peak boost, 3: + k2, 4: *k2, 5: + mean rising edge error, 6: maximum likelihood
+            def.basic_fit.figureOfMerit         =   1; %1: chi², 2: least squares
+            def.basic_fit.figureOfMeritModifier =	1; %figure of merit + 1: nothing(default), 2: peak boost
             def.basic_fit.chiWeightingMode      =	1; %1: Neyman (default), 2: Pearson, 3: fitted weighting, 4: Warren %fittedChiWeighting
             def.basic_fit.heightMode            =	1;
             def.basic_fit.timeInterpMethod      =   'linear';
@@ -566,6 +567,7 @@ classdef paramMgr < handle
             
             def.export.dpi              =	200;
             def.export.plotColorbar     =   1;
+            def.export.plotBox          =   1;
             def.export.colorbarLocation =   'EastOutside';
             def.export.plotLinewidth    =	2;
             def.export.labelFontSize    =   10;
@@ -756,83 +758,10 @@ classdef paramMgr < handle
                     cVec(idx) = saveVal(i);
                 end            
             end
-%             cOffset = 0;
-%             %amplitudes
-%             [pVals, pNrs] = paramMgr.extractParamsFromString('Amplitude',basicParams.nExp,saveStr,saveVal,true);
-%             cMask(pNrs) = 1;
-%             cVec(pNrs) = pVals;
-%             cOffset = cOffset + basicParams.nExp;
-%             %taus
-%             [pVals, pNrs] = paramMgr.extractParamsFromString('Tau',basicParams.nExp,saveStr,saveVal,true);
-%             cMask(pNrs + cOffset) = 1;
-%             cVec(pNrs + cOffset) = pVals;
-%             cOffset = cOffset + basicParams.nExp;
-%             %tci
-%             tcis = find(basicParams.tciMask);
-%             [pVals, pNrs] = paramMgr.extractParamsFromString('tc',basicParams.nExp,saveStr,saveVal,true);
-%             for i = 1:length(pNrs)
-%                 idx = find(pNrs(i) == tcis);
-%                 cMask(idx + cOffset) = 1;
-%                 cVec(idx + cOffset) = pVals(i);
-%             end
-%             cOffset = cOffset + sum(basicParams.tciMask);
-%             %beta
-%             ses = find(basicParams.stretchedExpMask);
-%             [pVals, pNrs] = paramMgr.extractParamsFromString('Beta',basicParams.nExp,saveStr,saveVal,true);
-%             for i = 1:length(pNrs)
-%                 idx = find(pNrs(i) == ses);
-%                 cMask(idx + cOffset) = 1;
-%                 cVec(idx + cOffset) = pVals(i);
-%             end
-%             cOffset = cOffset + sum(basicParams.stretchedExpMask);
-%             %scatter amplitude
-%             [pVals, pNrs] = paramMgr.extractParamsFromString('ScatterAmplitude',volatilePixelParams.nScatter,saveStr,saveVal,true);
-%             for i = 1:length(pNrs)
-%                 idx = find(pNrs(i) == 1:volatilePixelParams.nScatter);
-%                 cMask(idx + cOffset) = 1;
-%                 cVec(idx + cOffset) = pVals(i);
-%             end            
-%             cOffset = cOffset + volatilePixelParams.nScatter;
-%             %scatter shift
-%             [pVals, pNrs] = paramMgr.extractParamsFromString('ScatterShift',volatilePixelParams.nScatter,saveStr,saveVal,true);
-%             for i = 1:length(pNrs)
-%                 idx = find(pNrs(i) == 1:volatilePixelParams.nScatter);
-%                 cMask(idx + cOffset) = 1;
-%                 cVec(idx + cOffset) = pVals(i);
-%             end            
-%             cOffset = cOffset + volatilePixelParams.nScatter;
-%             %scatter offset
-%             [pVals, pNrs] = paramMgr.extractParamsFromString('ScatterOffset',volatilePixelParams.nScatter,saveStr,saveVal,true);
-%             for i = 1:length(pNrs)
-%                 idx = find(pNrs(i) == 1:volatilePixelParams.nScatter);
-%                 cMask(idx + cOffset) = 1;
-%                 cVec(idx + cOffset) = pVals(i);
-%             end            
-%             cOffset = cOffset + volatilePixelParams.nScatter;
-% %             %vShift
-% %             pVals = paramMgr.extractParamsFromString('v-Shift',basicParams.nExp,saveStr,saveVal,false);
-% %             if(~isempty(pVals))
-% %                 cMask(1 + cOffset) = 1;
-% %                 cVec(1 + cOffset) = pVals;
-% %             end
-% %             cOffset = cOffset + 1;
-%             %hShift
-%             pVals = paramMgr.extractParamsFromString('hShift',basicParams.nExp,saveStr,saveVal,false);
-%             if(~isempty(pVals))
-%                 cMask(1 + cOffset) = 1;
-%                 cVec(1 + cOffset) = pVals;
-%             end
-%             cOffset = cOffset + 1;
             %offset
             if(basicParams.nonLinOffsetFit == 3) %use guess value
                 cMask(end) = 1;
                 cVec(end) = 0;
-%             else
-%                 pVals = paramMgr.extractParamsFromString('Offset',basicParams.nExp,saveStr,saveVal,false);
-%                 if(~isempty(pVals))
-%                     cMask(1 + cOffset) = 1;
-%                     cVec(1 + cOffset) = pVals;
-%                 end
             end
             cVec = cVec(logical(cMask));
         end

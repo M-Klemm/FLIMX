@@ -62,7 +62,7 @@ classdef IRFMgrGUI < handle
         
         function GUI_tableIRFSel_Callback(this,hObject,eventdata)
             %
-            if(isstruct(eventdata) && isfield(eventdata,'Indices') && ~isempty(eventdata.Indices))
+            if(~isempty(eventdata) && ~isempty(eventdata.Indices))
                 set(this.visHandles.popupCurrentIRF,'Value',min(eventdata.Indices(1),length(get(this.visHandles.popupCurrentIRF,'String'))));
             end
             this.updateGUI();
@@ -135,7 +135,7 @@ classdef IRFMgrGUI < handle
         end
         
         function GUI_buttonDelete_Callback(this,hObject,eventdata)
-            if(~isempty(this.IRFMgrObj.getIRF(this.currentTimePoints,this.currentIRF,this.currentTacRange,this.currentSpectralCh)))
+            if(~isMultipleCall() && ~isempty(this.IRFMgrObj.getIRF(this.currentTimePoints,this.currentIRF,this.currentTacRange,this.currentSpectralCh)))
                 choice = questdlg(sprintf('Delete IRF ''%s'' with %d time points, a repetition rate of %d MHz and spectral channel %d?',this.currentIRF,this.currentTimePoints,this.currentRepRate,this.currentSpectralCh),'Delete IRF?','Delete','Cancel','Cancel');
                 switch choice
                     case 'Delete'

@@ -631,7 +631,7 @@ classdef FLIMXFitGUI < handle
             drawnow;
         end
         
-        function [apObj xVec oset chi2 chi2Tail TotalPhotons iterations time slopeStart iVec] = getVisParams(this,ch,y,x)
+        function [apObj, xVec, oset, chi2, chi2Tail, TotalPhotons, iterations, time, slopeStart, iVec] = getVisParams(this,ch,y,x)
             %get parameters for visualization of current fit in channel ch
 %             if(this.showInitialization)
 %                 apObjs = this.FLIMXObj.getInitApproxObjs(ch);                
@@ -639,7 +639,7 @@ classdef FLIMXFitGUI < handle
 %             else
 %                 apObj = this.FLIMXObj.getApproxObj(ch,y,x);
 %             end
-            [apObj xVec hShift oset chi2 chi2Tail TotalPhotons iterations time slopeStart iVec] = this.FLIMXObj.curSubject.getVisParams(ch,y,x,this.showInitialization);
+            [apObj, xVec, hShift, oset, chi2, chi2Tail, TotalPhotons, iterations, time, slopeStart, iVec] = this.FLIMXObj.curSubject.getVisParams(ch,y,x,this.showInitialization);
         end
         
         function [xAxis, data, irf, model, exponentials, residuum, residuumHist, tableInfo] = visCurFit(this,ch,y,x,hAxMain,hAxRes,hAxResHis,hTableInfo)
@@ -727,9 +727,10 @@ classdef FLIMXFitGUI < handle
             %% counts scaling
             if(~this.dynVisParams.countsScalingAuto)
                 ylim(hAxMain,[this.dynVisParams.countsScalingStart this.dynVisParams.countsScalingEnd]);
-            end
-            %y axis
-            set(hAxMain,'YLimMode','auto','Yscale',yScaleStr,'XTickLabelMode','auto','YTickLabelMode','auto');
+                set(hAxMain,'Yscale',yScaleStr,'XTickLabelMode','auto','YTickLabelMode','auto');
+            else
+                set(hAxMain,'YLimMode','auto','Yscale',yScaleStr,'XTickLabelMode','auto','YTickLabelMode','auto');
+            end            
             ylabel(hAxMain,yLbl);
             %% no parameters computed
             if(sum(x_vec(:)) == 0)
@@ -1634,7 +1635,7 @@ classdef FLIMXFitGUI < handle
             this.volatilePixelParams,...
             this.FLIMXObj.curSubject.getVolatileChannelParams(0),...%todo
             this.FLIMXObj.curSubject.boundsParams,...
-            str,mask,{this.FLIMXObj.curSubject.basicParams.scatterStudy});
+            str,mask,{this.FLIMXObj.curSubject.basicParams.scatterStudy},this.currentChannel);
         end
         
         function menuInfoOptOpt_Callback(this,hObject,eventdata)

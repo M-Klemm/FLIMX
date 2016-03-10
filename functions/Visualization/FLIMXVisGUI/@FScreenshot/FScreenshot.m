@@ -122,6 +122,15 @@ classdef FScreenshot < FDisplay
             else %same as data
                 daspect(hAx,[1 1 1]);
             end
+            if(this.visObj.exportParams.plotBox)
+                hAx.Box = 'on';
+                hAx.XAxis.Visible = 'on';
+                hAx.YAxis.Visible = 'on';
+            else
+                hAx.Box = 'off';
+                hAx.XAxis.Visible = 'off';
+                hAx.YAxis.Visible = 'off';
+            end
             drawnow;
             this.screenshot = false;
         end

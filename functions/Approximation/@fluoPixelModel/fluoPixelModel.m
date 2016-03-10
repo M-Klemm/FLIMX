@@ -466,7 +466,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %idxIgnored = false(size(xVec,2),1);
             bp = this.basicParams;
             chi2 = zeros(1,size(xVec,2));
-            if(~(bp.approximationTarget == 2 && ch == 2))
+            if(~(bp.approximationTarget == 2 && (ch == 2 || bp.anisotropyR0Method == 3 && ch == 4)))
                 %ensure tau ordering
                 %exclude stretched exponentials
                 mask = find(~bp.stretchedExpMask)+bp.nExp;
@@ -1307,6 +1307,10 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 end
             end
             %scale to data max
+            if(basicFitParams.approximationTarget == 2 && basicFitParams.anisotropyR0Method == 3)
+                %in case of heikal's anisotropy fitting method we have to allow much larger amplitudes
+                d_max = d_max .* 10;
+            end
             for i = 1:basicFitParams.nExp
                 nonLinBounds.(str).lb(i) = nonLinBounds.(str).lb(i)*d_max;
                 nonLinBounds.(str).ub(i) = nonLinBounds.(str).ub(i)*d_max;

@@ -338,9 +338,9 @@ classdef FLIMX < handle
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
-            out.config_revision = 253;
-            out.client_revision = 334;
-            out.core_revision = 354;
+            out.config_revision = 255;
+            out.client_revision = 336;
+            out.core_revision = 355;
             out.results_revision = 256;
             out.measurement_revision = 203;
         end

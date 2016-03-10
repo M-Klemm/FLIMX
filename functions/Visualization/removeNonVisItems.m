@@ -45,7 +45,7 @@ items = items(~strcmpi(items,'iVec'));
 if(mode == 1) %simple
     keep = {'Tau','AmplitudePercent','Offset','TauMean','Q','hShift','chi2','AnisotropyQuick'};    
 elseif(mode == 2) %expert
-    keep = {'Tau','AmplitudePercent','Offset','TauMean','Q','shift','hShift','chi2','RAUC','RAUCIS','Amplitude','MaximumPosition','MaximumPhotons','chi2Tail','AnisotropyQuick'};    
+    keep = {'Tau','AmplitudePercent','Offset','TauMean','Q','shift','hShift','chi2','RAUC','RAUCIS','Amplitude','MaximumPosition','MaximumPhotons','chi2Tail','AnisotropyQuick','tc'};    
 else %all
     return
 end

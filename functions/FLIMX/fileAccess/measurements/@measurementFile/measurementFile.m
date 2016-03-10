@@ -556,9 +556,9 @@ classdef measurementFile < handle
                         else
                             if(isempty(this.roiFluoData{channel}))
                                 this.updateProgress(0.5,sprintf('rebuilding ROI channel %d',channel));
-                                out = getAdaptiveBinRebuild(raw,roi,bl);
+%                                 out = getAdaptiveBinRebuild(raw,roi,bl);
 %                                 tic;out2 = getAdaptiveBinRebuild_mex(raw,roi,bl);toc
-%                                 tic;out3 = gather(getAdaptiveBinRebuild(gRaw,roi,bl));toc
+                                tic;out = gather(getAdaptiveBinRebuild(gpuArray(raw),roi,bl));toc
 %                                 out = zeros(size(bl,1),size(bl,2),zR,this.ROIDataType);
 %                                 [binXcoord, binYcoord, binRho, binRhoU] = makeBinMask(100);
 %                                 raw = reshape(raw,[yR*xR,zR]);
@@ -612,6 +612,7 @@ classdef measurementFile < handle
                     this.roiFluoDataFlat{channel} = sum(flat,3,'native');
                 end
             end
+            out(isnan(out)) = 0;
         end
         
         function out = getROIMerged(this,channel)
@@ -946,8 +947,8 @@ classdef measurementFile < handle
                         this.setDirtyFlags(channel,4,true);
                     else
                         if(this.useMex4StaticBin && this.nrTimeChannels <= 1024)
-                            out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));%toc
-                            %tic;out = gather(getStaticBinROI(gpuArray(raw),roi,binFactor));toc
+                            %out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));%toc
+                            tic;out = gather(getStaticBinROI(gpuArray(raw),roi,binFactor));toc
                         else
                             out = getStaticBinROI(raw,uint16(roi),uint16(binFactor));
                         end
