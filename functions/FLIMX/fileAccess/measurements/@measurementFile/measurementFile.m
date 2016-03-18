@@ -54,11 +54,13 @@ classdef measurementFile < handle
         roiMergedMask = [];
         initData = cell(0,0);
         useMexFlags = [];
-        
+        useGPUFlags = [];
         dirtyFlags = false(1,4); %rawData, fluoFileInfo, auxInfo, ROIInfo
     end
     
     properties (Dependent = true)
+        useGPU4StaticBin = [];
+        useGPU4AdaptiveBin = [];
         useMex4StaticBin = [];
         useMex4AdaptiveBin = [];
         nonEmptyChannelList = [];
@@ -182,7 +184,7 @@ classdef measurementFile < handle
             if(channel <= this.nrSpectralChannels && length(this.rawFluoData) >= channel)
                 raw = this.rawFluoData{channel};
             end
-        end
+        end        
         
         function out = get.useMex4StaticBin(this)
             %
@@ -198,6 +200,22 @@ classdef measurementFile < handle
                 this.useMexFlags(2) = this.testAdaptiveBinMex();
             end
             out = this.useMexFlags(2);
+        end
+        
+        function out = get.useGPU4StaticBin(this)
+            %
+            if(isempty(this.useGPUFlags))
+                this.useGPUFlags(1) = this.testStaticBinGPU();
+            end
+            out = this.useGPUFlags(1);
+        end
+        
+        function out = get.useGPU4AdaptiveBin(this)
+            %
+            if(isempty(this.useGPUFlags) || length(this.useGPUFlags) < 2)
+                this.useGPUFlags(2) = this.testAdaptiveBinGPU();
+            end
+            out = this.useGPUFlags(2);
         end
         
         function out = get.roiStaticBinningFactor(this)
@@ -381,10 +399,7 @@ classdef measurementFile < handle
         
         function out = get.nrSpectralChannels(this)
             %get number of spectral channels
-            out = this.fileInfo.nrSpectralChannels;
-            if(this.paramMgrObj.basicParams.approximationTarget == 2)
-                out=4;
-            end
+            out = this.getNrSpectralChannels();
         end
         
         function out = get.timeVector(this)
@@ -946,9 +961,10 @@ classdef measurementFile < handle
                         this.roiBinLevels{channel} = binLevels;
                         this.setDirtyFlags(channel,4,true);
                     else
-                        if(this.useMex4StaticBin && this.nrTimeChannels <= 1024)
-                            %out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));%toc
-                            tic;out = gather(getStaticBinROI(gpuArray(raw),roi,binFactor));toc
+                        if(computationParams.useGPU && this.useGPU4StaticBin && binFactor >= 2)
+                            out = gather(getStaticBinROI(gpuArray(raw),roi,binFactor));
+                        elseif(this.useMex4StaticBin)
+                            out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));                           
                         else
                             out = getStaticBinROI(raw,uint16(roi),uint16(binFactor));
                         end
@@ -1101,6 +1117,14 @@ classdef measurementFile < handle
                 out = fullfile(folder,sprintf('%sch%02d%s',this.fileStub,ch,this.fileExt));
             end
         end
+        
+        function out = getNrSpectralChannels(this)
+            %return number of spectral channels, in case of anisotropy: 4
+            out = this.fileInfo.nrSpectralChannels;
+            if(this.paramMgrObj.basicParams.approximationTarget == 2)
+                out=4;
+            end
+        end
     end %methods (Access = protected)
     
     methods(Static)
@@ -1203,6 +1227,39 @@ classdef measurementFile < handle
                 out = true;
             catch ME
             end
+        end
+        
+        function out = testStaticBinGPU()
+            %returns true is a GPU could be used for static binning
+            persistent GPUFlag
+            if(isempty(GPUFlag))
+                GPUFlag = false;
+                n = gpuDeviceCount;
+                if(n < 1)
+                    return
+                end
+                GPUList = zeros(n,1);
+                GPUSpeed = zeros(n,1);
+                for i = 1:n
+                    info = gpuDevice(i);
+                    if(info.DeviceSupported)
+                        GPUList(i) = i;
+                        GPUSpeed(i) = info.MultiprocessorCount .* info.ClockRateKHz;
+                    end
+                end
+                idx = GPUList > 0;
+                %GPUList = GPUList(idx);
+                GPUSpeed = GPUSpeed(idx);
+                [~,idx] = max(GPUSpeed);
+                %select fastest device
+                gpuDevice(idx);
+                try
+                    gather(getStaticBinROI(gpuArray(zeros(1,1,1024,'uint16')),uint16([1;1;1;1]),uint16(1)));
+                    GPUFlag = true;
+                catch ME
+                end
+            end
+            out = GPUFlag;
         end
         
         function [out, idx] = compReflectionMask(in,aWSz,minGWSz)

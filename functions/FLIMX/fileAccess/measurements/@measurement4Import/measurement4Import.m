@@ -83,6 +83,13 @@ classdef measurement4Import < measurementInFDTree & measurementReadRawData
         end
         
     end %methods
+    
+    methods (Access = protected)
+        function out = getNrSpectralChannels(this)
+            %return number of spectral channels
+            out = this.fileInfo.nrSpectralChannels;
+        end
+    end %methods (Access = protected)
         
     methods(Static)
         
