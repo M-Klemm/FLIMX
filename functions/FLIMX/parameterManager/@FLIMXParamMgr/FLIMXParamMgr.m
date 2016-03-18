@@ -505,8 +505,8 @@ classdef FLIMXParamMgr < paramMgr
                             %open a pool
                             this.FLIMXObj.openMatlabPool();
                         elseif(~isempty(this.FLIMXObj) && new.useMatlabDistComp == 0 && ~isempty(gcp('nocreate')))
-                            %close our pool; todo: we should also stop FLIMX' parpool idle timer object
-                            delete(gcp('nocreate'));
+                            %close our pool
+                            this.FLIMXObj.closeMatlabPool();                            
                         end
                 end
             else

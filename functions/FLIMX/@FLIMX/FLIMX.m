@@ -133,6 +133,20 @@ classdef FLIMX < handle
             end
         end
         
+        function closeMatlabPool(this)
+            %try to close our matlab pool
+            p = gcp('nocreate');
+            if(~isempty(p))
+                %delete idle timer object
+                try 
+                    delete(this.matlabPoolTimer);
+                catch
+                end
+                %delete matlab pool
+                delete(p);
+            end
+        end
+        
         function destroy(this,forceFlag)
             %delete FLIMX object if all windows are closed or if forceFlag == true
             if(forceFlag || (~this.FLIMFitGUI.isOpenVisWnd() && ~this.FLIMVisGUI.isOpenVisWnd()))
