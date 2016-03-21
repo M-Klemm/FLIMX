@@ -133,7 +133,7 @@ classdef measurementInFDTree < measurementFile
                 success = this.openChannel(ch);
                 return
             end
-            if(~all(ismember(who(this.myFiles{1,ch}),{'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'})))
+            if(sum(ismember(who(this.myFiles{1,ch}),{'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'})) < 4)
                 %something went wrong
                 this.myFiles(1,ch) = cell(1,1);
                 return
@@ -153,13 +153,20 @@ classdef measurementInFDTree < measurementFile
                 end
                 %just a security check before we load the data
                 if(fi.channel == ch)
-                    this.setRawData(ch,this.myFiles{1,ch}.rawData);
-                    this.setDirtyFlags(ch,1,false);
-                    if(length(this.roiInfoLoaded) < ch || ~this.roiInfoLoaded(ch))
-                        this.loadROIInfo(ch);
-                        this.setDirtyFlags(ch,4,false);
-                    end
-                    success = true;
+                    content = whos(this.myFiles{1,ch});
+                    if(any(strcmp('rawData',{content.name})))
+                        this.setRawData(ch,this.myFiles{1,ch}.rawData);
+                        this.setDirtyFlags(ch,1,false);
+                        if(length(this.roiInfoLoaded) < ch || ~this.roiInfoLoaded(ch))
+                            this.loadROIInfo(ch);
+                            this.setDirtyFlags(ch,4,false);
+                        end
+                        success = true;
+                        if(any(strcmp('rawMaskData',{content.name})))
+                            this.setRawMaskData(ch,this.myFiles{1,ch}.rawMaskData);
+                            this.setDirtyFlags(ch,1,false);
+                        end
+                    end                    
                 end
             end
         end
@@ -233,8 +240,11 @@ classdef measurementInFDTree < measurementFile
             
         end
         
-        function raw = getRawData(this,ch)
+        function raw = getRawData(this,ch,useMaskFlag)
             %get raw data for channel
+            if(nargin < 3)
+                useMaskFlag = true;
+            end
             raw = [];
             if(this.paramMgrObj.basicParams.approximationTarget == 2 && ch > 2)
                 return
@@ -247,11 +257,13 @@ classdef measurementInFDTree < measurementFile
                         %                             this.fileInfoLoaded = true;
                         %                         end
                         if(any(this.loadedChannelList == ch))
-                            raw = this.rawFluoData{ch};
+                            raw = getRawData@measurementFile(this,ch,useMaskFlag);
+                            %raw = this.rawFluoData{ch};
                         end
                     end
                 else
-                    raw = this.rawFluoData{ch};
+                    raw = getRawData@measurementFile(this,ch,useMaskFlag);
+                    %raw = this.rawFluoData{ch};
                 end
             end
         end

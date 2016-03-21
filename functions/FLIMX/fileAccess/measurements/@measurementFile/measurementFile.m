@@ -45,7 +45,9 @@ classdef measurementFile < handle
         
         fileInfoLoaded = false;
         rawFluoData = cell(0,0);
+        rawFluoDataMask = cell(0,0); %masked raw data (if we have a mask)
         rawFluoDataFlat = cell(0,0);
+        rawMaskData = cell(0,0);
         roiFluoData = cell(0,0);
         roiFluoDataFlat = cell(0,0);
         roiSupport = cell(0,0);
@@ -178,13 +180,46 @@ classdef measurementFile < handle
             end
         end
         
-        function raw = getRawData(this,channel)
+        function raw = getRawData(this,channel,useMaskFlag)
             %get raw data for channel
+            if(nargin < 3)
+                useMaskFlag = true;
+            end
             raw = [];
             if(channel <= this.nrSpectralChannels && length(this.rawFluoData) >= channel)
                 raw = this.rawFluoData{channel};
+                %if there is a mask, use it
+                if(useMaskFlag)
+                    if(length(this.rawFluoDataMask) < channel || isempty(this.rawFluoDataMask{channel}))
+                        mask = this.getRawMaskData(channel);
+                        if(~isempty(mask))
+                            if(ndims(mask) == 3)
+                                mask = sum(mask,3);
+                            end
+                            th = max(mask(:))*0.10;
+                            mask(mask < th) = 0;
+                            mask(mask >= th) = 1;
+                            mask = logical(mask);
+                            [yR,xR,zR] = size(raw);
+                            raw = reshape(raw,[yR*xR,zR]);
+                            mask = reshape(mask,[yR*xR,1]);
+                            raw(mask,:) = 0;
+                            this.rawFluoDataMask{channel} = reshape(raw,yR,xR,zR);
+                        end
+                    else
+                        raw = this.rawFluoDataMask{channel};
+                    end
+                end
             end
-        end        
+        end
+        
+        function raw = getRawMaskData(this,channel)
+            %get raw data mask for channel
+            raw = [];
+            if(channel <= this.nrSpectralChannels && length(this.rawMaskData) >= channel)
+                raw = this.rawMaskData{channel};
+            end
+        end
         
         function out = get.useMex4StaticBin(this)
             %
@@ -849,20 +884,22 @@ classdef measurementFile < handle
             %saveVars = {'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'};
             df = this.getDirtyFlags(ch,1:4);
             if(all(df) || ~exist(fn,'file'))
-                rawData = this.getRawData(ch);
+                rawData = this.getRawData(ch,false);
+                rawMaskData = this.getRawMaskData(ch);
                 fluoFileInfo = this.getFileInfoStruct(ch);
                 auxInfo.revision = this.FLIMXAboutInfo.measurement_revision;
                 %out.channel = ch;
                 [~, name, ext] = fileparts(this.getSourceFile());
                 auxInfo.sourceFile = [name ext];
                 ROIInfo = this.getROIInfo(ch);
-                save(fn,'rawData','fluoFileInfo','auxInfo','ROIInfo','-v7.3');
+                save(fn,'rawData','rawMaskData','fluoFileInfo','auxInfo','ROIInfo','-v7.3');
             else
                 if(df(1,1))
                     %rawData
-                    rawData = this.getRawData(ch);
+                    rawData = this.getRawData(ch,false);
+                    rawMaskData = this.getRawMaskData(ch);
                     if(~isempty(rawData))
-                        save(fn,'rawData','-append');
+                        save(fn,'rawData','rawMaskData','-append');
                     end
                 end
                 if(df(1,2))
@@ -984,14 +1021,17 @@ classdef measurementFile < handle
             %clear raw data to save memory, clear all channels if ch is empty
             if(isempty(ch))
                 this.rawFluoData = cell(0,0);
+                this.rawMaskData = cell(0,0);
             elseif(isscalar(ch) && any(ch == this.nonEmptyChannelList))
                 this.rawFluoData{ch} = [];
+                this.rawMaskData{ch} = [];
             end
         end
         
         function clearROIData(this)
             %clear everything except for the measurement data
             this.roiFluoData = cell(this.nrSpectralChannels,1);
+            this.rawFluoDataMask = cell(this.nrSpectralChannels,1);
             this.roiFluoDataFlat = cell(this.nrSpectralChannels,1);
             this.roiMerged = cell(this.nrSpectralChannels,1);
             this.roiMergedMask = [];
@@ -1102,7 +1142,19 @@ classdef measurementFile < handle
             if(channel <= this.nrSpectralChannels && ndims(data) == 3)
                 this.rawFluoData(channel,1) = {data};
                 this.rawFluoDataFlat(channel,1) = cell(1,1);
+                this.rawMaskData(channel,1) = cell(1,1);
                 [this.rawYSz,this.rawXSz, ~] = size(data);
+                this.roiFluoData(channel,1) = cell(1,1);
+                this.roiMerged(channel,1) = cell(1,1);
+            end
+            this.setDirtyFlags(channel,1,true);
+        end
+        
+        function setRawMaskData(this,channel,data)
+            %set raw mask data for channel
+            if(channel <= this.nrSpectralChannels && this.rawYSz == size(data,1) && this.rawXSz == size(data,2))
+                this.rawMaskData(channel,1) = {data};
+                this.rawFluoDataFlat(channel,1) = cell(1,1);
                 this.roiFluoData(channel,1) = cell(1,1);
                 this.roiMerged(channel,1) = cell(1,1);
             end

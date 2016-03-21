@@ -162,8 +162,11 @@ classdef measurementReadRawData < measurementFile
             out = ones(1,this.nrSpectralChannels);
         end
         
-        function out = getRawData(this,channel)
+        function out = getRawData(this,channel,useMaskFlag)
             %get raw data for channel
+            if(nargin < 3)
+                useMaskFlag = true;
+            end
             out = [];
             if(this.nrTimeChannels == 0)
                 this.readFluoFileInfo();
@@ -179,7 +182,33 @@ classdef measurementReadRawData < measurementFile
                     this.rawFluoData(channel) = this.SDTIOObj.ReadData(channel);
                     this.updateProgress(0.5,'Loading SDT File');
                     this.rawFluoDataFlat(channel) = cell(1,1);
-                    %[this.rawYSz,this.rawXSz, ~] = size(raw); %todo: get from sdt file header
+                    this.rawMaskData(channel) = cell(1,1);
+                    [pathstr,name,ext] = fileparts(this.sourceFile);
+                    if(~isempty(ext))
+                        ext = '.*';
+                    end
+                    files = rdir(fullfile(pathstr,[name ext]));
+                    files = files(~[files.isdir],1); %remove directories
+                    for i = 1:length(files)
+                        [~,~,ext] = fileparts(files(i,1).name);
+                        if(~strcmp(ext,'.sdt'))
+                            try
+                                this.updateProgress(0.75,'Loading Mask File');
+                                [y,x,z] = size(this.rawFluoData{channel});
+                                tmp = imread(files(i,1).name);
+                                [ym,xm,zm] = size(tmp);
+                                if(ym == y && xm == x)
+                                    this.rawMaskData(channel) = {tmp};
+                                elseif(y/ym - x/xm < eps)
+                                    %resize image
+                                    tmp = imresize(tmp,y/ym);
+                                    this.rawMaskData(channel) = {tmp};
+                                end
+                                break
+                            catch
+                            end
+                        end
+                    end
                     this.updateProgress(1,'Loading SDT File');
                 elseif(this.isASCIIFile)
                     try
@@ -190,8 +219,9 @@ classdef measurementReadRawData < measurementFile
                                 raw = raw';
                             end
                         end
-                        this.rawFluoData(channel) = {raw};
+                        this.rawFluoData(channel) = {raw};                        
                         this.rawFluoDataFlat(channel) = cell(1,1);
+                        this.rawMaskData(channel) = cell(1,1);
                     catch
                         return
                     end
@@ -201,7 +231,7 @@ classdef measurementReadRawData < measurementFile
                 this.setDirtyFlags(channel,1,true);
                 this.updateProgress(0,'');
             end
-            out = this.rawFluoData{channel};            
+            out = getRawData@measurementFile(this,channel,useMaskFlag);           
         end
     end
 end
