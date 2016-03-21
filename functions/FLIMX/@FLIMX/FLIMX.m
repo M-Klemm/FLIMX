@@ -353,10 +353,10 @@ classdef FLIMX < handle
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 255;
-            out.client_revision = 336;
-            out.core_revision = 355;
+            out.client_revision = 337;
+            out.core_revision = 356;
             out.results_revision = 256;
-            out.measurement_revision = 203;
+            out.measurement_revision = 204;
         end
         
         function MatlabPoolIdleFcn()

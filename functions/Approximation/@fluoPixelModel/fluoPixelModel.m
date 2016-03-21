@@ -36,7 +36,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
         currentChannel = 0;
         params = [];
         myChannels = cell(0,0);
-        useGPU = false; %flag to use Matlab GPU processing features
+        %useGPU = false; %flag to use Matlab GPU processing features
         useMex = false; %flag to use optimized mex file for linear optimizer
         SlopeStartPosition = 0; %todo: remove that here
     end
@@ -924,20 +924,20 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             rs.chi2Tail = 0;
         end
         
-        function checkGPU(this)
+%         function checkGPU(this)
             %check for available GPUs
-            if(this.computationParams.useGPU && ~isempty(this.volatilePixelParams.compatibleGPUs))
-                %try to distribute parfor worker to the existing GPUs
-                idx = min(length(this.volatilePixelParams.compatibleGPUs),ceil(get(getCurrentTask,'ID')/length(this.volatilePixelParams.compatibleGPUs)));
-                if(isempty(idx))
-                    idx = 1;
-                end
-                gpuDevice(this.volatilePixelParams.compatibleGPUs(idx));
-                this.useGPU = true;
-            else
-                this.useGPU = false;
-            end
-        end
+%             if(this.computationParams.useGPU && ~isempty(this.volatilePixelParams.compatibleGPUs))
+%                 %try to distribute parfor worker to the existing GPUs
+%                 idx = min(length(this.volatilePixelParams.compatibleGPUs),ceil(get(getCurrentTask,'ID')/length(this.volatilePixelParams.compatibleGPUs)));
+%                 if(isempty(idx))
+%                     idx = 1;
+%                 end
+%                 gpuDevice(this.volatilePixelParams.compatibleGPUs(idx));
+%                 this.useGPU = true;
+%             else
+%                 this.useGPU = false;
+%             end
+%         end
         
         function checkMexFiles(this)
             %check if mex files are available

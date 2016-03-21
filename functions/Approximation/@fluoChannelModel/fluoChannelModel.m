@@ -129,10 +129,10 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             out = this.myParent.getVolatileChannelParams(this.myChannelNr);
         end
         
-        function out = get.useGPU(this)
-            %return useGPU flag
-            out = this.myParent.useGPU;
-        end
+%         function out = get.useGPU(this)
+%             %return useGPU flag
+%             out = this.myParent.useGPU;
+%         end
         
         function out = get.useMex(this)
             %return useMex flag
@@ -480,19 +480,17 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 %determine reconv model length
                 [~, p] = log2(size(exponentialsLong,1)-1); %+ this.iLen -1
                 len_model_2 = pow2(p);    % smallest power of 2 > len_model
-                if(this.useGPU && nVecs > 1) %uses matlab gpu support, on a gtx295 by a factor of ~2 slower than core i7 @ 3,9 GHz
-                    if(isempty(this.irfFFTGPU) || nExp ~= size(this.irfFFTGPU,2) || nVecs ~= size(this.irfFFTGPU,3))
-                        irfPad = zeros(size(exponentialsLong,1),1);
-                        irfPad(1:this.iLen) = this.irf;
-                        this.irfFFTGPU = fft(gpuArray(repmat(irfPad,[1,nExp,nVecs])));
-                    end
-                    exponentialsLong(:,1:nExp,1:nVecs) = gather(real(ifft(fft(gpuArray(exponentialsLong(:,1:nExp,1:nVecs))) .* this.irfFFTGPU)));
-                else
-                    if(isempty(this.irfFFT) || length(this.irfFFT) == len_model_2)
+%                 if(this.useGPU && nVecs > 1) %uses matlab gpu support, on a gtx295 by a factor of ~2 slower than core i7 @ 3,9 GHz
+%                     if(isempty(this.irfFFTGPU) || length(this.irfFFTGPU) ~= len_model_2)
+%                         this.irfFFTGPU = fft(gpuArray(this.getIRF()),len_model_2);
+%                     end
+%                     exponentialsLong(:,1:nExp,1:nVecs) = gather(real(ifft(bsxfun(@times, fft(exponentialsLong(:,1:nExp,1:nVecs), len_model_2, 1), this.irfFFTGPU), len_model_2, 1)));
+%                 else
+                    if(isempty(this.irfFFT) || length(this.irfFFT) ~= len_model_2)
                         this.irfFFT = fft(this.getIRF(), len_model_2);
                     end
                     exponentialsLong(:,1:nExp,1:nVecs) = real(ifft(bsxfun(@times, fft(exponentialsLong(:,1:nExp,1:nVecs), len_model_2, 1), this.irfFFT), len_model_2, 1));
-                end
+%                 end
                 if(bp.approximationTarget == 2 && this.myChannelNr <= 2) %only in anisotropy mode
                     %correct for shift caused by reconvolution
                     dtci = zeros(size(tcis));
@@ -523,7 +521,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                     single(hShift),single(tcis),single(tciHShiftFine),single(oset),this.linLB,this.linUB,vcp.cMask(end)<0,false);
             end
             exponentialsOffset(:,end,1:nVecs) = ones(nTimeCh,nVecs,1,'single');
-            if(bp.approximationTarget == 2 && bp.anisotropyR0Method == 3)
+            if(bp.approximationTarget == 2 && bp.anisotropyR0Method == 3 && this.myChannelNr == 4)
                 %%heikal
                 z = zeros(nTimeCh,nVecs);
                 n = zeros(nTimeCh,nVecs);

@@ -234,7 +234,7 @@ classdef importFolderGUI < handle
         
         function GUI_tableSubjects_Callback(this,hObject, eventdata)
             %edit of subject name or change of import selection
-            if(isempty(eventdata) || eventdata.Indices(1,2) ~= 2 || eventdata.Indices(1,1) == 1)
+            if(isempty(eventdata) || eventdata.Indices(1,2) ~= 2)% || eventdata.Indices(1,1) == 1)
                 return
             end
             data = get(hObject,'Data');

@@ -41,18 +41,18 @@ end
 if(isdeployed())
     %check GPU support
     warning('off','parallel:gpu:DeviceCapability');
-    GPUList = [];
-    if(apObjs{1}.computationParams.useGPU && isGpuAvailable())
-        for i = 1:gpuDeviceCount
-            info = gpuDevice(i);
-            if(info.DeviceSupported)
-                GPUList = [GPUList i];
-            end
-        end
-    end
-    for i = 1:nrPixels
-        apObjs{i}.volatilePixelParams.compatibleGPUs = GPUList;
-    end 
+%     GPUList = [];
+%     if(apObjs{1}.computationParams.useGPU && isGpuAvailable())
+%         for i = 1:gpuDeviceCount
+%             info = gpuDevice(i);
+%             if(info.DeviceSupported)
+%                 GPUList = [GPUList i];
+%             end
+%         end
+%     end
+%     for i = 1:nrPixels
+%         apObjs{i}.volatilePixelParams.compatibleGPUs = GPUList;
+%     end 
     if(apObjs{1}.computationParams.useMatlabDistComp > 0)
         %check if matlabpool is open
         if(isempty(gcp('nocreate')))
@@ -65,7 +65,7 @@ if(isdeployed())
     end
 end
 for i = 1:nrPixels
-    apObjs{i}.checkGPU;
+%     apObjs{i}.checkGPU;
     apObjs{i}.checkMexFiles();
 end
 if(aboutInfo.core_revision ~= myAboutInfo.core_revision)
