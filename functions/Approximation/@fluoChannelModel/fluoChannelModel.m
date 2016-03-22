@@ -526,7 +526,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 z = zeros(nTimeCh,nVecs);
                 n = zeros(nTimeCh,nVecs);
                 for i = 1:2:nExp
-                    z = z + bsxfun(@times,squeeze(exponentialsOffset(:,i,1:nVecs),amps(i,:)) .* bsxfun(@times,exponentialsOffset(:,i+1,1:nVecs)),amps(i+1,:));
+                    z = z + bsxfun(@times,squeeze(exponentialsOffset(:,i,1:nVecs)),amps(i,:)) .* bsxfun(@times,squeeze(exponentialsOffset(:,i+1,1:nVecs)),amps(i+1,:));
                     n = n + bsxfun(@times,squeeze(exponentialsOffset(:,i,1:nVecs)),amps(i,:));
                 end
                 model = (z./n + bsxfun(@times,squeeze(exponentialsOffset(:,end,1:nVecs)),oset));% .* this.dMaxVal;
