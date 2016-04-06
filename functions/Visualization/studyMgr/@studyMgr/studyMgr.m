@@ -711,7 +711,7 @@ classdef studyMgr < handle
             %init GUI with arbitrary start values
             opt.list = infoHeaders;
             opt.cond = false;
-            opt.ops = {'-','AND','OR','!AND','!OR','<','>','<=','>=','==','!='};
+            opt.ops = {'-','AND','OR','!AND','!OR','XOR','<','>','<=','>=','==','!='};
             opt.name = [];
             opt.colA = 1;
             opt.colB = 2;
@@ -749,7 +749,7 @@ classdef studyMgr < handle
             ref = this.fdt.getColReference(this.curStudyName,this.selectedInfoField(2));
             infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'infoHeaders');
             opt.list = infoHeaders;
-            opt.ops = {'-','AND','OR','!AND','!OR','<','>','<=','>=','==','!='};
+            opt.ops = {'-','AND','OR','!AND','!OR','XOR','<','>','<=','>=','==','!='};
             opt.name = infoHeaders{this.selectedInfoField(2)};
             if(isempty(ref))
                 opt.cond = false;

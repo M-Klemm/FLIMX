@@ -1718,7 +1718,7 @@ classdef studyIS < handle
         %             end
         %         end
         
-        function [op neg] = str2logicOp(str)
+        function [op, neg] = str2logicOp(str)
             %convert a (descriptive) string to a logical operand
             neg = '';
             switch str
@@ -1734,6 +1734,11 @@ classdef studyIS < handle
                 case '!OR'
                     op = '|';
                     neg = '~';
+                case 'XOR'
+                    op = 'xor';
+                    neg = '';
+                otherwise
+                    op = str;
             end
         end
         

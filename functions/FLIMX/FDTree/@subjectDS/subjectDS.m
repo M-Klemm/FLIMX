@@ -319,8 +319,8 @@ classdef subjectDS < handle
                     this.setCutVec('Y',cutVec(4:6));
                 end
                 %this.updateShortProgress(1,sprintf('Finished. (Ch %s)',num2str(chan)));
-            end
-            this.updateShortProgress(0,'');
+                this.updateShortProgress(0,'');
+            end            
         end
         
         function setSubjectName(this,val)
@@ -624,16 +624,17 @@ classdef subjectDS < handle
             if(isempty(fd))
                 return
             end
-            if(strcmp('!=',aiParams.opA))
-                aiParams.opA = '~=';
-            end
-            if(strcmp('!=',aiParams.opB))
-                aiParams.opB = '~=';
-            end
-            dataA = fd.getFullImage();
-            [op, neg] = studyIS.str2logicOp(aiParams.valCombi);
-            if(strcmp(aiParams.compAgainst,'val'))
-                eval(sprintf('data = dataA %s %f;',aiParams.opA,single(aiParams.valA)));
+            dataA = fd.getFullImage();            
+            [op, neg] = studyIS.str2logicOp(aiParams.opA);
+            if(strcmp(aiParams.compAgainst,'val'))                
+                if(any(strcmp(op,{'&','|','xor'})))                    
+                    eval(sprintf('idx = logical(dataA) %s %slogical(aiParams.valA);',op,neg));
+                    data = dataA;
+                    data(~idx) = nan;
+                else
+                    eval(sprintf('data = dataA %s %f;',aiParams.opA,single(aiParams.valA)));
+                end
+                [op, neg] = studyIS.str2logicOp(aiParams.valCombi);
                 if(~isempty(op))
                     eval(sprintf('data = %s(data %s (dataA %s %f));',neg,op,aiParams.opB,single(aiParams.valB)));
                 end
@@ -646,7 +647,15 @@ classdef subjectDS < handle
                     return
                 end
                 dataB = fd.getFullImage();
-                eval(sprintf('data = dataA %s dataB;',aiParams.opA));
+                if(any(strcmp(op,{'&','|','xor'})))
+                    idxA = logical(dataA);
+                    idxB = logical(dataB);
+                    eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
+                    data = dataA;
+                    data(~idx) = nan;
+                else
+                    eval(sprintf('data = dataA %s dataB;',aiParams.opA));
+                end
             end
             %save arithmetic image
             this.addObjID(0,aiParams.chA,aiName,1,data);

@@ -63,13 +63,13 @@ classdef AICtrl < handle
     
     methods
         function this = AICtrl(visObj,axis,FDisplayL,FDisplayR)
-            % Constructor for Scale.
+            % Constructor for AICtrl.
             this.visObj = visObj;
             this.setUIHandles();
-            oStr = {'+','-','.*','./','<','>','<=','>=','==','!='};
-            cStr = {'-','AND','OR','!AND','!OR'};
+            oStr = {'+','-','.*','./','<','>','<=','>=','==','!=','AND','OR','!AND','!OR','XOR'};
+            cStr = {'-','AND','OR','!AND','!OR','XOR'};
             set(this.opA,'String',oStr,'Value',1);
-            set(this.opB,'String',oStr,'Value',1);
+            set(this.opB,'String',oStr(1:10),'Value',1);
             set(this.combi,'String',cStr,'Value',1);
         end
         
@@ -138,7 +138,9 @@ classdef AICtrl < handle
             if(hObject == this.valA || hObject == this.valB)
                 set(hObject,'String',str2double(get(hObject,'String')));
             end
-            this.visObj.fdt.setArithmeticImage(this.curStudy,this.curAIName,this.getCurAIParams);
+            if(hObject ~= this.visObj.visHandles.ai_sel_pop)
+                this.visObj.fdt.setArithmeticImage(this.curStudy,this.curAIName,this.getCurAIParams);
+            end
             this.updateCtrls();
             this.visObj.updateGUI([]);
         end
@@ -163,6 +165,7 @@ classdef AICtrl < handle
             if(isempty(chNr))
                 %Houston we've got a problem
                 %make warning dialog to switch subject?!
+                return
             end
             set(this.chA,'String',chStr,'Value',chNr);
             chObj = this.visObj.fdt.getChObjStr(this.curStudy,subject,chNr);
@@ -171,6 +174,7 @@ classdef AICtrl < handle
             if(isempty(chNr))
                 %Houston we've got a problem
                 %make warning dialog to switch subject?!
+                return
             end
             set(this.chB,'String',chStr,'Value',chNr);            
             %find saved FLIM item
@@ -189,7 +193,7 @@ classdef AICtrl < handle
             end
             set(this.FLIMItemB,'String',chObj,'Value',fiNr);
             opNr = find(strcmp(aiParam{idx}.opA,get(this.opA,'String')));
-            if(isempty(opNr))
+            if(isempty(opNr))                
                 %Houston we've got a problem
                 %make warning dialog?!
                 opNr = 1;
@@ -337,6 +341,7 @@ classdef AICtrl < handle
             aiParams.valA = 1000;
             aiParams.valB = 1000;
         end
+        
     end
     
 end %classdef

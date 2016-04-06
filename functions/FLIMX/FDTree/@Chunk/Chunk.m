@@ -96,27 +96,6 @@ classdef Chunk < handle
             this.dType = val;
         end
         
-%         function setResultROIType(this,val)
-%             %set the ROI type for subject subName
-%             for i = 1:this.mySlices.queueLen
-%                 this.mySlices.getDataByPos(i).setResultROIType(val);
-%             end
-%         end
-%         
-%         function setResultROISubType(this,val)
-%             %set the ROI grid selection for subject subName
-%             for i = 1:this.mySlices.queueLen
-%                 this.mySlices.getDataByPos(i).setResultROISubType(val);
-%             end
-%         end
-        
-%         function setResultROISubTypeAnchor(this,val)
-%             %set the ROI grid anchor for subject subName
-%             for i = 1:this.mySlices.queueLen
-%                 this.mySlices.getDataByPos(i).setResultROISubTypeAnchor(val);
-%             end
-%         end
-        
         function setResultROICoordinates(this,ROIType,ROICoord)
             %set the ROI vector for dimension dim
             for i = 1:this.mySlices.queueLen
@@ -149,7 +128,7 @@ classdef Chunk < handle
             %clear raw images of datatype dType in all subjectss
             for i = 1:this.mySlices.queueLen
                 this.mySlices.getDataByPos(i).clearRawImage();
-                this.mySlices.getDataByPos(i).clearCachedImage();
+                this.mySlices.getDataByPos(i).clearFilteredImage();
             end
         end                
         
@@ -161,7 +140,7 @@ classdef Chunk < handle
             if(strncmp(this.dType,'MVGroup',7))
                 %check if cluster has to be computed                
                 if(isempty(h))
-                    [cimg lblx lbly cw] = this.myParent.makeCluster(this.dType);
+                    [cimg, lblx, lbly, cw] = this.myParent.makeCluster(this.dType);
                     this.mySlices.insertID(FDataNormal(this,id,cimg),id,true);
                     h = this.mySlices.getDataByID(id);  
                     %set labels for view cluster computation
@@ -169,7 +148,7 @@ classdef Chunk < handle
                     h.setupYLbl(lbly,cw);
                 else
                     if(isempty(h.getFullImage()))
-                        [cimg lblx lbly cw] = this.myParent.makeCluster(this.dType);
+                        [cimg, lblx, lbly, cw] = this.myParent.makeCluster(this.dType);
                         h.setRawData(cimg);
                         %set labels for view cluster computation
                         h.setupXLbl(lblx,cw);
@@ -182,7 +161,7 @@ classdef Chunk < handle
                 %check if view cluster has to be computed
                 clusterID = this.dType(10:end);
                 if(isempty(h))                                        
-                    [cimg lblx lbly cw] = this.myParent.makeViewCluster(clusterID);
+                    [cimg, lblx, lbly, cw] = this.myParent.makeViewCluster(clusterID);
                     this.mySlices.insertID(FDataScatterPlot(this,id,cimg),id,true);
                     h = this.mySlices.getDataByID(id);
                     %set labels
@@ -190,7 +169,7 @@ classdef Chunk < handle
                     h.setupYLbl(lbly,cw);
                 else
                     if(isempty(h.getFullImage()))
-                        [cimg lblx lbly cw] = this.myParent.makeViewCluster(clusterID);
+                        [cimg, lblx, lbly, cw] = this.myParent.makeViewCluster(clusterID);
                         h.setRawData(cimg);
                         %set labels
                         h.setupXLbl(lblx,cw);
@@ -203,7 +182,7 @@ classdef Chunk < handle
                 %check if global cluster has to be computed
                 clusterID = this.dType(7:end);
                 if(isempty(h))                                        
-                    [cimg lblx lbly cw colors logColors] = this.myParent.makeGlobalCluster(clusterID);
+                    [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(clusterID);
                     this.mySlices.insertID(FDataScatterPlot(this,id,cimg),id,true);
                     h = this.mySlices.getDataByID(id);
                     %set labels
@@ -213,7 +192,7 @@ classdef Chunk < handle
                     h.setColor_data(colors,logColors);                    
                 else
                     if(isempty(h.getFullImage()))
-                        [cimg lblx lbly cw colors logColors] = this.myParent.makeGlobalCluster(clusterID);
+                        [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(clusterID);
                         h.setRawData(cimg);
                         %set labels
                         h.setupXLbl(lblx,cw);
@@ -306,31 +285,31 @@ classdef Chunk < handle
             out = this.myParent.getSaveMaxMemFlag();
         end
         
-        function [alg params] = getDataSmoothFilter(this)
+        function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
-            [alg params] = this.myParent.getDataSmoothFilter();
+            [alg, params] = this.myParent.getDataSmoothFilter();
         end
         
-        function [MSX MSXMin MSXMax] = getMSX(this)
+        function [MSX, MSXMin, MSXMax] = getMSX(this)
             %get manual scaling parameters for x
             MSX = [];
             MSXMin = [];
             MSXMax = [];
             for i = 1:this.mySlices.queueLen
-                [MSX MSXMin MSXMax] = this.mySlices.getDataByPos(i).getMSX();
+                [MSX, MSXMin, MSXMax] = this.mySlices.getDataByPos(i).getMSX();
                 if(~isempty(MSX))
                     return
                 end
             end 
         end
         
-        function [MSY MSYMin MSYMax] = getMSY(this)
+        function [MSY, MSYMin, MSYMax] = getMSY(this)
             %get manual scaling parameters for y
             MSY = [];
             MSYMin = [];
             MSYMax = [];
             for i = 1:this.mySlices.queueLen
-                [MSY MSYMin MSYMax] = this.mySlices.getDataByPos(i).getMSY();
+                [MSY, MSYMin, MSYMax] = this.mySlices.getDataByPos(i).getMSY();
                 if(~isempty(MSY))
                     return
                 end
@@ -343,7 +322,7 @@ classdef Chunk < handle
         end
         
         %% compute functions  
-        function [data ids] = getPerData(this)
+        function [data, ids] = getPerData(this)
             %pa1 = a1*100/(a1+a2+a3)            
             %compute denominator
             lower = 0;
@@ -352,7 +331,7 @@ classdef Chunk < handle
                 lower = lower + this.getFDataObj(ids(i),1).rawImage;
             end
             %now make percentage for each element
-            [y x] = size(lower);
+            [y, x] = size(lower);
             data = zeros(i,y,x);
             for i = 1:length(ids)
                 data(i,:,:) = this.getFDataObj(ids(i),1).rawImage./lower*100;

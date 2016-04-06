@@ -499,7 +499,7 @@ classdef FStudy < handle
         
         function setArithmeticImage(this,aiName,aiParam)
             %set name and definition of arithmetic image for a study
-            this.clearAllRIs(aiName);
+            this.clearArithmeticRIs();
             this.myStudyInfoSet.setArithmeticImageInfo(aiName,aiParam);
         end
         
@@ -746,7 +746,7 @@ classdef FStudy < handle
                 subject.loadChannel(chan);
             end
             %check if is arithmetic image
-            [aiNames aiParams] = this.myStudyInfoSet.getArithmeticImageInfo();
+            [aiNames, aiParams] = this.myStudyInfoSet.getArithmeticImageInfo();
             idx = strcmp(dType,aiNames);
             if(sum(idx) == 1) %found 1 arithmetic image
                 %try to get image data
