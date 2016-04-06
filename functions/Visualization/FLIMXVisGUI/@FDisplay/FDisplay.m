@@ -638,6 +638,8 @@ classdef FDisplay < handle
                         alphaData = ones(size(colors,1),1);
                         colors = reshape(colors,[size(current_img) 3]);
                         alphaData = reshape(alphaData,size(current_img));
+                        %set NaN to black
+                        colors(repmat(isnan(current_img),[1 1 3])) = 0;
                     end                    
                 else
                     %we have precomputed colors
