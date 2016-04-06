@@ -1309,7 +1309,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %scale to data max
             if(basicFitParams.approximationTarget == 2 && basicFitParams.anisotropyR0Method == 3)
                 %in case of heikal's anisotropy fitting method we have to allow much larger amplitudes
-                d_max = d_max .* 10;
+                d_max = d_max .* 50;
             end
             for i = 1:basicFitParams.nExp
                 nonLinBounds.(str).lb(i) = nonLinBounds.(str).lb(i)*d_max;
