@@ -777,7 +777,7 @@ classdef FLIMXFitGUI < handle
         function [e_vec, rh] = visRes(this,ch,y,x,apObj,hAxRes,hAxResHis)
             %% plot error vector
             if(isempty(apObj))
-                [apObj x_vec] = this.getVisParams(ch,y,x);
+                [apObj, x_vec] = this.getVisParams(ch,y,x);
             else
                 [~, x_vec] = this.getVisParams(ch,y,x);
             end
@@ -802,8 +802,11 @@ classdef FLIMXFitGUI < handle
             xAxis = this.FLIMXObj.curSubject.timeVector(1:length(data));
             e_vec = zeros(length(data),1);
             data(isnan(data)) = 0;
-            %e_vec(1:apObj.getFileInfo(ch).nrTimeChannels) = ((data(1:apObj.getFileInfo(ch).nrTimeChannels))-(model(1:apObj.getFileInfo(ch).nrTimeChannels)))./(model(1:apObj.getFileInfo(ch).nrTimeChannels))*100;
-            e_vec(1:apObj.getFileInfo(ch).nrTimeChannels) = ((data(1:apObj.getFileInfo(ch).nrTimeChannels))-(model(1:apObj.getFileInfo(ch).nrTimeChannels)))./sqrt(abs(data(1:apObj.getFileInfo(ch).nrTimeChannels))); % Weighting in lsqnonlin is 1/std; in Poisson statistics: 1/sqrt(counts)
+            if(apObj.basicParams.approximationTarget == 2 && ch == 4)
+                e_vec(1:apObj.getFileInfo(ch).nrTimeChannels) = ((data(1:apObj.getFileInfo(ch).nrTimeChannels))-(model(1:apObj.getFileInfo(ch).nrTimeChannels)))./(model(1:apObj.getFileInfo(ch).nrTimeChannels))*100;
+            else
+                e_vec(1:apObj.getFileInfo(ch).nrTimeChannels) = ((data(1:apObj.getFileInfo(ch).nrTimeChannels))-(model(1:apObj.getFileInfo(ch).nrTimeChannels)))./sqrt(abs(data(1:apObj.getFileInfo(ch).nrTimeChannels))); % Weighting in lsqnonlin is 1/std; in Poisson statistics: 1/sqrt(counts)
+            end
             nz_idx =  apObj.getDataNonZeroMask(ch);
             ds = find(nz_idx,1,'first');
             de = find(nz_idx,1,'last');
