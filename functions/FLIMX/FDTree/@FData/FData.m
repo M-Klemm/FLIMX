@@ -75,7 +75,7 @@ classdef FData < handle
         end
         
         function clearCachedImage(this)
-            %reset all field of the cached image
+            %reset all fields of the cached image
             ci.ROI.ROICoordinates = zeros(2,2,'int16');
             ci.ROI.ROIType = 0;
             ci.ROI.ROISubType = 0;
@@ -641,7 +641,10 @@ classdef FData < handle
         
         function [hist,centers] = getCIHist(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
             %get histogram of current image
-            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag) || this.isEmptyStat)               
+            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
+                this.clearCachedImage();
+                this.updateCIStats(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+            elseif(this.isEmptyStat)               
                 this.updateCIStats(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
             end
             hist = this.cachedImage.statistics.histogram;
