@@ -255,7 +255,6 @@ classdef FLIMXFitGUI < handle
                 idx = min(length(pstr),get(this.visHandles.popupROI,'Value'));
             end
             set(this.visHandles.popupROI,'String',pstr,'Value',idx,'Enable','on');
-            set(this.visHandles.buttonToggle,'Value',0);
             this.axesRawMgr.setColorMap(this.dynVisParams.cmIntensity);
             this.axesROIMgr.setColorMap(this.dynVisParams.cm);
             set(this.visHandles.FLIMXFitGUIFigure,'Name',sprintf('FLIMXFit: %s - Channel %d',this.FLIMXObj.curSubject.getDatasetName(),ch));
@@ -278,15 +277,14 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.editTimeScalStart,'String',num2str(this.dynVisParams.timeScalingStart*this.FLIMXObj.curSubject.timeChannelWidth,'%.02f'));
             set(this.visHandles.editTimeScalEnd,'String',num2str(this.dynVisParams.timeScalingEnd*this.FLIMXObj.curSubject.timeChannelWidth,'%.02f'));
             %counts edits
-            tmp = this.currentDecayData;            
+%             tmp = this.currentDecayData;            
 %             if(~isempty(tmp))
 %                 this.dynVisParams.countsScalingEnd = 10^ceil(log10(max(tmp(:))));
 %                 this.dynVisParams.countsScalingStart = max(min(10^floor(log10(min(tmp(:)))),this.dynVisParams.countsScalingEnd-1),0.1);
 %             end
             set(this.visHandles.editCountsScalStart,'String',num2str(this.dynVisParams.countsScalingStart,'%G'));
             set(this.visHandles.editCountsScalEnd,'String',num2str(this.dynVisParams.countsScalingEnd,'%G'));
-                        
-            set(this.visHandles.buttonToggle,'Enable','on');
+            
             %edit
             set(this.visHandles.editX,'Enable','on');
             set(this.visHandles.editY,'Enable','on');
@@ -296,10 +294,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.buttonUp,'Enable','on');
             set(this.visHandles.buttonDown,'Enable','on');
             set(this.visHandles.toggleShowMerge,'Enable','on');
-            set(this.visHandles.buttonStop,'Enable','on');
-            %popup
-            set(this.visHandles.buttonToggle,'Value',0);
-            
+            set(this.visHandles.buttonStop,'Enable','on');            
 %             if(any(this.volatilePixelParams.globalFitMask))
 %                 flag = 'off';
 %             else
@@ -327,11 +322,7 @@ classdef FLIMXFitGUI < handle
                 end
                 return;
             end
-            if(get(this.visHandles.buttonToggle,'Value'))
-                this.visCurFit(this.currentChannel,this.currentY,this.currentX,this.visHandles.axesSupp);
-            else
-                this.visCurFit(this.currentChannel,this.currentY,this.currentX,this.visHandles.axesMain);
-            end
+            this.visCurFit(this.currentChannel,this.currentY,this.currentX,this.visHandles.axesMain);
             if(flag)
                 str = get(this.visHandles.popupROI,'String');
                 val = get(this.visHandles.popupROI,'Value');
@@ -1283,17 +1274,7 @@ classdef FLIMXFitGUI < handle
             %call of buttonStop control
             this.FLIMXObj.FLIMFit.stopOptimization(true);
         end
-        
-        function GUI_buttonToggle_Callback(this,hObject,eventdata)
-            %call of toggle button control
-            if(get(this.visHandles.buttonToggle,'Value'))
-                this.axesROIMgr.setMainAxes(this.visHandles.axesMain);
-            else
-                this.axesROIMgr.setMainAxes(this.visHandles.axesSupp);
-            end
-            this.updateGUI(0);
-        end
-        
+                
         function GUI_buttonResScal_Callback(this,hObject,eventdata)
             %call of buttons for residuum scaling control
             delta = 0.1;
@@ -1981,29 +1962,7 @@ classdef FLIMXFitGUI < handle
             %show FLIMXVis window
             this.FLIMXObj.FLIMVisGUI.checkVisWnd();
         end
-        
-        function toggleControls(this,flag)
-            %switch enable-state of control elemtens
-            set(this.visHandles.buttonToggle,'Enable',flag);
-            %edit
-            set(this.visHandles.editX,'Enable',flag);
-            set(this.visHandles.editY,'Enable',flag);
-            %buttons
-            set(this.visHandles.buttonRight,'Enable',flag);
-            set(this.visHandles.buttonLeft,'Enable',flag);
-            set(this.visHandles.buttonUp,'Enable',flag);
-            set(this.visHandles.buttonDown,'Enable',flag);
-            set(this.visHandles.toggleShowMerge,'Enable',flag);
-            if(strcmpi(flag,'on'))
-                set(this.visHandles.buttonStop,'Enable','off');
-            else
-                set(this.visHandles.buttonStop,'Enable','on');
-            end
-            %popup
-            set(this.visHandles.popupROI,'Enable',flag);
-            set(this.visHandles.buttonToggle,'Value',0);
-            this.GUI_buttonToggle_Callback(this.visHandles.buttonToggle,[]);
-        end        
+                
     end %methods
     
     methods(Access = protected)
@@ -2070,8 +2029,6 @@ classdef FLIMXFitGUI < handle
             
             %set callbacks
             set(this.visHandles.FLIMXFitGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
-            %set default toggle state
-            set(this.visHandles.buttonToggle,'String',[char(172) char(174)],'Value',0,'Callback',@this.GUI_buttonToggle_Callback);
             
             %figure
             set(this.visHandles.FLIMXFitGUIFigure,'Units','Pixels');
