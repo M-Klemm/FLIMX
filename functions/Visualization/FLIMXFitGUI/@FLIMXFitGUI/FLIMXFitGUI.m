@@ -761,7 +761,8 @@ classdef FLIMXFitGUI < handle
             %legend
             if(this.visualizationParams.showLegend)
                 this.makeLegend(hAxMain,lStr);
-            end            
+            end
+            grid(hAxMain,'on');
             [residuum, residuumHist] = this.visRes(ch,y,x,apObj,hAxRes,hAxResHis);
         end
         
