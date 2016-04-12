@@ -1446,9 +1446,9 @@ classdef FLIMXFitGUI < handle
         
         function GUI_mouseMotion_Callback(this,hObject,eventdata)
             %executes on mouse move in window
-            if(isMultipleCall)
-                return
-            end
+%             if(isMultipleCall)
+%                 return
+%             end
             persistent inFunction
             if ~isempty(inFunction), return; end
             inFunction = 1;  %prevent callback re-entry
@@ -2031,54 +2031,56 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.FLIMXFitGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
             
             %figure
-            set(this.visHandles.FLIMXFitGUIFigure,'Units','Pixels');
+            set(this.visHandles.FLIMXFitGUIFigure,'Units','pixels');
             %edit            
-            set(this.visHandles.editX,'String',num2str(this.currentX),'Callback',@this.GUI_editX_Callback);
-            set(this.visHandles.editY,'String',num2str(this.currentY),'Callback',@this.GUI_editY_Callback);
-            set(this.visHandles.editResScal,'Callback',@this.GUI_editResScal_Callback);
-            set(this.visHandles.editTimeScalStart,'Callback',@this.GUI_editTimeScal_Callback);
-            set(this.visHandles.editTimeScalEnd,'Callback',@this.GUI_editTimeScal_Callback);
-            set(this.visHandles.editCountsScalStart,'Callback',@this.GUI_editCountsScal_Callback);
-            set(this.visHandles.editCountsScalEnd,'Callback',@this.GUI_editCountsScal_Callback);
+            set(this.visHandles.editX,'String',num2str(this.currentX),'Callback',@this.GUI_editX_Callback,'TooltipString','Enter horizontal position of current pixel');
+            set(this.visHandles.editY,'String',num2str(this.currentY),'Callback',@this.GUI_editY_Callback,'TooltipString','Enter vertical position of current pixel');
+            set(this.visHandles.editResScal,'Callback',@this.GUI_editResScal_Callback,'TooltipString','Enter limit for residuum scaling');
+            set(this.visHandles.editTimeScalStart,'Callback',@this.GUI_editTimeScal_Callback,'TooltipString','Enter lower limit (in ps) for custom time scaling');
+            set(this.visHandles.editTimeScalEnd,'Callback',@this.GUI_editTimeScal_Callback,'TooltipString','Enter upper limit (in ps) for custom time scaling');
+            set(this.visHandles.editCountsScalStart,'Callback',@this.GUI_editCountsScal_Callback,'TooltipString','Enter lower limit for custom intensity / anisotropy scaling');
+            set(this.visHandles.editCountsScalEnd,'Callback',@this.GUI_editCountsScal_Callback,'TooltipString','Enter upper limit for custom intensity / anisotropy scaling');
+            set(this.visHandles.editCPRaw,'Enable','off');
+            set(this.visHandles.editCPSupp,'Enable','off');
             
             %buttons
-            set(this.visHandles.buttonSubjectDec,'FontName','Symbol','String',char(173),'Callback',@this.GUI_buttonSwitchSubject_Callback); 
-            set(this.visHandles.buttonSubjectInc,'FontName','Symbol','String',char(175),'Callback',@this.GUI_buttonSwitchSubject_Callback); 
-            set(this.visHandles.buttonRight,'String',char(174),'Callback',@this.GUI_buttonRight_Callback);
-            set(this.visHandles.buttonLeft,'String',char(172),'Callback',@this.GUI_buttonLeft_Callback);
-            set(this.visHandles.buttonUp,'String',char(173),'Callback',@this.GUI_buttonUp_Callback);
-            set(this.visHandles.buttonDown,'String',char(175),'Callback',@this.GUI_buttonDown_Callback);
-            set(this.visHandles.buttonFitCurrentPixel,'Callback',@this.menuFitPixel_Callback);
-            set(this.visHandles.toggleShowMerge,'Callback',@this.GUI_showMerge_Callback);
-            set(this.visHandles.buttonStop,'Callback',@this.GUI_buttonStop_Callback);
-            set(this.visHandles.buttonResScalDec,'String',char(172),'Callback',@this.GUI_buttonResScal_Callback);
-            set(this.visHandles.buttonResScalInc,'String',char(174),'Callback',@this.GUI_buttonResScal_Callback);
-            set(this.visHandles.buttonTimeScalStartDec,'String',char(172),'Callback',@this.GUI_buttonTimeScal_Callback);
-            set(this.visHandles.buttonTimeScalStartInc,'String',char(174),'Callback',@this.GUI_buttonTimeScal_Callback);
-            set(this.visHandles.buttonTimeScalEndDec,'String',char(172),'Callback',@this.GUI_buttonTimeScal_Callback);
-            set(this.visHandles.buttonTimeScalEndInc,'String',char(174),'Callback',@this.GUI_buttonTimeScal_Callback);
-            set(this.visHandles.buttonCountsScalStartDec,'String',char(172),'Callback',@this.GUI_buttonCountsScal_Callback);
-            set(this.visHandles.buttonCountsScalStartInc,'String',char(174),'Callback',@this.GUI_buttonCountsScal_Callback);
-            set(this.visHandles.buttonCountsScalEndDec,'String',char(172),'Callback',@this.GUI_buttonCountsScal_Callback);
-            set(this.visHandles.buttonCountsScalEndInc,'String',char(174),'Callback',@this.GUI_buttonCountsScal_Callback);
+            set(this.visHandles.buttonSubjectDec,'FontName','Symbol','String',char(173),'Callback',@this.GUI_buttonSwitchSubject_Callback,'TooltipString','Go to previous subject'); 
+            set(this.visHandles.buttonSubjectInc,'FontName','Symbol','String',char(175),'Callback',@this.GUI_buttonSwitchSubject_Callback,'TooltipString','Go to next subject'); 
+            set(this.visHandles.buttonRight,'String',char(174),'Callback',@this.GUI_buttonRight_Callback,'TooltipString','Go to pixel to the right');
+            set(this.visHandles.buttonLeft,'String',char(172),'Callback',@this.GUI_buttonLeft_Callback,'TooltipString','Go to pixel to the left');
+            set(this.visHandles.buttonUp,'String',char(173),'Callback',@this.GUI_buttonUp_Callback,'TooltipString','Go to pixel above');
+            set(this.visHandles.buttonDown,'String',char(175),'Callback',@this.GUI_buttonDown_Callback,'TooltipString','Go to pixel below');
+            set(this.visHandles.buttonFitCurrentPixel,'Callback',@this.menuFitPixel_Callback,'TooltipString','Fit current pixel');
+            set(this.visHandles.toggleShowMerge,'Callback',@this.GUI_showMerge_Callback,'TooltipString','Run initialization fit');
+            set(this.visHandles.buttonStop,'Callback',@this.GUI_buttonStop_Callback,'TooltipString','Stop current computation');
+            set(this.visHandles.buttonResScalDec,'String',char(172),'Callback',@this.GUI_buttonResScal_Callback,'TooltipString','Decrease residuum scaling limit');
+            set(this.visHandles.buttonResScalInc,'String',char(174),'Callback',@this.GUI_buttonResScal_Callback,'TooltipString','Increase residuum scaling limit');
+            set(this.visHandles.buttonTimeScalStartDec,'String',char(172),'Callback',@this.GUI_buttonTimeScal_Callback,'TooltipString','Decrease lower limit of custom time scaling');
+            set(this.visHandles.buttonTimeScalStartInc,'String',char(174),'Callback',@this.GUI_buttonTimeScal_Callback,'TooltipString','Increase lower limit of custom time scaling');
+            set(this.visHandles.buttonTimeScalEndDec,'String',char(172),'Callback',@this.GUI_buttonTimeScal_Callback,'TooltipString','Decrease upper limit of custom time scaling');
+            set(this.visHandles.buttonTimeScalEndInc,'String',char(174),'Callback',@this.GUI_buttonTimeScal_Callback,'TooltipString','Increase upper limit of custom time scaling');
+            set(this.visHandles.buttonCountsScalStartDec,'String',char(172),'Callback',@this.GUI_buttonCountsScal_Callback,'TooltipString','Decrease lower limit of custom intensity / anisotropy scaling');
+            set(this.visHandles.buttonCountsScalStartInc,'String',char(174),'Callback',@this.GUI_buttonCountsScal_Callback,'TooltipString','Increase lower limit of custom intensity / anisotropy scaling');
+            set(this.visHandles.buttonCountsScalEndDec,'String',char(172),'Callback',@this.GUI_buttonCountsScal_Callback,'TooltipString','Decrease upper limit of custom intensity / anisotropy scaling');
+            set(this.visHandles.buttonCountsScalEndInc,'String',char(174),'Callback',@this.GUI_buttonCountsScal_Callback,'TooltipString','Increase upper limit of custom intensity / anisotropy scaling');
             
             %checkbox
-            set(this.visHandles.checkAutoFitPixel,'Callback',@this.GUI_checkAutoFitPixel_Callback);
+            set(this.visHandles.checkAutoFitPixel,'Callback',@this.GUI_checkAutoFitPixel_Callback,'TooltipString','Automatically fit current pixel on mouse click (may be slow!)');
             
             %radio
-            set(this.visHandles.radioResScalAuto,'Callback',@this.GUI_radioResScal_Callback);
-            set(this.visHandles.radioResScalManual,'Callback',@this.GUI_radioResScal_Callback);
-            set(this.visHandles.radioTimeScalAuto,'Callback',@this.GUI_radioTimeScal_Callback);
-            set(this.visHandles.radioTimeScalManual,'Callback',@this.GUI_radioTimeScal_Callback);
-            set(this.visHandles.radioCountsScalAuto,'Callback',@this.GUI_radioCountsScal_Callback);
-            set(this.visHandles.radioCountsScalManual,'Callback',@this.GUI_radioCountsScal_Callback);
+            set(this.visHandles.radioResScalAuto,'Callback',@this.GUI_radioResScal_Callback,'TooltipString','Automatic residuum scaling');
+            set(this.visHandles.radioResScalManual,'Callback',@this.GUI_radioResScal_Callback,'TooltipString','Manual residuum scaling');
+            set(this.visHandles.radioTimeScalAuto,'Callback',@this.GUI_radioTimeScal_Callback,'TooltipString','Automatic time scaling');
+            set(this.visHandles.radioTimeScalManual,'Callback',@this.GUI_radioTimeScal_Callback,'TooltipString','Manual time scaling');
+            set(this.visHandles.radioCountsScalAuto,'Callback',@this.GUI_radioCountsScal_Callback,'TooltipString','Automatic intensity / anisotropy scaling');
+            set(this.visHandles.radioCountsScalManual,'Callback',@this.GUI_radioCountsScal_Callback,'TooltipString','Manual intensity / anisotropy scaling');
             
             %popup
-            set(this.visHandles.popupStudy,'Callback',@this.GUI_popupStudy_Callback);
-            set(this.visHandles.popupSubject,'Callback',@this.GUI_popupSubject_Callback);
-            set(this.visHandles.popupView,'Callback',@this.GUI_popupView_Callback);
-            set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback);
-            set(this.visHandles.popupROI,'Callback',@this.GUI_popupROI_Callback);
+            set(this.visHandles.popupStudy,'Callback',@this.GUI_popupStudy_Callback,'TooltipString','Select a study');
+            set(this.visHandles.popupSubject,'Callback',@this.GUI_popupSubject_Callback,'TooltipString','Select a subject');
+            set(this.visHandles.popupView,'Callback',@this.GUI_popupView_Callback,'TooltipString','Select a condition');
+            set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select a channel');
+            set(this.visHandles.popupROI,'Callback',@this.GUI_popupROI_Callback,'TooltipString','Select FLIM parameter to display');
             
             %menu
             set(this.visHandles.menuExit,'Callback',@this.menuExit_Callback);
