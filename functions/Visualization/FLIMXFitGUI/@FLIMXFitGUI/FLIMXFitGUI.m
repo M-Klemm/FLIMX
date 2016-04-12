@@ -59,7 +59,7 @@ classdef FLIMXFitGUI < handle
         axesSuppData = [];
         currentStudy = '';
         currentSubject = '';
-        currentView = '';
+        currentCondition = '';
         currentChannel = 0;
         currentDecayData = [];
         generalParams = [];
@@ -180,18 +180,18 @@ classdef FLIMXFitGUI < handle
                 set(this.visHandles.popupStudy,'String',studies,'Value',curStudyIdx);
             end
             views = this.FLIMXObj.fdt.getStudyViewsStr(this.currentStudy);
-            oldVStr = get(this.visHandles.popupView,'String');
+            oldVStr = get(this.visHandles.popupCondition,'String');
             if(iscell(oldVStr))
-                oldVStr = oldVStr(get(this.visHandles.popupView,'Value'));
+                oldVStr = oldVStr(get(this.visHandles.popupCondition,'Value'));
             end
             %try to find oldPStr in new pstr
             idx = find(strcmp(oldVStr,views),1);
             if(isempty(idx) || isempty(this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,views{idx})))
                 idx = 1;%choose '-' view
             end
-            set(this.visHandles.popupView,'String',views,'Value',idx);
+            set(this.visHandles.popupCondition,'String',views,'Value',idx);
             %update subject controls
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentView);
+            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentCondition);
             curSubjectIdx = find(strcmp(this.currentSubject,subjects),1);
             %set(this.visHandles.popupSubject,'String',subjects,'Value',min(get(this.visHandles.popupSubject,'Value'),length(subjects)));
             if(~strcmp(this.currentSubject,this.FLIMXObj.curSubject.getDatasetName()) || isempty(curSubjectIdx) || curSubjectIdx ~= get(this.visHandles.popupSubject,'Value'))                
@@ -443,15 +443,15 @@ classdef FLIMXFitGUI < handle
             end
         end
         
-        function out = get.currentView(this)
+        function out = get.currentCondition(this)
             %get current view name from GUI
             out = '-';
             if(~this.isOpenVisWnd())
                 return;
             end
-            str = get(this.visHandles.popupView,'String');
+            str = get(this.visHandles.popupCondition,'String');
             if(~isempty(str) && iscell(str))
-                out = str{get(this.visHandles.popupView,'Value')};
+                out = str{get(this.visHandles.popupCondition,'Value')};
             elseif(ischar(str))
                 out = str;
             end
@@ -1129,7 +1129,7 @@ classdef FLIMXFitGUI < handle
             subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,'-');
             if(~isempty(subjects) && iscell(subjects))
                 cs = subjects{min(get(this.visHandles.popupSubject,'Value'),length(subjects))};
-                set(this.visHandles.popupView,'Value',1);
+                set(this.visHandles.popupCondition,'Value',1);
                 this.FLIMXObj.setCurrentSubject(this.currentStudy,'-',cs);
                 %             else
                 %                 this.FLIMXObj.newSDTFile('');
@@ -1145,13 +1145,13 @@ classdef FLIMXFitGUI < handle
                 set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/></html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
-            this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentView,this.currentSubject);
+            this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentCondition,this.currentSubject);
             set(this.visHandles.buttonStop,'String','Stop');
         end
         
-        function GUI_popupView_Callback(this,hObject,eventdata)
+        function GUI_popupCondition_Callback(this,hObject,eventdata)
             %callback to change the current view
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentView);
+            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentCondition);
             if(~isempty(subjects) && iscell(subjects))
                 idx = find(strcmp(subjects,this.currentSubject), 1);
                 if(~isempty(idx))
@@ -1159,7 +1159,7 @@ classdef FLIMXFitGUI < handle
                     this.setupGUI();
                 else
                     %last subject is not a member of the new view -> choose a different subject
-                    this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentView,subjects{min(get(this.visHandles.popupSubject,'Value'),length(subjects))});
+                    this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentCondition,subjects{min(get(this.visHandles.popupSubject,'Value'),length(subjects))});
                 end
             end
         end
@@ -1935,10 +1935,10 @@ classdef FLIMXFitGUI < handle
         
         function menuBatchStudy_Callback(this,hObject,eventdata)
             %add study with current settings to batchjob manager
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentView);
+            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentCondition);
             tStart = clock;
             for i = 1:length(subjects)
-                this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentView,subjects{i});
+                this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentCondition,subjects{i});
                 this.menuBatchSubject_Callback(this.visHandles.menuBatchSubjectAllCh,true);
                 %update progressbar
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(subjects)-i)); %mean time for finished runs * iterations left
@@ -2040,8 +2040,6 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.editTimeScalEnd,'Callback',@this.GUI_editTimeScal_Callback,'TooltipString','Enter upper limit (in ps) for custom time scaling');
             set(this.visHandles.editCountsScalStart,'Callback',@this.GUI_editCountsScal_Callback,'TooltipString','Enter lower limit for custom intensity / anisotropy scaling');
             set(this.visHandles.editCountsScalEnd,'Callback',@this.GUI_editCountsScal_Callback,'TooltipString','Enter upper limit for custom intensity / anisotropy scaling');
-            set(this.visHandles.editCPRaw,'Enable','off');
-            set(this.visHandles.editCPSupp,'Enable','off');
             
             %buttons
             set(this.visHandles.buttonSubjectDec,'FontName','Symbol','String',char(173),'Callback',@this.GUI_buttonSwitchSubject_Callback,'TooltipString','Go to previous subject'); 
@@ -2078,7 +2076,7 @@ classdef FLIMXFitGUI < handle
             %popup
             set(this.visHandles.popupStudy,'Callback',@this.GUI_popupStudy_Callback,'TooltipString','Select a study');
             set(this.visHandles.popupSubject,'Callback',@this.GUI_popupSubject_Callback,'TooltipString','Select a subject');
-            set(this.visHandles.popupView,'Callback',@this.GUI_popupView_Callback,'TooltipString','Select a condition');
+            set(this.visHandles.popupCondition,'Callback',@this.GUI_popupCondition_Callback,'TooltipString','Select a condition');
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select a channel');
             set(this.visHandles.popupROI,'Callback',@this.GUI_popupROI_Callback,'TooltipString','Select FLIM parameter to display');
             
