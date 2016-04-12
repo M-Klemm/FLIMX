@@ -723,6 +723,8 @@ classdef FLIMXFitGUI < handle
                 set(hAxMain,'YLimMode','auto','Yscale',yScaleStr,'XTickLabelMode','auto','YTickLabelMode','auto');
             end            
             ylabel(hAxMain,yLbl);
+            grid(hAxMain,'on');
+            this.visRes(ch,y,x,apObj,hAxRes,hAxResHis);
             %% no parameters computed
             if(sum(x_vec(:)) == 0)
                 cla(this.visHandles.axesRes);
@@ -762,8 +764,6 @@ classdef FLIMXFitGUI < handle
             if(this.visualizationParams.showLegend)
                 this.makeLegend(hAxMain,lStr);
             end
-            grid(hAxMain,'on');
-            [residuum, residuumHist] = this.visRes(ch,y,x,apObj,hAxRes,hAxResHis);
         end
         
         function [e_vec, rh] = visRes(this,ch,y,x,apObj,hAxRes,hAxResHis)
@@ -773,13 +773,6 @@ classdef FLIMXFitGUI < handle
             else
                 [~, x_vec] = this.getVisParams(ch,y,x);
             end
-            if(sum(x_vec(:)) == 0)
-                cla(this.visHandles.axesRes);
-                set(this.visHandles.editResScal,'String','');
-                axis(hAxRes,'off');
-                axis(hAxResHis,'off');
-                return
-            end
             %% check handles
             if(nargin < 7 || ~ishandle(hAxResHis))
                 hAxResHis = this.visHandles.axesResHis;
@@ -787,11 +780,30 @@ classdef FLIMXFitGUI < handle
             if(nargin < 6 || ~ishandle(hAxRes))
                 hAxRes = this.visHandles.axesRes;
             end
+            %% prepare #1 
             axis(hAxRes,'on');
-            %% prepare            
-            model = apObj.getModel(ch,x_vec);
+            axis(hAxResHis,'on');
+            cla(hAxRes);
+            cla(hAxResHis);
+            ylabel(hAxRes,'Norm. Error');
+            xlabel(hAxRes,'Time (ns)');
+            grid(hAxRes,'on');
             data = apObj.getMeasurementData(ch);
             xAxis = this.FLIMXObj.curSubject.timeVector(1:length(data));
+            if(sum(x_vec(:)) == 0)
+                cla(this.visHandles.axesRes);
+                set(this.visHandles.editResScal,'String','');
+                set(hAxResHis,'XTickLabel','');
+                set(hAxResHis,'YTickLabel','');
+                if(~this.dynVisParams.timeScalingAuto)
+                    xAxis = xAxis(this.dynVisParams.timeScalingStart:this.dynVisParams.timeScalingEnd);
+                end
+                xlim(hAxRes,[xAxis(1) xAxis(end)]);
+                %axis(hAxRes,'on');                
+                return
+            end                      
+            %% prepare #2           
+            model = apObj.getModel(ch,x_vec);            
             e_vec = zeros(length(data),1);
             data(isnan(data)) = 0;
             if(apObj.basicParams.approximationTarget == 2 && ch == 4)
@@ -817,8 +829,7 @@ classdef FLIMXFitGUI < handle
                 nz_idx = nz_idx(this.dynVisParams.timeScalingStart:this.dynVisParams.timeScalingEnd);
                 StartPosition = StartPosition-this.dynVisParams.timeScalingStart+1;
                 EndPosition = EndPosition-this.dynVisParams.timeScalingStart+1;
-            end
-            cla(hAxRes);
+            end            
             hold(hAxRes,'on');
             idx = measurementFile.getMaskGrps(find(nz_idx > 0));
             if(isempty(idx)) %empty data
@@ -862,10 +873,7 @@ classdef FLIMXFitGUI < handle
             if(this.visualizationParams.plotStartEnd)
                 this.makeVerticalLinePlot(hAxRes,StartPosition,xAxis,'StartEnd',this.dynVisParams,this.visualizationParams,'',[]);
                 this.makeVerticalLinePlot(hAxRes,EndPosition,xAxis,'StartEnd',this.dynVisParams,this.visualizationParams,'',[]);
-            end
-            ylabel(hAxRes,'Norm. Error');
-            xlabel(hAxRes,'Time (ns)');
-            grid(hAxRes,'on');
+            end            
             %% residuum histogram
             nc = round(max(3,min(numel(e_vec_nz)/10,100)));
             nc = nc + rem(nc,2)+1;
@@ -880,7 +888,7 @@ classdef FLIMXFitGUI < handle
                 set(hAxResHis,'YTickLabel','');
             else
                 cla(hAxResHis)
-                axis(hAxResHis,'off');
+                %axis(hAxResHis,'off');
             end
             %% residuum statistics
         end
