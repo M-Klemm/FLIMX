@@ -712,6 +712,10 @@ classdef fluoSubject < handle
             %                 end
             %                 [vp, params.volatileChannel] = paramMgr.makeVolatileParams(params.basicFit,this.myMeasurement.nrSpectralChannels);
             %             end            
+            if(ch < 3 || params.basicFit.approximationTarget == 1)
+                if(any(strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Offset')))
+                end
+            end            
             if(params.basicFit.approximationTarget == 2 && params.basicFit.anisotropyR0Method == 2 && ch < 3)
                 idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Tau 2');
                 params.basicFit.(sprintf('constMaskSaveValCh%d',ch)) = double(params.basicFit.(sprintf('constMaskSaveValCh%d',ch)));
