@@ -125,7 +125,7 @@ function B = sffilt(func,A,siz,padopt,CHUNKFACTOR)
 %
 
 %narginchk(2,5);
-error(nargchk(2, 5, nargin, 'struct'));
+narginchk(2, 5);
 
 %% Note:
 % If you work with large 3D arrays, an "Out of memory" error may appear.

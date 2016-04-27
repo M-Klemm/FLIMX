@@ -714,6 +714,7 @@ classdef fluoSubject < handle
             %             end            
             if(ch < 3 || params.basicFit.approximationTarget == 1)
                 if(any(strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Offset')))
+                    params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(end) = params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(end) .* this.getROIXSz .* this.getROIXSz ./ params.pixelFit.gridSize^2;
                 end
             end            
             if(params.basicFit.approximationTarget == 2 && params.basicFit.anisotropyR0Method == 2 && ch < 3)
