@@ -1009,16 +1009,23 @@ classdef simAnalysis < handle
             if(~any(cell2mat(this.arraySubsetNames(:,2))))
                 %no subset selected or all empty
                 return
-            end
-            
+            end            
             [data, reference, paraStr] = this.getCurArrayData();
             if(isempty(data))
                 this.updateProgressbar(0,'');
                 return
             end            
             subsets = this.arraySubsets(cell2mat(this.arraySubsetNames(:,2)),1);
-            grpLbls = num2cell(this.getArrayRunningParameter());
-%             this.updateProgressbar(0.8,'Create Boxplot');
+            grpLbls = this.getArrayRunningParameter();
+            [grpLbls,idx] = sort(grpLbls);            
+            data = data(:,idx);
+            reference = reference(1,idx);
+            %remove empty subsets
+            idx = all(data,1);
+            data = data(:,idx);
+            reference = reference(1,idx);
+            grpLbls = grpLbls(:,idx);
+            grpLbls = num2cell(grpLbls);
             %make boxplot
             set(this.hAx,'Visible','Off');
             set(this.hAx,'Yscale','lin');
@@ -1036,12 +1043,10 @@ classdef simAnalysis < handle
                 set(this.hAx,'YLim',yLim);
             end
             hold(this.hAx,'off');
-%             this.updateProgressbar(0.9,'Create Boxplot');
             ylabel(this.hAx,paraStr);
             xlabel(this.hAx,subsets{1}.arrayParamName);
             set(this.hAx,'Position',[250 295 890 340]);
             set(this.hAx,'Visible','On');
-%             this.updateProgressbar(0,'');
         end
         
         function makeParaSetPlot(this)
@@ -1360,7 +1365,7 @@ classdef simAnalysis < handle
                 chi2 = this.myResSubject.getPixelFLIMItem(this.curChannel,'chi2');
                 chi2Tail = this.myResSubject.getPixelFLIMItem(this.curChannel,'chi2Tail');
                 offset = this.myResSubject.getPixelFLIMItem(this.curChannel,'Offset');
-                iterations = this.myResSubject.getPixelFLIMItem(this.curChannel,'Iterations');
+                functionEvaluations = this.myResSubject.getPixelFLIMItem(this.curChannel,'FunctionEvaluations');
                 t = this.myResSubject.getPixelFLIMItem(this.curChannel,'Time');
                 nExp = this.myResSubject.basicParams.nExp;               
                 switch get(this.visHandles.popupResultStatsMode,'Value')
@@ -1386,7 +1391,7 @@ classdef simAnalysis < handle
                         chi2 = mean(chi2(:));
                         chi2Tail = mean(chi2Tail(:));
                         offset = mean(offset(:));
-                        iterations = mean(iterations(:));
+                        functionEvaluations = mean(functionEvaluations(:));
                         t = mean(t(:));
                     case {2,3}
                         if(get(this.visHandles.popupResultStatsMode,'Value') == 2)
@@ -1414,7 +1419,7 @@ classdef simAnalysis < handle
                         chi2 = chi2(y,x);
                         chi2Tail = chi2Tail(y,x);
                         offset = offset(y,x);
-                        iterations = iterations(y,x);
+                        functionEvaluations = functionEvaluations(y,x);
                         t = t(y,x);
                 end
                 %compute differences to simulation parameter set
@@ -1436,11 +1441,11 @@ classdef simAnalysis < handle
                     paraSetValues(1:min(nExp,sdc.nrExponentials),3),taus);
                 %get result specific statistics
                 resultStatsData = cell(8,2);
-                resultStatsData(:,1) = {'Chi2';'Chi2 Tail';'Offset';'Iterations';'Time';'Err. Amps.(%)';'Err. Taus(%)';'Total Err. (%)'};
+                resultStatsData(:,1) = {'Chi2';'Chi2 Tail';'Offset';'FuncEvals';'Time';'Err. Amps.(%)';'Err. Taus(%)';'Total Err. (%)'};
                 resultStatsData(1,2) = {num2str(chi2,'%.3G')};
                 resultStatsData(2,2) = {num2str(chi2Tail,'%.3G')};
                 resultStatsData(3,2) = {num2str(offset,'%.3G')};
-                resultStatsData(4,2) = {num2str(iterations,'%.3G')};
+                resultStatsData(4,2) = {num2str(functionEvaluations,'%.3G')};
                 resultStatsData(5,2) = {num2str(t,'%.3G')};
                 resultStatsData(6,2) = {num2str(errAmps,'%.3G')};
                 resultStatsData(7,2) = {num2str(errTaus,'%.3G')};
@@ -1561,6 +1566,7 @@ classdef simAnalysis < handle
             if(isempty(subsets))
                 return
             end
+            persistent lastUpdate
             subsetNames = this.arraySubsetNames(cell2mat(this.arraySubsetNames(:,2)),1);
             x = subsets{1}.sizeX;
             y = subsets{1}.sizeY;
@@ -1570,7 +1576,7 @@ classdef simAnalysis < handle
             for k = 1:length(subsetNames);
                 %load result into fluodecay fit
                 this.loadResult(subsetNames{k});
-                if(~this.curResultChanIsAvailable)
+                if(~this.resultIsAvailable(this.curStudy,subsetNames{k},this.curChannel))
                     %result not available for selected channel
                     continue
                 end
@@ -1602,23 +1608,26 @@ classdef simAnalysis < handle
                     case 'offset'
                         tmp = this.myResSubject.getPixelFLIMItem(this.curChannel,'Offset');
                         refVal(k) = subsets{k}.offset;
-                    case 'iterations'
-                        tmp = this.myResSubject.getPixelFLIMItem(this.curChannel,'Iterations');
+                    case 'functionevaluations'
+                        tmp = this.myResSubject.getPixelFLIMItem(this.curChannel,'FunctionEvaluations');
                     case 'time'
                         tmp = this.myResSubject.getPixelFLIMItem(this.curChannel,'Time');
                 end
-                if(isempty(tmp))
-                    this.updateProgressbar(0,'');
-                    return
-                end
-                data(:,k) = tmp(:);
-                this.updateProgressbar(k/length(subsetNames),'Gathering Data from Parameter Set Array');
                 if(this.stop)
 %                    this.stop = false;
                     this.updateProgressbar(0,'');
                     return
                 end
-            end            
+                if(isempty(lastUpdate) || etime(clock, lastUpdate) > 0.5)
+                    lastUpdate = clock;
+                    this.updateProgressbar(k/length(subsetNames),'Gathering Data from Parameter Set Array');
+                end
+                if(isempty(tmp))                    
+                    continue
+                end
+                data(:,k) = tmp(:);                
+            end
+            this.updateProgressbar(0,'');
         end
         
         function clearArrayData(this)
@@ -1680,51 +1689,7 @@ classdef simAnalysis < handle
                 %no subset selected
                 return
             end
-            this.stop = false;            
-            [file path] = uiputfile({'*.xls','Excel file (*.xls)'},'Export to Excel file');
-            if(file==0)
-                return;
-            end
-            fn = fullfile(path,file);            
-            %get parameters to export
-            paraStr = simAnalysis.getParameterStr(this.myResSubject.basicParams.nExp,this.myResSubject.basicParams.stretchedExpMask);            
-            [selection, ok] = listdlg('PromptString','Select parameters to export:',...
-                'ListString',paraStr);            
-            if(ok == 0 || isempty(selection))
-                return
-            end
-            
-            oldP = get(this.visHandles.popupResultMode,'Value');
-            paraStr = paraStr(selection);
-            subsets = this.arraySubsets(cell2mat(this.arraySubsetNames(:,2)),1);            
-            rID = simAnalysis.rID2paraName(subsets{1}.arrayParamNr,subsets{1}.nrExponentials);            
-            for i = 1:length(selection)
-                arrayDataP = this.getArrayData(paraStr{i});               
-                if(this.stop)
-                    this.stop = false;
-                    break
-                end
-                %export
-                [data, colHeaders] = this.makeArrayStatisticsTable(arrayDataP,rID);
-                tableName = sprintf('"%s" - Parameter Set Array: "%s"',this.curParaSetName,rID);
-                sheetName = sprintf('"%s"',paraStr{i});
-                rowHeaders = cell(size(data,1),1);
-                exportExcel(fn,data,colHeaders,rowHeaders,sheetName,tableName);
-                this.updateProgressbar(i/length(selection),'Exporting Statistics of Parameter Set Array to Excel File');
-            end
-            
-            this.updateProgressbar(0,'');
-            set(this.visHandles.popupResultMode,'Value',oldP);
-            this.updateGUI();
-        end
-        
-        function GUI_buttonExportMultArrayStats_Callback(this,hObject,eventdata)
-            %export statistics of parameter set array
-            if(isempty(this.curParaSetName) || isempty(this.curArrayName) || ~any(cell2mat(this.arraySubsetNames(:,2))))
-                %no subset selected
-                return
-            end
-            this.stop = false;            
+                       
             [file, path] = uiputfile({'*.xls','Excel file (*.xls)'},'Export to Excel file');
             if(file==0)
                 return;
@@ -1732,61 +1697,91 @@ classdef simAnalysis < handle
             fn = fullfile(path,file);            
             %get parameters to export
             paraStr = simAnalysis.getParameterStr(this.myResSubject.basicParams.nExp,this.myResSubject.basicParams.stretchedExpMask);            
-            [paramSelection, ok] = listdlg('PromptString','Select parameters to export:',...
-                'ListString',paraStr);            
+            [paramSelection, ok] = listdlg('PromptString','Select parameters to export:','ListString',paraStr,'ListSize',[300 300]);            
             if(ok == 0 || isempty(paramSelection))
                 return
             end
-            paraStr = paraStr(paramSelection);            
+            this.stop = false; 
+            this.exportArrayStatistics(fn,{this.curStudy},paramSelection);
+            this.updateGUI();
+            this.makeMainPlot();
+        end
+        
+        function GUI_buttonExportMultArrayStats_Callback(this,hObject,eventdata)
+            %export statistics of parameter set array
+            if(isempty(this.curParaSetName) || isempty(this.curArrayName) || ~any(cell2mat(this.arraySubsetNames(:,2))))
+                %no subset selected
+                return
+            end                      
+            [file, path] = uiputfile({'*.xls','Excel file (*.xls)'},'Export to Excel file');
+            if(file==0)
+                return;
+            end
+            fn = fullfile(path,file);            
+            %get parameters to export
+            paraStr = simAnalysis.getParameterStr(this.myResSubject.basicParams.nExp,this.myResSubject.basicParams.stretchedExpMask);            
+            [paramSelection, ok] = listdlg('PromptString','Select parameters to export:','ListString',paraStr,'ListSize',[300 300]);            
+            if(ok == 0 || isempty(paramSelection))
+                return
+            end                        
             %get arrays to export
             studies = this.FLIMXObj.fdt.getStudyNames();
-            [studySelection, ok] = listdlg('PromptString','Select parameter arrays to export:',...
-                'ListString',studies);            
+            [studySelection, ok] = listdlg('PromptString','Select parameter arrays to export:','ListString',studies,'ListSize',[300 300]);            
             if(ok == 0 || isempty(studySelection))
                 return
             end
-            oldStudy = this.curStudy;
-            oldP = get(this.visHandles.popupResultMode,'Value');
-            set(this.visHandles.popupResultMode,'Value',paramSelection(1));
             studies = studies(studySelection);
-            %loop over studies
-            for studyID = 1:length(studies)
-                %set new study and array
-                this.setCurStudy(studies{studyID});
-                subsets = this.arraySubsets(cell2mat(this.arraySubsetNames(:,2)),1);
-                rID = simAnalysis.rID2paraName(subsets{1}.arrayParamNr,subsets{1}.nrExponentials);
-                %loop over result items
-                for i = 1:length(paramSelection)
-                    dataTmp = this.makeArrayStatisticsTable(this.getArrayData(paraStr{i}),rID);
-                    data{i}(:,studyID+1) = dataTmp(:,3); %select only mean
-                    colHeaders(i,studyID+1) = studies(studyID);
-                    if(this.stop)
-                        break
-                    end                    
+            this.stop = false;  
+            this.exportArrayStatistics(fn,studies,paramSelection);            
+            this.updateGUI();
+            this.makeMainPlot();
+        end
+        
+        function exportArrayStatistics(this,fn,studies,paramSelection)
+            %write array statistics to excel file
+            paraStr = simAnalysis.getParameterStr(this.myResSubject.basicParams.nExp,this.myResSubject.basicParams.stretchedExpMask);
+            paraStr = paraStr(paramSelection);
+            oldStudy = this.curStudy;
+            oldParam = get(this.visHandles.popupResultMode,'Value');
+            set(this.visHandles.popupResultMode,'Value',paramSelection(1));            
+            subsets = this.arraySubsets(cell2mat(this.arraySubsetNames(:,2)),1); 
+            rID = simAnalysis.rID2paraName(subsets{1}.arrayParamNr,subsets{1}.nrExponentials);
+            dataTmp = this.makeArrayStatisticsTable(this.getArrayData(paraStr{1}),rID);
+            %loop over parameters            
+            for paramID = 1:length(paramSelection)
+                data = cell(size(dataTmp,1),2+length(studies)*2);
+                colHeaders = cell(1,2+length(studies)*2);
+                %loop over studies
+                for studyID = 1:length(studies)
+                    %set new study and array
+                    this.setCurStudy(studies{studyID});
+                    [dataTmp0, refVal] = this.getArrayData(paraStr{paramID});
+                    dataTmp = this.makeArrayStatisticsTable(dataTmp0,rID);
+                    data(:,2+2*(studyID-1)+1) = num2cell(dataTmp(:,3)); %mean
+                    data(:,2+2*(studyID-1)+2) = num2cell(dataTmp(:,5)); %sdt
+                    colHeaders(1,1+2*(studyID-1)+1) = {['mean ' studies{studyID}]};
+                    colHeaders(1,1+2*(studyID-1)+2) = {['sdt ' studies{studyID}]};
                 end
+                %export
+                colHeaders(1,1) = {rID};
+                colHeaders(1,2) = {'reference'};
+                data(:,1) = num2cell(dataTmp(:,1)); %running parameter of array
+                data(:,2) = num2cell(refVal(:,1)); %reference
+                tableName = '';
+                sheetName = sprintf('%s',paraStr{paramID});
+                rowHeaders = cell(size(data{paramID},1),1);
+                exportExcel(fn,data,colHeaders,rowHeaders,sheetName,tableName);
                 if(this.stop)
                     this.stop = false;
                     break
                 end
-%                 this.updateProgressbar(i/length(paramSelection),'Exporting Statistics of Parameter Set Array to Excel File');                
             end
-            %export
-            for i = 1:length(paramSelection)
-                colHeaders(i,1) = {rID};
-                data{i}(:,1) = dataTmp(:,1); %running parameter
-                tableName = 'Studies:';
-                sheetName = sprintf('"%s"',paraStr{i});
-                rowHeaders = cell(size(data{i},1),1);
-                exportExcel(fn,data{i},colHeaders(i,:),rowHeaders,sheetName,tableName);            
-            end
-            this.updateProgressbar(0,'');
             this.setCurStudy(oldStudy);
-            set(this.visHandles.popupResultMode,'Value',oldP);
-            this.updateGUI();
+            set(this.visHandles.popupResultMode,'Value',oldParam);
         end
         
-        function [data colHeaders] = makeArrayStatisticsTable(this,arrayDataP,rID)
-            %make 
+        function [data, colHeaders] = makeArrayStatisticsTable(this,arrayDataP,rID)
+            %make statistics of an array
             runningP = this.getArrayRunningParameter();
             data = zeros(length(runningP),11);
             data(:,1) = runningP;
@@ -2353,7 +2348,7 @@ classdef simAnalysis < handle
                 case 3
                     paraID = 'Offset';
                 case 4
-                    paraID = 'Iterations';
+                    paraID = 'FunctionEvaluations';
                 case 5
                     paraID = 'Time';
                 otherwise
@@ -2405,7 +2400,7 @@ classdef simAnalysis < handle
                 str(i+5*nExp) = {sprintf('Beta %d',i)};
             end
             %make string for other parameters
-            str(end-4:end) = {'chi2';'chi2Tail';'Offset';'Iterations';'Time'};
+            str(end-4:end) = {'chi2';'chi2Tail';'Offset';'FunctionEvaluations';'Time'};
         end
         
         function paraName = rID2paraName(rID,nExp)
