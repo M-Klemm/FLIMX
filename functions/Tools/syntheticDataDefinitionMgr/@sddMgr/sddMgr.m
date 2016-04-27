@@ -200,11 +200,28 @@ classdef sddMgr < handle
                             otherwise
                                 %xvec parameter
                                 xVec = sdc.xVec;
+                                amps = xVec(1:sdc.nrExponentials);
+                                taus = xVec(sdc.nrExponentials+1:2*sdc.nrExponentials);
+                                qs = simFLIM.computeQs(amps,taus);
                                 if(parent.arrayParamNr <= sdc.nrExponentials+2)
                                     %convert percent values for amplitudes to absolute values
                                     xVec(parent.arrayParamNr-2) = paraArray(i)/100;
                                 else
                                     xVec(parent.arrayParamNr-2) = paraArray(i);
+                                end
+                                if(sdc.fixedQ)
+                                    amps = xVec(1:sdc.nrExponentials);
+                                    taus = xVec(sdc.nrExponentials+1:2*sdc.nrExponentials);
+                                    %find out which parameter was changed
+                                    if(parent.arrayParamNr <= sdc.nrExponentials+2)
+                                        %amplitude changed -> calculate tau
+                                        taus = simFLIM.computeTausFromQs(amps,taus,qs,parent.arrayParamNr-2);
+                                        xVec(sdc.nrExponentials+1:2*sdc.nrExponentials) = taus;
+                                    else
+                                        %tau changed -> calculate amplitudes
+                                        amps = simFLIM.computeAmpsFromQs(amps,taus,qs,parent.arrayParamNr-2-sdc.nrExponentials);
+                                        xVec(1:sdc.nrExponentials) = amps;
+                                    end
                                 end
                                 sdc.xVec = xVec;
                         end

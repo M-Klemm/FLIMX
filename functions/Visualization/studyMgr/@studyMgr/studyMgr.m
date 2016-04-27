@@ -260,7 +260,7 @@ classdef studyMgr < handle
                 return
             end
             
-            sn = this.getStudyName();   %input dialog for study name
+            sn = this.newStudyName();   %input dialog for study name
             if(isempty(sn))
                 return
             end
@@ -273,7 +273,7 @@ classdef studyMgr < handle
             this.fdt.saveStudy(sn);
         end
         
-        function out = getStudyName(this)
+        function out = newStudyName(this)
             %input dialog for study name
             %rename Study
             out = [];
@@ -485,7 +485,7 @@ classdef studyMgr < handle
         
         function menuDuplicateStudy_Callback(this,hObject,eventdata)
             %duplicate current study
-            newStudyName = this.getStudyName();
+            newStudyName = this.newStudyName();
             if(isempty(newStudyName))
                 %user pressed cancel
                 return
@@ -506,7 +506,7 @@ classdef studyMgr < handle
         
         function menuNewStudy_Callback(this,hObject,eventdata)
             %create new study in study manager
-            sn = this.getStudyName();
+            sn = this.newStudyName();
             if(~isempty(sn))
                 %add study to FDTree
                 this.addStudy(sn);
@@ -584,7 +584,7 @@ classdef studyMgr < handle
                                 studiesFLIM = this.fdt.getStudyNames();
                             case 'Rename study (Export File)'
                                 % rename study in export file
-                                newName = this.getStudyName();
+                                newName = this.newStudyName();
                                 if(isempty(newName))
                                     %user pressed cancel
                                     return
@@ -1336,7 +1336,9 @@ classdef studyMgr < handle
                 name = studies{this.curStudyNr};
                 if(isempty(name))
                     name = '';
-                end
+                end            
+            else
+                name = '';
             end
         end
         
