@@ -1759,14 +1759,14 @@ classdef simAnalysis < handle
                     dataTmp = this.makeArrayStatisticsTable(dataTmp0,rID);
                     data(:,2+2*(studyID-1)+1) = num2cell(dataTmp(:,3)); %mean
                     data(:,2+2*(studyID-1)+2) = num2cell(dataTmp(:,5)); %sdt
-                    colHeaders(1,1+2*(studyID-1)+1) = {['mean ' studies{studyID}]};
-                    colHeaders(1,1+2*(studyID-1)+2) = {['sdt ' studies{studyID}]};
+                    colHeaders(1,2+2*(studyID-1)+1) = {['mean ' studies{studyID}]};
+                    colHeaders(1,2+2*(studyID-1)+2) = {['sdt ' studies{studyID}]};
                 end
                 %export
                 colHeaders(1,1) = {rID};
                 colHeaders(1,2) = {'reference'};
                 data(:,1) = num2cell(dataTmp(:,1)); %running parameter of array
-                data(:,2) = num2cell(refVal(:,1)); %reference
+                data(:,2) = num2cell(refVal); %reference
                 tableName = '';
                 sheetName = sprintf('%s',paraStr{paramID});
                 rowHeaders = cell(size(data{paramID},1),1);
