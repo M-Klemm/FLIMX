@@ -622,18 +622,79 @@ classdef FLIMXFitGUI < handle
             drawnow;
         end
         
-        function [apObj, xVec, oset, chi2, chi2Tail, TotalPhotons, iterations, time, slopeStart, iVec] = getVisParams(this,ch,y,x)
+        function [apObj, xVec, oset, chi2, chi2Tail, TotalPhotons, FunctionEvaluations, time, slopeStart, iVec, paramTable] = getVisParams(this,ch,y,x,addAbsolutAmps)
             %get parameters for visualization of current fit in channel ch
-%             if(this.showInitialization)
-%                 apObjs = this.FLIMXObj.getInitApproxObjs(ch);                
-%                 apObj = apObjs{sub2ind([this.initFitParams.gridSize this.initFitParams.gridSize],y,x)};
-%             else
-%                 apObj = this.FLIMXObj.getApproxObj(ch,y,x);
-%             end
-            [apObj, xVec, hShift, oset, chi2, chi2Tail, TotalPhotons, iterations, time, slopeStart, iVec] = this.FLIMXObj.curSubject.getVisParams(ch,y,x,this.showInitialization);
+            [apObj, xVec, ~, oset, chi2, chi2Tail, TotalPhotons, FunctionEvaluations, time, slopeStart, iVec] = this.FLIMXObj.curSubject.getVisParams(ch,y,x,this.showInitialization);
+            if(nargout == 11)
+                if(nargin < 5)
+                    addAbsolutAmps = false;
+                end
+                if(addAbsolutAmps)
+                    addParam = 1;
+                else
+                    addParam = 0;
+                end
+                tci = zeros(1,apObj.basicParams.nExp);
+                tci(logical(apObj.basicParams.tciMask)) = xVec(2*apObj.basicParams.nExp+1 : 2*apObj.basicParams.nExp+sum(apObj.basicParams.tciMask))';
+                %make info table and output its content
+                paramTable = cell(apObj.basicParams.nExp*+1+3+2,4+addParam);
+                row = 1;
+                paramTable{row,1} = '';
+                if(addAbsolutAmps)
+                    paramTable{row,2} = 'Amp.';
+                end
+                if(apObj.basicParams.approximationTarget == 2 && ch == 4)
+                    paramTable{row,2+addParam} = 'Amp.'; 
+                else
+                    paramTable{row,2+addParam} = 'Amp. (%)'; 
+                end
+                paramTable{row,3+addParam} = 'Tau'; paramTable{row,4+addParam} = 'tci';
+                if(any(apObj.basicParams.stretchedExpMask))
+                    paramTable{row,5} = 'beta';
+                end
+                [amps, taus, ~, betas, scAmps, scShifts, scOset, hShift, ~] = apObj.getXVecComponents(xVec,false,apObj.currentChannel);
+                if(apObj.basicParams.approximationTarget == 2 && ch == 4)
+                    as = 100*sum(abs(amps(1:2:apObj.basicParams.nExp)));
+                else
+                    as = sum(abs([amps(:); scAmps(:);]));
+                end
+                bCnt = 1;
+                for l = 1:apObj.basicParams.nExp
+                    paramTable{l+row,1} = sprintf('Exp. %d',l);
+                    if(addAbsolutAmps)
+                        paramTable{l+row,2} = FLIMXFitGUI.num4disp(amps(l));
+                    end
+                    if(apObj.basicParams.approximationTarget == 2 && ch == 4 && mod(l,2) == 0)
+                        paramTable{l+row,2} = FLIMXFitGUI.num4disp(amps(l));
+                    else
+                        paramTable{l+row,2+addParam} = FLIMXFitGUI.num4disp(100*amps(l)/as);
+                    end
+                    paramTable{l+row,3+addParam} = FLIMXFitGUI.num4disp(taus(l));
+                    paramTable{l+row,4+addParam} = FLIMXFitGUI.num4disp(tci(l));
+                    if(apObj.basicParams.stretchedExpMask(l))
+                        paramTable{l+row,5} = sprintf('%1.2f',betas(min(bCnt,length(betas))));
+                        bCnt = bCnt+1;
+                    end
+                end
+                row = apObj.basicParams.nExp+1;
+                for l = 1:apObj.volatilePixelParams.nScatter
+                    paramTable{l+row,1} = sprintf('Scatter %d',l);
+                    paramTable{l+row,2} = sprintf('%2.1f%%',100*scAmps(l)/as);
+                    paramTable{l+row,3} = sprintf('%2.3f',scOset(l));
+                    paramTable{l+row,4} = sprintf('%3.1fps',scShifts(l));
+                end
+                row = row+apObj.volatilePixelParams.nScatter+2;
+                paramTable{row,1} = 'Offset';  paramTable{row,2} = sprintf('%3.2f',oset); paramTable{row,3} = 'Shift'; paramTable{row,4} = sprintf('%3.1fps',hShift);
+                row = row+1;
+                paramTable{row,1} = 'Chi²';  paramTable{row,2} = FLIMXFitGUI.num4disp(chi2); paramTable{row,3} = 'Chi² (Tail)'; paramTable{row,4} = FLIMXFitGUI.num4disp(chi2Tail);
+                row = row+1;
+                paramTable{row,1} = 'FuncEvals';  paramTable{row,2} = sprintf('%d',FunctionEvaluations); paramTable{row,3} = 'Time'; paramTable{row,4} = sprintf('%3.2fs',time);
+                row = row+1;
+                paramTable{row,1} = 'Photons';  paramTable{row,2} = FLIMXFitGUI.num4disp(TotalPhotons); paramTable{row,3} = ''; paramTable{row,4} = '';
+            end
         end
         
-        function [xAxis, data, irf, model, exponentials, residuum, residuumHist, tableInfo] = visCurFit(this,ch,y,x,hAxMain,hAxRes,hAxResHis,hTableInfo)
+        function [xAxis, data, irf, model, exponentials, residuum, residuumHist] = visCurFit(this,ch,y,x,hAxMain,hAxRes,hAxResHis,hTableInfo)
             %plot current data, fit, parameters
             if(~this.isOpenVisWnd())
                 return;
@@ -655,10 +716,10 @@ classdef FLIMXFitGUI < handle
             residuum = [];
             residuumHist = [];
             data = this.currentDecayData;
-            [apObj, x_vec, oset, chi2, chi2Tail, TotalPhotons, iterations, time, slopeStart, iVec] = this.getVisParams(ch,y,x);
-            if(sum(TotalPhotons(:)) == 0)
-                TotalPhotons = sum(data(:));
-            end
+            [apObj, xVec, oset, ~, ~, ~, ~, ~, slopeStart, iVec, paramTable] = this.getVisParams(ch,y,x,false);
+%             if(sum(TotalPhotons(:)) == 0)
+%                 TotalPhotons = sum(data(:));
+%             end
             xAxis = this.FLIMXObj.curSubject.timeVector(1:length(data));
             if(apObj.basicParams.approximationTarget == 2 && ch == 4)
                 %anisotropy
@@ -674,11 +735,11 @@ classdef FLIMXFitGUI < handle
                 yScaleStr = 'log';
                 yLbl = 'Photon-Frequency (counts)';
             end
-            if(sum(x_vec(:)) == 0)
+            if(sum(xVec(:)) == 0)
                 model = [];
             else
-                model = apObj.getModel(ch,x_vec);
-                model = model(1:length(data));
+                model = apObj.getModel(ch,xVec);
+                model = model(1:min(length(model),length(data)));
                 model(model < dMin) = dMin;
             end
             ylabel(hAxMain,'');
@@ -707,11 +768,9 @@ classdef FLIMXFitGUI < handle
             end
                 irfPlot(irfPlot < dMin) = dMin;
                 lStr = this.makeModelPlot(hAxMain,irfPlot,xAxis,'IRF',this.dynVisParams,this.visualizationParams,'IRF',lStr);
-            end            
-            tci = zeros(1,apObj.basicParams.nExp);
-            tci(logical(apObj.basicParams.tciMask)) = x_vec(2*apObj.basicParams.nExp+1 : 2*apObj.basicParams.nExp+sum(apObj.basicParams.tciMask))';            
+            end                       
             %% display parameters on the right side
-            tableInfo = this.makeParamTable(hTableInfo,x_vec,tci,oset,chi2,chi2Tail,iterations,time,TotalPhotons,apObj);            
+            set(hTableInfo,'Data',paramTable);
             %% display x & y
             set(this.visHandles.editX,'String',x);
             set(this.visHandles.editY,'String',y);            
@@ -724,9 +783,9 @@ classdef FLIMXFitGUI < handle
             end            
             ylabel(hAxMain,yLbl);
             grid(hAxMain,'on');
-            this.visRes(ch,y,x,apObj,hAxRes,hAxResHis);
+            [residuum, residuumHist] = this.visRes(ch,y,x,apObj,hAxRes,hAxResHis);
             %% no parameters computed
-            if(sum(x_vec(:)) == 0)
+            if(sum(xVec(:)) == 0)
                 cla(this.visHandles.axesRes);
                 cla(this.visHandles.axesResHis);
                 if(this.visualizationParams.showLegend)
@@ -736,7 +795,7 @@ classdef FLIMXFitGUI < handle
             end            
             %% we have parameters, plot exponentials
             if(this.visualizationParams.plotExp)
-                [lStr, exponentials] = this.makeExponentialsPlot(hAxMain,xAxis,apObj,x_vec,lStr,this.dynVisParams,this.visualizationParams);
+                [lStr, exponentials] = this.makeExponentialsPlot(hAxMain,xAxis,apObj,xVec,lStr,this.dynVisParams,this.visualizationParams);
             end
             %% optimizer initialization (guess)
             if(this.visualizationParams.plotInit)
@@ -768,6 +827,8 @@ classdef FLIMXFitGUI < handle
         
         function [e_vec, rh] = visRes(this,ch,y,x,apObj,hAxRes,hAxResHis)
             %% plot error vector
+            e_vec = [];
+            rh = [];
             if(isempty(apObj))
                 [apObj, x_vec] = this.getVisParams(ch,y,x);
             else
@@ -1534,7 +1595,7 @@ classdef FLIMXFitGUI < handle
         
         function menuExportFiles_Callback(this,hObject,eventdata)
             %write results to disc (again)
-            expDir = uigetdir(cd);
+            expDir = uigetdir(this.FLIMXObj.getWorkingDir());
             if(isempty(expDir))
                 return
             end
@@ -1543,13 +1604,13 @@ classdef FLIMXFitGUI < handle
         end
         
         function menuExportExcel_Callback(this,hObject,eventdata)
-            %
+            %export data of current graphs and info table to excel file
             formats = {'*.xls','Excel File (*.xls)'};
             [file, path] = uiputfile(formats,'Export as');
             if ~path ; return ; end
             fn = fullfile(path,file);
             %save fit
-            [xAxis, data, irf, model, exponentials, residuum, residuumHist, tableInfo] = this.visCurFit(this.currentChannel,this.currentY,this.currentX);
+            [xAxis, data, irf, model, exponentials, residuum, residuumHist] = this.visCurFit(this.currentChannel,this.currentY,this.currentX);
             exponentials = exponentials(:,1:end-1);
             tmp = num2cell([xAxis,data,irf,model,residuum,exponentials]);
             tmp(1:length(residuumHist),end+1) = num2cell(residuumHist);
@@ -1557,11 +1618,11 @@ classdef FLIMXFitGUI < handle
             for i = 1:size(exponentials,2)
                 colHead(end+1) = {sprintf('Exp. %d',i)};
             end
-            %colHead(end+1) = {'Residuum'};
             colHead(end+1) = {'Residuum Histogram'};
-            exportExcel(fn,tmp,colHead,'',sprintf('%s ch%d (y%d,x%d)',this.FLIMXObj.curSubject.getDatasetName(),this.currentChannel,this.currentY,this.currentX),'');
+            exportExcel(fn,tmp,colHead,'',sprintf('Data %s ch%d (y%d,x%d)',this.FLIMXObj.curSubject.getDatasetName(),this.currentChannel,this.currentY,this.currentX),'');
             %save table info
-            tableInfo(end+2,:) = {'x',this.currentX,'y',this.currentY};
+            [apObj, ~, ~, ~, ~, ~, ~, ~, ~, ~, tableInfo] = this.getVisParams(this.currentChannel,this.currentY,this.currentX,true);
+            tableInfo(end+2,1:4) = {'x',this.currentX,'y',this.currentY};
             exportExcel(fn,tableInfo,'','',sprintf('Table %s ch%d (y%d,x%d)',this.FLIMXObj.curSubject.getDatasetName(),this.currentChannel,this.currentY,this.currentX),'');
         end
         
@@ -2166,11 +2227,11 @@ classdef FLIMXFitGUI < handle
                 return
             end
             da = abs(data);
-            if(isinteger(data) || abs(data - fix(data)) < eps(data) || da >= 100)
+            if(isinteger(data) || abs(data - fix(data)) < eps(data) || da >= 100) %integer or >= 100
                 out = num2str(data,'%.0f');
-            elseif(da < 100 && da >= 10)
+            elseif(da < 100 && da >= 10) %between 10 and 100
                 out = num2str(data,'%2.1f');
-            else
+            else %smaller than 10
                 out = num2str(data,'%1.2f');
             end
         end
@@ -2245,50 +2306,6 @@ classdef FLIMXFitGUI < handle
                     lStr(end+1) = {sprintf('Scatter. %d',i-apObj.basicParams.nExp)};
                 end
             end
-        end
-        
-        function tstr = makeParamTable(hTable,xVec,tci,osetS,chi2,chi2Tail,FunctionEvaluations,time,nrPhotons,apObj)
-            %make info table and output its content
-            tstr = cell(apObj.basicParams.nExp*+1+3+2,4);
-            row = 1;
-            tstr{row,1} = '';  tstr{row,2} = 'Amp.'; tstr{row,3} = 'Tau'; tstr{row,4} = 'tci';
-            if(any(apObj.basicParams.stretchedExpMask))
-                tstr{row,5} = 'beta';
-            end
-            [amps, taus, ~, betas, scAmps, scShifts, scOset, hShift, ~] = apObj.getXVecComponents(xVec,false,apObj.currentChannel);
-            as = sum(abs([amps(:); scAmps(:);]));
-            bCnt = 1;
-            for l = 1:apObj.basicParams.nExp
-                tstr{l+row,1} = sprintf('Exp. %d',l);
-                tstr{l+row,2} = sprintf('%2.1f%%',100*amps(l)/as);
-                tstr{l+row,3} = sprintf('%3.0fps',taus(l));
-                tstr{l+row,4} = sprintf('%3.1fps',tci(l));
-                if(apObj.basicParams.stretchedExpMask(l))
-                    tstr{l+row,5} = sprintf('%1.2f',betas(min(bCnt,length(betas))));
-                    bCnt = bCnt+1;
-                end
-            end
-            row = apObj.basicParams.nExp+1;
-%             if(apObj.volatilePixelParams.nScatter > 0)
-%                 row = row+1;
-%                 tstr{row,1} = '';  tstr{row,2} = 'Amp.'; tstr{row,3} = 'Shift'; tstr{row,4} = 'Offset';
-%             end
-            for l = 1:apObj.volatilePixelParams.nScatter
-                tstr{l+row,1} = sprintf('Scatter %d',l);
-                tstr{l+row,2} = sprintf('%2.1f%%',100*scAmps(l)/as);
-                tstr{l+row,3} = sprintf('%2.3f',scOset(l));
-                tstr{l+row,4} = sprintf('%3.1fps',scShifts(l));
-                
-            end
-            row = row+apObj.volatilePixelParams.nScatter+2;
-            tstr{row,1} = 'Offset';  tstr{row,2} = sprintf('%3.2f',osetS); tstr{row,3} = 'Shift'; tstr{row,4} = sprintf('%3.1fps',hShift);
-            row = row+1;
-            tstr{row,1} = 'Chi²';  tstr{row,2} = sprintf('%3.2f',chi2); tstr{row,3} = 'Chi² (Tail)'; tstr{row,4} = sprintf('%3.2f',chi2Tail);
-            row = row+1;
-            tstr{row,1} = 'FuncEvals';  tstr{row,2} = sprintf('%d',FunctionEvaluations); tstr{row,3} = 'Time'; tstr{row,4} = sprintf('%3.2fs',time);
-            row = row+1;
-            tstr{row,1} = 'Photons';  tstr{row,2} = FLIMXFitGUI.num4disp(nrPhotons); tstr{row,3} = ''; tstr{row,4} = '';
-            set(hTable,'Data',tstr);
         end
         
         function lStr = makeVerticalLinePlot(hAx,position,xAxis,paramName,dynVisParams,staticVisParams,legendName,lStr)

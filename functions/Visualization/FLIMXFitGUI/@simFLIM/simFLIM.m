@@ -1650,8 +1650,7 @@ classdef simFLIM < handle
                         return
                     end
                     sdc.channelNr = this.FLIMXObj.FLIMFitGUI.currentChannel;
-                    [apObj, xVec, hShift, oset, chi2, chi2Tail, sdc.nrPhotons, iterations, time, slopeStart, iVec] = this.FLIMXObj.FLIMFitGUI.getVisParams(...
-                        sdc.channelNr,this.FLIMXObj.FLIMFitGUI.currentY,this.FLIMXObj.FLIMFitGUI.currentX);
+                    [apObj, xVec, ~, ~, ~, ~, sdc.nrPhotons] = this.FLIMXObj.FLIMFitGUI.getVisParams(sdc.channelNr,this.FLIMXObj.FLIMFitGUI.currentY,this.FLIMXObj.FLIMFitGUI.currentX);
                     sdc.nrExponentials = apObj.basicParams.nExp;
                     sdc.xVec = xVec;
                     sdc.nrSpectralChannels = apObj.fileInfo.nrSpectralChannels;
