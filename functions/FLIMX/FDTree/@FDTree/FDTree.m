@@ -49,14 +49,14 @@ classdef FDTree < handle
     end
     
     methods
-        function this = FDTree(parent,cd)
+        function this = FDTree(parent,rootDir)
             % Constructor for FStudyMgr.
             this.myParent = parent;
             this.myStudies = LinkedList();
             this.myViewsMerged = subjectDS(this,'GlobalMergedSubjects');
             this.myClusterTargets = LinkedList();
             this.saveMaxMem = this.getSaveMaxMemFlag();
-            this.myDir = fullfile(cd,'studyData');
+            this.myDir = fullfile(rootDir,'studyData');
             if(~isdir(this.myDir))
                 mkdir(this.myDir);
             end

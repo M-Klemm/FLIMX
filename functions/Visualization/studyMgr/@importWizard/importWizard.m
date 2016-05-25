@@ -165,7 +165,7 @@ classdef importWizard < handle
             %get the folder which was last used for fluo file import
             pn = fileparts(this.myMeasurement.getSourceFile());
             if(isempty(pn))
-                pn = cd;
+                pn = this.FLIMXObj.getWorkingDir();
             end
         end
         

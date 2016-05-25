@@ -335,7 +335,12 @@ classdef FLIMX < handle
             %get current FLIMX working directory
             persistent myDir
             if(isempty(myDir))
-                myDir = fileparts(which('FLIMXLauncher.m'));
+                if(isdeployed)
+                    [~, result] = system('set PATH');
+                    myDir = char(regexpi(result, 'Path=(.*?);', 'tokens', 'once'))
+                else                    
+                    myDir = fileparts(which('FLIMXLauncher.m'));
+                end
             end
             out = myDir;
         end

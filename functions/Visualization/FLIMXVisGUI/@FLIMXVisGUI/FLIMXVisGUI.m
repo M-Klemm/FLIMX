@@ -59,7 +59,7 @@ classdef FLIMXVisGUI < handle
             this.myStatsDescr = StatsDescriptive(this);
             this.myStatsGroupComp = StatsGroupComparison(this);
             this.myStatsMVGroup = StatsMVGroupMgr(this);
-            this.dynParams.lastPath = cd;            
+            this.dynParams.lastPath = flimX.getWorkingDir();            
             try
                 this.dynParams.cm = eval(sprintf('%s(256)',lower(this.generalParams.cmType)));
             catch

@@ -62,8 +62,8 @@ classdef studyMgr < handle
                 mkdir(myDir);
             end
             this.FLIMXObj = flimX;
-            this.lastStudyPath = cd;
-            this.lastImportPath = cd;
+            this.lastStudyPath = flimX.getWorkingDir();
+            this.lastImportPath = flimX.getWorkingDir();
             this.myClipboard = cell(0,0);
         end
         
