@@ -93,6 +93,10 @@ classdef subject4Sim < fluoSubject
             params.tciMask = true(1,params.nExp);
             params.stretchedExpMask = false(1,params.nExp);
             params.hybridFit = 0;
+            params.approximationTarget = 1;
+            params.reconvoluteWithIRF = 1;
+            params.incompleteDecay = 1;
+            params.heightMode = 1;
             %params.fixHShift2Init = 0;
             params.fix2InitTargets = {};
             params.optimizerInitStrategy = 1;

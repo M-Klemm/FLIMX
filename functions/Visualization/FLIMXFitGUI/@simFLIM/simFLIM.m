@@ -1369,14 +1369,14 @@ classdef simFLIM < handle
                             %only channel number changed, hence switch channels
                             sdd.moveChannel(oldCh,newCh);
                             sdc = sdd.getChannel(newCh);
-                            [sdc.rawData sdc.modelData] = this.makeSimMExpDec(1,1,sdc);
+                            [sdc.rawData, sdc.modelData] = this.makeSimMExpDec(1,1,sdc);
                         end
                     case 2
                         if(~(length(oldCh)==2))
                             %add new channel
                             sdd.newChannel(newCh);
                             sdc = sdd.getChannel(newCh);
-                            [sdc.rawData sdc.modelData] = this.makeSimMExpDec(1,1,sdc);
+                            [sdc.rawData, sdc.modelData] = this.makeSimMExpDec(1,1,sdc);
                         end
                 end
             end
