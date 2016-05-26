@@ -477,7 +477,7 @@ classdef FData < handle
             if(isempty(cROICoordinates))
                 return
             end  
-            if(all(cROICoordinates(:) == ROICoordinates(:)) && cROIType == ROIType && cROISubType == ROISubType && cROIInvertFlag == ROIInvertFlag && ~isempty(this.cachedImage.data))
+            if(all(size(cROICoordinates) == size(ROICoordinates)) && all(cROICoordinates(:) == ROICoordinates(:)) && cROIType == ROIType && cROISubType == ROISubType && cROIInvertFlag == ROIInvertFlag && ~isempty(this.cachedImage.data))
                 out = true;
             end
         end

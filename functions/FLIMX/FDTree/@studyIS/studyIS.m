@@ -268,21 +268,37 @@ classdef studyIS < handle
                 %subject not in study or ROIVec size is wrong
                 return
             end
-            tmp = this.resultROICoordinates{idx};            
+            tmp = this.resultROICoordinates{idx};
+            if(isempty(ROICoord))
+                ROICoord = zeros(3,2,'uint16');
+            elseif(size(ROICoord,1) == 2 && size(ROICoord,2) == 1)
+                ROICoord(:,2:3) = zeros(2,2,'like',ROICoord);
+            end
             if(isempty(ROIType))
                 %set all ROI coordinates at once
                 if(size(ROICoord,1) == 7 && size(ROICoord,2) == 3 && size(ROICoord,3) >= 2)
                     tmp = int16(ROICoord);
                 end
             else
-                if(isempty(tmp) || size(tmp,1) ~= 7 || size(tmp,2) ~= 3)
+                if(isempty(tmp) || size(tmp,1) < 7 || size(tmp,2) < 3)
                     tmp = zeros(7,3,2,'int16');
                 end
-                if(ROIType >= 1 && ROIType <= 7 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
-                    tmp(ROIType,:,1:2) = int16(ROICoord');
-                elseif(ROIType >= 6 && ROIType <= 7 && size(ROICoord,1) == 1 && size(ROICoord,2) == 3 && size(ROICoord,3) > 2)
-                    tmp(:,:,3:size(ROICoord,3)) = zeros(7,2,size(ROICoord,3)-2,'int16');
-                    tmp(ROIType,:,:) = int16(ROICoord);
+                if(ROIType >= 1 && ROIType < 6 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
+                    tmp(ROIType,1:3,1:2) = int16(ROICoord');
+                elseif(ROIType >= 6 && ROIType <= 7 && size(ROICoord,1) == 2)
+                    if(size(ROICoord,2) > size(tmp,2))
+                        tmpNew = zeros(7,size(ROICoord,2),2,'int16');
+                        tmpNew(:,1:size(tmp,2),:) = tmp;
+                        tmpNew(ROIType,1:size(ROICoord,2),:) = int16(ROICoord');
+                        tmp = tmpNew;
+                    else
+                        tmp(ROIType,1:size(ROICoord,2),1:2) = int16(ROICoord');
+                        tmp(ROIType,max(4,size(ROICoord,2)+1):end,:) = 0;
+                    end
+                    %polygon could have shrinked, remove trailing zeros
+                    idx = squeeze(any(any(tmp,1),3));
+                    idx(1:3) = true;
+                    tmp(:,find(idx,1,'last')+1:end,:) = [];
                 end
             end
             this.resultROICoordinates(idx) = {tmp};
@@ -793,9 +809,10 @@ classdef studyIS < handle
                 end
                 out = double(cell2mat(this.resultROICoordinates(subName)));
                 if(~isempty(ROIType) && isscalar(ROIType) && ROIType <= size(out,1) && ROIType >= 1)
-                    out = squeeze(out(ROIType,:,:));
-                    if(ROIType <= 5)
-                        out = out(2:end,1:2)';
+                    out = squeeze(out(ROIType,:,:))';
+                    out = out(1:2,2:end);
+                    if(ROIType < 6)
+                        out = out(1:2,1:2);
                     end
                 elseif(isempty(ROIType))
                     %return all ROI coordinates

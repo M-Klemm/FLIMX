@@ -996,15 +996,13 @@ classdef FLIMXVisGUI < handle
             this.objHandles.ldo.drawCP(cp);
             this.objHandles.rdo.drawCP(cp);
             if(isempty(cp))
-%                 if(get(this.visHandles.enableMouse_check,'Value'))
-%                     set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-%                 end
+                if(this.getROIDisplayMode(thisSide) < 3)
+                    set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
+                end
                 inFunction = []; %enable callback
                 return
             end
-            if(isempty(cp) && this.getROIDisplayMode(thisSide) < 3)
-                set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-            elseif(~isempty(cp) && this.getROIDisplayMode(thisSide) < 3)
+            if(~isempty(cp) && this.getROIDisplayMode(thisSide) < 3)
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
                 if(this.dynParams.mouseButtonDown)% && this.getROIType(s) == 2)
                     this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
@@ -1012,7 +1010,7 @@ classdef FLIMXVisGUI < handle
                         this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
                     end
                     %this.objHandles.rdo.drawROI(this.getROIType(tS),flipud(cp),flipud(this.dynParams.mouseButtonDownCoord),false);
-                    if(this.getROIType(thisSide) >= 1)
+                    if(this.getROIType(thisSide) >= 1 && this.getROIType(thisSide) < 6)
                         this.objHandles.(sprintf('%sROI',thisSide)).setEndPoint(flipud(cp),false);
                     end
                 end
@@ -1035,7 +1033,7 @@ classdef FLIMXVisGUI < handle
             end            
             if(isempty(cp))
                 %set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-            elseif(this.getROIDisplayMode(thisSide) < 3)
+            elseif(this.getROIDisplayMode(thisSide) < 3 && this.getROIType(thisSide) >= 1 && this.getROIType(thisSide) < 6)
                 this.dynParams.mouseButtonDown = true;
                 this.dynParams.mouseButtonDownCoord = cp;
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
@@ -1069,11 +1067,9 @@ classdef FLIMXVisGUI < handle
                 %set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
             elseif(this.getROIDisplayMode(thisSide) < 3)
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
-                %[dType, id] = this.getFLIMItem(s);
                 if(this.getROIType(thisSide) >= 1 && get(this.visHandles.enableMouse_check,'Value'))
                     this.objHandles.(sprintf('%sROI',thisSide)).setEndPoint(flipud(cp),true);
                     this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
-                    %this.fdt.setResultROISubTypeAnchor(this.getStudy(s),this.getSubject(s),dType{1},id,flipud(cp(:)));
                     this.myStatsGroupComp.clearResults();
                     this.objHandles.rdo.updatePlots();
                     this.objHandles.ldo.updatePlots();
@@ -1249,7 +1245,9 @@ classdef FLIMXVisGUI < handle
                 else
                     this.objHandles.(sprintf('%sROI',s1)).editCallback(dim,bnd);
                 end
-            elseif(~isempty(strfind(tag,'button')))
+            elseif(~isempty(strfind(tag,'roi_table_clearAll')))
+                this.objHandles.(sprintf('%sROI',s1)).buttonClearAllCallback();
+            elseif(~isempty(strfind(tag,'button')) && isempty(strfind(tag,'roi_table_clearAll')))
                 if(~isempty(strfind(tag,'_dec_')))
                     target = 'dec';
                 else
@@ -1472,6 +1470,7 @@ classdef FLIMXVisGUI < handle
                 end
                 set(this.visHandles.(sprintf('roi_type_%s_popup',ax)),'Callback',@this.GUI_roi_Callback);
                 set(this.visHandles.(sprintf('roi_subtype_%s_popup',ax)),'Callback',@this.GUI_roi_Callback);
+                set(this.visHandles.(sprintf('roi_table_clearAll_%s_button',ax)),'Callback',@this.GUI_roi_Callback);
             end
             %menu            
             set(this.visHandles.menuImportResult,'Callback',@this.menuImport_Callback); 

@@ -43,6 +43,8 @@ classdef ROICtrl < handle
         roi_type_popup = [];
         roi_subtype_popup = []
         roi_invert_check = [];
+        roi_table = [];
+        roi_table_clearAll_button = [];
         
         x_check = [];
         x_lo_dec_button = [];
@@ -243,6 +245,14 @@ classdef ROICtrl < handle
             this.updateGUI([]);
         end
         
+        function buttonClearAllCallback(this)
+            %callback function to clear all points of current polygon
+            if(this.ROIType >= 6 && this.ROIType <= 7)
+                set(this.roi_table,'Data',cell(2,1));
+                this.save();
+            end
+        end
+        
         function popupCallback(this,type)
             %callback function of popup to change ROI type / subtype
             this.setupGUI();
@@ -251,25 +261,31 @@ classdef ROICtrl < handle
         
         function setStartPoint(this,coord)
             %set coordinates(y,x) of ROI start point
-            ROICoord = this.getCurROIInfo();
-            ROICoord = ROICoord(:,2:end);
-            if(isempty(coord))
-                coord = [0,0];
+            if(this.ROIType < 6)
+                ROICoord = this.getCurROIInfo();
+                ROICoord = ROICoord(:,2:end);
+                if(isempty(coord))
+                    coord = [0,0];
+                end
+                ROICoord(:,1) = coord;
+                this.updateGUI(ROICoord);
             end
-            ROICoord(:,1) = coord;
-            this.updateGUI(ROICoord);
         end
         
         function setEndPoint(this,coord,saveFlag)
             %set coordinates(y,x) of ROI end point
-            ROICoord = this.getCurROIInfo();
+            ROICoord = this.getCurROIInfo();            
             ROICoord = ROICoord(:,2:end);
-            if(isempty(coord))
-                coord = [0,0];
-            end
-            ROICoord(:,2) = coord;
-            if(this.ROIType == 1)
-                ROICoord(:,1) = coord;
+            if(this.ROIType < 6)                
+                if(isempty(coord))
+                    coord = [0,0];
+                end
+                ROICoord(:,2) = coord;
+                if(this.ROIType == 1)
+                    ROICoord(:,1) = coord;
+                end
+            else
+                ROICoord(:,end+1) = coord;
             end
             if(saveFlag)
                 if(this.ROIType == 2 || this.ROIType == 3)
@@ -297,22 +313,33 @@ classdef ROICtrl < handle
                     set(this.x_lo_inc_button,'Enable','on','Visible','on');
                     set(this.y_lo_dec_button,'Enable','on','Visible','on');
                     set(this.y_lo_inc_button,'Enable','on','Visible','on');
+                    set(this.roi_table,'Visible','off');
+                    set(this.roi_table_clearAll_button,'Visible','off');
                 case {2,3} %rectangle
 %                     set(this.roi_invert_check,'Visible','on');
                     set(this.roi_subtype_popup,'Visible','off');
                     this.enDisAble('on','on');
+                    set(this.roi_table,'Visible','off');                    
+                    set(this.roi_table_clearAll_button,'Visible','off');
                 case {4,5} %circle
 %                     set(this.roi_invert_check,'Visible','on');
                     set(this.roi_subtype_popup,'Visible','off');
                     this.enDisAble('on','on');
                     set(this.y_sz_text','Enable','off','Visible','off');
                     set(this.y_sz_edit,'Enable','off','Visible','off');
-                    %case {6,7} %polygon
-                    
+                    set(this.roi_table,'Visible','off');
+                    set(this.roi_table_clearAll_button,'Visible','off');
+                case {6,7} %polygon                    
+                    set(this.roi_subtype_popup,'Visible','off');
+                    set(this.roi_table,'Visible','on');
+                    set(this.roi_table_clearAll_button,'Visible','on');
+                    this.enDisAble('off','off');
                 otherwise %switch to 'none'
                     set(this.roi_invert_check,'Visible','off');
                     set(this.roi_subtype_popup,'Visible','off');
                     this.enDisAble('off','off');
+                    set(this.roi_table,'Visible','off');
+                    set(this.roi_table_clearAll_button,'Visible','off');
             end
         end
         
@@ -325,7 +352,11 @@ classdef ROICtrl < handle
                 end
                 ROICoord = hfd.getROICoordinates(this.ROIType);
                 if(isempty(ROICoord) || ~any(ROICoord(:)))
-                    ROICoord = [hfd.rawImgYSz; hfd.rawImgXSz];
+                    if(this.ROIType < 6)
+                        ROICoord = [hfd.rawImgYSz; hfd.rawImgXSz];
+                    else
+                        ROICoord = [];
+                    end
                 end
             end            
             switch this.ROIType
@@ -347,7 +378,7 @@ classdef ROICtrl < handle
                     d = 2*sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
                     set(this.x_sz_edit,'String',num2str(FLIMXFitGUI.num4disp(d)));
                 case {6,7} %polygon
-                    
+                    set(this.roi_table,'Data',num2cell(ROICoord));
                 otherwise
                     
             end
@@ -444,6 +475,8 @@ classdef ROICtrl < handle
             out(2,2) = hfd.xLbl2Pos(sscanf(get(this.x_lo_edit,'String'),'%i',1));
             if(this.ROIType == 1)
                 out(:,3) = out(:,2);
+            elseif(this.ROIType == 6 || this.ROIType == 7)
+                out = [[1;this.ROIInvertFlag], cell2mat(get(this.roi_table,'Data'))];
             else
                 out(1,3) = hfd.yLbl2Pos(sscanf(get(this.y_u_edit,'String'),'%i',1));
                 out(2,3) = hfd.xLbl2Pos(sscanf(get(this.x_u_edit,'String'),'%i',1));                
@@ -621,6 +654,8 @@ classdef ROICtrl < handle
             this.roi_type_popup = this.visObj.visHandles.(sprintf('roi_type_%s_popup',s));
             this.roi_subtype_popup = this.visObj.visHandles.(sprintf('roi_subtype_%s_popup',s));
             this.roi_invert_check = this.visObj.visHandles.(sprintf('roi_invert_%s_check',s));
+            this.roi_table = this.visObj.visHandles.(sprintf('roi_%s_table',s));           
+            this.roi_table_clearAll_button = this.visObj.visHandles.(sprintf('roi_table_clearAll_%s_button',s)); 
             for i=1:2
                 dim = dims(i);
                 this.(sprintf('%s_lo_dec_button',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_lo_dec_button',s,dim));

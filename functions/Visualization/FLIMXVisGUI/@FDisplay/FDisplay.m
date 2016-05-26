@@ -46,6 +46,7 @@ classdef FDisplay < handle
         h_Circle = [];
         h_ETDRSGrid = [];
         h_ETDRSGridText = [];
+        h_Polygon = [];
         pixelResolution = 0;
         measurementPosition = 'OS';
     end
@@ -236,6 +237,10 @@ classdef FDisplay < handle
         
         function drawROI(this,ROIType,op,cp,drawTextFlag)
             %draw ROI on 2D main plot; cp: current point; op: old point
+            if(isempty(op) && isempty(cp))
+                %nothing to do
+                ROIType = 0;
+            end
             switch ROIType
                 case 1
                     this.drawETDRSGrid(cp,drawTextFlag);
@@ -251,7 +256,7 @@ classdef FDisplay < handle
                     radius = sqrt(sum((op-cp).^2));
                     this.drawCircle(op,radius,drawTextFlag);
                 case {6,7}
-                    
+                    this.drawPolygon(cp,drawTextFlag);                    
                 otherwise
                     try
                         delete(this.h_Rectangle);
@@ -268,6 +273,10 @@ classdef FDisplay < handle
                     try
                         delete(this.h_ETDRSGridText);
                         this.h_ETDRSGridText = [];
+                    end
+                    try
+                        delete(this.h_Polygon);
+                        this.h_Polygon = [];
                     end
             end                    
         end
@@ -328,6 +337,13 @@ classdef FDisplay < handle
                     this.h_Circle = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc);
                 end
             end
+        end
+        
+        function drawPolygon(this,points,drawTextFlag)
+            %draw polygon into 2D plot
+            gc = this.staticVisParams.ROIColor;
+            lw = 2;
+            this.h_Polygon = line([points(2,:) points(2,1)],[points(1,:) points(1,1)],'LineWidth',lw,'Parent',this.h_m_ax,'Color',gc);
         end
         
         function drawETDRSGrid(this,cp,drawTextFlag)
@@ -678,10 +694,14 @@ classdef FDisplay < handle
                         if(dispDim == 1)
                             %check roi
 %                             h = hfd{i};
-                            ROIType = this.ROIType;
-                            if(ROIType >= 1)
+                            rt = this.ROIType;
+                            if(rt >= 1)
                                 ROICoord = this.ROICoordinates;
-                                this.drawROI(ROIType,ROICoord(:,1),ROICoord(:,2),true);
+                                if(rt >= 1 && rt < 6)
+                                this.drawROI(rt,ROICoord(:,1),ROICoord(:,2),true);
+                                else
+                                    this.drawROI(rt,[],ROICoord,true);
+                                end
                             end
                         end
                         %save for export
