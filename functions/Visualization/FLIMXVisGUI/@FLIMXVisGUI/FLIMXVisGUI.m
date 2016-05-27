@@ -1245,6 +1245,10 @@ classdef FLIMXVisGUI < handle
                 else
                     this.objHandles.(sprintf('%sROI',s1)).editCallback(dim,bnd);
                 end
+            elseif(length(tag) == 11 && ~isempty(strfind(tag,'table')))
+                this.objHandles.(sprintf('%sROI',s1)).tableEditCallback(eventdata);
+            elseif(~isempty(strfind(tag,'roi_table_clearLast')))
+                this.objHandles.(sprintf('%sROI',s1)).buttonClearLastCallback();
             elseif(~isempty(strfind(tag,'roi_table_clearAll')))
                 this.objHandles.(sprintf('%sROI',s1)).buttonClearAllCallback();
             elseif(~isempty(strfind(tag,'button')) && isempty(strfind(tag,'roi_table_clearAll')))
@@ -1470,6 +1474,8 @@ classdef FLIMXVisGUI < handle
                 end
                 set(this.visHandles.(sprintf('roi_type_%s_popup',ax)),'Callback',@this.GUI_roi_Callback);
                 set(this.visHandles.(sprintf('roi_subtype_%s_popup',ax)),'Callback',@this.GUI_roi_Callback);
+                set(this.visHandles.(sprintf('roi_%s_table',ax)),'CellEditCallback',@this.GUI_roi_Callback);
+                set(this.visHandles.(sprintf('roi_table_clearLast_%s_button',ax)),'Callback',@this.GUI_roi_Callback);
                 set(this.visHandles.(sprintf('roi_table_clearAll_%s_button',ax)),'Callback',@this.GUI_roi_Callback);
             end
             %menu            

@@ -44,6 +44,7 @@ classdef ROICtrl < handle
         roi_subtype_popup = []
         roi_invert_check = [];
         roi_table = [];
+        roi_table_clearLast_button = [];
         roi_table_clearAll_button = [];
         
         x_check = [];
@@ -245,11 +246,33 @@ classdef ROICtrl < handle
             this.updateGUI([]);
         end
         
+        function tableEditCallback(this,eventdata)
+            %callback function to edit node of current polygon
+        end
+        
+        function buttonClearLastCallback(this)
+            %callback function to clear last node of current polygon
+            data = get(this.roi_table,'Data');
+            if(~isempty(data) && this.ROIType >= 6 && this.ROIType <= 7)
+                choice = questdlg(sprintf('Delete last node (y=%d, x=%d) of Polygon #%d ROI in subject %s?',data{1,end},data{2,end},this.ROIType-5,this.myHFD.subjectName),'Clear last Polygon ROI node?','Yes','No','No');
+                switch choice
+                    case 'Yes'                        
+                        data(:,end) = [];
+                        set(this.roi_table,'Data',data);
+                        this.save();
+                end
+            end
+        end
+        
         function buttonClearAllCallback(this)
-            %callback function to clear all points of current polygon
+            %callback function to clear all nodes of current polygon
             if(this.ROIType >= 6 && this.ROIType <= 7)
-                set(this.roi_table,'Data',cell(2,1));
-                this.save();
+                choice = questdlg(sprintf('Delete all nodes of Polygon #%d ROI in subject %s?',this.ROIType-5,this.myHFD.subjectName),'Clear all Polygon ROI nodes?','Yes','No','No');
+                switch choice
+                    case 'Yes'
+                        set(this.roi_table,'Data',cell(2,1));
+                        this.save();
+                end
             end
         end
         
@@ -314,24 +337,29 @@ classdef ROICtrl < handle
                     set(this.y_lo_dec_button,'Enable','on','Visible','on');
                     set(this.y_lo_inc_button,'Enable','on','Visible','on');
                     set(this.roi_table,'Visible','off');
+                    set(this.roi_table_clearLast_button,'Visible','off');
                     set(this.roi_table_clearAll_button,'Visible','off');
                 case {2,3} %rectangle
-%                     set(this.roi_invert_check,'Visible','on');
+                    % set(this.roi_invert_check,'Visible','on');
                     set(this.roi_subtype_popup,'Visible','off');
                     this.enDisAble('on','on');
-                    set(this.roi_table,'Visible','off');                    
+                    set(this.roi_table,'Visible','off');
+                    set(this.roi_table_clearLast_button,'Visible','off');
                     set(this.roi_table_clearAll_button,'Visible','off');
                 case {4,5} %circle
-%                     set(this.roi_invert_check,'Visible','on');
+                    % set(this.roi_invert_check,'Visible','on');
                     set(this.roi_subtype_popup,'Visible','off');
                     this.enDisAble('on','on');
                     set(this.y_sz_text','Enable','off','Visible','off');
                     set(this.y_sz_edit,'Enable','off','Visible','off');
                     set(this.roi_table,'Visible','off');
+                    set(this.roi_table_clearLast_button,'Visible','off');
                     set(this.roi_table_clearAll_button,'Visible','off');
-                case {6,7} %polygon                    
+                case {6,7} %polygon
+                    % set(this.roi_invert_check,'Visible','on');
                     set(this.roi_subtype_popup,'Visible','off');
                     set(this.roi_table,'Visible','on');
+                    set(this.roi_table_clearLast_button,'Visible','on');
                     set(this.roi_table_clearAll_button,'Visible','on');
                     this.enDisAble('off','off');
                 otherwise %switch to 'none'
@@ -339,6 +367,7 @@ classdef ROICtrl < handle
                     set(this.roi_subtype_popup,'Visible','off');
                     this.enDisAble('off','off');
                     set(this.roi_table,'Visible','off');
+                    set(this.roi_table_clearLast_button,'Visible','off');
                     set(this.roi_table_clearAll_button,'Visible','off');
             end
         end
@@ -378,7 +407,10 @@ classdef ROICtrl < handle
                     d = 2*sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
                     set(this.x_sz_edit,'String',num2str(FLIMXFitGUI.num4disp(d)));
                 case {6,7} %polygon
-                    set(this.roi_table,'Data',num2cell(ROICoord));
+                    set(this.roi_table,'Data',num2cell(ROICoord))
+                    if(~isempty(ROICoord))
+                        set(this.roi_table,'ColumnWidth',num2cell(25*ones(1,size(ROICoord,2))));
+                    end
                 otherwise
                     
             end
@@ -654,7 +686,8 @@ classdef ROICtrl < handle
             this.roi_type_popup = this.visObj.visHandles.(sprintf('roi_type_%s_popup',s));
             this.roi_subtype_popup = this.visObj.visHandles.(sprintf('roi_subtype_%s_popup',s));
             this.roi_invert_check = this.visObj.visHandles.(sprintf('roi_invert_%s_check',s));
-            this.roi_table = this.visObj.visHandles.(sprintf('roi_%s_table',s));           
+            this.roi_table = this.visObj.visHandles.(sprintf('roi_%s_table',s));          
+            this.roi_table_clearLast_button = this.visObj.visHandles.(sprintf('roi_table_clearLast_%s_button',s));
             this.roi_table_clearAll_button = this.visObj.visHandles.(sprintf('roi_table_clearAll_%s_button',s)); 
             for i=1:2
                 dim = dims(i);

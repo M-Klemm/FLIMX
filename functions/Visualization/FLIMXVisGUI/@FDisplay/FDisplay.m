@@ -323,7 +323,7 @@ classdef FDisplay < handle
             end
             gc = this.staticVisParams.ROIColor;
             lw = 2;
-            isHG = ishghandle(this.h_Rectangle);
+            isHG = ishghandle(this.h_Circle);
             if(~isempty(isHG) && isHG)
                 set(this.h_Circle,'Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'LineWidth',lw);
             else
@@ -343,7 +343,19 @@ classdef FDisplay < handle
             %draw polygon into 2D plot
             gc = this.staticVisParams.ROIColor;
             lw = 2;
-            this.h_Polygon = line([points(2,:) points(2,1)],[points(1,:) points(1,1)],'LineWidth',lw,'Parent',this.h_m_ax,'Color',gc);
+            isHG = ishghandle(this.h_Polygon);
+            if(~isempty(isHG) && isHG)
+                set(this.h_Polygon,'Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw);
+            else
+                try
+                    delete(this.h_Polygon);
+                end
+                if(this.staticVisParams.ROI_fill_enable)
+                    this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'EdgeColor',gc,'FaceColor',gc,'FaceAlpha',this.staticVisParams.ETDRS_subfield_bg_color(end),'Parent',this.h_m_ax);
+                else
+                    this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'EdgeColor',gc,'FaceAlpha',0,'Parent',this.h_m_ax);
+                end
+            end
         end
         
         function drawETDRSGrid(this,cp,drawTextFlag)
@@ -875,10 +887,10 @@ classdef FDisplay < handle
                         if(nrFD > 1)
                             hold(hAx,'on');
                         end
+                        shading(hAx,sVisParam.shading);
                 end
                 clear current_img
             end
-            shading(hAx,sVisParam.shading);
             if(nrFD > 1)
                 hold(hAx,'off');
             end

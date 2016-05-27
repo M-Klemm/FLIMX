@@ -813,6 +813,11 @@ classdef studyIS < handle
                     out = out(1:2,2:end);
                     if(ROIType < 6)
                         out = out(1:2,1:2);
+                    elseif(ROIType >= 6 && ROIType <= 7)
+                        %remove potential trailing zeros
+                        idx = any(out,1);
+                        idx(1:3) = true;
+                        out(:,find(idx,1,'last')+1:end) = [];
                     end
                 elseif(isempty(ROIType))
                     %return all ROI coordinates
