@@ -746,6 +746,7 @@ classdef FStudy < handle
                 subject.loadChannel(chan);
             end
             %check if is arithmetic image
+            %to do: move this to subjectDS?
             [aiNames, aiParams] = this.myStudyInfoSet.getArithmeticImageInfo();
             idx = strcmp(dType,aiNames);
             if(sum(idx) == 1) %found 1 arithmetic image

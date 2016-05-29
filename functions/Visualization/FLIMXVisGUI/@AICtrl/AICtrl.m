@@ -238,7 +238,7 @@ classdef AICtrl < handle
                     set(this.opB,'Enable','off','Value',1);
                     set(this.valB,'Enable','off');
                     set(this.FLIMItemB,'Enable','on');
-                    set(this.chB,'Enable','off');
+                    set(this.chB,'Enable','on');
                     set(this.valAText,'Visible','off');
                     set(this.combiText,'Visible','off');
                     set(this.opBText,'Visible','off');

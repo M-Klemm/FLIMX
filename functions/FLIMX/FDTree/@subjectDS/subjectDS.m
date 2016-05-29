@@ -620,7 +620,8 @@ classdef subjectDS < handle
             [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
             %make sure channel was loaded from disk
             this.loadChannelResult(aiParams.chA);
-            fd = this.getFDataObj(aiParams.chA,dType{1},dTypeNr(1),1);
+            %ask study for FData object, if this is an arithmetic image, study will buld it if needed
+            fd = this.myParent.getFDataObj(this.name,aiParams.chA,dType{1},dTypeNr(1),1);
             if(isempty(fd))
                 return
             end
@@ -642,7 +643,8 @@ classdef subjectDS < handle
                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemB);
                 %make sure channel was loaded from disk
                 this.loadChannelResult(aiParams.chB);
-                fd = this.getFDataObj(aiParams.chB,dType{1},dTypeNr(1),1);
+                %ask study for FData object, if this is an arithmetic image, study will buld it if needed
+                fd = this.myParent.getFDataObj(this.name,aiParams.chB,dType{1},dTypeNr(1),1);
                 if(isempty(fd))
                     return
                 end
@@ -657,15 +659,12 @@ classdef subjectDS < handle
                     eval(sprintf('data = dataA %s dataB;',aiParams.opA));
                 end
             end
+            if(isempty(data))
+                return
+            end
             %save arithmetic image
             this.addObjID(0,aiParams.chA,aiName,1,data);
-%             ROICoord = this.myParent.getResultROICoordinates(this.name,[]);
             cutVec = this.myParent.getResultCuts(this.name);
-%             if(~isempty(ROICoord))
-%                 %set manual scaling for new items
-%                 this.setResultROICoordinates(dType{1},[],ROICoord);
-%                 %this.setROIVec(dType{1},'Y',ROICoord(4:6));
-%             end
             if(~isempty(cutVec))
                 %set cuts for new items
                 this.setCutVec('X',cutVec(1:3));
