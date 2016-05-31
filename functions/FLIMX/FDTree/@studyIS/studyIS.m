@@ -1457,6 +1457,17 @@ classdef studyIS < handle
                     oldStudy = rmfield(oldStudy,'selFLIMItems');
                 end
             end
+            
+            if(oldStudy.revision < 20)
+                if(isfield(oldStudy,'arithmeticImageInfo'))
+                    for i = 1:size(oldStudy.arithmeticImageInfo,1)
+                        tmp = oldStudy.arithmeticImageInfo{i,2};
+                        tmp.normalizeA = 0;
+                        tmp.normalizeB = 0;
+                        oldStudy.arithmeticImageInfo{i,2} = tmp;
+                    end
+                end                
+            end
                             
             this.setDirty(true);
         end

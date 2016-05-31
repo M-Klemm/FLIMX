@@ -641,7 +641,10 @@ classdef subjectDS < handle
             if(isempty(fd))
                 return
             end
-            dataA = fd.getFullImage();            
+            dataA = fd.getFullImage();
+            if(aiParams.normalizeA)
+                dataA = dataA ./ max(dataA(:));
+            end
             [op, neg] = studyIS.str2logicOp(aiParams.opA);
             if(strcmp(aiParams.compAgainst,'val'))                
                 if(any(strcmp(op,{'&','|','xor'})))                    
@@ -665,6 +668,9 @@ classdef subjectDS < handle
                     return
                 end
                 dataB = fd.getFullImage();
+                if(aiParams.normalizeB)
+                    dataB = dataB ./ max(dataB(:));
+                end
                 if(any(strcmp(op,{'&','|','xor'})))
                     idxA = logical(dataA);
                     idxB = logical(dataB);

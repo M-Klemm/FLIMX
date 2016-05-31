@@ -51,7 +51,7 @@ classdef FStudy < handle
             % Constructor for FStudy.
             this.myParent = parent;
             this.name = name;
-            this.revision = 19;
+            this.revision = 20;
             this.myDir = sDir;
             this.mySubjects = LinkedList();
             this.myStudyInfoSet = studyIS(this);

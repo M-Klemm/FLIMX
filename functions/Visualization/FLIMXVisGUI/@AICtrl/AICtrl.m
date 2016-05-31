@@ -38,6 +38,8 @@ classdef AICtrl < handle
         visObj = [];
         FLIMItemA = [];
         FLIMItemB = [];
+        normalizeA = [];
+        normalizeB = [];
         combi = [];
         combiText = [];
         chA = [];
@@ -84,6 +86,8 @@ classdef AICtrl < handle
             end
             set(this.FLIMItemA,'Visible',param);
             set(this.FLIMItemB,'Visible',param);
+            set(this.normalizeA,'Visible',param);
+            set(this.normalizeB,'Visible',param);
             set(this.combi,'Visible',param);
             set(this.chA,'Visible',param);
             set(this.chB,'Visible',param);
@@ -139,7 +143,7 @@ classdef AICtrl < handle
                 set(hObject,'String',str2double(get(hObject,'String')));
             end
             if(hObject ~= this.visObj.visHandles.ai_sel_pop)
-                this.visObj.fdt.setArithmeticImage(this.curStudy,this.curAIName,this.getCurAIParams);
+                this.visObj.fdt.setArithmeticImage(this.curStudy,this.curAIName,this.getCurAIParams());
             end
             this.updateCtrls();
             this.visObj.updateGUI([]);
@@ -199,6 +203,8 @@ classdef AICtrl < handle
                 opNr = 1;
             end
             set(this.opA,'Value',opNr);
+            set(this.normalizeA,'Value',aiParam{idx}.normalizeA);
+            set(this.normalizeB,'Value',aiParam{idx}.normalizeB);
             switch aiParam{idx}.compAgainst
                 case 'val'
                     set(this.valRadio,'Value',1);
@@ -238,6 +244,7 @@ classdef AICtrl < handle
                     set(this.opB,'Enable','off','Value',1);
                     set(this.valB,'Enable','off');
                     set(this.FLIMItemB,'Enable','on');
+                    set(this.normalizeB,'Enable','on');
                     set(this.chB,'Enable','on');
                     set(this.valAText,'Visible','off');
                     set(this.combiText,'Visible','off');
@@ -251,6 +258,8 @@ classdef AICtrl < handle
             str = get(this.FLIMItemA,'String');
             aiParams.FLIMItemA = str{get(this.FLIMItemA,'Value')};
             aiParams.FLIMItemB = str{get(this.FLIMItemB,'Value')};
+            aiParams.normalizeA = get(this.normalizeA,'Value');
+            aiParams.normalizeB = get(this.normalizeB,'Value');
             str = get(this.chA,'String');
             tmp = str{get(this.chA,'Value')};
             aiParams.chA = str2double(tmp(isstrprop(tmp,'digit')));
@@ -324,6 +333,10 @@ classdef AICtrl < handle
             set(this.newButton,'Callback',@this.new_Callback);
             this.delButton = this.visObj.visHandles.ai_del_button;
             set(this.delButton,'Callback',@this.del_Callback);
+            this.normalizeA = this.visObj.visHandles.ai_normalize_a_check;
+            set(this.normalizeA,'Callback',@this.ui_Callback);
+            this.normalizeB = this.visObj.visHandles.ai_normalize_b_check;
+            set(this.normalizeB,'Callback',@this.ui_Callback);
         end
     end %methods protected
     
