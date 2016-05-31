@@ -847,6 +847,9 @@ classdef fluoSubject < handle
                     end
                     ad = this.myResult.getAuxiliaryData(chTmp);
                     fileInfo(chTmp) = ad.fileInfo;
+                    if(strcmp(this.myResult.resultType,'ASCII'))
+                        ad.IRF.vector = this.myIRFMgr.getCurIRF(chTmp);
+                    end
                     allIRFs{chTmp} = ad.IRF.vector;
                 end
                 scatterData = zeros(fileInfo(ch).nrTimeChannels,vp.nScatter,fileInfo(ch).nrSpectralChannels,ad.measurementROIInfo.ROIDataType);
@@ -873,6 +876,9 @@ classdef fluoSubject < handle
                 end
                 ad = this.myResult.getAuxiliaryData(ch);
                 fileInfo(ch) = ad.fileInfo;
+                if(strcmp(this.myResult.resultType,'ASCII'))
+                    ad.IRF.vector = this.myIRFMgr.getCurIRF(ch);
+                end
                 allIRFs{ch} = ad.IRF.vector;
                 scatterData = ad.scatter;
                 if(params.basicFit.chiWeightingMode == 4)
@@ -999,7 +1005,9 @@ classdef fluoSubject < handle
                             xVec(i+1,:) = xVec(i+1,:) - d + eps;
                         end
                     end
-                    out.setInitializationData(ch,out.getNonConstantXVec(ch,xVec));
+                    if(~isempty(xVec))
+                        out.setInitializationData(ch,out.getNonConstantXVec(ch,xVec));
+                    end
                 end
             end
         end

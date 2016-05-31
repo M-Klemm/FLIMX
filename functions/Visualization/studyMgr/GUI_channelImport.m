@@ -127,7 +127,9 @@ if(opt.mode > 1)
     flag = false;
     return
 end
-flag = opt.fdt.isMember(opt.studyName,opt.subName,opt.ch,[]);
+%flag = opt.fdt.isMember(opt.studyName,opt.subName,opt.ch,[]);
+[~, results] = opt.fdt.getSubjectFilesStatus(opt.studyName,opt.subName);
+flag = any(results == opt.ch);
 
 function updateGUI(handles)
 %update GUI controls to current values
@@ -141,6 +143,11 @@ else
     %we don't have this subject & channel yet
     set(handles.rbOverwrite,'Enable','off'); %overwrite channel
     set(handles.rbClear,'Enable','off'); %clear all old data
+end
+set(handles.editScaling,'String',opt.pixelResolution);
+switch opt.position
+    case 'OS'
+        set(handles.popupPosition,'Value',2);
 end
 
 if(strcmp(opt.parent,'FLIMXVisGUI'))
@@ -195,20 +202,23 @@ end
 %Popups
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function popChannel_Callback(hObject, eventdata, handles)
-
 opt = get(handles.channelImportFigure,'userdata');
 opt.ch = get(handles.popChannel,'Value');
 set(handles.channelImportFigure,'userdata',opt);
 updateGUI(handles);
 
 function popupStudySel_Callback(hObject, eventdata, handles)
-
 opt = get(handles.channelImportFigure,'userdata');
 str = get(hObject,'String');
 opt.studyName = str{get(hObject,'Value')};
 set(handles.channelImportFigure,'userdata',opt);
 updateGUI(handles);
 
+function popupPosition_Callback(hObject, eventdata, handles)
+opt = get(handles.channelImportFigure,'userdata');
+str = get(hObject,'String');
+opt.position = str{get(hObject,'Value')};
+set(handles.channelImportFigure,'userdata',opt);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Push buttons
@@ -335,6 +345,13 @@ else
     end
 end
 
+function editScaling_Callback(hObject, eventdata, handles)
+%new scaling value
+opt = get(handles.channelImportFigure,'userdata');
+opt.pixelResolution = max(0.001,abs(get(hObject,'String')));
+set(hObject,'String',opt.pixelResolution);
+set(handles.channelImportFigure,'userdata',opt);
+
 function editDSName_Callback(hObject, eventdata, handles)
 %get new dataset name
 subName = get(hObject,'String');
@@ -373,6 +390,14 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 function popupStudySel_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function popupPosition_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function editScaling_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

@@ -115,6 +115,15 @@ classdef resultFile < handle
                 else
                     parameters = this.paramMgrObj.getDefaults();
                 end
+                %make sure that tciMask and stretchedExp are of correct length
+                if(length(parameters.basic_fit.tciMask) < parameters.basic_fit.nExp)
+                    parameters.basic_fit.tciMask(1,end+1:parameters.basic_fit.nExp) = 0;
+                end
+                parameters.basic_fit.tciMask = parameters.basic_fit.tciMask(1,1:parameters.basic_fit.nExp);
+                if(length(parameters.basic_fit.stretchedExpMask) < parameters.basic_fit.nExp)
+                    parameters.basic_fit.stretchedExpMask(1,end+1:parameters.basic_fit.nExp) = 0;
+                end
+                parameters.basic_fit.stretchedExpMask = parameters.basic_fit.stretchedExpMask(1,1:parameters.basic_fit.nExp);                
                 this.paramMgrObj.setParamSection('result',parameters);
                 this.paramMgrObj.setParamSection('bounds',parameters);
                 this.paramMgrObj.setParamSection('optimization',parameters);
@@ -769,7 +778,7 @@ classdef resultFile < handle
             end
             result = load(resFN);
             %update result to latest version
-            result = this.updateFitResultsStruct(result,this.paramMgrObj.getDefaults().about);
+            result = resultFile.updateFitResultsStruct(result,this.paramMgrObj.getDefaults().about);
         end
         
         function saveMatFile2Disk(this,ch)
@@ -816,8 +825,8 @@ classdef resultFile < handle
                 %pixel data                              
                 fileInfo = apObj.getFileInfo(ch);
                 y = min(y,this.resultSize(1));
-                x = min(x,this.resultSize(2));                
-                if(~this.isPixelResult(ch))
+                x = min(x,this.resultSize(2));
+                if(~this.isPixelResult(ch) || strncmp(this.resultType,'ASCII',5))
                     rs = this.makeResultStructs(1,1);
                     hShift = rs.hShift;
                     oset = rs.Offset;
@@ -828,40 +837,40 @@ classdef resultFile < handle
                     FunctionEvaluations = rs.FunctionEvaluations;
                     time = rs.Time;
                     slopeStart = rs.SlopeStartPosition;
-                    iVec = squeeze(rs.iVec);                 
+                    iVec = squeeze(rs.iVec);
                 else
-                    hShift = this.results.pixel{ch,1}.hShift(y,x);
-                    oset = this.results.pixel{ch,1}.Offset(y,x);
-                    xVec = squeeze(this.results.pixel{ch,1}.x_vec(y,x,:));                
-                    fileInfo.StartPosition = this.results.pixel{ch,1}.StartPosition(y,x);
-                    fileInfo.EndPosition = this.results.pixel{ch,1}.EndPosition(y,x);
-                    %fileInfo.reflectionMask =
-                    %this.fluoFileObj.getReflectionMask(ch); %todo fixme
-                    chi2 = this.results.pixel{ch,1}.chi2(y,x);
-                    chi2Tail = this.results.pixel{ch,1}.chi2Tail(y,x);
-                    TotalPhotons = this.results.pixel{ch,1}.TotalPhotons(y,x);
-                    FunctionEvaluations = this.results.pixel{ch,1}.FunctionEvaluations(y,x);
-                    time = this.results.pixel{ch,1}.Time(y,x);
-                    slopeStart = this.results.pixel{ch,1}.SlopeStartPosition(y,x);
-                    iVec = squeeze(this.results.pixel{ch,1}.iVec(y,x,:));
+                    hShift = this.getPixelFLIMItem(ch,'hShift',y,x);  %this.results.pixel{ch,1}.hShift(y,x);
+                    oset = this.getPixelFLIMItem(ch,'Offset',y,x);  %this.results.pixel{ch,1}.Offset(y,x);
+                    xVec = this.getPixelFLIMItem(ch,'x_vec',y,x);  %squeeze(this.results.pixel{ch,1}.x_vec(y,x,:));
+                    fileInfo.StartPosition = this.getPixelFLIMItem(ch,'StartPosition',y,x);  %this.results.pixel{ch,1}.StartPosition(y,x);
+                    fileInfo.EndPosition = this.getPixelFLIMItem(ch,'EndPosition',y,x);  %this.results.pixel{ch,1}.EndPosition(y,x);
+                    chi2 = this.getPixelFLIMItem(ch,'chi2',y,x);  %this.results.pixel{ch,1}.chi2(y,x);
+                    chi2Tail = this.getPixelFLIMItem(ch,'chi2Tail',y,x);  %this.results.pixel{ch,1}.chi2Tail(y,x);
+                    TotalPhotons = this.getPixelFLIMItem(ch,'TotalPhotons',y,x);  %this.results.pixel{ch,1}.TotalPhotons(y,x);
+                    FunctionEvaluations = this.getPixelFLIMItem(ch,'FunctionEvaluations',y,x);  %this.results.pixel{ch,1}.FunctionEvaluations(y,x);
+                    time = this.getPixelFLIMItem(ch,'Time',y,x);  %this.results.pixel{ch,1}.Time(y,x);
+                    slopeStart = this.getPixelFLIMItem(ch,'SlopeStartPosition',y,x);  %this.results.pixel{ch,1}.SlopeStartPosition(y,x);
+                    iVec = this.getPixelFLIMItem(ch,'iVec',y,x);  %squeeze(this.results.pixel{ch,1}.iVec(y,x,:));
                 end
-            end            
+            end
             apObj.setCurrentChannel(ch);
-            apObj.basicParams.errorMode = 1;
-            apObj.basicParams.heightMode = 1;
+            bp = apObj.basicParams;
+            bp.errorMode = 1;
+            bp.heightMode = 1;
             xVec(end) = oset;
-            if(this.basicParams.hybridFit)
+            if(bp.hybridFit)
                 %switch off hybrid fitting for result display
                 %replace hybrid fit parameters with their corresponding results
-                apObj.basicParams.hybridFit = 0;
+                bp.hybridFit = 0;
                 %                 vcp = apObj.getVolatileChannelParams(ch);
                 %                 vcp.cMask = zeros(size(vcp.cMask));
                 %                 vcp.cVec = [];
                 %                 apObj.setVolatileChannelParams(ch,vcp);
             end
             for chIdx = 1:apObj.nrChannels
-                apObj.basicParams.(sprintf('constMaskSaveStrCh%d',chIdx)) = {''};
+                bp.(sprintf('constMaskSaveStrCh%d',chIdx)) = {''};
             end
+            apObj.basicParams = bp;
         end
         
         %% dependent properties  
@@ -1267,7 +1276,7 @@ classdef resultFile < handle
                 if(strcmp(result.resultType,'FluoDecayFit'))
                     fileInfo.reflectionMask = result.results.reflectionMask;
                 else
-                    fileInfo.reflectionMask = mat2cell(ones(fileInfo.nrTimeChannels,fileInfo.nrSpectralChannels),fileInfo.nrTimeChannels,ones(fileInfo.nrSpectralChannels,1))';
+                    fileInfo.reflectionMask = ones(fileInfo.nrTimeChannels,1);
                 end
                 fileInfo.StartPosition = 1;
                 fileInfo.EndPosition = fileInfo.nrTimeChannels;

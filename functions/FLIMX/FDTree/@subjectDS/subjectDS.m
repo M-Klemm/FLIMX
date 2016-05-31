@@ -189,8 +189,19 @@ classdef subjectDS < handle
                 if(~isempty(mo))
                     this.updateShortProgress(1,sprintf('Importing (Ch %s)',num2str(chan)));
                     int = mo.getROIDataFlat(chan);
-                    if(~isempty(int))
+                    if(~isempty(int) && (isempty(this.height) || isempty(this.width)) || ~isempty(int) && (size(int,1) == this.height && size(int,2) == this.width))
                         this.addObjID(0,chan,'Intensity',1,int);
+                    else
+                        %try raw data
+                        int = mo.getRawDataFlat(chan);
+                        if(~isempty(int) && ~isempty(this.height) && ~isempty(this.width) && size(int,1) == this.height && size(int,2) == this.width)
+                            this.addObjID(0,chan,'Intensity',1,int);
+                        else
+                            %we could not get a intensity image
+                            %todo: throw warning / error message
+                            this.updateShortProgress(0,'');
+                            return
+                        end
                     end
                     allItems = this.myParent.getAllFLIMItems(this.name,chan);
                     if(isempty(allItems))
@@ -290,22 +301,27 @@ classdef subjectDS < handle
                 end
                 this.updateShortProgress(1,sprintf('Importing (Ch %s)',num2str(chan))); %0.5
                 %intensity image
-                hfd = this.getFDataObj(chan,'Intensity',1,1); %check only linear data
+                hfd = this.getFDataObj(chan,'Intensity',0,1); %check only linear data
                 if(isempty(hfd))
                     if(isASCIIResult)
                         %we got a converted ascii file
-                        ampItems = allItems(cellfun(@length,allItems)==10);
-                        ampItems = ampItems(strncmp('Amplitude',ampItems,9));
-                        if(~isempty(ampItems))
-                            int = resultObj.getPixelFLIMItem(chan,ampItems{1});
-                            for i=2:length(ampItems)
-                                %no checking if dimensions agree - todo?!
-                                int = int + resultObj.getPixelFLIMItem(chan,ampItems{i});                                
+                        %try to get the intensity image from a measurement file
+                        this.loadChannelMeasurement(chan,false);
+                        hfd = this.getFDataObj(chan,'Intensity',0,1);
+                        if(isempty(hfd))
+                            ampItems = allItems(cellfun(@length,allItems)==10);
+                            ampItems = ampItems(strncmp('Amplitude',ampItems,9));
+                            if(~isempty(ampItems))
+                                int = resultObj.getPixelFLIMItem(chan,ampItems{1});
+                                for i=2:length(ampItems)
+                                    %no checking if dimensions agree - todo?!
+                                    int = int + resultObj.getPixelFLIMItem(chan,ampItems{i});
+                                end
+                                if(isASCIIResult)
+                                    int = int.*10000;
+                                end
+                                this.addObjID(0,chan,'Intensity',1,int);
                             end
-                            if(isASCIIResult)
-                                int = int.*10000;
-                            end
-                            this.addObjID(0,chan,'Intensity',1,int);
                         end
                     else
                         this.addObjID(0,chan,'Intensity',1,resultObj.getPixelFLIMItem(chan,'Intensity'));

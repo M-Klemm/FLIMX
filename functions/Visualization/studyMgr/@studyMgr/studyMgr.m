@@ -426,6 +426,9 @@ classdef studyMgr < handle
                 opt.mode = 1;
                 opt.ch = [];
                 opt.fdt = this.fdt;
+                fi = measurementFile.getDefaultFileInfo();
+                opt.position = fi.position;
+                opt.pixelResolution = fi.pixelResolution;
                 if(~this.visObj.importResult([],opt))
                     %user pressed cancel or something went wrong
                     return

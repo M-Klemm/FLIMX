@@ -45,69 +45,18 @@ classdef result4Import < resultFile
         end
         
         %% input
-        %         function [result, measurement] = readResultFromDisc(this,resFN,measFN)
-%             %try to load result and measurement files
-%             result = [];
-%             measurement = [];
-%             if(~exist(resFN,'file'))
-%                 return
-%             end
-%             result = load(resFN);
-%             %try to load measurement data                
-%             if(exist(measFN,'file'))
-%                 measurement = load(measFN);
-%             else
-%                 measurement = [];
-%             end
-%             result = this.updateFitResultsStruct(result,measurement,this.parameterDefaults.about);
-%             
-% %             if(~(isfield(result,'result') || isfield(result,'export')))
-% %                 warndlg('Resultfile is too old. Revision is not compatible with FLIMXFitGUI','Result too old','modal');
-% %                 return
-% %             end
-% %             if(isfield(result,'export'))
-% %                 if(result.export.about.results_revision < 122)
-% %                     uiwait(errordlg(sprintf('Result file is too old.\nRequired revision is: 1.30.\nFound revision is: %1.2f.',result.export.about.results_revision/100),'modal'));
-% %                     return
-% %                 else
-% %                     [result measurement] = this.updateFitResultsStruct(result.export,this.aboutInfo);
-% %                 end
-% %             else
-% %                 result = result.result;
-% %                 %try to load measurement data                
-% %                 if(exist(measFN,'file'))
-% %                     measurement = load(measFN);
-% %                     measurement = measurement.measurement;
-% %                 else
-% %                     measurement = [];
-% %                 end
-% %             end
-% %             if(result.about.results_revision ~= this.FLIMXAboutInfo.results_revision)
-% %                 button = questdlg(sprintf('Result file revision is too old and probably not compatible with current version of FLIMXFitGUI\n\nDo you still want to try loading it?'),'Result file is too old!','Yes','No','No');
-% %                 switch button
-% %                     case 'No'
-% %                         result = [];
-% %                         measurement = [];
-% %                         return
-% %                 end
-% %             end
-%         end
         
-            function ch = importResult(this,fn,fi,chFlag)
+        function ch = importResult(this,fn,fi,chFlag,position,scaling)
             %load result from disk, if chFlag = true load all channels;
             %in case of ascii import chFlag = channel number of imported data
             ch = 0;
             switch fi
-                case 3 %FLIMFit result
+                case 3 %FLIMXFit result
                     if(iscell(fn))
                         fn = fn{1};
                     end
                     [path,fileName] = fileparts(fn);
                     chIdx = strfind(fileName,'ch');
-%                     this.resultParamMgrObj = []; %clear old result info
-%                     if(~isempty(this.fluoFileObj))
-%                         this.fluoFileObj.clearROIData();
-%                     end
                     if(~isempty(chIdx) && chFlag)
                         %look for all files (channels) with similar file name
                         files = rdir(sprintf('%s%s%s*.mat',path,filesep,fileName(1:chIdx)));
@@ -116,15 +65,20 @@ classdef result4Import < resultFile
                         end
                     else
                         ch = this.openChannel(fn);
-                    end                    
+                    end
                 case {1,2} %B&H result file#
                     ch = chFlag;
+                    if(nargin < 6)
+                        fi = measurementFile.getDefaultFileInfo();
+                        position = fi.position;
+                        scaling = fi.pixelResolution;
+                    end
                     %read ASCII files
                     file = cell(1,length(fn));
                     for i = 1:length(fn)
                         [path, name, ext] = fileparts(fn{i});
                         file(i) = {[name,ext]};
-                    end                    
+                    end
                     try
                         rs = FLIMXVisGUI.ASCII2ResultStruct(file,path,this.mySubject.name,fi,ch);
                     catch ME
@@ -151,60 +105,18 @@ classdef result4Import < resultFile
                         uiwait(errordlg(sprintf('Size of channel %d result (%dx%d) does not match subject result size (%dx%d)!\n\nImport aborted.',ch,size(rs.results.pixel.Amplitude1,1),size(rs.results.pixel.Amplitude1,2),this.resultSize(1),this.resultSize(2)),'Error loading B&H results','modal'));
                         return
                     end
-                    
-%                     if(isempty(idxO))
-%                         errordlg('No offset parameters found.','Error loading B&H results','modal');
-%                     end
-                    rs = this.updateFitResultsStruct(rs,this.paramMgrObj.getDefaults().about);
+                    rs = resultFile.updateFitResultsStruct(rs,this.paramMgrObj.getDefaults().about);
+                    rs.auxiliaryData.fileInfo.position = position;
+                    rs.auxiliaryData.fileInfo.pixelResolution = scaling;
                     this.loadResult(rs);
-%                     %set fitparameters
-%                     export.parameters.basic = this.basicParams;
-%                     export.parameters.pixel = this.volatilePixelParams.pixel;
-%                     export.parameters.basic.nExp = length(idxA);
-%                     export.parameters.basic.tciMask = zeros(1,export.parameters.basic.nExp);
-%                     export.parameters.pixel.heightMode = 3;
-%                     %open corresponding sdt file
-%                     tmp = rs.results.pixel.(fields{1});
-%                     uiwait(warndlg(sprintf('Becker & Hickl ASCII results have been loaded. The corresponding SDT file is needed. Choose identical channel, image borders, IRF and binning as in SPCImage!\n\nSpatial resolution of the results is:\nx: %d\ny: %d',size(tmp,2),size(tmp,1)),'SDT file for BH result','modal'));
-%                     if(this.openFluoFile());
-%                         %read settings from ini to overwrite old settings from loaded result
-%                         this.FLIMXObj.FLIMXParamMgrObj.readConfig();
-%                         ch = GUI_importWizard(this.FLIMXObj);
-%                         if(ch)
-%                             this.currentChannel = ch;
-%                             this.FLIMXObj.FLIMFit.setBasicParams(export);
-%                             this.FLIMXObj.FLIMFit.setPixelParams(export);
-%                             this.FLIMXObj.FLIMFit.allocResults(); %clear old results
-%                         else
-%                             return
-%                         end
-%                     else
-%                         return
-%                     end
-%                     %copy data
-%                     export.data = this.FLIMXObj.FLIMFit.data;
-%                     export.data.curIRF = export.data.curIRF./max(export.data.curIRF(:)).*15000;
-%                     %copy results
-%                     export.results.pixel = this.FLIMXObj.FLIMFit.results.pixel;
-%                     export.results.init = this.FLIMXObj.FLIMFit.results.init;
-%                     for i = 1:length(idxA)
-%                         export.results.pixel.(sprintf('Amplitude%d',i)) = rs.results.pixel.(fields{idxA(i)}) ./ 100000; %amplitudes have been scaled by ASCII2ResultStruct function
-%                         export.results.pixel.(sprintf('Tau%d',i)) = rs.results.pixel.(fields{idxT(i)});
-%                         %rebuild x_vec
-%                         export.results.pixel.x_vec(:,:,i) = export.results.pixel.(sprintf('Amplitude%d',i));
-%                         export.results.pixel.x_vec(:,:,i+length(idxA)) = export.results.pixel.(sprintf('Tau%d',i));
-%                     end
-%                     export.results.pixel.Offset = rs.results.pixel.(fields{idxO});
-%                     export.results.pixel.x_vec(:,:,end) = export.results.pixel.Offset;
-%                     export.results.pixel.x_vec(:,:,end-2) = ones(size(tmp)); %vertical shift
-%                     if(~isempty(idxC))
-%                         export.results.pixel.chi2 = rs.results.pixel.(fields{idxC});
-%                     end
-%                     %set reults version
-%                     export.about = this.FLIMXObj.FLIMFit.about;
-%                     export.about.results_revision = 122;
-%                     this.FLIMXObj.FLIMFit.loadSavedResult(export,path);
-            end            
+                    %update fileInfo of other channels
+                    if(ch > 1)
+                        for i = 1:ch-1
+                            this.auxiliaryData{i}.fileInfo.nrSpectralChannels = rs.auxiliaryData.fileInfo.nrSpectralChannels;
+                            this.setDirty(i,true);
+                        end
+                    end
+            end
         end
         
     end%methods

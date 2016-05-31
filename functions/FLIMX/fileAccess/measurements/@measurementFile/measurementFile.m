@@ -990,18 +990,18 @@ classdef measurementFile < handle
                         target = int32(this.roiAdaptiveBinThreshold);
                         maxBin = int32(this.roiAdaptiveBinMax);
                         [roiX,roiY] = compGridCoordinates(roi,0);
-                        if(this.useMex4AdaptiveBin && this.nrTimeChannels <= 1024)
-                            [~,binLevels,out] = getAdaptiveBinROI_mex(raw,roiX,roiY,target,maxBin,true);                            
-                        else
+%                         if(this.useMex4AdaptiveBin && this.nrTimeChannels <= 1024)
+%                             [~,binLevels,out] = getAdaptiveBinROI_mex(raw,roiX,roiY,target,maxBin,true);                            
+%                         else
                             [~,binLevels,out] = getAdaptiveBinROI(raw,roiX,roiY,target,maxBin,false);
-                        end
+%                         end
                         this.roiBinLevels{channel} = binLevels;
                         this.setDirtyFlags(channel,4,true);
                     else
                         if(computationParams.useGPU && this.useGPU4StaticBin && binFactor >= 2)
                             out = gather(getStaticBinROI(gpuArray(raw),roi,binFactor));
-                        elseif(this.useMex4StaticBin)
-                            out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));                           
+%                         elseif(this.useMex4StaticBin)
+%                             out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));                           
                         else
                             out = getStaticBinROI(raw,uint16(roi),uint16(binFactor));
                         end

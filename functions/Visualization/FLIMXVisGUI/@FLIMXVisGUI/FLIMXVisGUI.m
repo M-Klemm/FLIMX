@@ -447,7 +447,7 @@ classdef FLIMXVisGUI < handle
         end
           
         function success = importResult(this,rs,opt)
-            %import a FLIMFit result (optional: from structure)   
+            %import a FLIMXFit result (optional: from structure)   
             %todo: move this function to study manager so we don't need the FLIMVis GUI anymore
             this.checkVisWnd(); %we need the GUI
             if(nargin < 2)
@@ -479,6 +479,9 @@ classdef FLIMXVisGUI < handle
                 opt.ch = ch;
                 [~, opt.chList] = this.fdt.getChStr(studyName,subjectName);
                 opt.fdt = this.fdt;
+                fi = measurementFile.getDefaultFileInfo();
+                opt.position = fi.position;
+                opt.pixelResolution = fi.pixelResolution;
             end       
             while(true)  
                 success = false;
@@ -524,7 +527,7 @@ classdef FLIMXVisGUI < handle
                     if(length(idx) > 1)
                         lastPath = lastPath(1:idx(end-1));
                     end                    
-                    is.importResult(fullfile(path,files),filterindex,opt.ch)
+                    is.importResult(fullfile(path,files),filterindex,opt.ch,opt.position,opt.pixelResolution)
                     this.dynParams.lastPath = lastPath;
                 else
                     %update subject name

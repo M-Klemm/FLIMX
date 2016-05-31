@@ -74,9 +74,14 @@ classdef subject4Import < fluoSubject
             this.importMeasurement(obj.sourceFile);
         end
         
-        function importResult(this,fn,fi,chFlag)
-            ch = this.myResult.importResult(fn,fi,chFlag);
+        function importResult(this,fn,fi,chFlag,position,scaling)
+            %import a result from ASCII files
+            ch = this.myResult.importResult(fn,fi,chFlag,position,scaling);
             this.updateSubjectChannel(ch,'result');
+            idx = find(this.resultIsDirty);
+            for i = 1:length(idx)
+                this.updateSubjectChannel(idx(i),'result');
+            end
         end
         
         function init(this)
