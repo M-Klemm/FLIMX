@@ -310,7 +310,7 @@ classdef FLIMX < handle
             if(~isempty(this.FLIMFitGUIObj))
                 this.FLIMFitGUI.setupGUI(); %make sure popup menus are correct
                 %move to pixel with most photons
-                img = this.curSubject.getROIDataFlat(this.FLIMFitGUI.currentChannel);
+                img = this.curSubject.getROIDataFlat(this.FLIMFitGUI.currentChannel,true);
                 if(~isempty(img))
                     [tmp,yPos] = max(img,[],1);
                     [~,xPos] = max(tmp);
@@ -358,7 +358,7 @@ classdef FLIMX < handle
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 255;
-            out.client_revision = 340;
+            out.client_revision = 341;
             out.core_revision = 357;
             out.results_revision = 256;
             out.measurement_revision = 204;

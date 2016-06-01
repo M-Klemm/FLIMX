@@ -345,6 +345,8 @@ classdef AICtrl < handle
             %default values for aiParams struct
             aiParams.FLIMItemA = 'Amplitude 1';
             aiParams.FLIMItemB = 'Tau 1';
+            aiParams.normalizeA = 0;
+            aiParams.normalizeB = 0;
             aiParams.chA = 1;
             aiParams.chB = 1;
             aiParams.opA = '<';
