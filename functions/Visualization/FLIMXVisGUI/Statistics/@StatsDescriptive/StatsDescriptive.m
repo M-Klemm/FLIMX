@@ -254,9 +254,13 @@ classdef StatsDescriptive < handle
                 case 1 %current ROI
                     ROIIds = 1;
                 case 2 %all ETDRS grid ROIs
-                    set(this.visHandles.popupSelROIType,'Value',1); %switch to ETDRS grid
+                    set(this.visHandles.popupSelROIType,'Value',2); %switch to ETDRS grid
+                    this.setupGUI();
                     this.clearResults();
                     ROIIds = 1:length(get(this.visHandles.popupSelROISubType,'String'));
+                case 3 %all major ROIs except for the ETDRS grid 
+                    this.clearResults();
+                    ROIIds = 3:8;
             end
             switch this.exportModeCh
                 case 1 %current channel
@@ -274,9 +278,17 @@ classdef StatsDescriptive < handle
                 end
                 for r = 1:length(ROIIds)
                     if(length(ROIIds) > 1)
-                        set(this.visHandles.popupSelROISubType,'Value',r);
-                        this.clearResults();
-                        this.GUI_SelROITypePop_Callback(this.visHandles.popupSelROISubType,[]); %will call setupGUI
+                        switch this.exportModeROI
+                            case 2 %all ETDRS grid ROIs
+                                set(this.visHandles.popupSelROIType,'Value',2); %switch to ETDRS grid
+                                set(this.visHandles.popupSelROISubType,'Value',ROIIds(r));
+                                this.clearResults();
+                                this.GUI_SelROITypePop_Callback(this.visHandles.popupSelROIType,[]); %will call setupGUI
+                            case 3 %all major ROIs except for the ETDRS grid
+                                set(this.visHandles.popupSelROIType,'Value',ROIIds(r));
+                                this.clearResults();
+                                this.GUI_SelROITypePop_Callback(this.visHandles.popupSelROIType,[]); %will call setupGUI
+                        end
                     end
                     for c = 1:length(chIds)
                         if(length(chIds) > 1)
@@ -388,7 +400,7 @@ classdef StatsDescriptive < handle
                     this.clearPlots();
                 end
             end
-            set(this.visHandles.tableMain,'ColumnName',this.statsDesc,'RowName',this.subjectDesc,'Data',num2cell(this.stats));
+            set(this.visHandles.tableMain,'ColumnName',this.statsDesc,'RowName',this.subjectDesc,'Data',FLIMXFitGUI.num4disp(this.stats));
             %axes
             if(~isempty(this.statHist))
                 bar(this.visHandles.axesBar,this.statCenters,this.statHist);
@@ -441,7 +453,9 @@ classdef StatsDescriptive < handle
                 cw = cw*10;
                 statCenters = c_min : cw : c_max;
             end
-            statHist = hist(ci,statCenters);
+            if(~all(isnan(ci(:))) && ~all(isinf(ci(:))))
+                statHist = hist(ci,statCenters);
+            end
         end
         
         function menuExit_Callback(this,hObject,eventdata)
