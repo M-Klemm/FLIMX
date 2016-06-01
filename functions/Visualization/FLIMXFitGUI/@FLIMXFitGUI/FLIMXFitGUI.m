@@ -411,7 +411,7 @@ classdef FLIMXFitGUI < handle
                 end
             else
                 if(strcmp('Intensity',pstr))
-                    value = double(this.FLIMXObj.curSubject.getROIDataFlat(this.currentChannel));
+                    value = double(this.FLIMXObj.curSubject.getROIDataFlat(this.currentChannel,false));
                 else
                     value = double(this.FLIMXObj.curSubject.getPixelFLIMItem(this.currentChannel,pstr));
                 end
@@ -662,15 +662,15 @@ classdef FLIMXFitGUI < handle
                 for l = 1:apObj.basicParams.nExp
                     paramTable{l+row,1} = sprintf('Exp. %d',l);
                     if(addAbsolutAmps)
-                        paramTable{l+row,2} = FLIMXFitGUI.num4disp(amps(l));
+                        paramTable(l+row,2) = FLIMXFitGUI.num4disp(amps(l));
                     end
                     if(apObj.basicParams.approximationTarget == 2 && ch == 4 && mod(l,2) == 0)
-                        paramTable{l+row,2} = FLIMXFitGUI.num4disp(amps(l));
+                        paramTable(l+row,2) = FLIMXFitGUI.num4disp(amps(l));
                     else
-                        paramTable{l+row,2+addParam} = FLIMXFitGUI.num4disp(100*amps(l)/as);
+                        paramTable(l+row,2+addParam) = FLIMXFitGUI.num4disp(100*amps(l)/as);
                     end
-                    paramTable{l+row,3+addParam} = FLIMXFitGUI.num4disp(taus(l));
-                    paramTable{l+row,4+addParam} = FLIMXFitGUI.num4disp(tci(l));
+                    paramTable(l+row,3+addParam) = FLIMXFitGUI.num4disp(taus(l));
+                    paramTable(l+row,4+addParam) = FLIMXFitGUI.num4disp(tci(l));
                     if(apObj.basicParams.stretchedExpMask(l))
                         paramTable{l+row,5} = sprintf('%1.2f',betas(min(bCnt,length(betas))));
                         bCnt = bCnt+1;
@@ -686,11 +686,11 @@ classdef FLIMXFitGUI < handle
                 row = row+apObj.volatilePixelParams.nScatter+2;
                 paramTable{row,1} = 'Offset';  paramTable{row,2} = sprintf('%3.2f',oset); paramTable{row,3} = 'Shift'; paramTable{row,4} = sprintf('%3.1fps',hShift);
                 row = row+1;
-                paramTable{row,1} = 'Chi²';  paramTable{row,2} = FLIMXFitGUI.num4disp(chi2); paramTable{row,3} = 'Chi² (Tail)'; paramTable{row,4} = FLIMXFitGUI.num4disp(chi2Tail);
+                paramTable{row,1} = 'Chi²';  paramTable(row,2) = FLIMXFitGUI.num4disp(chi2); paramTable{row,3} = 'Chi² (Tail)'; paramTable(row,4) = FLIMXFitGUI.num4disp(chi2Tail);
                 row = row+1;
                 paramTable{row,1} = 'FuncEvals';  paramTable{row,2} = sprintf('%d',FunctionEvaluations); paramTable{row,3} = 'Time'; paramTable{row,4} = sprintf('%3.2fs',time);
                 row = row+1;
-                paramTable{row,1} = 'Photons';  paramTable{row,2} = FLIMXFitGUI.num4disp(TotalPhotons); paramTable{row,3} = ''; paramTable{row,4} = '';
+                paramTable{row,1} = 'Photons';  paramTable(row,2) = FLIMXFitGUI.num4disp(TotalPhotons); paramTable{row,3} = ''; paramTable{row,4} = '';
             end
         end
         
@@ -713,8 +713,6 @@ classdef FLIMXFitGUI < handle
                 hAxMain = this.visHandles.axesCurMain;
             end
             exponentials = [];
-            residuum = [];
-            residuumHist = [];
             data = this.currentDecayData;
             [apObj, xVec, oset, ~, ~, ~, ~, ~, slopeStart, iVec, paramTable] = this.getVisParams(ch,y,x,false);
 %             if(sum(TotalPhotons(:)) == 0)
@@ -2222,18 +2220,23 @@ classdef FLIMXFitGUI < handle
     
     methods(Static)
         function out = num4disp(data)
-            %convert numeric value to string
+            %convert numeric value(s) to string(s), returns a cell array with size of data
             if(ischar(data))
                 return
             end
+            [x,y,z] = size(data);
+            data = reshape(data,[],1);
             da = abs(data);
-            if(isinteger(data) || abs(data - fix(data)) < eps(data) || da >= 100) %integer or >= 100
-                out = num2str(data,'%.0f');
-            elseif(da < 100 && da >= 10) %between 10 and 100
-                out = num2str(data,'%2.1f');
-            else %smaller than 10
-                out = num2str(data,'%1.2f');
-            end
+            idxInt = isinteger(data);
+            idx100 = idxInt | abs(data(~idxInt) - fix(data(~idxInt))) < eps('single') | da >= 100;
+            idx10 = ~idx100 & da < 100 & da >= 10;
+            idx1 = ~(idx100 | idx10);
+            out = cell(size(data));
+            out(idx100) = cellstr(num2str(data(idx100),'%.0f'));
+            out(idx10) = cellstr(num2str(data(idx10),'%2.1f'));
+            out(idx1) = cellstr(num2str(data(idx1),'%1.2f'));
+            out = strtrim(out);
+            out = reshape(out,x,y,z);
         end
         
         function lStr = makeModelPlot(hAx,model,xAxis,paramName,dynVisParams,staticVisParams,legendName,lStr)

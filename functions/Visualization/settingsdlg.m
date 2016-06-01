@@ -94,7 +94,7 @@ function [settings, button] = settingsdlg(varargin)
         
     % errortraps
     narg = nargin;
-    error(nargchk(1, inf, narg, 'struct'));
+    narginchk(1, inf);
         
     % parse input (+errortrap) 
     have_settings = 0;

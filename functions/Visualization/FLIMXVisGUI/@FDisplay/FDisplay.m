@@ -431,7 +431,8 @@ classdef FDisplay < handle
                         txt = {'C','IN','IS','II','IT','OS','ON','OI','OT'};
                     else
                         tmp = hfd.getROISubfieldStatistics(cp,1,this.staticVisParams.ETDRS_subfield_values);                        
-                        txt = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%FLIMXFitGUI.num4disp(tmp(i));
+                        %txt = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%FLIMXFitGUI.num4disp(tmp(i));
+                        txt = FLIMXFitGUI.num4disp(tmp);
                     end
                     if(this.staticVisParams.ETDRS_subfield_bg_enable)
                         bgc = this.staticVisParams.ETDRS_subfield_bg_color;%[0.3 0.3 0.3 0.33];
@@ -623,8 +624,8 @@ classdef FDisplay < handle
                     zMax(i) = zData(3);
                     if(dispDim == 1)
                         %do z scaling here
-                        current_img(current_img < zMin(i)) = zMin(i);
-                        current_img(current_img > zMax(i)) = zMax(i);
+                        current_img(current_img < zMin(i)) = NaN;%zMin(i);
+                        current_img(current_img > zMax(i)) = NaN;%zMax(i);
                     end
                 else
                     if(dispDim == 1)
@@ -1012,8 +1013,7 @@ classdef FDisplay < handle
                         if(xtick(1) == 0)
                             xtick = xtick+1;
                         end
-                        set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,...
-                            'XTickLabel',num2str(centers(xtick)','%.1f'));
+                        set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',FLIMXFitGUI.num4disp(centers(xtick)'));
                     else %nothing to do
                         cla(this.h_s_ax);
                         axis(this.h_s_ax,'off');
@@ -1214,7 +1214,8 @@ classdef FDisplay < handle
             else
                 data(:,1) = hfd{1}.getDescriptiveStatisticsDescriptionShort();
                 tmp = hfd{1}.getROIStatistics(this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag);
-                data(:,2) = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%{num2str(tmp(i),'%.3G')};
+                %data(:,2) = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%{num2str(tmp(i),'%.3G')};
+                data(:,2) = FLIMXFitGUI.num4disp(tmp);
                 %remove not needed parameters
                 %data([4,8,9],:) = [];              
                 set(this.h_ds_t,'Data',data);
@@ -1264,7 +1265,8 @@ classdef FDisplay < handle
             end
             %range = img_max - img_min;            
             vec = linspace(double(img_min),double(img_max),nTicks);
-            out(:,1) = arrayfun(@FLIMXFitGUI.num4disp,vec,'UniformOutput',false);
+            %out(:,1) = arrayfun(@FLIMXFitGUI.num4disp,vec,'UniformOutput',false);
+            out(:,1) = FLIMXFitGUI.num4disp(vec);
         end
         
         function colorImg = makeIntOverlay(this,colorImg,intImg)
@@ -1583,10 +1585,8 @@ classdef FDisplay < handle
             %tick = [0 0.2 0.4 0.6 0.8 1];
             tick = [0 0.5 1];
             tick = tick*10^log_max;
-            ticklbl = cell(1,length(tick));
-            for i = 1:length(tick)
-                ticklbl{1,i}=FLIMXFitGUI.num4disp(tick(i));
-            end
+            %ticklbl = cell(1,length(tick));
+            ticklbl = FLIMXFitGUI.num4disp(tick);
             
             %add additional ticks up to actual maximum
             tail = color_max-10^(log_max);
@@ -1598,7 +1598,7 @@ classdef FDisplay < handle
             i_stop = ceil(tail / 10^(log_max-1));
             while(i-5 < i_stop)
                 tick = [tick tick(3)+i*10^(log_max-1)];
-                ticklbl(end+1) = {FLIMXFitGUI.num4disp(tick(3)+i*10^(log_max-1))};
+                ticklbl(end+1) = FLIMXFitGUI.num4disp(tick(3)+i*10^(log_max-1));
                 i=i+5;
             end
             idx = tick >= color_min & tick <= color_max;
@@ -1607,13 +1607,13 @@ classdef FDisplay < handle
             if((tick(1) - color_min) > eps)%old 0.001%drecksverschissener mistverwichster hack weil if((tick(1) > color_min) nicht richtig funktioniert
                 tick = [color_min tick];
                 ticklbl(2:end+1) = ticklbl;
-                ticklbl(1) = {FLIMXFitGUI.num4disp(color_min)};
+                ticklbl(1) = FLIMXFitGUI.num4disp(color_min);
             else
                 
             end
             if((color_max - tick(end)) > eps)
                 tick(end+1) = color_max;
-                ticklbl(end+1) = {FLIMXFitGUI.num4disp(color_max)};
+                ticklbl(end+1) = FLIMXFitGUI.num4disp(color_max);
             else
                 
             end
@@ -1645,12 +1645,12 @@ classdef FDisplay < handle
             if(log_min == log_max)
                 %min & max are on the same log10, e.g. 200
                 tick = floor(lin_min/10^log_min)*10^log_min+[0.1 tick_0].*10^log_min;
-                %ticklbl(1) = {FLIMXFitGUI.num4disp(tick(1))};
-                ticklbl(10) = {FLIMXFitGUI.num4disp(tick(end))};
+                %ticklbl(1) = FLIMXFitGUI.num4disp(tick(1));
+                ticklbl(10) = FLIMXFitGUI.num4disp(tick(end));
             else
                 for i=log_min:log_max
                     tick = [tick tick_0.*10^i];
-                    ticklbl(length(ticklbl)+9)={FLIMXFitGUI.num4disp(10^i)};
+                    ticklbl(length(ticklbl)+9)=FLIMXFitGUI.num4disp(10^i);
                 end
                 %add additional ticks up to actual maximum
                 for i=2:ceil(lin_max / 10^log_max)
@@ -1664,15 +1664,15 @@ classdef FDisplay < handle
             if((tick(1) - lin_min) > max(eps,(lin_max-lin_min)*0.001))%drecksverschissener mistverwichster hack weil if((tick(1) > color_min) nicht richtig funktioniert
                 tick = [lin_min tick];
                 ticklbl(2:end+1) = ticklbl;
-                ticklbl(1) = {FLIMXFitGUI.num4disp(lin_min)};
+                ticklbl(1) = FLIMXFitGUI.num4disp(lin_min);
             else
-                ticklbl(1) = {FLIMXFitGUI.num4disp(tick(1))};
+                ticklbl(1) = FLIMXFitGUI.num4disp(tick(1));
             end
             if((lin_max - tick(end)) > max(eps,(lin_max-lin_min)*0.001))
                 tick(end+1) = lin_max;
-                ticklbl(end+1) = {FLIMXFitGUI.num4disp(lin_max)};
+                ticklbl(end+1) = FLIMXFitGUI.num4disp(lin_max);
             else
-                ticklbl(end) = {FLIMXFitGUI.num4disp(tick(end))};
+                ticklbl(end) = FLIMXFitGUI.num4disp(tick(end));
             end
             % tick = tick - min(tick);
             %transform ticks

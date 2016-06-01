@@ -618,7 +618,7 @@ classdef importWizard < handle
 %                         subject.setROIDataType('uint32');
 %                 end
 %             end
-%             curROI = subject.getROIDataFlat(this.currentChannel,[]);
+%             curROI = subject.getROIDataFlat(this.currentChannel,false);
 %             mask = curROI < 10000;
 %             px = numel(curROI);
 %             per = sum(mask(:))/px;

@@ -394,7 +394,7 @@ classdef measurementFile < handle
             out.ROIAdaptiveBinEnable = this.roiAdaptiveBinEnable;
             if(out.ROIAdaptiveBinEnable)
                 out.ROIAdaptiveBinThreshold = this.roiAdaptiveBinThreshold;
-                out.ROISupport.roiFluoDataFlat = this.getROIDataFlat(ch);
+                out.ROISupport.roiFluoDataFlat = this.getROIDataFlat(ch,false);
                 out.ROISupport.roiAdaptiveBinLevels = this.getROIAdaptiveBinLevels(ch);
             else
                 out.ROIAdaptiveBinThreshold = [];
@@ -478,8 +478,8 @@ classdef measurementFile < handle
             end
         end
         
-        function [out, binFactors] = getROIDataFlat(this,channel)
-            %get intensity of roi for channel
+        function [out, binFactors] = getROIDataFlat(this,channel,noBinFlag)
+            %get intensity of roi for channel, return ROI without binning if noBinFlag is true
             bp = this.paramMgrObj.basicParams;
             raw = this.getRawData(channel);
             if(isempty(raw) && bp.approximationTarget == 1)
@@ -492,6 +492,10 @@ classdef measurementFile < handle
                 roi = ones(4,1);
                 roi(2) = xR;
                 roi(4) = yR;
+            end
+            if(noBinFlag)
+                out = int32(sum(raw(roi(3):roi(4),roi(1):roi(2),:),3));
+                return
             end
             if(length(this.roiFluoDataFlat) < channel || isempty(this.roiFluoDataFlat{channel}))
                 if(this.roiAdaptiveBinEnable || (bp.approximationTarget == 2 && channel > 2))

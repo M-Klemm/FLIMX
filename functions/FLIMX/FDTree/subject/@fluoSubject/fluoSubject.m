@@ -587,9 +587,9 @@ classdef fluoSubject < handle
             out = this.myMeasurement.getRawDataFlat(channel);
         end
         
-        function out = getROIDataFlat(this,channel)
+        function out = getROIDataFlat(this,channel,noBinFlag)
             %get intensity of roi for channel
-            out = this.myMeasurement.getROIDataFlat(channel);
+            out = this.myMeasurement.getROIDataFlat(channel,noBinFlag);
         end
         
         function out = getROIData(this,channel,y,x)

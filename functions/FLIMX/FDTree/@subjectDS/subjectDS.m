@@ -185,10 +185,10 @@ classdef subjectDS < handle
             %load measurement data in channel chan
             hfd = this.getFDataObj(chan,'Intensity',0,1); %check only linear data
             if(isempty(hfd) || forceFlag)
+                this.updateShortProgress(1,sprintf('Importing (Ch %s)',num2str(chan)));
                 mo = this.myParent.getSubject4Approx(this.name);
-                if(~isempty(mo))
-                    this.updateShortProgress(1,sprintf('Importing (Ch %s)',num2str(chan)));
-                    int = mo.getROIDataFlat(chan);
+                if(~isempty(mo))                    
+                    int = mo.getROIDataFlat(chan,true);
                     if(~isempty(int) && (isempty(this.height) || isempty(this.width)) || ~isempty(int) && (size(int,1) == this.height && size(int,2) == this.width))
                         this.addObjID(0,chan,'Intensity',1,int);
                     else
@@ -207,9 +207,9 @@ classdef subjectDS < handle
                     if(isempty(allItems))
                         this.myParent.setAllFLIMItems(this.name,chan,{'Intensity'});
                     end
-                    this.myFileInfo{chan,1} = mo.getFileInfoStruct(chan);
-                    this.updateShortProgress(0,'');
+                    this.myFileInfo{chan,1} = mo.getFileInfoStruct(chan);                    
                 end
+                this.updateShortProgress(0,'');
             end
         end
         

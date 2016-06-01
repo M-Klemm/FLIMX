@@ -383,8 +383,8 @@ classdef FData < handle
                     out(out < cim) = cim;
                     zlim_min = this.getZlimMin(cim);
                     zlim_max = this.MSZMax;
-                    out(out < zlim_min) = zlim_min;
-                    out(out > zlim_max) = zlim_max;
+                    out(out < zlim_min) = NaN;%zlim_min;
+                    out(out > zlim_max) = NaN;%zlim_max;
                 end
             else
                 out = [];
@@ -796,13 +796,13 @@ classdef FData < handle
             %make histogram for display puposes
             ci = imageData(~(isnan(imageData(:)) | isinf(imageData(:))));
             %ci = ci(~isinf(ci(:)));
-            %if z scaled, remove cut of values
-            if(this.MSZ)          
-                zlim_min = this.getZlimMin(this.getNonInfMin(2,imageData));
-                zlim_max = this.MSZMax;
-                ci(ci == zlim_min) = [];
-                ci(ci == zlim_max) = [];
-            end
+%             %if z scaled, remove cut of values
+%             if(this.MSZ)          
+%                 zlim_min = this.getZlimMin(this.getNonInfMin(2,imageData));
+%                 zlim_max = this.MSZMax;
+%                 ci(ci == zlim_min) = [];
+%                 ci(ci == zlim_max) = [];
+%             end
             [cw,lim,c_min,c_max] = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
             if(lim)
                 ci = ci(ci >= c_min & ci <= c_max);               

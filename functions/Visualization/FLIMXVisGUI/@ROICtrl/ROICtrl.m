@@ -405,7 +405,7 @@ classdef ROICtrl < handle
                     set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
                     set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
                     d = 2*sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
-                    set(this.x_sz_edit,'String',num2str(FLIMXFitGUI.num4disp(d)));
+                    set(this.x_sz_edit,'String',FLIMXFitGUI.num4disp(d));
                 case {6,7} %polygon
                     set(this.roi_table,'Data',num2cell(ROICoord))
                     if(~isempty(ROICoord))
