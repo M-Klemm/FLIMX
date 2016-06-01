@@ -151,6 +151,20 @@ classdef FLIMX < handle
             %delete FLIMX object if all windows are closed or if forceFlag == true
             if(forceFlag || (~this.FLIMFitGUI.isOpenVisWnd() && ~this.FLIMVisGUI.isOpenVisWnd()))
                 %do some cleanup
+                studies = this.fdt.getStudyNames();
+                for i = 1:length(studies)
+                    if(~isempty(studies{i}) && any(this.fdt.checkStudyDirtyFlag(studies{i})))
+                        choice = questdlg(sprintf('Save changes to study ''%s''?',studies{i}),'Save study?','Yes','No','Yes');
+                        switch choice
+                            case 'Yes'
+                                this.fdt.saveStudy(studies{i});
+%                             case 'No'
+%                                 %load unmodified study and check files
+%                                 this.fdt.loadStudy(studies{i});
+                        end
+                        this.fdt.checkStudyFiles(studies{i});
+                    end
+                end
                 if(~isempty(this.sDDMgrObj) && this.sDDMgrObj.anyDirtySDDs())
                     choice = questdlg('Save changes to simulation parameter sets?','Save Parameter Sets?','Yes','No','Cancel','Yes');
                     switch choice
@@ -358,7 +372,7 @@ classdef FLIMX < handle
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 255;
-            out.client_revision = 343;
+            out.client_revision = 344;
             out.core_revision = 357;
             out.results_revision = 256;
             out.measurement_revision = 204;
