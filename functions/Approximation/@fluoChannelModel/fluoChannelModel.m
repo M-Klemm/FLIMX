@@ -44,7 +44,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         chi_weights = []; %weights for chi2 computation with neighbors
         irfFFT = []; %fft transform of irf
         irfFFTGPU = []; %irf on GPU (for GPU computation)
-        dMaxVal = 0; %max of data
+        dMaxVal = 1; %max of data
         dMaxPos = 0; %position of data max (index)
         dFWHMPos = 0; %position of full width at half maximum (index)
         %         mMaxVal = 0; %max of model

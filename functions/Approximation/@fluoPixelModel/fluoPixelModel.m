@@ -1079,6 +1079,10 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             else
                 xVec = this.mergeXVecComponents(ch,varargin{:});
             end
+            if(isempty(xVec))
+                cVec = [];
+                return
+            end
             vcp = this.getVolatileChannelParams(ch);
             if(~any(vcp.cMask(:)))
                 cVec = [];
