@@ -383,8 +383,8 @@ classdef FData < handle
                     out(out < cim) = cim;
                     zlim_min = this.getZlimMin(cim);
                     zlim_max = this.MSZMax;
-                    out(out < zlim_min) = NaN;%zlim_min;
-                    out(out > zlim_max) = NaN;%zlim_max;
+                    out(out < zlim_min) = zlim_min;
+                    out(out > zlim_max) = zlim_max;
                 end
             else
                 out = [];
@@ -796,13 +796,13 @@ classdef FData < handle
             %make histogram for display puposes
             ci = imageData(~(isnan(imageData(:)) | isinf(imageData(:))));
             %ci = ci(~isinf(ci(:)));
-%             %if z scaled, remove cut of values
-%             if(this.MSZ)          
-%                 zlim_min = this.getZlimMin(this.getNonInfMin(2,imageData));
-%                 zlim_max = this.MSZMax;
-%                 ci(ci == zlim_min) = [];
-%                 ci(ci == zlim_max) = [];
-%             end
+            %if z scaled, remove cut of values
+            if(this.MSZ)          
+                zlim_min = this.getZlimMin(this.getNonInfMin(2,imageData));
+                zlim_max = this.MSZMax;
+                ci(ci == zlim_min) = [];
+                ci(ci == zlim_max) = [];
+            end
             [cw,lim,c_min,c_max] = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
             if(lim)
                 ci = ci(ci >= c_min & ci <= c_max);               
@@ -1040,7 +1040,38 @@ classdef FData < handle
                     r = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
                     thetaRange = [-pi, 0; 0, pi];
                     data = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,0,[],[]);
+                
+                case {6,7}
+                    [test,test2]=size(ROICoord);
+                    if(test2 > 2)
+                    %not actually needed here
+                    %%if(~isempty(fileInfo))
+                    %    res = fileInfo.pixelResolution; %
+                    %    side = fileInfo.position;
+                    %else
+                    %    res = 58.66666666666;
+                    %    side = 'OS';
+                    %    %todo: warning/error message
+                    %end
+                    
+                    %create mask out of polygon (Note: i have no bloody idea
+                    %whether this function works properly with
+                    %self-crossing polygons, or how long this function
+                    %actually takes to compute
+                    mask = poly2mask(ROICoord(2,:),ROICoord(1,:),y,x);
+                    
+                    %multiply data with mask to set everything out of the
+                    %ROI to 0
+                    
+                    %data=data(mask);%temp = mask * data;
+                    %change zeros to NaN for further calculating purposes
+                    
+                    data(~mask)=NaN;
+                    %return ROI-Data
+                    %data = temp;
+                    end
                 otherwise
+                
                     
             end
         end
