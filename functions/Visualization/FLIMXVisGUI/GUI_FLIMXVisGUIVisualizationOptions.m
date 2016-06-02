@@ -35,7 +35,7 @@ function varargout = GUI_FLIMXVisGUIVisualizationOptions(varargin)
 % vargin - structure with preferences and defaults
 %output: same as input, but altered according to user input
 
-% Last Modified by GUIDE v2.5 21-Aug-2015 14:13:56
+% Last Modified by GUIDE v2.5 01-Jun-2016 23:57:55
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -109,6 +109,7 @@ set(handles.check_grid_3d,'Value',data.flimvis.grid);
 set(handles.check_grid_supp,'Value',data.flimvis.grid);
 set(handles.alpha_edit,'String',num2str(data.flimvis.alpha,'%03.2f'));
 set(handles.fontsize_edit,'String',num2str(data.flimvis.fontsize,'%2d'));
+set(handles.checkReverseYDir,'Value',data.general.reverseYDir);
 if(strcmp(data.flimvis.shading,'flat'))
     set(handles.shading_pop,'Value',1);
 else
@@ -338,6 +339,13 @@ rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
+% --- Executes on button press in checkReverseYDir.
+function checkReverseYDir_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+rdh.general.reverseYDir = get(hObject,'Value');
+rdh.isDirty(2) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+updateGUI(handles,rdh);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %edit fields

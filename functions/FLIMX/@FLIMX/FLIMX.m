@@ -351,7 +351,7 @@ classdef FLIMX < handle
             if(isempty(myDir))
                 if(isdeployed)
                     [~, result] = system('set PATH');
-                    myDir = char(regexpi(result, 'Path=(.*?);', 'tokens', 'once'))
+                    myDir = char(regexpi(result, 'Path=(.*?);', 'tokens', 'once'));
                 else                    
                     myDir = fileparts(which('FLIMXLauncher.m'));
                 end
@@ -371,8 +371,8 @@ classdef FLIMX < handle
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
-            out.config_revision = 255;
-            out.client_revision = 344;
+            out.config_revision = 256;
+            out.client_revision = 345;
             out.core_revision = 357;
             out.results_revision = 256;
             out.measurement_revision = 204;

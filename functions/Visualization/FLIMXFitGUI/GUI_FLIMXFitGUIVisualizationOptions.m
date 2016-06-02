@@ -54,7 +54,7 @@ function varargout = GUI_FLIMXFitGUIVisualizationOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_FLIMXFitGUIVisualizationOptions
 
-% Last Modified by GUIDE v2.5 21-Aug-2015 14:35:01
+% Last Modified by GUIDE v2.5 02-Jun-2016 00:03:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -128,7 +128,6 @@ set(handles.checkIRF,'Value',data.fluoDecay.plotIRF);
 set(handles.checkStartEnd,'Value',data.fluoDecay.plotStartEnd);
 set(handles.checkSlope,'Value',data.fluoDecay.plotSlope);
 set(handles.checkInit,'Value',data.fluoDecay.plotInit);
-
 %general
 set(handles.checkLegend,'Value',data.fluoDecay.showLegend);
 set(handles.checkInvertColormap,'Value',data.general.cmInvert);
@@ -137,6 +136,7 @@ if(isempty(idx))
     idx = 10; %jet
 end
 set(handles.popupColormap,'Value',idx);
+set(handles.checkReverseYDir,'Value',data.general.reverseYDir);
 
 %linewidth
 set(handles.editDataLinewidth,'String',num2str(data.fluoDecay.plotDataLinewidth,'%d'));
@@ -370,6 +370,12 @@ rdh.general.cmInvert = get(hObject,'Value');
 rdh.isDirty(2) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
+% --- Executes on button press in checkReverseYDir.
+function checkReverseYDir_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.general.reverseYDir = get(hObject,'Value');
+rdh.isDirty(2) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %edit fields

@@ -49,6 +49,7 @@ classdef axesWithROI < handle
         CPYLine = -1;      
         
         shortNumbers = true;
+        reverseYDir = false;
     end
     properties (Dependent = true)
     end
@@ -67,6 +68,11 @@ classdef axesWithROI < handle
         function setShortNumberFlag(this,flag)
             %toggle display of numbers
             this.shortNumbers = logical(flag);
+        end
+        
+        function setReverseYDirFlag(this,flag)
+            %toggle display direction of y axis
+            this.reverseYDir = logical(flag);
         end
         
         function setMainAxes(this,hAx)
@@ -110,7 +116,11 @@ classdef axesWithROI < handle
                 xlim(this.myMainAxes,[1 size(this.myData,2)])
                 ylim(this.myMainAxes,[1 size(this.myData,1)])
             end
-            set(this.myMainAxes,'YDir','normal');
+            if(this.reverseYDir)                
+                set(this.myMainAxes,'YDir','reverse');
+            else
+                set(this.myMainAxes,'YDir','normal');
+            end
             %lables
             xlbl = 1:1:c;
             ylbl = 1:1:r;

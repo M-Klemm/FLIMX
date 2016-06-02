@@ -257,6 +257,8 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.popupROI,'String',pstr,'Value',idx,'Enable','on');
             this.axesRawMgr.setColorMap(this.dynVisParams.cmIntensity);
             this.axesROIMgr.setColorMap(this.dynVisParams.cm);
+            this.axesRawMgr.setReverseYDirFlag(this.generalParams.reverseYDir);
+            this.axesROIMgr.setReverseYDirFlag(this.generalParams.reverseYDir);
             set(this.visHandles.FLIMXFitGUIFigure,'Name',sprintf('FLIMXFit: %s - Channel %d',this.FLIMXObj.curSubject.getDatasetName(),ch));
             this.lastProgressCmdLine = 0;%-1
 %             this.updateProgressbar(0,'');
@@ -1818,6 +1820,8 @@ classdef FLIMXFitGUI < handle
                         this.FLIMXObj.fdt.unloadAllChannels();                        
                     end
                     this.FLIMXObj.paramMgr.setParamSection('general',new.general);
+                    this.axesRawMgr.setReverseYDirFlag(new.general.reverseYDir);
+                    this.axesROIMgr.setReverseYDirFlag(new.general.reverseYDir);
                     this.FLIMXObj.FLIMVisGUI.setupGUI();
                     this.FLIMXObj.FLIMVisGUI.updateGUI([]);
                     this.setupGUI();

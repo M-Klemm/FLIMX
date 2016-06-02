@@ -586,6 +586,7 @@ classdef paramMgr < handle
             def.general.cmInvert            = 1;
             def.general.saveMaxMem          = 0;
             def.general.flimParameterView   = 1; %1: simple, 2: expert, 3: all
+            def.general.reverseYDir         = 0;
         end
 
     end %methods

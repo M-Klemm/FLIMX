@@ -489,37 +489,17 @@ classdef importWizard < handle
 %                 end
             end
             set(this.visHandles.editFile,'String',this.myMeasurement.getSourceFile());
+            this.axesMgr.setReverseYDirFlag(this.FLIMXObj.paramMgr.getParamSection('general').reverseYDir);
         end
         
         function updateGUI(this)
             %update GUI            
-%             [~, mask] = this.FLIMXObj.irfMgr.getIRFNames(this.myMeasurement.nrTimeChannels);
-%             set(this.visHandles.textIrfWidth,'String',num2str(1000*compFWHM(this.myMeasurement.timeVector,...
-%                 this.FLIMXObj.irfMgr.getIRF(mask(this.IRFid),this.currentChannel,this.myMeasurement.nrTimeChannels)),'%3.1f'));                       
-%             set(handles.textXWidth,'String',num2str(1+abs(m.roi.p1(1)-m.roi.p2(1))));
-%             set(handles.textYWidth,'String',num2str(1+abs(m.roi.p1(2)-m.roi.p2(2))));
-%             set(handles.editBin,'String',num2str(m.roiBinning));
-            %set colorbar labels
-%             tmp = ;
-%             set(this.visHandles.textCbTop,'String',num2str(max(tmp(:)),'%d'));
-%             set(this.visHandles.textCbBottom,'String',num2str(min(tmp(:)),'%d'));
             this.axesMgr.setMainData(this.myMeasurement.getRawDataFlat(this.currentChannel));
-%             this.FLIMXObj.FLIMFitGUI.plotRawData(this.visHandles.axesROI,tmp);
             this.updateROIControls([]);
         end
         
         function updateROIControls(this,roi)
             %apply limits to roi points and update roi display in GUI
-%             xl = m.roi.p1(1);
-%             xh = m.roi.p2(1);
-%             yl = m.roi.p1(2);
-%             yh = m.roi.p2(2);
-%             m.roi.current = [max(min(xl,xh),1), min(max(xl,xh),m.roi.max(2)),...
-%                 max(min(yl,yh),1), min(max(yl,yh),m.roi.max(4))];
-%             set(handles.textXL,'String',m.roi.current(1));
-%             set(handles.textXH,'String',m.roi.current(2));
-%             set(handles.textYL,'String',m.roi.current(3));
-%             set(handles.textYH,'String',m.roi.current(4));
             if(isempty(roi))
                 roi = this.editFieldROIVec;
             end
@@ -785,7 +765,6 @@ classdef importWizard < handle
                     roi = [str2double(get(this.visHandles.textXL,'String')), cp(1),...
                         str2double(get(this.visHandles.textYL,'String')), cp(2)];
                     this.updateROIControls(roi);
-%                     this.FLIMXObj.FLIMFitGUI.plotRawDataROI(this.visHandles.axesROI,roi);
                 else
                     set(this.visHandles.textXL,'String',round(abs(cp(1))));
                     set(this.visHandles.textYL,'String',round(abs(cp(2))));

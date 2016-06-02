@@ -688,12 +688,18 @@ classdef FDisplay < handle
                 if(nrFD == 1)
                     this.mainExportXls = current_img;
                 end
+                if(this.visObj.generalParams.reverseYDir)
+                    ydir = 'reverse';
+                else
+                    ydir = 'normal';
+                end
+                set(hAx,'YDir',ydir);
                 switch dispDim                      
                     case {1,2} %2D plot
                         %plot the image
                         image(colors,'Parent',hAx);
                         caxis(hAx,[zMin(end) zMax(end)]);
-                        set(hAx,'YDir','normal','XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)]);
+                        set(hAx,'YDir',ydir,'XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)]);
                         %draw cuts
                         tmp = hfd{i}.getCutXVal(dispDim-1,true,rc,rt,rs,ri);
                         if(hfd{i}.getCutX() && tmp ~= 0)
@@ -835,6 +841,7 @@ classdef FDisplay < handle
                         surf(hAx,current_img,colors,'LineStyle','none','EdgeColor','none','FaceLighting','phong','AlphaDataMapping','none','AlphaData',alphaData);%,'FaceAlpha','flat'
                         alim(hAx,[0 1]);
                         caxis(hAx,[min(current_img(:)) max(current_img(:))]);
+                        set(hAx,'YDir',ydir);
                         %set view
                         if(~isempty(this.disp_view))
                             view(hAx,this.disp_view);
