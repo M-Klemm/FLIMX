@@ -2232,7 +2232,7 @@ classdef FLIMXFitGUI < handle
             data = reshape(data,[],1);
             da = abs(data);
             idxInt = isinteger(data);
-            idx100 = idxInt | abs(data(~idxInt) - fix(data(~idxInt))) < eps('single') | da >= 100;
+            idx100 = idxInt | abs(data - fix(data)) < eps('single') | da >= 100;
             idx10 = ~idx100 & da < 100 & da >= 10;
             idx1 = ~(idx100 | idx10);
             out = cell(size(data));
