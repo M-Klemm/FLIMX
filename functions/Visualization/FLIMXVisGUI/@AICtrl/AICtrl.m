@@ -183,7 +183,7 @@ classdef AICtrl < handle
             if(aiParam{idx}.chB == 0)
                 chNr = 0;
             else
-                chNr = find(strcmp(sprintf('Ch %d',aiParam{idx}.chB+1),chStr))-1;
+                chNr = find(strcmp(sprintf('Ch %d',aiParam{idx}.chB),chStr))-1;
             end
             if(isempty(chNr))
                 %Houston we've got a problem
@@ -208,8 +208,7 @@ classdef AICtrl < handle
                 %Houston we've got a problem
                 %make warning dialog to switch subject?!
                 fiNr = 1;
-            end
-            
+            end            
             set(this.FLIMItemB,'String',chObj,'Value',fiNr);
             opNr = find(strcmp(aiParam{idx}.opA,get(this.opA,'String')));
             if(isempty(opNr))                
