@@ -380,7 +380,7 @@ classdef studyMgr < handle
                 %check subject
                 this.fdt.copySubject(this.myClipboard{2},subName,destination,subName);                
                 %update progress bar
-                [hours minutes secs] = secs2hms(etime(clock,tStart)/(i-2)*(nSubjects-(i-2))); %mean cputime for finished runs * cycles left
+                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/(i-2)*(nSubjects-(i-2))); %mean cputime for finished runs * cycles left
                 this.plotProgressbar((i-2)/nSubjects,[],...
                     sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec', 100*(i-2)/nSubjects,hours,minutes,secs));
                 %workaround for deleting subjects in cut-mode
@@ -407,8 +407,8 @@ classdef studyMgr < handle
             this.plotProgressbar(0,'','');
         end
         
-        function importSubChannels(this,subjects)
-            %import channel(s) for subject
+        function importResults4Subjects(this,subjects)
+            %import result channel(s) for subject(s)
             for i = 1:length(subjects)
                 %get channel list
                 chList = cell(0,0);
@@ -688,7 +688,7 @@ classdef studyMgr < handle
                 %no subjects in current study
                 return
             end            
-            this.importSubChannels(this.selectedSubjects);
+            this.importResults4Subjects(this.selectedSubjects);
             figure(this.visHandles.studyMgrFigure);
         end
         
@@ -697,21 +697,17 @@ classdef studyMgr < handle
             if(isempty(this.fdt.getSubjectsNames(this.curStudyName,'-')))
                 %no subjects in current study
                 return
-            end
-            
-            %may could be replaced by a vector from 1:nrSubjects
+            end            
             subjects = this.fdt.getSubjectsNames(this.curStudyName,'-');
             for i=1:length(subjects)
                 subidx(i) = this.fdt.getSubjectNr(this.curStudyName,subjects{i});
-            end
-            
+            end            
             choice = questdlg(sprintf('The FLIMFitresults for each subject of the study will now be imported.\n\nPlease select either ASCII files beginning with the first channel or FLIMFit result files.'),'Importing study subjects','OK','Cancel','OK');
             switch choice
                 case 'Cancel'
                     return
-            end
-            
-            this.importSubChannels(subidx);
+            end            
+            this.importResults4Subjects(subidx);
             figure(this.visHandles.studyMgrFigure);
         end
         

@@ -803,12 +803,12 @@ classdef measurementFile < handle
         
         function goOn = getSEPosRM(this,channel)
             %get start-pos, end-pos and reflection mask
-            goOn = true;
-            m = this.getROIMerged(channel);
+            goOn = true;            
             pParam = this.paramMgrObj.getParamSection('pre_processing');
             %1: auto, 0: manual, -1: fix
             if(pParam.autoStartPos == 1)
                 %run auto function
+                m = this.getROIMerged(channel);
                 if(isempty(m))
                     this.fileInfo.StartPosition(channel) = {1};
                 else
@@ -820,6 +820,7 @@ classdef measurementFile < handle
             end
             if(pParam.autoEndPos == 1)
                 %run auto function
+                m = this.getROIMerged(channel);
                 if(isempty(m))
                     this.fileInfo.EndPosition(channel) = {1};
                 else
@@ -829,16 +830,21 @@ classdef measurementFile < handle
                 %fixed predifined value
                 this.fileInfo.EndPosition(channel) = {pParam.fixEndPos};
             end
-            if(pParam.autoReflRem == 1 && ~isempty(m))
-                %auto
-                this.fileInfo.reflectionMask(channel) = {measurementFile.compReflectionMask(m,pParam.ReflRemWinSz,pParam.ReflRemGrpSz)};
+            if(pParam.autoReflRem == 1)
+                %auto reflection removal
+                m = this.getROIMerged(channel);
+                if(isempty(m))
+                    this.fileInfo.reflectionMask(channel) = {ones(this.fileInfo.nrTimeChannels,1)};
+                else
+                    this.fileInfo.reflectionMask(channel) = {measurementFile.compReflectionMask(m,pParam.ReflRemWinSz,pParam.ReflRemGrpSz)};
+                end
             else %-1 disabled
                 this.fileInfo.reflectionMask(channel) = {ones(this.fileInfo.nrTimeChannels,1)};
             end
             %user wants to choose
-            if((pParam.autoStartPos == 0 || pParam.autoEndPos == 0 || pParam.autoReflRem == 0) && ~isempty(m))
+            if((pParam.autoStartPos == 0 || pParam.autoEndPos == 0 || pParam.autoReflRem == 0) && ~isempty(this.getROIMerged(channel)))                
                 %call startpos gui
-                [this.fileInfo.StartPosition{channel}, this.fileInfo.EndPosition{channel}, this.fileInfo.reflectionMask{channel}] = GUI_startEndPosWizard(m,...
+                [this.fileInfo.StartPosition{channel}, this.fileInfo.EndPosition{channel}, this.fileInfo.reflectionMask{channel}] = GUI_startEndPosWizard(this.getROIMerged(channel),...
                     pParam.autoStartPos,pParam.autoEndPos,this.timeChannelWidth,...
                     pParam.ReflRemWinSz,pParam.ReflRemGrpSz,...
                     pParam.fixStartPos,pParam.fixEndPos);

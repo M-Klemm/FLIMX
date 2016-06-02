@@ -2204,22 +2204,7 @@ classdef FLIMXFitGUI < handle
             
 %             this.setupGUI();
 %             this.updateGUI(true);
-        end
-        
-%         function makeColorbars(this)
-%             %draw colorbars
-%             cm = this.dynVisParams.cm;
-%             temp(:,1,:) = cm;
-%             image(temp,'Parent',this.visHandles.axesCbRaw);
-%             ytick = (0:0.25:1).*size(this.dynVisParams.cm,1);
-%             ytick(1) = 1;
-%             set(this.visHandles.axesCbRaw,'YDir','normal','YTick',ytick,'YTickLabel','','YAxisLocation','right','XTick',[],'XTickLabel','');
-%             ylim(this.visHandles.axesCbRaw,[1 size(this.dynVisParams.cm,1)]);
-%             image(temp,'Parent',this.visHandles.axesCbSupp);
-%             set(this.visHandles.axesCbSupp,'YDir','normal','YTick',ytick,'YTickLabel','','YAxisLocation','right','XTick',[],'XTickLabel','');
-%             ylim(this.visHandles.axesCbSupp,[1 size(this.dynVisParams.cm,1)]);
-%         end
-        
+        end                
     end %methods protected
     
     methods(Static)
