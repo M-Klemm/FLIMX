@@ -672,8 +672,10 @@ classdef subjectDS < handle
                     dataB = dataB ./ max(dataB(:));
                 end
                 if(any(strcmp(op,{'&','|','xor'})))
-                    idxA = logical(dataA);
-                    idxB = logical(dataB);
+                    idxA = ~isnan(dataA);
+                    idxA(idxA) = logical(dataA(idxA));
+                    idxB = ~isnan(dataB);
+                    idxB(idxB) = logical(dataB(idxB));
                     eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
                     data = dataA;
                     data(~idx) = nan;

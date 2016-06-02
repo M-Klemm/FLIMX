@@ -191,12 +191,17 @@ classdef AICtrl < handle
                 fiNr = 1;
             end
             set(this.FLIMItemA,'String',chObj,'Value',fiNr);
+            %second flim item channel
+            chObj = this.visObj.fdt.getChObjStr(this.curStudy,subject,chNr);
+            %remove current arithmetic image from channel objects
+            chObj = chObj(~strcmp(chObj,this.curAIName));
             fiNr = find(strcmp(aiParam{idx}.FLIMItemB,chObj));
             if(isempty(fiNr))
                 %Houston we've got a problem
                 %make warning dialog to switch subject?!
                 fiNr = 1;
             end
+            
             set(this.FLIMItemB,'String',chObj,'Value',fiNr);
             opNr = find(strcmp(aiParam{idx}.opA,get(this.opA,'String')));
             if(isempty(opNr))                
@@ -259,6 +264,7 @@ classdef AICtrl < handle
             %returns AIParams struct
             str = get(this.FLIMItemA,'String');
             aiParams.FLIMItemA = str{get(this.FLIMItemA,'Value')};
+            str = get(this.FLIMItemB,'String');
             aiParams.FLIMItemB = str{get(this.FLIMItemB,'Value')};
             aiParams.normalizeA = get(this.normalizeA,'Value');
             aiParams.normalizeB = get(this.normalizeB,'Value');

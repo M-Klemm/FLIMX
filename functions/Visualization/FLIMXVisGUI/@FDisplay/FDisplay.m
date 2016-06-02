@@ -698,6 +698,8 @@ classdef FDisplay < handle
                     case {1,2} %2D plot
                         %plot the image
                         image(colors,'Parent',hAx);
+                        zMin(isnan(zMin)) = 0;
+                        zMax(isnan(zMax)) = zMin(isnan(zMax))+1;
                         caxis(hAx,[zMin(end) zMax(end)]);
                         set(hAx,'YDir',ydir,'XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)]);
                         %draw cuts
