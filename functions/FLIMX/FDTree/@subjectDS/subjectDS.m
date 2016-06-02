@@ -633,7 +633,8 @@ classdef subjectDS < handle
             if(isempty(aiName) || isempty(aiParams))
                 return
             end
-            [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);            
+            [dTypeA, dTypeANr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
+            %check for which channels the arithmetic image should be built
             [~, totalCh] = this.myParent.getChStr(this.name);
             if(aiParams.chA == 0 || aiParams.chB == 0)
                 nCh = length(totalCh);
@@ -650,12 +651,12 @@ classdef subjectDS < handle
             else
                 chBList = repmat(aiParams.chB,1,nCh);
             end
-            
+            %loop over channels
             for chIdx = 1:nCh
                 %make sure channel was loaded from disk
                 this.loadChannelResult(chAList(chIdx));
                 %ask study for FData object, if this is an arithmetic image, study will buld it if needed
-                fd = this.myParent.getFDataObj(this.name,chAList(chIdx),dType{1},dTypeNr(1),1);
+                fd = this.myParent.getFDataObj(this.name,chAList(chIdx),dTypeA{1},dTypeANr(1),1);
                 if(isempty(fd))
                     continue
                 end
@@ -677,11 +678,11 @@ classdef subjectDS < handle
                         eval(sprintf('data = %s(data %s (dataA %s %f));',neg,op,aiParams.opB,single(aiParams.valB)));
                     end
                 else %compare against another FLIMItem
-                    [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemB);
+                    [dTypeB, dTypeBNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemB);
                     %make sure channel was loaded from disk
                     this.loadChannelResult(chBList(chIdx));
                     %ask study for FData object, if this is an arithmetic image, study will buld it if needed
-                    fd = this.myParent.getFDataObj(this.name,chBList(chIdx),dType{1},dTypeNr(1),1);
+                    fd = this.myParent.getFDataObj(this.name,chBList(chIdx),dTypeB{1},dTypeBNr(1),1);
                     if(isempty(fd))
                         continue
                     end
