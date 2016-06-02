@@ -426,7 +426,14 @@ classdef studyMgr < handle
                 opt.mode = 1;
                 opt.ch = [];
                 opt.fdt = this.fdt;
-                fi = measurementFile.getDefaultFileInfo();
+                subject = this.fdt.getSubject4Approx(this.curStudyName,subjects(i));
+                fi = [];
+                if(~isempty(subject))
+                    fi = subject.getFileInfoStruct(subject.nonEmptyResultChannelList(1));
+                end
+                if(isempty(subject) || isempty(fi))
+                    fi = measurementFile.getDefaultFileInfo();
+                end
                 opt.position = fi.position;
                 opt.pixelResolution = fi.pixelResolution;
                 if(~this.visObj.importResult([],opt))

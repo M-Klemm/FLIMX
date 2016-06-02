@@ -66,8 +66,6 @@ classdef measurement4Import < measurementInFDTree & measurementReadRawData
             this.roiMerged = obj.roiMerged;  
             this.initData = obj.initData;
             this.setDirtyFlags([],1:4,true);
-            %copy paramgeter manager?
-            %this.paramMgr = obj.paramMgrObj;
         end
         
         function fileInfo = getFileInfoStruct(this,channel)

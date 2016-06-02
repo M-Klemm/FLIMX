@@ -559,14 +559,8 @@ classdef FLIMXVisGUI < handle
                             case 'No'
                                 return
                         end
+                        opt.mode = 1;
                 end
-%                 %get FLIMitems
-%                 items = GUI_paramImportSelection(sort(removeNonVisItems(fieldnames(rs.result.pixel))),[]);
-%                 if(isempty(items))
-%                     return
-%                 end 
-%                 %import results                
-%                 this.fdt.importResultStruct(studyName,subjectName,rs,items); 
                 %update GUI
                 this.setupGUI();
                 this.updateGUI([]);
@@ -1686,6 +1680,40 @@ classdef FLIMXVisGUI < handle
                     end
                 else
                     %this should be amplitude 1
+                    rs.results.pixel.(sprintf('%s%d',dType,counters.(dType))) = data_temp;
+                end
+            end
+            %look for image files with the same name
+            [~, nameStub, ~] = fileparts(char(files{1,1}));%filename without '.txt'/'.dat'/'.asc'
+            idx = strfind(nameStub,'_');
+            if(~isempty(idx) && idx > 2)
+                nameStub = nameStub(1:idx(end)-1);
+                fiB = rdir(fullfile(path,[nameStub '*.bmp']));
+                fiP = rdir(fullfile(path,[nameStub '*.png']));
+                fi = [fiB; fiP];
+                flimItems = fieldnames(rs.results.pixel);
+                for i = 1:length(fi)
+                    [~, dType, ~] = fileparts(lower(char(fi(i).name)));
+                    dType = dType(min(length(dType),idx(end)+1):end);
+                    if(isempty(dType) || any(strcmpi(flimItems,dType)))
+                        %something went wrong
+                        continue
+                    end
+                    if(~isfield(counters,dType))
+                        counters.(dType) = 0;
+                    end
+                    [y,x] = size(rs.results.pixel.Amplitude1);
+                    data_temp = imread(fi(i).name);
+                    [ym,xm,zm] = size(data_temp);
+                    if(ym == y && xm == x)
+                        %nothing to do
+                    elseif(y/ym - x/xm < eps)
+                        %resize image
+                        data_temp = imresize(data_temp,y/ym);
+                    else
+                        continue
+                    end
+                    counters.(dType) = counters.(dType)+1;
                     rs.results.pixel.(sprintf('%s%d',dType,counters.(dType))) = data_temp;
                 end
             end

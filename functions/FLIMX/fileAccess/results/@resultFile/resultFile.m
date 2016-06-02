@@ -40,8 +40,8 @@ classdef resultFile < handle
         loadedChannels = false(1,0);
         results = [];
         resultSize = zeros(1,2);
-        initApproximated = false(1,0);
-        pixelApproximated = false(1,0);
+        initApproximated = false(1,1);
+        pixelApproximated = false(1,1);
         auxiliaryData = cell(0,0);
         resultType = 'FluoDecayFit';
         isDirty = false(1,0);

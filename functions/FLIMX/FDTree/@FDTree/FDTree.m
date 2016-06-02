@@ -326,15 +326,7 @@ classdef FDTree < handle
             %change ID of global cluster
             this.myClusterTargets.changeID(clusterID,val);
         end
-        
-        function setAllMS(this,studyID,subjectID,valVec)
-            %set all manual scaling parameters in study at once
-            study = this.getStudy(studyID);
-            if(~isempty(study))
-                study.setAllMS(subjectID,valVec);
-            end
-        end
-        
+                
         function clearSubjectCI(this,studyID,subjectID)
             %clear current images (result ROI) of a subject
             study = this.getStudy(studyID);

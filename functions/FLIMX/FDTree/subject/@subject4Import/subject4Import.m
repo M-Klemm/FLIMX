@@ -46,7 +46,7 @@ classdef subject4Import < fluoSubject
         %% input methods
         function importMeasurement(this,fn)
             ROIVec = this.myMeasurement.ROICoord; %save old ROIVec if there is one
-            this.myMeasurement.setSourceFile(fn);
+            %this.myMeasurement.setSourceFile(fn);
             if(~isempty(ROIVec))
                 this.myMeasurement.setROICoord(ROIVec);
             end

@@ -148,6 +148,8 @@ set(handles.editScaling,'String',opt.pixelResolution);
 switch opt.position
     case 'OS'
         set(handles.popupPosition,'Value',2);
+    otherwise
+        set(handles.popupPosition,'Value',1);
 end
 
 if(strcmp(opt.parent,'FLIMXVisGUI'))

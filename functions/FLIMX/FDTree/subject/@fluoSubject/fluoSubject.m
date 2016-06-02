@@ -356,10 +356,11 @@ classdef fluoSubject < handle
         
         function out = getFileInfoStruct(this,ch)
             %return fileinfo struct
-            if(isMultipleCall())
-                out = [];
-            else
-                out = this.myResult.getFileInfoStruct(ch);
+            out = [];
+            if(~isMultipleCall())
+                if(~isempty(this.myResult.getNonEmptyChannelList))
+                    out = this.myResult.getFileInfoStruct(ch);
+                end
                 if(isempty(out))% && this.checkFileInfoLoaded())
                     %result doesn't have fileInfo, try to get it from measurement
                     if(isempty(ch) && ~isempty(this.myMeasurement.nonEmptyChannelList))

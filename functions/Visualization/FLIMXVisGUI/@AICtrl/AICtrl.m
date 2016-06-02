@@ -173,6 +173,8 @@ classdef AICtrl < handle
             end
             set(this.chA,'String',chStr,'Value',chNr);
             chObj = this.visObj.fdt.getChObjStr(this.curStudy,subject,chNr);
+            %remove current arithmetic image from channel objects
+            chObj = chObj(~strcmp(chObj,this.curAIName));
             %second flim item channel
             chNr = find(strcmp(sprintf('Ch %d',aiParam{idx}.chB),chStr));
             if(isempty(chNr))
