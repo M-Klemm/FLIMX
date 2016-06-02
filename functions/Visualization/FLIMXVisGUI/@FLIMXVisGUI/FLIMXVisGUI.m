@@ -1715,6 +1715,14 @@ classdef FLIMXVisGUI < handle
                     end
                     counters.(dType) = counters.(dType)+1;
                     rs.results.pixel.(sprintf('%s%d',dType,counters.(dType))) = data_temp;
+                    %add a second version of the image/mask with binning 2
+                    data_temp = imdilate(data_temp,true(5));
+                    dType = [dType 'Bin'];
+                    if(~isfield(counters,dType))
+                        counters.(dType) = 0;
+                    end
+                    counters.(dType) = counters.(dType)+1;
+                    rs.results.pixel.(sprintf('%s%d',dType,counters.(dType))) = data_temp;
                 end
             end
             rs.roiCoordinates = [];
