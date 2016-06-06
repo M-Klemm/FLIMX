@@ -490,12 +490,13 @@ classdef StatsDescriptive < handle
             out = str2double(out(isstrprop(out, 'digit')));
         end
         
-        function out = get.dType(this)
+        function dType = get.dType(this) 
+            dType = [];
             out = get(this.visHandles.popupSelFLIMParam,'String');
             if(~ischar(out))
-                out = out{get(this.visHandles.popupSelFLIMParam,'Value')};
+                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelFLIMParam,'Value')});
+                dType = dType{1};
             end
-            out = out(isstrprop(out, 'alpha'));
         end
         
         function out = get.totalDTypes(this)
@@ -541,11 +542,12 @@ classdef StatsDescriptive < handle
         end
         
         function dTypeNr = get.id(this)
-            str = get(this.visHandles.popupSelFLIMParam,'String');
-            if(~ischar(str))
-                str = str{get(this.visHandles.popupSelFLIMParam,'Value')};
-            end
-            [~, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(str);
+            dTypeNr = [];
+            out = get(this.visHandles.popupSelFLIMParam,'String');
+            if(~ischar(out))
+                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelFLIMParam,'Value')});
+                dTypeNr = dTypeNr(1);
+            end 
         end
         
         function out = get.exportModeFLIM(this)
