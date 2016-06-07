@@ -935,37 +935,45 @@ classdef simFLIM < handle
             if(isempty(this.FLIMXObj.sDDMgr.getAllSDDNames()))
                 return
             end
-            sdc = this.currentSynthDataCh;
-            oldName = sdc.UID;
-            options.Resize='on';
-            options.WindowStyle='modal';
-            options.Interpreter='none';
-            while(true)
-                newName=inputdlg('Enter new parameter set name:','Parameter Set Name',1,{oldName},options);
-                if(isempty(newName))
-                    return
-                end
-                %remove any '\' a might have entered
-                newName = char(newName{1,1});
-                idx = strfind(newName,filesep);
-                if(~isempty(idx))
-                    newName(idx) = '';
-                end
-                %check if study name is available
-                if(ismember(newName,this.FLIMXObj.sDDMgr.getAllSDDNames()))
-                    choice = questdlg(sprintf('The Parameter Set "%s" is already existent! Please choose another name.',newName),...
-                        'Error adding Parameter Set','Choose new Name','Cancel','Choose new Name');                    
-                    % Handle response
-                    switch choice
-                        case 'Cancel'
-                            return
+            oldName = this.currentSynthDataCh;
+            for i = 1:length(this.mySelection)
+                sdc = this.getSynthDataCh(this.mySelection{i},this.currentChannel);
+                oldName = sdc.UID;
+                options.Resize='on';
+                options.WindowStyle='modal';
+                options.Interpreter='none';
+                while(true)
+                    newName=inputdlg('Enter new parameter set name:','Parameter Set Name',1,{oldName},options);
+                    if(isempty(newName))
+                        return
                     end
-                else
-                    %we have a unique name
-                    break;
+                    %remove any '\' a might have entered
+                    newName = char(newName{1,1});
+                    idx = strfind(newName,filesep);
+                    if(~isempty(idx))
+                        newName(idx) = '';
+                    end
+                    %check if study name is available
+                    if(ismember(newName,this.FLIMXObj.sDDMgr.getAllSDDNames()))
+                        choice = questdlg(sprintf('The Parameter Set "%s" is already existent! Please choose another name.',newName),...
+                            'Error adding Parameter Set','Choose new Name','Cancel','Stop','Choose new Name');
+                        % Handle response
+                        switch choice
+                            case 'Cancel'
+                                continue
+                            case 'Stop'
+                                break
+                        end
+                    else
+                        %we have a unique name
+                        break;
+                    end
                 end
+                this.FLIMXObj.sDDMgr.renameSDD(oldName,newName);
             end
-            this.FLIMXObj.sDDMgr.renameSDD(oldName,newName);
+            if(isempty(newName))
+                newName = oldName;
+            end
             this.mySelection = {newName};
             this.setupGUI();
             this.updateGUI();
