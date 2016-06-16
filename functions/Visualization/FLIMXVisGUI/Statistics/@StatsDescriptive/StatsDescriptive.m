@@ -144,9 +144,9 @@ classdef StatsDescriptive < handle
         
         function GUI_SelFLIMParamPop_Callback(this,hObject,eventdata)
             %
-            [cw, ~, ~, ub] = getHistParams(this.visObj.getStatsParams(),this.ch,this.dType,this.id);
-            set(this.visHandles.editClassWidth,'String',cw);
             this.setupGUI();
+            [cw, ~, ~, ~] = getHistParams(this.visObj.getStatsParams(),this.ch,this.dType,this.id);
+            set(this.visHandles.editClassWidth,'String',cw);            
         end
         
         function GUI_SelROITypePop_Callback(this,hObject,eventdata)
