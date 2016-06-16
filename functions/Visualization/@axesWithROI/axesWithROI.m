@@ -45,8 +45,8 @@ classdef axesWithROI < handle
         ROIBottomLine = -1;
         ROILeftLine = -1;
         ROIRightLine = -1;
-        CPXLine = -1;
-        CPYLine = -1;      
+        CPXLine = -1; %current point x line
+        CPYLine = -1; %current point y line    
         
         shortNumbers = true;
         reverseYDir = false;

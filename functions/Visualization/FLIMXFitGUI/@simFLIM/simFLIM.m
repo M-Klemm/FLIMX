@@ -861,19 +861,18 @@ classdef simFLIM < handle
         %% GUI callbacks
         function GUI_buttonClose_Callback(this,hObject,eventdata)
             %close parameter set manager
-%             if(this.FLIMXObj.sDDMgr.anyDirtySDDs())
-%                 choice = questdlg('Save changes to simulation parameter sets?','Save Parameter Sets?','Yes','No','Cancel','Yes');
-%                 switch choice
-%                     case 'Yes'
-%                         this.FLIMXObj.sDDMgr.saveAll();
-%                     case 'No'
-%                         %load unmodified parameter sets
-%                         %                         this.FLIMXObj.sDDMgr.deleteAllSDDs();
-%                         this.FLIMXObj.sDDMgr.scanForSDDs();
-%                     case 'Cancel'
-%                         return
-%                 end
-%             end
+            if(this.FLIMXObj.sDDMgr.anyDirtySDDs())
+                choice = questdlg('Save changes to simulation parameter sets?','Save Parameter Sets?','Yes','No','Cancel','Yes');
+                switch choice
+                    case 'Yes'
+                        this.FLIMXObj.sDDMgr.saveAll();
+                    case 'No'
+                        %load unmodified parameter sets
+                        this.FLIMXObj.sDDMgr.scanForSDDs();
+                    case 'Cancel'
+                        return
+                end
+            end
             if(~isempty(this.visHandles) && ishandle(this.visHandles.simFLIMFigure))
                 delete(this.visHandles.simFLIMFigure);
             end
