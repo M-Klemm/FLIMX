@@ -1714,7 +1714,8 @@ classdef FLIMXVisGUI < handle
                     %convert image to binaray first, than resize (it won't work correctly the other way around)
                     if(zm == 3)
                         %convert image to binary image
-                        data_temp = rgb2ind(data_temp,2);
+                        map = [0,0,0; 0.1,0.1,0.1];
+                        data_temp = rgb2ind(data_temp,map);
                     end
                     if(ym == y && xm == x)
                         %nothing to do
