@@ -1690,7 +1690,9 @@ classdef FLIMXVisGUI < handle
                 nameStub = nameStub(1:idx(end)-1);
                 fiB = rdir(fullfile(path,[nameStub '*.bmp']));
                 fiP = rdir(fullfile(path,[nameStub '*.png']));
-                fi = [fiB; fiP];
+                fiT1 = rdir(fullfile(path,[nameStub '*.tif']));
+                fiT2 = rdir(fullfile(path,[nameStub '*.tiff']));
+                fi = [fiB; fiP; fiT1; fiT2];
                 flimItems = fieldnames(rs.results.pixel);
                 for i = 1:length(fi)
                     [~, dType, ~] = fileparts(lower(char(fi(i).name)));
@@ -1699,20 +1701,29 @@ classdef FLIMXVisGUI < handle
                         %something went wrong
                         continue
                     end
+                    mask = true(length(dType),1);
+                    mask(isstrprop(dType, 'digit')) = false; %remove numbers
+                    mask(isstrprop(dType, 'wspace')) = false; %remove spaces
+                    dType = dType(mask);
                     if(~isfield(counters,dType))
                         counters.(dType) = 0;
                     end
                     [y,x] = size(rs.results.pixel.Amplitude1);
                     data_temp = imread(fi(i).name);
                     [ym,xm,zm] = size(data_temp);
+                    %convert image to binaray first, than resize (it won't work correctly the other way around)
+                    if(zm == 3)
+                        %convert image to binary image
+                        data_temp = rgb2ind(data_temp,2);
+                    end
                     if(ym == y && xm == x)
                         %nothing to do
                     elseif(y/ym - x/xm < eps)
                         %resize image
-                        data_temp = imresize(data_temp,y/ym);
+                        data_temp = imresize(data_temp,[y,x]);
                     else
                         continue
-                    end
+                    end                    
                     counters.(dType) = counters.(dType)+1;
                     rs.results.pixel.(sprintf('%s%d',dType,counters.(dType))) = data_temp;
                     %add a second version of the image/mask with binning 2
