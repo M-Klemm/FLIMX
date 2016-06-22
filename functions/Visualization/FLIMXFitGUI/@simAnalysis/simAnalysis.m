@@ -481,7 +481,6 @@ classdef simAnalysis < handle
         
         function out = get.curArrayName(this)
             %get id of currently selected parmeter set array
-            %out = min(get(this.visHandles.popupParaSetArrays,'Value'),length(this.paraSetNames{this.curParaSetID,2}));
             str = get(this.visHandles.popupParaSetArrays,'String');
             val = get(this.visHandles.popupParaSetArrays,'Value');
             if(~iscell(str) || length(str) == 1 || val == 1)
@@ -1708,31 +1707,37 @@ classdef simAnalysis < handle
         end
         
         function GUI_buttonExportMultArrayStats_Callback(this,hObject,eventdata)
-            %export statistics of parameter set array
-            if(isempty(this.curParaSetName) || isempty(this.curArrayName) || ~any(cell2mat(this.arraySubsetNames(:,2))))
-                %no subset selected
+            %export statistics of parameter set array(s)
+            aStr = this.FLIMXObj.sDDMgr.getAllArrayParamSetNames(this.curChannel);
+            if(isempty(aStr))
                 return
-            end                      
-            [file, path] = uiputfile({'*.xls','Excel file (*.xls)'},'Export to Excel file');
-            if(file==0)
-                return;
             end
-            fn = fullfile(path,file);            
-            %get parameters to export
-            paraStr = simAnalysis.getParameterStr(this.myResSubject.basicParams.nExp,this.myResSubject.basicParams.stretchedExpMask);            
-            [paramSelection, ok] = listdlg('PromptString','Select parameters to export:','ListString',paraStr,'ListSize',[300 300]);            
-            if(ok == 0 || isempty(paramSelection))
+            %ask user
+            [arraySelection, ok] = listdlg('PromptString','Select arrays to export:','ListString',aStr,'ListSize',[300 300]);
+            if(ok == 0 || isempty(arraySelection))
                 return
-            end                        
-            %get arrays to export
+            end
+            this.setCurArraySet(aStr{1});
+            %get studies to export
             studies = this.FLIMXObj.fdt.getStudyNames();
-            [studySelection, ok] = listdlg('PromptString','Select parameter arrays to export:','ListString',studies,'ListSize',[300 300]);            
+            [studySelection, ok] = listdlg('PromptString','Select parameter arrays to export:','ListString',studies,'ListSize',[300 300]);
             if(ok == 0 || isempty(studySelection))
                 return
             end
             studies = studies(studySelection);
-            this.stop = false;  
-            this.exportArrayStatistics(fn,studies,paramSelection);            
+            this.setCurStudy(studies{1});
+            %get parameters to export
+            paraStr = simAnalysis.getParameterStr(this.myResSubject.basicParams.nExp,this.myResSubject.basicParams.stretchedExpMask);
+            [paramSelection, ok] = listdlg('PromptString','Select parameters to export:','ListString',paraStr,'ListSize',[300 300]);
+            if(ok == 0 || isempty(paramSelection))
+                return
+            end
+            %loop over arrays
+            for i = arraySelection
+                this.setCurArraySet(aStr{i});
+                this.stop = false;
+                this.exportArrayStatistics(fullfile(cd,aStr{i}),studies,paramSelection);
+            end
             this.updateGUI();
             this.makeMainPlot();
         end
