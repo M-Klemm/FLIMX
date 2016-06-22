@@ -128,7 +128,7 @@ classdef FData < handle
             this.setRawDataXSz([1 x]);
             this.setRawDataYSz([1 y]);
             %val = this.getFullImage(); %expensive but correct
-            this.setRawDataZSz([min(val(:)) max(val(:))]);            
+            this.setRawDataZSz([FData.getNonInfMinMax(1,val) FData.getNonInfMinMax(2,val)]);            
             %this.clearCachedImage();
         end
         
@@ -219,16 +219,14 @@ classdef FData < handle
                 return
             end
             this.sType = val;
-            if(val == 2)
-                tmp = this.getFullImage();
-                %set init-values borders for log scaling
-                this.rawImgZSz = [min(tmp(:)) max(tmp(:))];
+            tmp = this.getFullImage();
+            this.rawImgZSz = [FData.getNonInfMinMax(1,tmp) FData.getNonInfMinMax(2,tmp)];
+            if(val == 2)                
+                %set init-values borders for log scaling                
                 this.MSZMin = log10(this.MSZMin);
                 this.MSZMax = log10(this.MSZMax);
             else
                 %set init-values for linear scaling
-                tmp = this.getFullImage();
-                this.rawImgZSz = [min(tmp(:)) max(tmp(:))];
                 this.MSZMin = 10^this.MSZMin;
                 this.MSZMax = 10^this.MSZMax;
             end                        

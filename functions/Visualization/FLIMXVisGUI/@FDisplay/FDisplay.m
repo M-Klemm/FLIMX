@@ -630,8 +630,8 @@ classdef FDisplay < handle
                     end
                 else
                     if(dispDim == 1)
-                        zMax(i) = max(current_img(:));
-                        zMin(i) = min(current_img(:));                        
+                        zMax(i) = FData.getNonInfMinMax(2,current_img);
+                        zMin(i) = FData.getNonInfMinMax(1,current_img);                       
                     else
                         zMax(i) = single(hfd{i}.getCImax(rc,rt,rs,ri));
                         zMin(i) = single(hfd{i}.getCImin(rc,rt,rs,ri));
@@ -643,6 +643,7 @@ classdef FDisplay < handle
                 %color mapping                
                 if(dispDim == 1 || isempty(hfd{i}.getCIColor(rc,rt,rs,ri)))
                     colors = current_img - zMin(i);
+                    colors(isinf(colors)) = NaN;
                     if(strcmp(hfd{i}.dType,'Intensity'))
                         cm = this.dynVisParams.cmIntensity;
                     else
@@ -670,6 +671,7 @@ classdef FDisplay < handle
                         alphaData = reshape(alphaData,size(current_img));
                         %set NaN to black
                         colors(repmat(isnan(current_img),[1 1 3])) = 0;
+                        colors(repmat(isinf(current_img),[1 1 3])) = 0;
                     end                    
                 else
                     %we have precomputed colors
