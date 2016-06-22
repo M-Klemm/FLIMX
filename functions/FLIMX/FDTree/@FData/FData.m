@@ -378,7 +378,7 @@ classdef FData < handle
             elseif(~isempty(ROIType) && ROIType == 0)
                 out = this.getFullImage();
                 if(this.MSZ)
-                    cim = this.getNonInfMin(2,out);
+                    cim = FData.getNonInfMinMax(1,out);
                     %set possible "-inf" in ci to "cim"
                     out(out < cim) = cim;
                     zlim_min = this.getZlimMin(cim);
@@ -730,7 +730,7 @@ classdef FData < handle
             for i = 1:9
                 ci = this.getImgSeg(ri,ROICoord,ROIType,i,0,this.getFileInfoStruct()); %ROICoord,ROIType,ROISubType,ROIInvertFlag,fileInfo
                 ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
-                cim = this.getNonInfMin(2,ci);
+                cim = FData.getNonInfMinMax(1,ci);
                 %set possible "-inf" in curImg to "cim"
                 ci(ci < cim) = cim;
                 if(this.MSZ)
@@ -879,23 +879,6 @@ classdef FData < handle
             end            
             if(abs(lblMin - lblMax) < eps)
                 lblMax = lblMin *1.1;
-            end
-        end
-        
-        function out = getNonInfMin(this,para,data)
-            %get minimum of data (para = 2) or raw image (para = 1), in case of "-inf" get next smallest value
-            out = [];
-            switch para
-                case 1
-                    img = this.rawImage(this.rawImage ~= -inf);
-                    out = min(img(:));
-                case 2
-                    img = data(data ~= -inf);
-                    out = min(img(:));
-            end
-            if(isempty(out))
-                %all data is was zero
-                out = 0;
             end
         end
         
@@ -1080,6 +1063,22 @@ classdef FData < handle
             % idx = sub2ind([dataYSz,dataXSz],tmpYcoord(mask),tmpXcoord(mask));
             idx = Ym(mask)+y.*(Xm(mask)-1);
             out(mask) = data(idx);
+        end
+        
+        function out = getNonInfMinMax(param,data)
+            %get minimum (param = 1) or maximum (param = 2) of data, in case of "inf" get next smallest value
+            out = [];
+            data = data(~isinf(data));
+            switch param
+                case 1                    
+                    out = min(data(:));
+                case 2
+                    out = max(data(:));
+            end
+            if(isempty(out))
+                %all data is was zero
+                out = 0;
+            end
         end
         
         function out = getDescriptiveStatisticsDescription()

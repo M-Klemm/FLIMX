@@ -1237,8 +1237,7 @@ classdef FDisplay < handle
             %update the labels of the colorbar
             tickLbls = this.makeColorBarLbls(5);
             for i=1:5
-                set(this.(sprintf('h_t%s',num2str(i))),'String',tickLbls{i});%,'Fontsize',this.staticVisParams.fontsize);
-                
+                set(this.(sprintf('h_t%s',num2str(i))),'String',tickLbls{i});%,'Fontsize',this.staticVisParams.fontsize);                
             end
         end
         
