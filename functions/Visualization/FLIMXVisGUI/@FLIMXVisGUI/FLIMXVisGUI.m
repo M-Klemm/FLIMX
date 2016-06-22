@@ -1705,18 +1705,16 @@ classdef FLIMXVisGUI < handle
                     mask(isstrprop(dType, 'digit')) = false; %remove numbers
                     mask(isstrprop(dType, 'wspace')) = false; %remove spaces
                     dType = dType(mask);
-                    if(~isfield(counters,dType))
-                        counters.(dType) = 0;
-                    end
+                    
                     [y,x] = size(rs.results.pixel.Amplitude1);
                     data_temp = imread(fi(i).name);
                     [ym,xm,zm] = size(data_temp);
                     %convert image to binaray first, than resize (it won't work correctly the other way around)
-                    if(zm == 3)
-                        %convert image to binary image
-                        map = [0,0,0; 0.1,0.1,0.1];
-                        data_temp = rgb2ind(data_temp,map);
-                    end
+%                     if(zm == 3)
+%                         %convert image to binary image
+%                         map = [0,0,0; 0.1,0.1,0.1];
+%                         data_temp = rgb2ind(data_temp,map);
+%                     end
                     if(ym == y && xm == x)
                         %nothing to do
                     elseif(y/ym - x/xm < eps)
@@ -1724,17 +1722,36 @@ classdef FLIMXVisGUI < handle
                         data_temp = imresize(data_temp,[y,x]);
                     else
                         continue
-                    end                    
-                    counters.(dType) = counters.(dType)+1;
-                    rs.results.pixel.(sprintf('%s%d',dType,counters.(dType))) = data_temp;
-                    %add a second version of the image/mask with binning 2
-                    data_temp = imdilate(data_temp,true(5));
-                    dType = [dType 'Bin'];
-                    if(~isfield(counters,dType))
-                        counters.(dType) = 0;
                     end
-                    counters.(dType) = counters.(dType)+1;
-                    rs.results.pixel.(sprintf('%s%d',dType,counters.(dType))) = data_temp;
+                    for iz = 1:zm
+                        if(zm > 1)
+                            switch iz
+                                case 1
+                                    dTypeTemp = [dType '_red'];
+                                case 2
+                                    dTypeTemp = [dType '_green'];
+                                case 3
+                                    dTypeTemp = [dType '_blue'];
+                                otherwise
+                                    dTypeTemp = sprintf('%s_%d',dType,iz);
+                            end
+                        else
+                            dTypeTemp = dType;
+                        end
+                        if(~isfield(counters,dTypeTemp))
+                            counters.(dTypeTemp) = 0;
+                        end
+                        counters.(dTypeTemp) = counters.(dTypeTemp)+1;
+                        rs.results.pixel.(sprintf('%s%d',dTypeTemp,counters.(dTypeTemp))) = data_temp(:,:,iz);
+                        %add a second version of the image/mask with binning 2
+                        data_temp(:,:,iz) = imdilate(data_temp(:,:,iz),true(5));
+                        dTypeTemp = [dTypeTemp 'Bin'];
+                        if(~isfield(counters,dTypeTemp))
+                            counters.(dTypeTemp) = 0;
+                        end
+                        counters.(dTypeTemp) = counters.(dTypeTemp)+1;
+                        rs.results.pixel.(sprintf('%s%d',dTypeTemp,counters.(dTypeTemp))) = data_temp(:,:,iz);
+                    end
                 end
             end
             rs.roiCoordinates = [];
