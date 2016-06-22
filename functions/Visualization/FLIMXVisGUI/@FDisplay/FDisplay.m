@@ -56,6 +56,7 @@ classdef FDisplay < handle
         myhfdInt = {[]};
         mainExportGfx = [];
         mainExportXls = [];
+        mainExportColors = [];
         suppExport = [];
     end
     properties (Dependent = true)
@@ -687,6 +688,7 @@ classdef FDisplay < handle
                 %save image for possible export
                 if(nrFD == 1)
                     this.mainExportXls = current_img;
+                    this.mainExportColors = colors;
                 end
                 if(this.visObj.generalParams.reverseYDir)
                     ydir = 'reverse';

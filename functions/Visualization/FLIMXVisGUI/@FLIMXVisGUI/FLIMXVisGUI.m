@@ -765,8 +765,12 @@ classdef FLIMXVisGUI < handle
             if(strcmp(str,'*.fig'))
                 savefig(hFig,fn);
             else
-                print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
-            end
+                if(this.exportParams.resampleImage)
+                    print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
+                else
+                    imwrite(ssObj.mainExportColors,fn);
+                end
+            end            
             if(ishandle(hFig))
                 close(hFig);
             end   

@@ -565,6 +565,7 @@ classdef paramMgr < handle
             def.statistics.o_ub        	=	[1000 100];
             def.statistics.o_classwidth	=	[1 1];
             
+            def.export.resampleImage    =	1;
             def.export.dpi              =	200;
             def.export.plotColorbar     =   1;
             def.export.plotBox          =   1;
