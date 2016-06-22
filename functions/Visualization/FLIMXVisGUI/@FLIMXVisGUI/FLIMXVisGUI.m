@@ -1686,7 +1686,7 @@ classdef FLIMXVisGUI < handle
             %look for image files with the same name
             [~, nameStub, ~] = fileparts(char(files{1,1}));%filename without '.txt'/'.dat'/'.asc'
             idx = strfind(nameStub,'_');
-            if(~isempty(idx) && idx > 2)
+            if(~isempty(idx) && idx(end) > 2)
                 nameStub = nameStub(1:idx(end)-1);
                 fiB = rdir(fullfile(path,[nameStub '*.bmp']));
                 fiP = rdir(fullfile(path,[nameStub '*.png']));
@@ -1704,8 +1704,7 @@ classdef FLIMXVisGUI < handle
                     mask = true(length(dType),1);
                     mask(isstrprop(dType, 'digit')) = false; %remove numbers
                     mask(isstrprop(dType, 'wspace')) = false; %remove spaces
-                    dType = dType(mask);
-                    
+                    dType = dType(mask);                    
                     [y,x] = size(rs.results.pixel.Amplitude1);
                     data_temp = imread(fi(i).name);
                     [ym,xm,zm] = size(data_temp);
