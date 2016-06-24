@@ -1602,7 +1602,7 @@ classdef FLIMXFitGUI < handle
                 %inside axes
                 hideme = NaN(16,16);
                 set(this.visHandles.FLIMXFitGUIFigure, 'Pointer','custom ','PointerShapeCData',hideme);
-
+                tmp = this.currentDecayData;
                 
                 if(ishandle(this.goddamnline1))
                     delete(this.goddamnline1)
@@ -1616,12 +1616,13 @@ classdef FLIMXFitGUI < handle
                 if(ishandle(this.textbox))
                     delete(this.textbox)
                 end
+                cpStr = FLIMXFitGUI.num4disp(cp);
                 if( cp(1) <= 11)
                 this.textbox = text(cp(1)+0.4, cp(2)+(0.4*cp(2)), 'Yourtexthere', 'EdgeColor', 'black', 'Parent' , this.visHandles.axesCurMain);
-                this.textbox.String= {['Time: ', num2str(cp(1)), ' ns'], ['Counts: ' , num2str(cp(2))]};
+                this.textbox.String= {['Time: ', cpStr{1}, ' ns'], ['Counts: ' , cpStr{2}]};
                 else
                 this.textbox = text(cp(1)-1.4, cp(2)+(0.4*cp(2)), 'Yourtexthere', 'EdgeColor', 'black', 'Parent' , this.visHandles.axesCurMain);
-                this.textbox.String= {['Time: ', num2str(cp(1))], ['Y: ' , num2str(cp(2))]};
+                this.textbox.String= {['Time: ', cpStr{1}], ['Y: ' , cpStr{2}]};
                 %uistack(this.textbox, 'top');
                 end
                 if(ishandle(this.dotdisplay))
