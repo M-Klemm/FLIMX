@@ -43,6 +43,15 @@ classdef FLIMXFitGUI < handle
         resScaleFlag = 1; %1 - auto mode, 0 - manual residuum scaling
         resScaleValue = 10; %percentage for manual residuum scaling
     end
+    
+    properties(GetAccess = public, SetAccess = protected)
+        goddamnline1 = -1; %current point x line
+        goddamnline2 = -1; %current point y line
+        textbox = -1;
+        dotdisplay = -1;
+        circletest= -1;
+        
+    end
     properties(GetAccess = protected, SetAccess = private)
         axesRawMgr = [];
         axesROIMgr = [];
@@ -1535,38 +1544,121 @@ classdef FLIMXFitGUI < handle
                 return;
             end
             lastUpdate = tNow;
-            cp = get(this.visHandles.axesCurSupp,'CurrentPoint');
+%             cp = get(this.visHandles.axesCurSupp,'CurrentPoint');
+%             cp = cp(logical([1 1 0; 0 0 0]));
+%             if(any(cp(:) < 0))
+%                 %outside axes
+%                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
+%                 set(this.visHandles.editX,'String',num2str(this.currentX));
+%                 set(this.visHandles.editY,'String',num2str(this.currentY));
+%                 %update current point edit
+%                 data = this.axesSuppData;
+%                 if(~isempty(data))
+%                     set(this.visHandles.editCPSupp,'String',FLIMXFitGUI.num4disp(data(min(size(data,1),this.currentY),min(size(data,2),this.currentX))));
+%                 end
+%                 inFunction = [];
+%                 %return;
+%             end
+%             %pos = get(this.visHandles.axesCurSupp,'Position');            
+%            % cp=fix(cp+0.52);
+%             if(cp(1) >= 1 && cp(1) <= this.maxX && cp(2) >= 1 && cp(2) <= this.maxY)
+%                 %inside axes
+%                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
+%                 set(this.visHandles.editX,'String',num2str(cp(1)));
+%                 set(this.visHandles.editY,'String',num2str(cp(2)));
+%                 %update current point edit
+%                 data = this.axesSuppData;
+%                 if(~isempty(data))
+%                     set(this.visHandles.editCPSupp,'String',FLIMXFitGUI.num4disp(data(min(size(data,1),cp(2)),min(size(data,2),cp(1)))));
+%                 end
+%             else
+%                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
+%                 set(this.visHandles.editX,'String',num2str(this.currentX));
+%                 set(this.visHandles.editY,'String',num2str(this.currentY));
+%             end  
+            
+            cp = get(this.visHandles.axesCurMain,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
+%             pos = get(this.visHandles.axesCurMain, 'Position'); %// gives x left, y bottom, width, height
+%             width = get(this.visHandles.axesCurMain, 'xlim');
+%             height = get(this.visHandles.axesCurMain, 'xlim');
+
+
             if(any(cp(:) < 0))
                 %outside axes
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
                 set(this.visHandles.editX,'String',num2str(this.currentX));
                 set(this.visHandles.editY,'String',num2str(this.currentY));
                 %update current point edit
-                data = this.axesSuppData;
-                if(~isempty(data))
-                    set(this.visHandles.editCPSupp,'String',FLIMXFitGUI.num4disp(data(min(size(data,1),this.currentY),min(size(data,2),this.currentX))));
-                end
-                inFunction = [];
+
+                    inFunction = [];
                 return;
             end
             %pos = get(this.visHandles.axesCurSupp,'Position');            
-            cp=fix(cp+0.52);
-            if(cp(1) >= 1 && cp(1) <= this.maxX && cp(2) >= 1 && cp(2) <= this.maxY)
+            %cp=fix(cp+0.52);
+            xl = xlim(this.visHandles.axesCurMain);
+            yl= ylim(this.visHandles.axesCurMain);
+            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
                 %inside axes
-                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
-                set(this.visHandles.editX,'String',num2str(cp(1)));
-                set(this.visHandles.editY,'String',num2str(cp(2)));
-                %update current point edit
-                data = this.axesSuppData;
-                if(~isempty(data))
-                    set(this.visHandles.editCPSupp,'String',FLIMXFitGUI.num4disp(data(min(size(data,1),cp(2)),min(size(data,2),cp(1)))));
+                hideme = NaN(16,16);
+                set(this.visHandles.FLIMXFitGUIFigure, 'Pointer','custom ','PointerShapeCData',hideme);
+
+                
+                if(ishandle(this.goddamnline1))
+                    delete(this.goddamnline1)
                 end
-            else
+                this.goddamnline1 = line([cp(1) cp(1)], ylim(this.visHandles.axesCurMain),'Color' , [0 0 0], 'Parent', this.visHandles.axesCurMain);
+                %set(this.goddamnline1, 'XData', [int64(cp(1)) int64(cp(1))]);
+                %set(this.goddamnline1, 'XData', [4 4]);
+                %uistack(this.goddamnline1, 'top');
+                
+                
+                if(ishandle(this.textbox))
+                    delete(this.textbox)
+                end
+                if( cp(1) <= 11)
+                this.textbox = text(cp(1)+0.4, cp(2)+(0.4*cp(2)), 'Yourtexthere', 'EdgeColor', 'black', 'Parent' , this.visHandles.axesCurMain);
+                this.textbox.String= {['Time: ', num2str(cp(1)), ' ns'], ['Counts: ' , num2str(cp(2))]};
+                else
+                this.textbox = text(cp(1)-1.4, cp(2)+(0.4*cp(2)), 'Yourtexthere', 'EdgeColor', 'black', 'Parent' , this.visHandles.axesCurMain);
+                this.textbox.String= {['Time: ', num2str(cp(1))], ['Y: ' , num2str(cp(2))]};
+                %uistack(this.textbox, 'top');
+                end
+                if(ishandle(this.dotdisplay))
+                    delete(this.dotdisplay)
+                end
+                pb = pbaspect(this.visHandles.axesCurMain);
+                d = daspect (this.visHandles.axesCurMain);
+                if(cp(2) < yl(2))
+                this.dotdisplay = rectangle('Position',[cp(1)-0.03 cp(2) 0.06 0.06*cp(2)] ,'Curvature',[1 1], 'FaceColor' , [1 0 0], 'EdgeColor' , 'none', 'Parent' , this.visHandles.axesCurMain);
+                %uistack(this.dotdisplay, 'top');
+                end
+%                 if(ishandle(this.circletest))
+%                     delete(this.circletest)
+%                 end
+%                 this.circletest = viscircles('centers' , [cp(1) , cp(2)] , 'radii' , [10] ,  'Parent' , this.visHandles.axesCurMain);
+%                 %uistack(this.dotdisplay, 'top');
+%                
+                
+                
+                
+           else
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
-                set(this.visHandles.editX,'String',num2str(this.currentX));
-                set(this.visHandles.editY,'String',num2str(this.currentY));
-            end  
+                set(this.visHandles.editCPSupp,'String','BATMAAN');
+                 if(ishandle(this.goddamnline1))
+                    delete(this.goddamnline1)
+                end
+                 
+                if(ishandle(this.textbox))
+                    delete(this.textbox)
+                end
+                
+                 if(ishandle(this.dotdisplay))
+                    delete(this.dotdisplay)
+                end
+           end  
+            
+            
             inFunction = []; %enable callback
         end
                 
@@ -2204,22 +2296,7 @@ classdef FLIMXFitGUI < handle
             
 %             this.setupGUI();
 %             this.updateGUI(true);
-        end
-        
-%         function makeColorbars(this)
-%             %draw colorbars
-%             cm = this.dynVisParams.cm;
-%             temp(:,1,:) = cm;
-%             image(temp,'Parent',this.visHandles.axesCbRaw);
-%             ytick = (0:0.25:1).*size(this.dynVisParams.cm,1);
-%             ytick(1) = 1;
-%             set(this.visHandles.axesCbRaw,'YDir','normal','YTick',ytick,'YTickLabel','','YAxisLocation','right','XTick',[],'XTickLabel','');
-%             ylim(this.visHandles.axesCbRaw,[1 size(this.dynVisParams.cm,1)]);
-%             image(temp,'Parent',this.visHandles.axesCbSupp);
-%             set(this.visHandles.axesCbSupp,'YDir','normal','YTick',ytick,'YTickLabel','','YAxisLocation','right','XTick',[],'XTickLabel','');
-%             ylim(this.visHandles.axesCbSupp,[1 size(this.dynVisParams.cm,1)]);
-%         end
-        
+        end                
     end %methods protected
     
     methods(Static)
@@ -2232,7 +2309,7 @@ classdef FLIMXFitGUI < handle
             data = reshape(data,[],1);
             da = abs(data);
             idxInt = isinteger(data);
-            idx100 = idxInt | abs(data(~idxInt) - fix(data(~idxInt))) < eps('single') | da >= 100;
+            idx100 = idxInt | abs(data - fix(data)) < eps('single') | da >= 100;
             idx10 = ~idx100 & da < 100 & da >= 10;
             idx1 = ~(idx100 | idx10);
             out = cell(size(data));
