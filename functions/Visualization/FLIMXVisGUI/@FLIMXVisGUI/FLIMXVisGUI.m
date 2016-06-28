@@ -1248,10 +1248,13 @@ classdef FLIMXVisGUI < handle
                 end
             elseif(length(tag) == 11 && ~isempty(strfind(tag,'table')))
                 this.objHandles.(sprintf('%sROI',s1)).tableEditCallback(eventdata);
+                this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
             elseif(~isempty(strfind(tag,'roi_table_clearLast')))
                 this.objHandles.(sprintf('%sROI',s1)).buttonClearLastCallback();
+                this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
             elseif(~isempty(strfind(tag,'roi_table_clearAll')))
                 this.objHandles.(sprintf('%sROI',s1)).buttonClearAllCallback();
+                this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
             elseif(~isempty(strfind(tag,'button')) && isempty(strfind(tag,'roi_table_clearAll')))
                 if(~isempty(strfind(tag,'_dec_')))
                     target = 'dec';

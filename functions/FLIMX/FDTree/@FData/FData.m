@@ -1017,10 +1017,22 @@ classdef FData < handle
                     else
                         data = data(ROICoord(1,1):ROICoord(1,2),:,:);
                     end
-                case {4,5}
+                case {4,5} %circle
                     r = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
                     thetaRange = [-pi, 0; 0, pi];
                     data = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,0,[],[]);
+                case {6,7} %polygon
+                    %check whether there are at least three vertices of the polygon yet
+                    [~,vertices]=size(ROICoord);
+                    if(vertices > 2)
+                        %create mask out of polygon
+                        mask = poly2mask(ROICoord(2,:),ROICoord(1,:),y,x);
+                        %apply mask to data, delete all rows and columns which
+                        %are unneeded(outside of the Polygon)
+                        data(~mask)=NaN;
+                        data(~any(~isnan(data),2),:)=[];
+                        data(: ,~any(~isnan(data),1))=[];
+                    end
                 otherwise
                     
             end
@@ -1030,7 +1042,6 @@ classdef FData < handle
             %get sircle or a segment of a circle from data at position coord
             [y,x,z] = size(data);
             px = -ceil(r):ceil(r);
-            %px(end+1) = d;
             [xCord,yCord] = meshgrid(px, px);
             [theta,rho] = cart2pol(xCord,yCord);
             mask = rho <= r & (theta <= thetaRange(1,2) & theta >= thetaRange(1,1) | theta <= thetaRange(2,2) & theta >= thetaRange(2,1));
