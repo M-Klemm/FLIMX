@@ -361,6 +361,7 @@ classdef StatsDescriptive < handle
             if(~isempty(ds1))
                 chStr = this.visObj.fdt.getChStr(this.study,ds1{1});
                 coStr = this.visObj.fdt.getChObjStr(this.study,ds1{1},this.ch);
+                coStr = sort(coStr);
             else
                 chStr = [];
                 coStr = 'param';
