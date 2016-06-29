@@ -786,19 +786,11 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
         %             val(i) = objFctHandle(popq(:,i));
         %         end
         val = objFctHandle(checkBounds(checkQuantization(pop',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2)));
-        nfeval.local = nfeval.local + size(pop,1);
-        
-        
+        nfeval.local = nfeval.local + size(pop,1);               
         [bestval(reInitCnt), idx] = min(val(:));   % best cost value so far
         %         [val idx] = sort(val); %sort population according to there function values
         %         pop = pop(idx,:);
         %         bestval = val(1);
-        if(oldBestVal-bestval(reInitCnt) > max(DEParams.bestValTol,eps(oldBestVal))*oldBestVal)
-            bestValConstCnt = 0;
-        else
-            %current bestval is not significantly better than the old one
-            bestValConstCnt = bestValConstCnt +1;
-        end
         oldBestVal = bestval(reInitCnt);
         bestmem(reInitCnt,:) = pop(idx,:); %pop(1,:);
         initval = bestval(reInitCnt);
@@ -859,7 +851,7 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
     
     popold = pop;
     DEParams.iterationNr = iterationNr; %M. Klemm
-    popnew = computenewpopulation(pop, bestmem(reInitCnt,:), DEParams);
+    popnew = computenewpopulation(pop, bestmem(reInitCnt,:), DEParams, bestValConstCnt > 0);
     %     %make sure rndIdx are random memebers
     %     popnew = computerandominitialization__(2, popnew, rndIdx, paramDefCell, ...
     %             objFctSettings, parameterDimVector, XVmax, XVmin, validChkHandle);

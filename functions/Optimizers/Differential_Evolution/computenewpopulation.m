@@ -1,4 +1,4 @@
-function popnew = computenewpopulation(pop, bestmem, params)
+function popnew = computenewpopulation(pop, bestmem, params, exploreFlag)
 %COMPUTENEWPOPULATION  Compute competing population of parameter vectors.
 %		POPNEW = COMPUTENEWPOPULATION(POP, BESTMEM, PARAMS) computes a
 %		competing population POPNEW for the current population POP with its
@@ -98,9 +98,11 @@ switch params.algorithm
 %             F = Fv*(params.iterationNr/params.maxiter)+params.F;
 %             if(dtm < d_low)
 %                 F = -F;
-%                 %F = 0.01;
+                if(exploreFlag)
+                 F = 0.01;
+                end
 %                 %disp(num2str(params.iterationNr));
-% %                 fprintf('explore! d=%02.1f F=%02.2f\n',dtm,F)
+%                 fprintf('explore! d=%02.1f F=%02.2f\n',dtm,F)
 %             else
 %                 %F = F;
 % %                 fprintf('exploit d=%02.1f F=%02.2f\n',dtm,F)
