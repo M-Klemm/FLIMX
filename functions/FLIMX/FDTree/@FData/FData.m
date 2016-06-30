@@ -366,27 +366,30 @@ classdef FData < handle
         
         function out = getROIImage(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
             %get cached image
-            %check
-            if(~isempty(ROIType) && ROIType >= 1)
+            %use whole image if we don't get ROI coordinates
+            if(isempty(ROICoordinates))
+                ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
+            end
+%             if(~isempty(ROIType) && ROIType >= 1)
                 if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
                     %we've got this image segment already
                     this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
                 end
                 out = this.cachedImage.data;
-            elseif(~isempty(ROIType) && ROIType == 0)
-                out = this.getFullImage();
-                if(this.MSZ)
-                    cim = FData.getNonInfMinMax(1,out);
-                    %set possible "-inf" in ci to "cim"
-                    out(out < cim) = cim;
-                    zlim_min = this.getZlimMin(cim);
-                    zlim_max = this.MSZMax;
-                    out(out < zlim_min) = NaN;%zlim_min;
-                    out(out > zlim_max) = NaN;%zlim_max;
-                end
-            else
-                out = [];
-            end            
+%             elseif(~isempty(ROIType) && ROIType == 0)
+%                 out = this.getFullImage();
+%                 if(this.MSZ)
+%                     cim = FData.getNonInfMinMax(1,out);
+%                     %set possible "-inf" in ci to "cim"
+%                     out(out < cim) = cim;
+%                     zlim_min = this.getZlimMin(cim);
+%                     zlim_max = this.MSZMax;
+%                     out(out < zlim_min) = NaN;%zlim_min;
+%                     out(out > zlim_max) = NaN;%zlim_max;
+%                 end
+%             else
+%                 out = [];
+%             end            
         end
         
         function out = getCIColor(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
@@ -752,12 +755,12 @@ classdef FData < handle
         
         function [stats, histogram, histCenters] = makeStatistics(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag,strictFlag)
             %make statistics for a certain ROI
-            if(~isempty(ROICoordinates))                
+%             if(~isempty(ROICoordinates))                
                 ci = this.getROIImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
-            else
-                ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
-                ci = this.getImgSeg(this.getFullImage(),ROICoordinates,2,0,0,this.getFileInfoStruct());
-            end
+%             else
+%                 ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
+%                 ci = this.getImgSeg(this.getFullImage(),ROICoordinates,2,0,0,this.getFileInfoStruct());
+%             end
             ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
             [histogram, histCenters] = this.makeHist(ci,strictFlag);
             [~, pos] = max(histogram);
