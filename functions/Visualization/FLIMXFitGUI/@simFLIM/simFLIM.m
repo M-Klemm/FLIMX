@@ -85,7 +85,7 @@ classdef simFLIM < handle
 %                 this.mySimSubject.setNrSpectralChannels(sdc.nrSpectralChannels);
                 %this.mySimSubject.getSEPosRM(sdc.channelNr); %make start/end positions + reflection mask                
 %             end
-            out.updatebasicParams(sdc);
+            out.updatebasicParams(sdc);            
             out.preProcessParams.roiBinning = 0;
             out.preProcessParams.roiAdaptiveBinEnable = 0;
         end
@@ -1226,6 +1226,7 @@ classdef simFLIM < handle
                 %reset simulation data
                 this.mySimSubject.updatebasicParams(sdc);%todo: really needed?
                 [sdc.rawData, sdc.modelData] = this.makeSimMExpDec(1,1,sdc);
+                this.setupGUI();
                 this.updateGUI();
             end
         end
