@@ -1042,33 +1042,20 @@ classdef FData < handle
                     data = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,0,[],[]);
                 
                 case {6,7}
-                    [test,test2]=size(ROICoord);
-                    if(test2 > 2)
-                    %not actually needed here
-                    %%if(~isempty(fileInfo))
-                    %    res = fileInfo.pixelResolution; %
-                    %    side = fileInfo.position;
-                    %else
-                    %    res = 58.66666666666;
-                    %    side = 'OS';
-                    %    %todo: warning/error message
-                    %end
-                    
-                    %create mask out of polygon (Note: i have no bloody idea
-                    %whether this function works properly with
-                    %self-crossing polygons, or how long this function
-                    %actually takes to compute
+                    %check whether there are at least three vertices of the
+                    %polygon yet
+                    [useless,vertices]=size(ROICoord);
+                    if(vertices > 2)
+                 
+                    %create mask out of polygon
                     mask = poly2mask(ROICoord(2,:),ROICoord(1,:),y,x);
                     
-                    %multiply data with mask to set everything out of the
-                    %ROI to 0
-                    
-                    %data=data(mask);%temp = mask * data;
-                    %change zeros to NaN for further calculating purposes
-                    
+                    %apply mask to data, delete all rows and columns which
+                    %are unneeded(outside of the Polygon)
                     data(~mask)=NaN;
-                    %return ROI-Data
-                    %data = temp;
+                    data(~any(~isnan(data),2),:)=[];
+                    data(: ,~any(~isnan(data),1))=[];
+                    
                     end
                 otherwise
                 
