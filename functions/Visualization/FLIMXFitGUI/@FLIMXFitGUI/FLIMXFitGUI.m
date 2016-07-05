@@ -44,17 +44,7 @@ classdef FLIMXFitGUI < handle
         resScaleValue = 10; %percentage for manual residuum scaling
     end
     
-    properties(GetAccess = public, SetAccess = protected)
-        cursorline = -1; %cursorline in mainax
-        cursorlinehorizontal = -1 %cursorline in mainax
-        cursorlineres = -1; %cursorline in axesres
-        borderline1 = -1; %startline when clicking down
-        borderline2 = -1; %finishline when releasing
-        setscale = -1; %variable to help identify whether the scale is getting set by clicking right now
-        
-        textbox = -1;
-        
-    end
+
     properties(GetAccess = protected, SetAccess = private)
         axesRawMgr = [];
         axesROIMgr = [];
@@ -1528,9 +1518,9 @@ classdef FLIMXFitGUI < handle
         
         function GUI_mouseMotion_Callback(this,hObject,eventdata)
             %executes on mouse move in window
-%             if(isMultipleCall)
-%                 return
-%             end
+            %             if(isMultipleCall)
+            %                 return
+            %             end
             persistent inFunction
             if ~isempty(inFunction), return; end
             inFunction = 1;  %prevent callback re-entry
@@ -1562,7 +1552,7 @@ classdef FLIMXFitGUI < handle
                 inFunction = [];
                 %return;
             end
-            %pos = get(this.visHandles.axesCurSupp,'Position');            
+            %pos = get(this.visHandles.axesCurSupp,'Position');
             cp=fix(cp+0.52);
             if(cp(1) >= 1 && cp(1) <= this.maxX && cp(2) >= 1 && cp(2) <= this.maxY)
                 %inside axes
@@ -1578,233 +1568,196 @@ classdef FLIMXFitGUI < handle
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
                 set(this.visHandles.editX,'String',num2str(this.currentX));
                 set(this.visHandles.editY,'String',num2str(this.currentY));
-            end  
+            end
             
             cp = get(this.visHandles.axesCurMain,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
-%             pos = get(this.visHandles.axesCurMain, 'Position'); %// gives x left, y bottom, width, height
-%             width = get(this.visHandles.axesCurMain, 'xlim');
-%             height = get(this.visHandles.axesCurMain, 'xlim');
-
-
-            if(any(cp(:) < 0))
-                %outside axes
-                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
-                set(this.visHandles.editX,'String',num2str(this.currentX));
-                set(this.visHandles.editY,'String',num2str(this.currentY));
-                %update current point edit
-
-                    inFunction = [];
-                return;
-            end
             
             xl = xlim(this.visHandles.axesCurMain);
-            yl= ylim(this.visHandles.axesCurMain);
+            yl = ylim(this.visHandles.axesCurMain);
+            siwork = get
             if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
+                
                 %inside axes
                 
-                %in case we want to hide the cursor
-%                 hideme = NaN(16,16);
-%                 set(this.visHandles.FLIMXFitGUIFigure, 'Pointer','custom ','PointerShapeCData',hideme);
-%                 
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
                 
                 %Xval = Mousecoordinates transformed to dimension of YData
-                %(here our Data is spread at every 12,2ps
+                
                 Yval = this.currentDecayData;
-                Xval = int64(cp(1)*100*0.82);
-
+                Xval = int16(round(cp(1) ./ this.FLIMXObj.curSubject.timeChannelWidth*1000));
+                
                 %vertical cursorline, goes green while setting the scale
                 %per mouseclick
-                if(~ishandle(this.cursorline))
-                    this.cursorline = line([NaN NaN], ylim(this.visHandles.axesCurMain),'Color' , [0 0 0], 'Parent', this.visHandles.axesCurMain);
+                if(~ishandle(this.visHandles.cursorLineMainVertical))
+                    this.visHandles.cursorLineMainVertical = line([NaN NaN], ylim(this.visHandles.axesCurMain),'Color' , [0 0 0], 'Parent', this.visHandles.axesCurMain);
                 end
-                if (this.setscale ==1)
-                    this.cursorline.Color = [0 0.75 0];
+                if (this.visHandles.isSettingScale ==1)
+                    this.visHandles.cursorLineMainVertical.Color = [0 0.75 0];
                 else
-                    this.cursorline.Color = [0 0 0];
+                    this.visHandles.cursorLineMainVertical.Color = [0 0 0];
                 end
-                    this.cursorline.XData = [cp(1) cp(1)];
-         
-
+                this.visHandles.cursorLineMainVertical.XData = [cp(1) cp(1)];
+                
+                
                 
                 %cursorline for axesres
                 
-               if(~ishandle(this.cursorlineres))
-               this.cursorlineres = line([NaN NaN], ylim(this.visHandles.axesRes),'Color' , [0 0 0], 'Parent', this.visHandles.axesRes);
-               end
-               
-               this.cursorlineres.XData = [cp(1) cp(1)];
-               
+                if(~ishandle(this.visHandles.cursorLineResiduum))
+                    this.visHandles.cursorLineResiduum = line([NaN NaN], ylim(this.visHandles.axesRes),'Color' , [0 0 0], 'Parent', this.visHandles.axesRes);
+                end
+                
+                this.visHandles.cursorLineResiduum.XData = [cp(1) cp(1)];
+                
                 %textbox and horizontal line
                 
-                if(~ishandle(this.cursorlinehorizontal))
-                    this.cursorlinehorizontal = line(xlim(this.visHandles.axesCurMain), [NaN NaN],'Color' , [0 0 0], 'Parent', this.visHandles.axesCurMain);
-               
+                if(~ishandle(this.visHandles.cursorLineMainHorizontal))
+                    this.visHandles.cursorLineMainHorizontal = line(xlim(this.visHandles.axesCurMain), [NaN NaN],'Color' , [0 0 0], 'Parent', this.visHandles.axesCurMain);
+                    
                 end
-%                 if(ishandle(this.textbox))
-%                     delete(this.textbox)
-%                 end
-%                 
-%                 cpStr = FLIMXFitGUI.num4disp(cp);
-%                if(Xval <= length(Yval))
-%                 if(Yval(Xval) > 0)  
-%                     if( 1.125*(cp(1)-xl(1)) <= (xl(2)-xl(1)) && Xval < length(Yval))
-%                          this.textbox = text(cp(1)+0.02*(xl(2)-xl(1)), double(Yval(Xval)), 'Yourtexthere', 'EdgeColor', 'black', 'Parent' , this.visHandles.axesCurMain);
-%                          this.textbox.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
-%                     elseif (Xval < length(Yval))
-%                         this.textbox = text(cp(1)-0.1*(xl(2)-xl(1)), double(Yval(Xval)), 'Yourtexthere', 'EdgeColor', 'black', 'Parent' , this.visHandles.axesCurMain);
-%                         this.textbox.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
-%                     end
-%                     
-%                    if (this.setscale ==-1)
-%                    this.cursorlinehorizontal.YData = [Yval(Xval) Yval(Xval)];
-%                    else
-%                    this.cursorlinehorizontal.YData = [NaN NaN];    
-%                    end
-% 
-%                 else
-%                    this.cursorlinehorizontal.YData = [NaN NaN];
-%                     if( 1.125*cp(1) <= xl(2) && Xval < length(Yval))
-%                          this.textbox = text(cp(1)+0.02*(xl(2)-xl(1)), 0.005*yl(2), 'Yourtexthere', 'EdgeColor', 'black', 'Parent' , this.visHandles.axesCurMain);
-%                          this.textbox.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
-%                     elseif (Xval < length(Yval))
-%                         this.textbox = text(cp(1)-0.1*(xl(2)-xl(1)), 0.005*yl(2), 'Yourtexthere', 'EdgeColor', 'black', 'Parent' , this.visHandles.axesCurMain);
-%                         this.textbox.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
-%                     end
-% 
-%                end
-%                end
-
-
-              if(~ishandle(this.textbox))
-                    this.textbox = text(NaN, NaN, 'HI BILLY MAYS HERE ;)', 'EdgeColor', 'black', 'Parent' , this.visHandles.axesCurMain);
+                
+                if(~ishandle(this.visHandles.coordinateBoxMain))
+                    this.visHandles.coordinateBoxMain = text(NaN, NaN, 'HI BILLY MAYS HERE ;)', 'EdgeColor', 'black', 'BackgroundColor', [0.2 0.2 0.2 0.2], 'Parent' , this.visHandles.axesCurMain);
                 end
                 
                 cpStr = FLIMXFitGUI.num4disp(cp);
-               if(Xval <= length(Yval))
-                if(Yval(Xval) > 0)  
-                    if( 1.125*(cp(1)-xl(1)) <= (xl(2)-xl(1)) && Xval < length(Yval))
-                         this.textbox.Position = [cp(1)+0.02*(xl(2)-xl(1)) double(Yval(Xval))];
-                         this.textbox.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
-                    elseif (Xval < length(Yval))
-                        this.textbox.Position = [cp(1)-0.1*(xl(2)-xl(1)) double(Yval(Xval))];
-                        this.textbox.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
+                if(Xval <= length(Yval) && ~isempty(this.currentDecayData))
+                    if(Yval(Xval) > 0)
+                        if( 1.125*(cp(1)-xl(1)) <= (xl(2)-xl(1)) && Xval < length(Yval))
+                            this.visHandles.coordinateBoxMain.Position = [cp(1)+0.02*(xl(2)-xl(1)) double(Yval(Xval))];
+                            this.visHandles.coordinateBoxMain.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
+                        elseif (Xval < length(Yval))
+                            this.visHandles.coordinateBoxMain.Position = [cp(1)-0.1*(xl(2)-xl(1)) double(Yval(Xval))];
+                            this.visHandles.coordinateBoxMain.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
+                        end
+                        
+                        if (this.visHandles.isSettingScale ==-1)
+                            this.visHandles.cursorLineMainHorizontal.YData = [Yval(Xval) Yval(Xval)];
+                        else
+                            this.visHandles.cursorLineMainHorizontal.YData = [NaN NaN];
+                        end
+                        
+                    else
+                        this.visHandles.cursorLineMainHorizontal.YData = [NaN NaN];
+                        if( 1.125*cp(1) <= xl(2) && Xval < length(Yval))
+                            this.visHandles.coordinateBoxMain.Position = [cp(1)+0.02*(xl(2)-xl(1)) 0.005*yl(2)];
+                            this.visHandles.coordinateBoxMain.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
+                        elseif (Xval < length(Yval))
+                            this.visHandles.coordinateBoxMain.Position = [cp(1)-0.1*(xl(2)-xl(1)) 0.005*yl(2)];
+                            this.visHandles.coordinateBoxMain.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
+                        end
+                        
                     end
-                    
-                   if (this.setscale ==-1)
-                   this.cursorlinehorizontal.YData = [Yval(Xval) Yval(Xval)];
-                   else
-                   this.cursorlinehorizontal.YData = [NaN NaN];    
-                   end
-
-                else
-                   this.cursorlinehorizontal.YData = [NaN NaN];
-                    if( 1.125*cp(1) <= xl(2) && Xval < length(Yval))
-                         this.textbox.Position = [cp(1)+0.02*(xl(2)-xl(1)) 0.005*yl(2)];
-                         this.textbox.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
-                    elseif (Xval < length(Yval))
-                        this.textbox.Position = [cp(1)-0.1*(xl(2)-xl(1)) 0.005*yl(2)];
-                        this.textbox.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
-                    end
-
-               end
-               end
-
-
-
-
-               
-            else
-               %if outside of ax delete all lines and textbox
-                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
-                  if(ishandle(this.cursorline))
-                    delete(this.cursorline)
-                end
-                 
-                if(ishandle(this.textbox))
-                    delete(this.textbox)
                 end
                 
-                if(ishandle(this.cursorlineres))
-                    delete(this.cursorlineres)
+            else
+                %if outside of ax delete all lines and textbox
+                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
+                if(ishandle(this.visHandles.cursorLineMainVertical))
+                    delete(this.visHandles.cursorLineMainVertical)
                 end
-              
-           end  
+                
+                if(ishandle(this.visHandles.cursorLineMainHorizontal))
+                    delete(this.visHandles.cursorLineMainHorizontal)
+                end
+                if(ishandle(this.visHandles.coordinateBoxMain))
+                    delete(this.visHandles.coordinateBoxMain)
+                end
+                
+                if(ishandle(this.visHandles.cursorLineResiduum))
+                    delete(this.visHandles.cursorLineResiduum)
+                end
+                
+            end
             
             
             inFunction = []; %enable callback
         end
-                
+        
         function GUI_mouseButtonUp_Callback(this,hObject,eventdata)
             %executes on clickrelease in window
-            cp = get(this.visHandles.axesCurSupp,'CurrentPoint');
-            cp = cp(logical([1 1 0; 0 0 0]));
-%             if(any(cp(:) < 0))
-%                 return;
-%             end
-            this.currentX = max(min(round(abs(str2double(get(this.visHandles.editX,'String')))),this.maxX),1);
-            this.currentY = max(min(round(abs(str2double(get(this.visHandles.editY,'String')))),this.maxY),1);
-            this.setscale = -1;
-            if(get(this.visHandles.checkAutoFitPixel,'Value') && ~this.FLIMXObj.curSubject.isPixelResult(this.currentChannel,this.currentY,this.currentX,this.showInitialization))
-                %automatically fit current pixel when activated
-                this.menuFitPixel_Callback(this.visHandles.menuFitPixel,[]);
-            else
-                this.updateGUI(0);
+            
+            switch get(hObject,'SelectionType')
+                
+                case 'normal'
+                    
+                    cp = get(this.visHandles.axesCurSupp,'CurrentPoint');
+                    cp = cp(logical([1 1 0; 0 0 0]));
+                    %             if(any(cp(:) < 0))
+                    %                 return;
+                    %             end
+                    this.currentX = max(min(round(abs(str2double(get(this.visHandles.editX,'String')))),this.maxX),1);
+                    this.currentY = max(min(round(abs(str2double(get(this.visHandles.editY,'String')))),this.maxY),1);
+                    
+                    if(get(this.visHandles.checkAutoFitPixel,'Value') && ~this.FLIMXObj.curSubject.isPixelResult(this.currentChannel,this.currentY,this.currentX,this.showInitialization))
+                        %automatically fit current pixel when activated
+                        this.menuFitPixel_Callback(this.visHandles.menuFitPixel,[]);
+                    else
+                        this.updateGUI(0);
+                    end
+                    
+                    cp = get(this.visHandles.axesCurMain,'CurrentPoint');
+                    cp = cp(logical([1 1 0; 0 0 0]));
+                    
+                    this.visHandles.isSettingScale = -1;
+                    xl = xlim(this.visHandles.axesCurMain);
+                    yl= ylim(this.visHandles.axesCurMain);
+                    if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
+                        
+                        this.visHandles.editTimeScalEnd.String =  num2str(cp(1)*1000);
+                        this.dynVisParams.timeScalingEnd = int64(round(cp(1) ./ this.FLIMXObj.curSubject.timeChannelWidth*1000));
+                    
+                        set(this.visHandles.radioTimeScalManual,'Value', 1);
+                        set(this.visHandles.radioTimeScalAuto,'Value', 0);
+                        
+                        
+                        
+                        this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalManual);
+                   
+                    end
+                
             end
-            
-            cp = get(this.visHandles.axesCurMain,'CurrentPoint');
-            cp = cp(logical([1 1 0; 0 0 0]));
-
-            if(any(cp(:) < 0))
-
-               return;
-            end
-            
-            xl = xlim(this.visHandles.axesCurMain);
-            yl= ylim(this.visHandles.axesCurMain);
-            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
-            
-                this.visHandles.editTimeScalEnd.String =  num2str(cp(1)*1000);
-                this.dynVisParams.timeScalingEnd = int64(cp(1)*100*0.82);
-                this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalManual);
- 
-                
-                
-           else
-                
-               
-           end   
             
         end
         
         function GUI_mouseButtonDown_Callback(this,hObject,eventdata)
             %executes on clicking down in window
-                        cp = get(this.visHandles.axesCurMain,'CurrentPoint');
-                        cp = cp(logical([1 1 0; 0 0 0]));
-
-
-            if(any(cp(:) < 0))
-             
-                return;
+            
+            switch get(hObject,'SelectionType')
+                
+                case 'normal'
+                    cp = get(this.visHandles.axesCurMain,'CurrentPoint');
+                    cp = cp(logical([1 1 0; 0 0 0]));
+                    
+                    if(any(cp(:) < 0))
+                        return;
+                    end
+                    
+                    xl = xlim(this.visHandles.axesCurMain);
+                    yl= ylim(this.visHandles.axesCurMain);
+                    if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
+                        
+                        if(ishandle(this.visHandles.setScaleStartLine))
+                            delete(this.visHandles.setScaleStartLine)
+                        end
+                        this.visHandles.isSettingScale = 1;
+                        this.visHandles.setScaleStartLine = line([cp(1) cp(1)], ylim(this.visHandles.axesCurMain),'Color' , [0 0.75 0], 'Parent', this.visHandles.axesCurMain);
+                        this.visHandles.editTimeScalStart.String =  num2str(cp(1)*1000);
+                        this.dynVisParams.timeScalingStart = int64(cp(1)*100*0.82);
+                    end
+                    
+                    
+                case 'alt'
+                    set(this.visHandles.radioTimeScalManual,'Value', 0);
+                    set(this.visHandles.radioTimeScalAuto,'Value', 1);
+                    
+                    
+                    
+                    this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalAuto);
             end
             
-            xl = xlim(this.visHandles.axesCurMain);
-            yl= ylim(this.visHandles.axesCurMain);
-            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
             
-                if(ishandle(this.borderline1))
-                    delete(this.borderline1)
-                end
-                this.setscale = 1;
-                this.borderline1 = line([cp(1) cp(1)], ylim(this.visHandles.axesCurMain),'Color' , [0 0.75 0], 'Parent', this.visHandles.axesCurMain);
-                this.visHandles.editTimeScalStart.String =  num2str(cp(1)*1000);
-                this.dynVisParams.timeScalingStart = int64(cp(1)*100*0.82);
 
-           else
-                
-               
-           end  
         end
 
         
@@ -2324,6 +2277,18 @@ classdef FLIMXFitGUI < handle
             axis(this.visHandles.axesSupp,'off');
             axis(this.visHandles.axesRes,'off');
             axis(this.visHandles.axesResHis,'off');
+            
+            
+            %set objects for mainax
+            this.visHandles.cursorLineMainVertical = -1; %cursorline in mainax
+            this.visHandles.cursorLineMainHorizontal = -1; %cursorline in mainax
+            this.visHandles.cursorLineResiduum = -1; %cursorline in axesres
+            this.visHandles.setScaleStartLine = -1; %startline when clicking down
+            this.visHandles.isSettingScale = -1; %variable to help identify whether the scale is getting set by clicking right now
+            this.visHandles.coordinateBoxMain = -1; %Textbox that displays coordinates of Datapoints in the Mainax
+            
+            
+            
             
             %set callbacks
             set(this.visHandles.FLIMXFitGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback, 'WindowButtonDownFcn', @this.GUI_mouseButtonDown_Callback);
