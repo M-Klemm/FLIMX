@@ -157,11 +157,11 @@ classdef sddMgr < handle
             %delete array stuff
             def = syntheticDataDefinition.getDefaults();
             new.arrayParentSDD = def.arrayParentSDD;
-            new.arrayParamName = def.arrayParamName;
-            new.arrayParamNr = def.arrayParamNr;
-            new.arrayParamStart = def.arrayParamStart;
-            new.arrayParamStep = def.arrayParamStep;
-            new.arrayParamEnd = def.arrayParamEnd;
+%             new.arrayParamName = def.arrayParamName;
+%             new.arrayParamNr = def.arrayParamNr;
+%             new.arrayParamStart = def.arrayParamStart;
+%             new.arrayParamStep = def.arrayParamStep;
+%             new.arrayParamEnd = def.arrayParamEnd;
             new.arrayParamVal = def.arrayParamVal;            
             this.mySDDs.insertID(new,newName,true);
         end
@@ -217,10 +217,13 @@ classdef sddMgr < handle
                                         %amplitude changed -> calculate tau
                                         taus = simFLIM.computeTausFromQs(amps,taus,qs,parent.arrayParamNr-2);
                                         xVec(sdc.nrExponentials+1:2*sdc.nrExponentials) = taus;
-                                    else
+                                    elseif(parent.arrayParamNr > sdc.nrExponentials+2 && parent.arrayParamNr <= 2*sdc.nrExponentials+2)
                                         %tau changed -> calculate amplitudes
                                         amps = simFLIM.computeAmpsFromQs(amps,taus,qs,parent.arrayParamNr-2-sdc.nrExponentials);
                                         xVec(1:sdc.nrExponentials) = amps;
+                                    elseif(parent.arrayParamNr > 2*sdc.nrExponentials+2 && parent.arrayParamNr <= 3*sdc.nrExponentials+2)
+                                        %tc changed, make sure it is negative
+                                        xVec(2*sdc.nrExponentials+1:3*sdc.nrExponentials) = -abs(xVec(2*sdc.nrExponentials+1:3*sdc.nrExponentials));
                                     end
                                 end
                                 sdc.xVec = xVec;
