@@ -316,6 +316,18 @@ classdef paramMgr < handle
             def.fluo_decay_fit_gui.plotInitMarkerstyle    = 'none';
             def.fluo_decay_fit_gui.plotInitMarkersize     = 6;
             
+            def.fluo_decay_fit_gui.plotCurLinesAndText  =	1;
+            def.fluo_decay_fit_gui.plotCurlineswidth    =	2;
+            def.fluo_decay_fit_gui.plotCurLinesStyle    =	'-';
+      
+            
+            
+            
+            
+            
+            
+            
+            
             def.fluo_decay_fit_gui.showLegend             =	1;
             
             def.bounds_1_exp.init               =	[1  500];
