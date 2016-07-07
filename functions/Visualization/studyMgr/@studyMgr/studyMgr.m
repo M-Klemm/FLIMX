@@ -428,7 +428,7 @@ classdef studyMgr < handle
                 opt.fdt = this.fdt;
                 subject = this.fdt.getSubject4Approx(this.curStudyName,subjects(i));
                 fi = [];
-                if(~isempty(subject))
+                if(~isempty(subject) && ~isempty(subject.nonEmptyResultChannelList))
                     fi = subject.getFileInfoStruct(subject.nonEmptyResultChannelList(1));
                 end
                 if(isempty(subject) || isempty(fi))

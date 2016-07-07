@@ -166,7 +166,7 @@ classdef fluoSubject < handle
             ad.IRF.name = '';
             ad.scatter = [];
             updateAllChs = false;
-            if(isempty(this.myMeasurement))
+            if(isempty(this.myMeasurement) || isempty(this.nrSpectralChannels))
                 this.myResult.setAuxiliaryData(1,ad);
             else
                 if(isempty(chList))
