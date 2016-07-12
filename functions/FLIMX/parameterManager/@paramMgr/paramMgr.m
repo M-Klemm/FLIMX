@@ -316,9 +316,12 @@ classdef paramMgr < handle
             def.fluo_decay_fit_gui.plotInitMarkerstyle    = 'none';
             def.fluo_decay_fit_gui.plotInitMarkersize     = 6;
             
-            def.fluo_decay_fit_gui.plotCurLinesAndText  =	1;
-            def.fluo_decay_fit_gui.plotCurlineswidth    =	2;
+            def.fluo_decay_fit_gui.plotCurLinesAndText  =	0;
+            def.fluo_decay_fit_gui.plotCurlineswidth    =	1;
             def.fluo_decay_fit_gui.plotCurLinesStyle    =	'-';
+            def.fluo_decay_fit_gui.plotCurLinesColor    =	[0 0 0];
+            def.fluo_decay_fit_gui.plotCoordinateBoxColor    =	[0 0 0];
+            def.fluo_decay_fit_gui.plotCoordinateBoxTransparency    =	0.1;
       
             
             
