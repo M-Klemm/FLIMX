@@ -54,7 +54,7 @@ function varargout = GUI_FLIMXFitGUIVisualizationOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_FLIMXFitGUIVisualizationOptions
 
-% Last Modified by GUIDE v2.5 05-Jul-2016 23:33:52
+% Last Modified by GUIDE v2.5 12-Jul-2016 14:43:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -123,6 +123,7 @@ function updateGUI(handles,data)
 
 set(handles.checkData,'Value',data.fluoDecay.plotData);
 set(handles.checkExpSum,'Value',data.fluoDecay.plotExpSum);
+set(handles.checkCurLinesAndText,'Value',data.fluoDecay.plotCurLinesAndText);
 set(handles.checkExp,'Value',data.fluoDecay.plotExp);
 set(handles.checkIRF,'Value',data.fluoDecay.plotIRF);
 set(handles.checkStartEnd,'Value',data.fluoDecay.plotStartEnd);
@@ -143,6 +144,7 @@ set(handles.editDataLinewidth,'String',num2str(data.fluoDecay.plotDataLinewidth,
 set(handles.editExpSumLinewidth,'String',num2str(data.fluoDecay.plotExpSumLinewidth,'%d'));
 set(handles.editExpLinewidth,'String',num2str(data.fluoDecay.plotExpLinewidth,'%d'));
 set(handles.editIRFLinewidth,'String',num2str(data.fluoDecay.plotIRFLinewidth,'%d'));
+set(handles.editCurlineswidth,'String',num2str(data.fluoDecay.plotCurlineswidth,'%d'));
 set(handles.editStartEndLinewidth,'String',num2str(data.fluoDecay.plotStartEndLinewidth,'%d'));
 set(handles.editSlopeLinewidth,'String',num2str(data.fluoDecay.plotSlopeLinewidth,'%d'));
 set(handles.editInitLinewidth,'String',num2str(data.fluoDecay.plotInitLinewidth,'%d'));
@@ -151,6 +153,7 @@ set(handles.popupDataLinestyle,'Value',lineStyle2id(data.fluoDecay.plotDataLines
 set(handles.popupExpSumLinestyle,'Value',lineStyle2id(data.fluoDecay.plotExpSumLinestyle));
 set(handles.popupExpLinestyle,'Value',lineStyle2id(data.fluoDecay.plotExpLinestyle));
 set(handles.popupIRFLinestyle,'Value',lineStyle2id(data.fluoDecay.plotIRFLinestyle));
+set(handles.popupCurLinesStyle,'Value',lineStyle2id(data.fluoDecay.plotCurLinesStyle));
 set(handles.popupStartEndLinestyle,'Value',lineStyle2id(data.fluoDecay.plotStartEndLinestyle));
 set(handles.popupSlopeLinestyle,'Value',lineStyle2id(data.fluoDecay.plotSlopeLinestyle));
 set(handles.popupInitLinestyle,'Value',lineStyle2id(data.fluoDecay.plotInitLinestyle));
@@ -158,6 +161,8 @@ set(handles.popupInitLinestyle,'Value',lineStyle2id(data.fluoDecay.plotInitLines
 %color
 set(handles.buttonDataColor,'BackgroundColor',data.fluoDecay.plotDataColor);
 set(handles.buttonExpSumColor,'BackgroundColor',data.fluoDecay.plotExpSumColor);
+set(handles.buttonCurLinesColor,'BackgroundColor',data.fluoDecay.plotCurLinesColor);
+set(handles.buttonCoordinateBoxColor,'BackgroundColor',data.fluoDecay.plotCoordinateBoxColor);
 set(handles.buttonExp1Color,'BackgroundColor',data.fluoDecay.plotExp1Color);
 set(handles.buttonExp2Color,'BackgroundColor',data.fluoDecay.plotExp2Color);
 set(handles.buttonExp3Color,'BackgroundColor',data.fluoDecay.plotExp3Color);
@@ -167,6 +172,10 @@ set(handles.buttonIRFColor,'BackgroundColor',data.fluoDecay.plotIRFColor);
 set(handles.buttonStartEndColor,'BackgroundColor',data.fluoDecay.plotStartEndColor);
 set(handles.buttonSlopeColor,'BackgroundColor',data.fluoDecay.plotSlopeColor);
 set(handles.buttonInitColor,'BackgroundColor',data.fluoDecay.plotInitColor);
+
+%transparency
+set(handles.editCoordinateBoxTransparency,'String',num2str(data.fluoDecay.plotCoordinateBoxTransparency,'%d'));
+
 %markerstyle
 set(handles.popupDataMarkerstyle,'Value',markerStyle2id(data.fluoDecay.plotDataMarkerstyle));
 set(handles.popupExpSumMarkerstyle,'Value',markerStyle2id(data.fluoDecay.plotExpSumMarkerstyle));
@@ -377,6 +386,12 @@ rdh.general.reverseYDir = get(hObject,'Value');
 rdh.isDirty(2) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
+function checkCurLinesAndText_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.general.CurLinesAndText = get(hObject,'Value');
+rdh.isDirty(2) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %edit fields
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -463,6 +478,21 @@ rdh.fluoDecay.plotInitLinewidth = max(1,abs(round(str2double(get(hObject,'String
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 set(hObject,'String',rdh.fluoDecay.plotInitLinewidth);
+
+function editCurlineswidth_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.fluoDecay.plotCurlineswidth = str2double(get(hObject,'String'));
+rdh.isDirty(1) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+set(hObject,'String',rdh.fluoDecay.plotCurlineswidth);
+
+function editCoordinateBoxTransparency_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.fluoDecay.plotCoordinateBoxTransparency = max(1,abs(round(str2double(get(hObject,'String')))))/100;
+rdh.isDirty(1) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
+set(hObject,'String',rdh.fluoDecay.plotCoordinateBoxTransparency);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -598,6 +628,29 @@ if(length(new) == 3)
     set(hObject,'BackgroundColor',new);
 end
 
+% --- Executes on button press in buttonCurLinesColor.
+function buttonCurLinesColor_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+new = GUI_Colorselection(rdh.fluoDecay.plotCurLinesColor);
+if(length(new) == 3)
+    rdh.fluoDecay.plotCurLinesColor = new;
+    rdh.isDirty(1) = 1;
+    set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);    
+    set(hObject,'BackgroundColor',new);
+end
+
+% --- Executes on button press in buttonCoordinateBoxColor.
+function buttonCoordinateBoxColor_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+new = GUI_Colorselection(rdh.fluoDecay.plotCoordinateBoxColor);
+if(length(new) == 3)
+    rdh.fluoDecay.plotCoordinateBoxColor = new;
+    rdh.isDirty(1) = 1;
+    set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);    
+    set(hObject,'BackgroundColor',new);
+end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %popup menus
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -702,6 +755,13 @@ set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 function popupSlopeLinestyle_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
 rdh.fluoDecay.plotSlopeLinestyle = id2LineStyle(get(hObject,'Value'));
+rdh.isDirty(1) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
+% --- Executes on selection change in popupCurLinesStyle.
+function popupCurLinesStyle_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.fluoDecay.plotCurLinesStyle = id2LineStyle(get(hObject,'Value'));
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
@@ -872,110 +932,23 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-% --- Executes on selection change in popupCurLinesStyle.
-function popupCurLinesStyle_Callback(hObject, eventdata, handles)
-% hObject    handle to popupCurLinesStyle (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns popupCurLinesStyle contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupCurLinesStyle
-
-
 % --- Executes during object creation, after setting all properties.
 function popupCurLinesStyle_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to popupCurLinesStyle (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
-% --- Executes on button press in pushbutton14.
-function pushbutton14_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton14 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --- Executes on button press in checkCurLinesAndText.
-function checkCurLinesAndText_Callback(hObject, eventdata, handles)
-% hObject    handle to checkCurLinesAndText (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkCurLinesAndText
-
-
-% --- Executes on selection change in popupmenu20.
-function popupmenu20_Callback(hObject, eventdata, handles)
-% hObject    handle to popupmenu20 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu20 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupmenu20
-
-
-% --- Executes during object creation, after setting all properties.
-function popupmenu20_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to popupmenu20 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function edit15_Callback(hObject, eventdata, handles)
-% hObject    handle to edit15 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit15 as text
-%        str2double(get(hObject,'String')) returns contents of edit15 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit15_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit15 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function editCurlineswidth_Callback(hObject, eventdata, handles)
-% hObject    handle to editCurlineswidth (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of editCurlineswidth as text
-%        str2double(get(hObject,'String')) returns contents of editCurlineswidth as a double
-
 
 % --- Executes during object creation, after setting all properties.
 function editCurlineswidth_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editCurlineswidth (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes during object creation, after setting all properties.
+function editCoordinateBoxTransparency_CreateFcn(hObject, eventdata, handles)
+
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
