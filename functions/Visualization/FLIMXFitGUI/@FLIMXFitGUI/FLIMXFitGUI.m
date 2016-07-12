@@ -1537,25 +1537,15 @@ classdef FLIMXFitGUI < handle
                 return;
             end
             lastUpdate = tNow;
+            inSuppAx = false;
+            inMainAx = false;
+            %check support axes
             cp = get(this.visHandles.axesCurSupp,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
-            if(any(cp(:) < 0))
-                %outside axes
-                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
-                set(this.visHandles.editX,'String',num2str(this.currentX));
-                set(this.visHandles.editY,'String',num2str(this.currentY));
-                %update current point edit
-                data = this.axesSuppData;
-                if(~isempty(data))
-                    set(this.visHandles.editCPSupp,'String',FLIMXFitGUI.num4disp(data(min(size(data,1),this.currentY),min(size(data,2),this.currentX))));
-                end
-                inFunction = [];
-                %return;
-            end
-            %pos = get(this.visHandles.axesCurSupp,'Position');
             cp=fix(cp+0.52);
-            if(cp(1) >= 1 && cp(1) <= this.maxX && cp(2) >= 1 && cp(2) <= this.maxY && this.visualizationParams.plotCurLinesAndText)
-                %inside axes
+            if(cp(1) >= 1 && cp(1) <= this.maxX && cp(2) >= 1 && cp(2) <= this.maxY)
+                %inside support axes
+                inSuppAx = true;
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
                 set(this.visHandles.editX,'String',num2str(cp(1)));
                 set(this.visHandles.editY,'String',num2str(cp(2)));
@@ -1564,29 +1554,19 @@ classdef FLIMXFitGUI < handle
                 if(~isempty(data))
                     set(this.visHandles.editCPSupp,'String',FLIMXFitGUI.num4disp(data(min(size(data,1),cp(2)),min(size(data,2),cp(1)))));
                 end
-            else
-                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
-                set(this.visHandles.editX,'String',num2str(this.currentX));
-                set(this.visHandles.editY,'String',num2str(this.currentY));
             end
-            
+            %check main axes
             cp = get(this.visHandles.axesCurMain,'CurrentPoint');
-            cp = cp(logical([1 1 0; 0 0 0]));
-            
+            cp = cp(logical([1 1 0; 0 0 0]));            
             xl = xlim(this.visHandles.axesCurMain);
             yl = ylim(this.visHandles.axesCurMain);
-
-            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2) && ~isempty(this.currentDecayData))
-                
-                %inside axes
-                
+            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2) && ~isempty(this.currentDecayData) && this.visualizationParams.plotCurLinesAndText)
+                %inside main axes
+                inMainAx = true;
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
-                
                 %Xval = Mousecoordinates transformed to dimension of YData
-                
                 Yval = this.currentDecayData;
                 Xval = int16(round(cp(1) ./ this.FLIMXObj.curSubject.timeChannelWidth*1000));
-                
                 %vertical cursorline, goes green while setting the scale
                 %per mouseclick
                 if(~ishandle(this.visHandles.cursorLineMainVertical))
@@ -1598,80 +1578,73 @@ classdef FLIMXFitGUI < handle
                     this.visHandles.cursorLineMainVertical.Color = this.visualizationParams.plotCurLinesColor;
                 end
                 this.visHandles.cursorLineMainVertical.XData = [cp(1) cp(1)];
-                
-                
-                
                 %cursorline for axesres
-                
                 if(~ishandle(this.visHandles.cursorLineResiduum))
                     this.visHandles.cursorLineResiduum = line([NaN NaN], ylim(this.visHandles.axesRes),'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesRes, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth);
                 end
-                
                 this.visHandles.cursorLineResiduum.XData = [cp(1) cp(1)];
-                
                 %textbox and horizontal line
-                
                 if(~ishandle(this.visHandles.cursorLineMainHorizontal))
                     this.visHandles.cursorLineMainHorizontal = line(xlim(this.visHandles.axesCurMain), [NaN NaN],'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesCurMain, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth);
-                    
                 end
-                
                 if(~ishandle(this.visHandles.coordinateBoxMain))
                     Coordinateboxcolor = [this.visualizationParams.plotCoordinateBoxColor(1) this.visualizationParams.plotCoordinateBoxColor(2) this.visualizationParams.plotCoordinateBoxColor(3) this.visualizationParams.plotCoordinateBoxTransparency];
                     this.visHandles.coordinateBoxMain = text(NaN, NaN, 'HI BILLY MAYS HERE ;)', 'EdgeColor', [ 0 0 0], 'BackgroundColor', Coordinateboxcolor, 'Parent' , this.visHandles.axesCurMain);
                 end
-                
                 cpStr = FLIMXFitGUI.num4disp(cp);
                 if(Xval <= length(Yval) && ~isempty(this.currentDecayData))
                     if(Yval(Xval) > 0)
                         if( 1.125*(cp(1)-xl(1)) <= (xl(2)-xl(1)) && Xval < length(Yval))
-                            this.visHandles.coordinateBoxMain.Position = [cp(1)+0.02*(xl(2)-xl(1)) double(Yval(Xval))];
+                            this.visHandles.coordinateBoxMain.Position = [cp(1)+0.02*(xl(2)-xl(1)) cp(2)];%double(Yval(Xval))
                             this.visHandles.coordinateBoxMain.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
                         elseif (Xval < length(Yval))
-                            this.visHandles.coordinateBoxMain.Position = [cp(1)-0.1*(xl(2)-xl(1)) double(Yval(Xval))];
+                            this.visHandles.coordinateBoxMain.Position = [cp(1)-0.1*(xl(2)-xl(1)) cp(2)];%double(Yval(Xval))
                             this.visHandles.coordinateBoxMain.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
                         end
-                        
                         if (this.visHandles.isSettingScale ==-1)
                             this.visHandles.cursorLineMainHorizontal.YData = [Yval(Xval) Yval(Xval)];
                         else
                             this.visHandles.cursorLineMainHorizontal.YData = [NaN NaN];
                         end
-                        
                     else
                         this.visHandles.cursorLineMainHorizontal.YData = [NaN NaN];
                         if( 1.125*cp(1) <= xl(2) && Xval < length(Yval))
-                            this.visHandles.coordinateBoxMain.Position = [cp(1)+0.02*(xl(2)-xl(1)) 0.005*yl(2)];
+                            this.visHandles.coordinateBoxMain.Position = [cp(1)+0.02*(xl(2)-xl(1)) cp(2)]; %0.005*yl(2)
                             this.visHandles.coordinateBoxMain.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
                         elseif (Xval < length(Yval))
-                            this.visHandles.coordinateBoxMain.Position = [cp(1)-0.1*(xl(2)-xl(1)) 0.005*yl(2)];
+                            this.visHandles.coordinateBoxMain.Position = [cp(1)-0.1*(xl(2)-xl(1)) cp(2)]; %0.005*yl(2)
                             this.visHandles.coordinateBoxMain.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
                         end
-                        
                     end
                 end
-                
-            else
-                %if outside of ax delete all lines and textbox
-                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
+            end
+            if(~inSuppAx)
+                set(this.visHandles.editX,'String',num2str(this.currentX));
+                set(this.visHandles.editY,'String',num2str(this.currentY));
+                %update current point edit
+                data = this.axesSuppData;
+                if(~isempty(data))
+                    set(this.visHandles.editCPSupp,'String',FLIMXFitGUI.num4disp(data(min(size(data,1),this.currentY),min(size(data,2),this.currentX))));
+                end
+            end            
+            if(~inMainAx)
+                %if outside of main axes delete all lines and textbox                
                 if(ishandle(this.visHandles.cursorLineMainVertical))
                     delete(this.visHandles.cursorLineMainVertical)
                 end
-                
                 if(ishandle(this.visHandles.cursorLineMainHorizontal))
                     delete(this.visHandles.cursorLineMainHorizontal)
                 end
                 if(ishandle(this.visHandles.coordinateBoxMain))
                     delete(this.visHandles.coordinateBoxMain)
                 end
-                
                 if(ishandle(this.visHandles.cursorLineResiduum))
                     delete(this.visHandles.cursorLineResiduum)
                 end
-                
             end
-            
-            
+            if(~inSuppAx && ~inMainAx)
+                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
+            end
             inFunction = []; %enable callback
         end
         

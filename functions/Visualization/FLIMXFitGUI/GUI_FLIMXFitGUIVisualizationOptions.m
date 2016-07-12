@@ -174,7 +174,7 @@ set(handles.buttonSlopeColor,'BackgroundColor',data.fluoDecay.plotSlopeColor);
 set(handles.buttonInitColor,'BackgroundColor',data.fluoDecay.plotInitColor);
 
 %transparency
-set(handles.editCoordinateBoxTransparency,'String',num2str(data.fluoDecay.plotCoordinateBoxTransparency,'%d'));
+set(handles.editCoordinateBoxTransparency,'String',num2str(100*data.fluoDecay.plotCoordinateBoxTransparency,'%d'));
 
 %markerstyle
 set(handles.popupDataMarkerstyle,'Value',markerStyle2id(data.fluoDecay.plotDataMarkerstyle));
@@ -388,8 +388,8 @@ set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
 function checkCurLinesAndText_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
-rdh.general.CurLinesAndText = get(hObject,'Value');
-rdh.isDirty(2) = 1;
+rdh.fluoDecay.plotCurLinesAndText = get(hObject,'Value');
+rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -488,11 +488,10 @@ set(hObject,'String',rdh.fluoDecay.plotCurlineswidth);
 
 function editCoordinateBoxTransparency_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
-rdh.fluoDecay.plotCoordinateBoxTransparency = max(1,abs(round(str2double(get(hObject,'String')))))/100;
+rdh.fluoDecay.plotCoordinateBoxTransparency = min(100,max(1,abs(round(str2double(get(hObject,'String'))))))/100;
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
-
-set(hObject,'String',rdh.fluoDecay.plotCoordinateBoxTransparency);
+updateGUI(handles,rdh);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
