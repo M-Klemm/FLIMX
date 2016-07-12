@@ -1554,7 +1554,7 @@ classdef FLIMXFitGUI < handle
             end
             %pos = get(this.visHandles.axesCurSupp,'Position');
             cp=fix(cp+0.52);
-            if(cp(1) >= 1 && cp(1) <= this.maxX && cp(2) >= 1 && cp(2) <= this.maxY)
+            if(cp(1) >= 1 && cp(1) <= this.maxX && cp(2) >= 1 && cp(2) <= this.maxY && this.visualizationParams.plotCurLinesAndText)
                 %inside axes
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
                 set(this.visHandles.editX,'String',num2str(cp(1)));
@@ -1575,8 +1575,8 @@ classdef FLIMXFitGUI < handle
             
             xl = xlim(this.visHandles.axesCurMain);
             yl = ylim(this.visHandles.axesCurMain);
-            siwork = get
-            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
+
+            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2) && ~isempty(this.currentDecayData))
                 
                 %inside axes
                 
@@ -1590,12 +1590,12 @@ classdef FLIMXFitGUI < handle
                 %vertical cursorline, goes green while setting the scale
                 %per mouseclick
                 if(~ishandle(this.visHandles.cursorLineMainVertical))
-                    this.visHandles.cursorLineMainVertical = line([NaN NaN], ylim(this.visHandles.axesCurMain),'Color' , [0 0 0], 'Parent', this.visHandles.axesCurMain);
+                    this.visHandles.cursorLineMainVertical = line([NaN NaN], ylim(this.visHandles.axesCurMain),'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesCurMain, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth );
                 end
                 if (this.visHandles.isSettingScale ==1)
                     this.visHandles.cursorLineMainVertical.Color = [0 0.75 0];
                 else
-                    this.visHandles.cursorLineMainVertical.Color = [0 0 0];
+                    this.visHandles.cursorLineMainVertical.Color = this.visualizationParams.plotCurLinesColor;
                 end
                 this.visHandles.cursorLineMainVertical.XData = [cp(1) cp(1)];
                 
@@ -1604,7 +1604,7 @@ classdef FLIMXFitGUI < handle
                 %cursorline for axesres
                 
                 if(~ishandle(this.visHandles.cursorLineResiduum))
-                    this.visHandles.cursorLineResiduum = line([NaN NaN], ylim(this.visHandles.axesRes),'Color' , [0 0 0], 'Parent', this.visHandles.axesRes);
+                    this.visHandles.cursorLineResiduum = line([NaN NaN], ylim(this.visHandles.axesRes),'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesRes, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth);
                 end
                 
                 this.visHandles.cursorLineResiduum.XData = [cp(1) cp(1)];
@@ -1612,12 +1612,13 @@ classdef FLIMXFitGUI < handle
                 %textbox and horizontal line
                 
                 if(~ishandle(this.visHandles.cursorLineMainHorizontal))
-                    this.visHandles.cursorLineMainHorizontal = line(xlim(this.visHandles.axesCurMain), [NaN NaN],'Color' , [0 0 0], 'Parent', this.visHandles.axesCurMain);
+                    this.visHandles.cursorLineMainHorizontal = line(xlim(this.visHandles.axesCurMain), [NaN NaN],'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesCurMain, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth);
                     
                 end
                 
                 if(~ishandle(this.visHandles.coordinateBoxMain))
-                    this.visHandles.coordinateBoxMain = text(NaN, NaN, 'HI BILLY MAYS HERE ;)', 'EdgeColor', 'black', 'BackgroundColor', [0.2 0.2 0.2 0.2], 'Parent' , this.visHandles.axesCurMain);
+                    Coordinateboxcolor = [this.visualizationParams.plotCoordinateBoxColor(1) this.visualizationParams.plotCoordinateBoxColor(2) this.visualizationParams.plotCoordinateBoxColor(3) this.visualizationParams.plotCoordinateBoxTransparency];
+                    this.visHandles.coordinateBoxMain = text(NaN, NaN, 'HI BILLY MAYS HERE ;)', 'EdgeColor', [ 0 0 0], 'BackgroundColor', Coordinateboxcolor, 'Parent' , this.visHandles.axesCurMain);
                 end
                 
                 cpStr = FLIMXFitGUI.num4disp(cp);
@@ -1705,15 +1706,33 @@ classdef FLIMXFitGUI < handle
                     if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
                         
                         this.visHandles.editTimeScalEnd.String =  num2str(cp(1)*1000);
+                        
+       
+                            
+                        
                         this.dynVisParams.timeScalingEnd = int64(round(cp(1) ./ this.FLIMXObj.curSubject.timeChannelWidth*1000));
-                    
+                        
+                        if ( this.dynVisParams.timeScalingEnd < this.dynVisParams.timeScalingStart )
+                            tmp = this.visHandles.editTimeScalEnd.String;
+                            
+                            this.visHandles.editTimeScalEnd.String = this.visHandles.editTimeScalStart.String;
+                            this.visHandles.editTimeScalStart.String = tmp;
+                            
+                            tmp = this.dynVisParams.timeScalingEnd;
+                            this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingStart;
+                            this.dynVisParams.timeScalingStart = tmp;
+                        end   
+                        if ( this.dynVisParams.timeScalingEnd ~= this.dynVisParams.timeScalingStart )
+                         
+                        
+                        
                         set(this.visHandles.radioTimeScalManual,'Value', 1);
                         set(this.visHandles.radioTimeScalAuto,'Value', 0);
                         
                         
                         
                         this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalManual);
-                   
+                        end
                     end
                 
             end
