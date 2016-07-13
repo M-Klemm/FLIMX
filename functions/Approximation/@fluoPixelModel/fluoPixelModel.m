@@ -477,11 +477,13 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     chi2(idx) = chi2(idx) + tmp(idx);
                 end
                 %ensure tci ordering
-                for i = 2*bp.nExp+1 : 2*bp.nExp+sum(bp.tciMask ~= 0)-1
-                    %idxIgnored(xVecCheck(i,:) > xVecCheck(i+1,:)) = true;
-                    tmp = floor(xVecCheck(i+1,:) - xVecCheck(i,:)) .*-1000;
-                    idx = tmp > 0;
-                    chi2(idx) = chi2(idx) + tmp(idx);
+                if(bp.tcOrder)
+                    for i = 2*bp.nExp+1 : 2*bp.nExp+sum(bp.tciMask ~= 0)-1
+                        %idxIgnored(xVecCheck(i,:) > xVecCheck(i+1,:)) = true;
+                        tmp = floor(xVecCheck(i+1,:) - xVecCheck(i,:)) .*1000;
+                        idx = tmp > 0;
+                        chi2(idx) = chi2(idx) + tmp(idx);
+                    end
                 end
             end
             amps = zeros(bp.nExp,size(xVec,2));

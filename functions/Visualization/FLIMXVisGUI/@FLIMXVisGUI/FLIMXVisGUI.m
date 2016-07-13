@@ -765,8 +765,12 @@ classdef FLIMXVisGUI < handle
             if(strcmp(str,'*.fig'))
                 savefig(hFig,fn);
             else
-                print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
-            end
+                if(this.exportParams.resampleImage)
+                    print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
+                else
+                    imwrite(ssObj.mainExportColors,fn);
+                end
+            end            
             if(ishandle(hFig))
                 close(hFig);
             end   
@@ -1244,10 +1248,13 @@ classdef FLIMXVisGUI < handle
                 end
             elseif(length(tag) == 11 && ~isempty(strfind(tag,'table')))
                 this.objHandles.(sprintf('%sROI',s1)).tableEditCallback(eventdata);
+                this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
             elseif(~isempty(strfind(tag,'roi_table_clearLast')))
                 this.objHandles.(sprintf('%sROI',s1)).buttonClearLastCallback();
+                this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
             elseif(~isempty(strfind(tag,'roi_table_clearAll')))
                 this.objHandles.(sprintf('%sROI',s1)).buttonClearAllCallback();
+                this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
             elseif(~isempty(strfind(tag,'button')) && isempty(strfind(tag,'roi_table_clearAll')))
                 if(~isempty(strfind(tag,'_dec_')))
                     target = 'dec';
@@ -1686,11 +1693,13 @@ classdef FLIMXVisGUI < handle
             %look for image files with the same name
             [~, nameStub, ~] = fileparts(char(files{1,1}));%filename without '.txt'/'.dat'/'.asc'
             idx = strfind(nameStub,'_');
-            if(~isempty(idx) && idx > 2)
+            if(~isempty(idx) && idx(end) > 2)
                 nameStub = nameStub(1:idx(end)-1);
                 fiB = rdir(fullfile(path,[nameStub '*.bmp']));
                 fiP = rdir(fullfile(path,[nameStub '*.png']));
-                fi = [fiB; fiP];
+                fiT1 = rdir(fullfile(path,[nameStub '*.tif']));
+                fiT2 = rdir(fullfile(path,[nameStub '*.tiff']));
+                fi = [fiB; fiP; fiT1; fiT2];
                 flimItems = fieldnames(rs.results.pixel);
                 for i = 1:length(fi)
                     [~, dType, ~] = fileparts(lower(char(fi(i).name)));
@@ -1699,22 +1708,56 @@ classdef FLIMXVisGUI < handle
                         %something went wrong
                         continue
                     end
-                    if(~isfield(counters,dType))
-                        counters.(dType) = 0;
-                    end
+                    mask = true(length(dType),1);
+                    mask(isstrprop(dType, 'digit')) = false; %remove numbers
+                    mask(isstrprop(dType, 'wspace')) = false; %remove spaces
+                    dType = dType(mask);                    
                     [y,x] = size(rs.results.pixel.Amplitude1);
                     data_temp = imread(fi(i).name);
                     [ym,xm,zm] = size(data_temp);
+                    %convert image to binaray first, than resize (it won't work correctly the other way around)
+%                     if(zm == 3)
+%                         %convert image to binary image
+%                         map = [0,0,0; 0.1,0.1,0.1];
+%                         data_temp = rgb2ind(data_temp,map);
+%                     end
                     if(ym == y && xm == x)
                         %nothing to do
                     elseif(y/ym - x/xm < eps)
                         %resize image
-                        data_temp = imresize(data_temp,y/ym);
+                        data_temp = imresize(data_temp,[y,x]);
                     else
                         continue
                     end
-                    counters.(dType) = counters.(dType)+1;
-                    rs.results.pixel.(sprintf('%s%d',dType,counters.(dType))) = data_temp;
+                    for iz = 1:zm
+                        if(zm > 1)
+                            switch iz
+                                case 1
+                                    dTypeTemp = [dType '_red'];
+                                case 2
+                                    dTypeTemp = [dType '_green'];
+                                case 3
+                                    dTypeTemp = [dType '_blue'];
+                                otherwise
+                                    dTypeTemp = sprintf('%s_%d',dType,iz);
+                            end
+                        else
+                            dTypeTemp = dType;
+                        end
+                        if(~isfield(counters,dTypeTemp))
+                            counters.(dTypeTemp) = 0;
+                        end
+                        counters.(dTypeTemp) = counters.(dTypeTemp)+1;
+                        rs.results.pixel.(sprintf('%s%d',dTypeTemp,counters.(dTypeTemp))) = data_temp(:,:,iz);
+                        %add a second version of the image/mask with binning 2
+                        data_temp(:,:,iz) = imdilate(data_temp(:,:,iz),true(5));
+                        dTypeTemp = [dTypeTemp 'Bin'];
+                        if(~isfield(counters,dTypeTemp))
+                            counters.(dTypeTemp) = 0;
+                        end
+                        counters.(dTypeTemp) = counters.(dTypeTemp)+1;
+                        rs.results.pixel.(sprintf('%s%d',dTypeTemp,counters.(dTypeTemp))) = data_temp(:,:,iz);
+                    end
                 end
             end
             rs.roiCoordinates = [];

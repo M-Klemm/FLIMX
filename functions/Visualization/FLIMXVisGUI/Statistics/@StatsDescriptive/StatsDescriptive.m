@@ -144,9 +144,9 @@ classdef StatsDescriptive < handle
         
         function GUI_SelFLIMParamPop_Callback(this,hObject,eventdata)
             %
-            [cw, ~, ~, ub] = getHistParams(this.visObj.getStatsParams(),this.ch,this.dType,this.id);
-            set(this.visHandles.editClassWidth,'String',cw);
             this.setupGUI();
+            [cw, ~, ~, ~] = getHistParams(this.visObj.getStatsParams(),this.ch,this.dType,this.id);
+            set(this.visHandles.editClassWidth,'String',cw);            
         end
         
         function GUI_SelROITypePop_Callback(this,hObject,eventdata)
@@ -361,6 +361,7 @@ classdef StatsDescriptive < handle
             if(~isempty(ds1))
                 chStr = this.visObj.fdt.getChStr(this.study,ds1{1});
                 coStr = this.visObj.fdt.getChObjStr(this.study,ds1{1},this.ch);
+                coStr = sort(coStr);
             else
                 chStr = [];
                 coStr = 'param';
@@ -490,12 +491,13 @@ classdef StatsDescriptive < handle
             out = str2double(out(isstrprop(out, 'digit')));
         end
         
-        function out = get.dType(this)
+        function dType = get.dType(this) 
+            dType = [];
             out = get(this.visHandles.popupSelFLIMParam,'String');
             if(~ischar(out))
-                out = out{get(this.visHandles.popupSelFLIMParam,'Value')};
+                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelFLIMParam,'Value')});
+                dType = dType{1};
             end
-            out = out(isstrprop(out, 'alpha'));
         end
         
         function out = get.totalDTypes(this)
@@ -541,11 +543,12 @@ classdef StatsDescriptive < handle
         end
         
         function dTypeNr = get.id(this)
-            str = get(this.visHandles.popupSelFLIMParam,'String');
-            if(~ischar(str))
-                str = str{get(this.visHandles.popupSelFLIMParam,'Value')};
-            end
-            [~, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(str);
+            dTypeNr = [];
+            out = get(this.visHandles.popupSelFLIMParam,'String');
+            if(~ischar(out))
+                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelFLIMParam,'Value')});
+                dTypeNr = dTypeNr(1);
+            end 
         end
         
         function out = get.exportModeFLIM(this)

@@ -44,34 +44,16 @@ classdef subject4Import < fluoSubject
         end
         
         %% input methods
-        function importMeasurement(this,fn)
-            ROIVec = this.myMeasurement.ROICoord; %save old ROIVec if there is one
-            %this.myMeasurement.setSourceFile(fn);
-            if(~isempty(ROIVec))
-                this.myMeasurement.setROICoord(ROIVec);
-            end
-            if(this.myMeasurement.fileInfoLoaded)
-                %add me to my study                
-                this.myParent.addSubject(this.name);
-                for ch = 1:this.myMeasurement.nrSpectralChannels
-                    %read the actual payload
-                    if(ch == 1 && isempty(this.myMeasurement.ROICoord))
-                        %get auto roi
-                        ROIVec = importWizard.getAutoROI(this.myMeasurement.getRawDataFlat(ch),this.preProcessParams.roiBinning);
-                        if(ROIVec(1) > 5 || ROIVec(3) > 5 || ROIVec(2) < this.myMeasurement.rawXSz-5 || ROIVec(4) < this.myMeasurement.rawYSz-5)
-                            this.myMeasurement.setROICoord(ROIVec);
-                        end
-                    end
-                    %save in fdtree
-                    this.updateSubjectChannel(ch,'measurement');
-                end
-            end
+        function importMeasurementFile(this,fn)
+            %import measurement file
+            this.myMeasurement.setSourceFile(fn);
+            this.importMeasurement2FDTree();
         end
         
         function importMeasurementObj(this,obj)
             %import a measurement object
-            this.myMeasurement.importMeasurementObj(obj);
-            this.importMeasurement(obj.sourceFile);
+            this.myMeasurement.importMeasurementObj(obj); %sets the source file in myMeasurement from obj
+            this.importMeasurement2FDTree();
         end
         
         function importResult(this,fn,fi,chFlag,position,scaling)
@@ -91,4 +73,33 @@ classdef subject4Import < fluoSubject
             this.myResult = result4Import(this);
         end
     end %methods
+    
+    methods (Access = protected)
+        function importMeasurement2FDTree(this)
+            %import a measurement to FDTree
+            ROIVec = this.myMeasurement.ROICoord; %save old ROIVec if there is one
+            %this.myMeasurement.setSourceFile(fn);
+            if(~isempty(ROIVec))
+                this.myMeasurement.setROICoord(ROIVec);
+            end
+            if(~this.myMeasurement.fileInfoLoaded)
+                this.myMeasurement.getFileInfoStruct([]);
+            end
+            %add me to my study
+            this.myParent.addSubject(this.name);
+            for ch = 1:this.myMeasurement.nrSpectralChannels
+                %read the actual payload
+                if(ch == 1 && isempty(this.myMeasurement.ROICoord))
+                    %get auto roi
+                    ROIVec = importWizard.getAutoROI(this.myMeasurement.getRawDataFlat(ch),this.preProcessParams.roiBinning);
+                    if(ROIVec(1) > 5 || ROIVec(3) > 5 || ROIVec(2) < this.myMeasurement.rawXSz-5 || ROIVec(4) < this.myMeasurement.rawYSz-5)
+                        this.myMeasurement.setROICoord(ROIVec);
+                    end
+                end
+                %save in fdtree
+                this.updateSubjectChannel(ch,'measurement');
+            end
+        end
+        
+    end
 end %classdef

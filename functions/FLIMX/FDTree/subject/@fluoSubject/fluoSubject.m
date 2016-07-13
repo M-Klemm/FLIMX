@@ -166,7 +166,7 @@ classdef fluoSubject < handle
             ad.IRF.name = '';
             ad.scatter = [];
             updateAllChs = false;
-            if(isempty(this.myMeasurement))
+            if(isempty(this.myMeasurement) || isempty(this.nrSpectralChannels))
                 this.myResult.setAuxiliaryData(1,ad);
             else
                 if(isempty(chList))
@@ -715,7 +715,12 @@ classdef fluoSubject < handle
             %             end            
             if(ch < 3 || params.basicFit.approximationTarget == 1)
                 if(any(strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Offset')))
-                    params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(end) = params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(end) .* this.getROIXSz .* this.getROIXSz ./ params.pixelFit.gridSize^2;
+                    if(params.preProcessing.roiAdaptiveBinEnable)
+                        bf = 1;
+                    else
+                        bf = (1+2*params.preProcessing.roiBinning).^2;
+                    end
+                    params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(end) = params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(end) .* this.getROIXSz .* this.getROIXSz ./ params.pixelFit.gridSize^2 ./bf;
                 end
             end            
             if(params.basicFit.approximationTarget == 2 && params.basicFit.anisotropyR0Method == 2 && ch < 3)

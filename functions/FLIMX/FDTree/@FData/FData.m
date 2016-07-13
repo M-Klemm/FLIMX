@@ -128,7 +128,7 @@ classdef FData < handle
             this.setRawDataXSz([1 x]);
             this.setRawDataYSz([1 y]);
             %val = this.getFullImage(); %expensive but correct
-            this.setRawDataZSz([min(val(:)) max(val(:))]);            
+            this.setRawDataZSz([FData.getNonInfMinMax(1,val) FData.getNonInfMinMax(2,val)]);            
             %this.clearCachedImage();
         end
         
@@ -219,16 +219,14 @@ classdef FData < handle
                 return
             end
             this.sType = val;
-            if(val == 2)
-                tmp = this.getFullImage();
-                %set init-values borders for log scaling
-                this.rawImgZSz = [min(tmp(:)) max(tmp(:))];
+            tmp = this.getFullImage();
+            this.rawImgZSz = [FData.getNonInfMinMax(1,tmp) FData.getNonInfMinMax(2,tmp)];
+            if(val == 2)                
+                %set init-values borders for log scaling                
                 this.MSZMin = log10(this.MSZMin);
                 this.MSZMax = log10(this.MSZMax);
             else
                 %set init-values for linear scaling
-                tmp = this.getFullImage();
-                this.rawImgZSz = [min(tmp(:)) max(tmp(:))];
                 this.MSZMin = 10^this.MSZMin;
                 this.MSZMax = 10^this.MSZMax;
             end                        
@@ -368,27 +366,30 @@ classdef FData < handle
         
         function out = getROIImage(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
             %get cached image
-            %check
-            if(~isempty(ROIType) && ROIType >= 1)
+            %use whole image if we don't get ROI coordinates
+            if(isempty(ROICoordinates))
+                ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
+            end
+%             if(~isempty(ROIType) && ROIType >= 1)
                 if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
                     %we've got this image segment already
                     this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
                 end
                 out = this.cachedImage.data;
-            elseif(~isempty(ROIType) && ROIType == 0)
-                out = this.getFullImage();
-                if(this.MSZ)
-                    cim = this.getNonInfMin(2,out);
-                    %set possible "-inf" in ci to "cim"
-                    out(out < cim) = cim;
-                    zlim_min = this.getZlimMin(cim);
-                    zlim_max = this.MSZMax;
-                    out(out < zlim_min) = zlim_min;
-                    out(out > zlim_max) = zlim_max;
-                end
-            else
-                out = [];
-            end            
+%             elseif(~isempty(ROIType) && ROIType == 0)
+%                 out = this.getFullImage();
+%                 if(this.MSZ)
+%                     cim = FData.getNonInfMinMax(1,out);
+%                     %set possible "-inf" in ci to "cim"
+%                     out(out < cim) = cim;
+%                     zlim_min = this.getZlimMin(cim);
+%                     zlim_max = this.MSZMax;
+%                     out(out < zlim_min) = NaN;%zlim_min;
+%                     out(out > zlim_max) = NaN;%zlim_max;
+%                 end
+%             else
+%                 out = [];
+%             end            
         end
         
         function out = getCIColor(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
@@ -730,7 +731,7 @@ classdef FData < handle
             for i = 1:9
                 ci = this.getImgSeg(ri,ROICoord,ROIType,i,0,this.getFileInfoStruct()); %ROICoord,ROIType,ROISubType,ROIInvertFlag,fileInfo
                 ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
-                cim = this.getNonInfMin(2,ci);
+                cim = FData.getNonInfMinMax(1,ci);
                 %set possible "-inf" in curImg to "cim"
                 ci(ci < cim) = cim;
                 if(this.MSZ)
@@ -754,12 +755,12 @@ classdef FData < handle
         
         function [stats, histogram, histCenters] = makeStatistics(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag,strictFlag)
             %make statistics for a certain ROI
-            if(~isempty(ROICoordinates))                
+%             if(~isempty(ROICoordinates))                
                 ci = this.getROIImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
-            else
-                ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
-                ci = this.getImgSeg(this.getFullImage(),ROICoordinates,2,0,0,this.getFileInfoStruct());
-            end
+%             else
+%                 ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
+%                 ci = this.getImgSeg(this.getFullImage(),ROICoordinates,2,0,0,this.getFileInfoStruct());
+%             end
             ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
             [histogram, histCenters] = this.makeHist(ci,strictFlag);
             [~, pos] = max(histogram);
@@ -796,13 +797,13 @@ classdef FData < handle
             %make histogram for display puposes
             ci = imageData(~(isnan(imageData(:)) | isinf(imageData(:))));
             %ci = ci(~isinf(ci(:)));
-            %if z scaled, remove cut of values
-            if(this.MSZ)          
-                zlim_min = this.getZlimMin(this.getNonInfMin(2,imageData));
-                zlim_max = this.MSZMax;
-                ci(ci == zlim_min) = [];
-                ci(ci == zlim_max) = [];
-            end
+%             %if z scaled, remove cut of values
+%             if(this.MSZ)          
+%                 zlim_min = this.getZlimMin(this.getNonInfMin(2,imageData));
+%                 zlim_max = this.MSZMax;
+%                 ci(ci == zlim_min) = [];
+%                 ci(ci == zlim_max) = [];
+%             end
             [cw,lim,c_min,c_max] = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
             if(lim)
                 ci = ci(ci >= c_min & ci <= c_max);               
@@ -879,23 +880,6 @@ classdef FData < handle
             end            
             if(abs(lblMin - lblMax) < eps)
                 lblMax = lblMin *1.1;
-            end
-        end
-        
-        function out = getNonInfMin(this,para,data)
-            %get minimum of data (para = 2) or raw image (para = 1), in case of "-inf" get next smallest value
-            out = [];
-            switch para
-                case 1
-                    img = this.rawImage(this.rawImage ~= -inf);
-                    out = min(img(:));
-                case 2
-                    img = data(data ~= -inf);
-                    out = min(img(:));
-            end
-            if(isempty(out))
-                %all data is was zero
-                out = 0;
             end
         end
         
@@ -1036,29 +1020,23 @@ classdef FData < handle
                     else
                         data = data(ROICoord(1,1):ROICoord(1,2),:,:);
                     end
-                case {4,5}
+                case {4,5} %circle
                     r = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
                     thetaRange = [-pi, 0; 0, pi];
                     data = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,0,[],[]);
-                
-                case {6,7}
-                    %check whether there are at least three vertices of the
-                    %polygon yet
-                    [useless,vertices]=size(ROICoord);
+                case {6,7} %polygon
+                    %check whether there are at least three vertices of the polygon yet
+                    [~,vertices]=size(ROICoord);
                     if(vertices > 2)
-                 
-                    %create mask out of polygon
-                    mask = poly2mask(ROICoord(2,:),ROICoord(1,:),y,x);
-                    
-                    %apply mask to data, delete all rows and columns which
-                    %are unneeded(outside of the Polygon)
-                    data(~mask)=NaN;
-                    data(~any(~isnan(data),2),:)=[];
-                    data(: ,~any(~isnan(data),1))=[];
-                    
+                        %create mask out of polygon
+                        mask = poly2mask(ROICoord(2,:),ROICoord(1,:),y,x);
+                        %apply mask to data, delete all rows and columns which
+                        %are unneeded(outside of the Polygon)
+                        data(~mask)=NaN;
+                        data(~any(~isnan(data),2),:)=[];
+                        data(: ,~any(~isnan(data),1))=[];
                     end
                 otherwise
-                
                     
             end
         end
@@ -1067,7 +1045,6 @@ classdef FData < handle
             %get sircle or a segment of a circle from data at position coord
             [y,x,z] = size(data);
             px = -ceil(r):ceil(r);
-            %px(end+1) = d;
             [xCord,yCord] = meshgrid(px, px);
             [theta,rho] = cart2pol(xCord,yCord);
             mask = rho <= r & (theta <= thetaRange(1,2) & theta >= thetaRange(1,1) | theta <= thetaRange(2,2) & theta >= thetaRange(2,1));
@@ -1098,6 +1075,22 @@ classdef FData < handle
             % idx = sub2ind([dataYSz,dataXSz],tmpYcoord(mask),tmpXcoord(mask));
             idx = Ym(mask)+y.*(Xm(mask)-1);
             out(mask) = data(idx);
+        end
+        
+        function out = getNonInfMinMax(param,data)
+            %get minimum (param = 1) or maximum (param = 2) of data, in case of "inf" get next smallest value
+            out = [];
+            data = data(~isinf(data));
+            switch param
+                case 1                    
+                    out = min(data(:));
+                case 2
+                    out = max(data(:));
+            end
+            if(isempty(out))
+                %all data is was zero
+                out = 0;
+            end
         end
         
         function out = getDescriptiveStatisticsDescription()

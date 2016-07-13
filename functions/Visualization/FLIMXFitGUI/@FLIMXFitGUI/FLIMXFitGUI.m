@@ -1649,86 +1649,56 @@ classdef FLIMXFitGUI < handle
         end
         
         function GUI_mouseButtonUp_Callback(this,hObject,eventdata)
-            %executes on clickrelease in window
-            
+            %executes on clickrelease in window            
             switch get(hObject,'SelectionType')
-                
                 case 'normal'
-                    
                     cp = get(this.visHandles.axesCurSupp,'CurrentPoint');
                     cp = cp(logical([1 1 0; 0 0 0]));
-                    %             if(any(cp(:) < 0))
-                    %                 return;
-                    %             end
                     this.currentX = max(min(round(abs(str2double(get(this.visHandles.editX,'String')))),this.maxX),1);
                     this.currentY = max(min(round(abs(str2double(get(this.visHandles.editY,'String')))),this.maxY),1);
-                    
                     if(get(this.visHandles.checkAutoFitPixel,'Value') && ~this.FLIMXObj.curSubject.isPixelResult(this.currentChannel,this.currentY,this.currentX,this.showInitialization))
                         %automatically fit current pixel when activated
                         this.menuFitPixel_Callback(this.visHandles.menuFitPixel,[]);
                     else
                         this.updateGUI(0);
                     end
-                    
                     cp = get(this.visHandles.axesCurMain,'CurrentPoint');
                     cp = cp(logical([1 1 0; 0 0 0]));
-                    
                     this.visHandles.isSettingScale = -1;
                     xl = xlim(this.visHandles.axesCurMain);
                     yl= ylim(this.visHandles.axesCurMain);
                     if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
-                        
                         this.visHandles.editTimeScalEnd.String =  num2str(cp(1)*1000);
-                        
-       
-                            
-                        
                         this.dynVisParams.timeScalingEnd = int64(round(cp(1) ./ this.FLIMXObj.curSubject.timeChannelWidth*1000));
-                        
                         if ( this.dynVisParams.timeScalingEnd < this.dynVisParams.timeScalingStart )
                             tmp = this.visHandles.editTimeScalEnd.String;
-                            
                             this.visHandles.editTimeScalEnd.String = this.visHandles.editTimeScalStart.String;
                             this.visHandles.editTimeScalStart.String = tmp;
-                            
                             tmp = this.dynVisParams.timeScalingEnd;
                             this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingStart;
                             this.dynVisParams.timeScalingStart = tmp;
-                        end   
-                        if ( this.dynVisParams.timeScalingEnd ~= this.dynVisParams.timeScalingStart )
-                         
-                        
-                        
-                        set(this.visHandles.radioTimeScalManual,'Value', 1);
-                        set(this.visHandles.radioTimeScalAuto,'Value', 0);
-                        
-                        
-                        
-                        this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalManual);
                         end
-                    end
-                
-            end
-            
+                        if(this.dynVisParams.timeScalingEnd ~= this.dynVisParams.timeScalingStart)
+                            set(this.visHandles.radioTimeScalManual,'Value', 1);
+                            set(this.visHandles.radioTimeScalAuto,'Value', 0);
+                            this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalManual);
+                        end
+                    end                    
+            end            
         end
         
         function GUI_mouseButtonDown_Callback(this,hObject,eventdata)
             %executes on clicking down in window
-            
             switch get(hObject,'SelectionType')
-                
                 case 'normal'
                     cp = get(this.visHandles.axesCurMain,'CurrentPoint');
                     cp = cp(logical([1 1 0; 0 0 0]));
-                    
                     if(any(cp(:) < 0))
                         return;
                     end
-                    
                     xl = xlim(this.visHandles.axesCurMain);
                     yl= ylim(this.visHandles.axesCurMain);
                     if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
-                        
                         if(ishandle(this.visHandles.setScaleStartLine))
                             delete(this.visHandles.setScaleStartLine)
                         end
@@ -1737,32 +1707,19 @@ classdef FLIMXFitGUI < handle
                         this.visHandles.editTimeScalStart.String =  num2str(cp(1)*1000);
                         this.dynVisParams.timeScalingStart = int64(cp(1)*100*0.82);
                     end
-                    
-                    
                 case 'alt'
                     set(this.visHandles.radioTimeScalManual,'Value', 0);
                     set(this.visHandles.radioTimeScalAuto,'Value', 1);
-                    
-                    
-                    
                     this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalAuto);
             end
-            
-            
-
         end
 
-        
-        
-        
         
         %% menu callbacks        
 %         function menuImportResult_Callback(this,hObject,eventdata)
 %             %call of load result menu item
 %             this.openResultFile();
 %         end
-        
-
 
         function menuExportFiles_Callback(this,hObject,eventdata)
             %write results to disc (again)

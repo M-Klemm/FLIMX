@@ -163,26 +163,34 @@ classdef AICtrl < handle
             set(this.aiSel,'String',aiStr,'Value',idx);
             this.inVisible('on');
             subject = this.visObj.getSubject('l');
-            chStr = this.visObj.fdt.getChStr(this.curStudy,subject);
+            chStr = [{'all Ch'}; this.visObj.fdt.getChStr(this.curStudy,subject)];
             %find saved channel
-            chNr = find(strcmp(sprintf('Ch %d',aiParam{idx}.chA),chStr));
+            if(aiParam{idx}.chA == 0)
+                chNr = 0;
+            else
+                chNr = find(strcmp(sprintf('Ch %d',aiParam{idx}.chA),chStr))-1;
+            end
             if(isempty(chNr))
                 %Houston we've got a problem
                 %make warning dialog to switch subject?!
                 return
             end
-            set(this.chA,'String',chStr,'Value',chNr);
-            chObj = this.visObj.fdt.getChObjStr(this.curStudy,subject,chNr);
+            set(this.chA,'String',chStr,'Value',chNr+1);
+            chObj = this.visObj.fdt.getChObjStr(this.curStudy,subject,max(1,chNr));
             %remove current arithmetic image from channel objects
             chObj = chObj(~strcmp(chObj,this.curAIName));
             %second flim item channel
-            chNr = find(strcmp(sprintf('Ch %d',aiParam{idx}.chB),chStr));
+            if(aiParam{idx}.chB == 0)
+                chNr = 0;
+            else
+                chNr = find(strcmp(sprintf('Ch %d',aiParam{idx}.chB),chStr))-1;
+            end
             if(isempty(chNr))
                 %Houston we've got a problem
                 %make warning dialog to switch subject?!
                 return
             end
-            set(this.chB,'String',chStr,'Value',chNr);            
+            set(this.chB,'String',chStr,'Value',chNr+1);            
             %find saved FLIM item
             fiNr = find(strcmp(aiParam{idx}.FLIMItemA,chObj));
             if(isempty(fiNr))
@@ -191,12 +199,16 @@ classdef AICtrl < handle
                 fiNr = 1;
             end
             set(this.FLIMItemA,'String',chObj,'Value',fiNr);
+            %second flim item channel
+            chObj = this.visObj.fdt.getChObjStr(this.curStudy,subject,max(1,chNr));
+            %remove current arithmetic image from channel objects
+            chObj = chObj(~strcmp(chObj,this.curAIName));
             fiNr = find(strcmp(aiParam{idx}.FLIMItemB,chObj));
             if(isempty(fiNr))
                 %Houston we've got a problem
                 %make warning dialog to switch subject?!
                 fiNr = 1;
-            end
+            end            
             set(this.FLIMItemB,'String',chObj,'Value',fiNr);
             opNr = find(strcmp(aiParam{idx}.opA,get(this.opA,'String')));
             if(isempty(opNr))                
@@ -259,14 +271,25 @@ classdef AICtrl < handle
             %returns AIParams struct
             str = get(this.FLIMItemA,'String');
             aiParams.FLIMItemA = str{get(this.FLIMItemA,'Value')};
+            str = get(this.FLIMItemB,'String');
             aiParams.FLIMItemB = str{get(this.FLIMItemB,'Value')};
             aiParams.normalizeA = get(this.normalizeA,'Value');
             aiParams.normalizeB = get(this.normalizeB,'Value');
             str = get(this.chA,'String');
-            tmp = str{get(this.chA,'Value')};
-            aiParams.chA = str2double(tmp(isstrprop(tmp,'digit')));
-            tmp = str{get(this.chB,'Value')};
-            aiParams.chB = str2double(tmp(isstrprop(tmp,'digit')));
+            vCh = get(this.chA,'Value');
+            if(vCh == 1)
+                aiParams.chA = 0;
+            else
+                tmp = str{get(this.chA,'Value')};
+                aiParams.chA = str2double(tmp(isstrprop(tmp,'digit')));
+            end
+            vCh = get(this.chB,'Value');
+            if(vCh == 1)
+                aiParams.chB = 0;
+            else
+                tmp = str{get(this.chB,'Value')};
+                aiParams.chB = str2double(tmp(isstrprop(tmp,'digit')));
+            end
             str = get(this.opA,'String');
             aiParams.opA = str{get(this.opA,'Value')};
             aiParams.opB = str{get(this.opB,'Value')};
@@ -349,8 +372,8 @@ classdef AICtrl < handle
             aiParams.FLIMItemB = 'Tau 1';
             aiParams.normalizeA = 0;
             aiParams.normalizeB = 0;
-            aiParams.chA = 1;
-            aiParams.chB = 1;
+            aiParams.chA = 0;
+            aiParams.chB = 0;
             aiParams.opA = '<';
             aiParams.opB = '>';
             aiParams.compAgainst = 'val';

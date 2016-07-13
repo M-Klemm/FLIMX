@@ -56,6 +56,7 @@ classdef FDisplay < handle
         myhfdInt = {[]};
         mainExportGfx = [];
         mainExportXls = [];
+        mainExportColors = [];
         suppExport = [];
     end
     properties (Dependent = true)
@@ -629,8 +630,8 @@ classdef FDisplay < handle
                     end
                 else
                     if(dispDim == 1)
-                        zMax(i) = max(current_img(:));
-                        zMin(i) = min(current_img(:));                        
+                        zMax(i) = FData.getNonInfMinMax(2,current_img);
+                        zMin(i) = FData.getNonInfMinMax(1,current_img);                       
                     else
                         zMax(i) = single(hfd{i}.getCImax(rc,rt,rs,ri));
                         zMin(i) = single(hfd{i}.getCImin(rc,rt,rs,ri));
@@ -642,6 +643,7 @@ classdef FDisplay < handle
                 %color mapping                
                 if(dispDim == 1 || isempty(hfd{i}.getCIColor(rc,rt,rs,ri)))
                     colors = current_img - zMin(i);
+                    colors(isinf(colors)) = NaN;
                     if(strcmp(hfd{i}.dType,'Intensity'))
                         cm = this.dynVisParams.cmIntensity;
                     else
@@ -669,6 +671,7 @@ classdef FDisplay < handle
                         alphaData = reshape(alphaData,size(current_img));
                         %set NaN to black
                         colors(repmat(isnan(current_img),[1 1 3])) = 0;
+                        colors(repmat(isinf(current_img),[1 1 3])) = 0;
                     end                    
                 else
                     %we have precomputed colors
@@ -687,6 +690,7 @@ classdef FDisplay < handle
                 %save image for possible export
                 if(nrFD == 1)
                     this.mainExportXls = current_img;
+                    this.mainExportColors = colors;
                 end
                 if(this.visObj.generalParams.reverseYDir)
                     ydir = 'reverse';
@@ -698,6 +702,8 @@ classdef FDisplay < handle
                     case {1,2} %2D plot
                         %plot the image
                         image(colors,'Parent',hAx);
+                        zMin(isnan(zMin)) = 0;
+                        zMax(isnan(zMax)) = zMin(isnan(zMax))+1;
                         caxis(hAx,[zMin(end) zMax(end)]);
                         set(hAx,'YDir',ydir,'XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)]);
                         %draw cuts
@@ -840,7 +846,7 @@ classdef FDisplay < handle
                         %finally plot
                         surf(hAx,current_img,colors,'LineStyle','none','EdgeColor','none','FaceLighting','phong','AlphaDataMapping','none','AlphaData',alphaData);%,'FaceAlpha','flat'
                         alim(hAx,[0 1]);
-                        caxis(hAx,[min(current_img(:)) max(current_img(:))]);
+                        caxis(hAx,[min(current_img(~isnan(current_img(:)) & ~isinf(current_img(:)))) max(current_img(~isnan(current_img(:)) & ~isinf(current_img(:))))]);
                         set(hAx,'YDir',ydir);
                         %set view
                         if(~isempty(this.disp_view))
@@ -1233,8 +1239,7 @@ classdef FDisplay < handle
             %update the labels of the colorbar
             tickLbls = this.makeColorBarLbls(5);
             for i=1:5
-                set(this.(sprintf('h_t%s',num2str(i))),'String',tickLbls{i});%,'Fontsize',this.staticVisParams.fontsize);
-                
+                set(this.(sprintf('h_t%s',num2str(i))),'String',tickLbls{i});%,'Fontsize',this.staticVisParams.fontsize);                
             end
         end
         

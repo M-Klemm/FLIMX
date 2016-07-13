@@ -35,7 +35,7 @@ function varargout = GUI_Export_Options(varargin)
 % vargin - structure with preferences and defaults
 %output: same as input, but altered according to user input
 
-% Last Modified by GUIDE v2.5 25-Jan-2016 18:44:54
+% Last Modified by GUIDE v2.5 22-Jun-2016 15:35:06
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -106,9 +106,16 @@ end
 %other functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function updateGUI(handles,data)
-set(handles.editDpi,'String',num2str(data.dpi));
-set(handles.checkColorbar,'Value',data.plotColorbar);
-if(data.plotColorbar)
+set(handles.checkResample,'Value',data.resampleImage);
+if(data.resampleImage)
+    flag = 'on';
+else
+    flag = 'off';
+end        
+set(handles.textDpi,'Visible',flag);
+set(handles.editDpi,'String',num2str(data.dpi),'Visible',flag);
+set(handles.checkColorbar,'Value',data.plotColorbar,'Visible',flag);
+if(data.resampleImage && data.plotColorbar)
     visStr = 'on';
 else
     visStr = 'off';
@@ -116,10 +123,13 @@ end
 idx = find(strcmp(data.colorbarLocation,get(handles.popupColorbarLocation,'String')),1);
 set(handles.popupColorbarLocation,'Value',idx,'Visible',visStr);
 set(handles.textColorbarLocation,'Visible',visStr);
-set(handles.checkBox,'Value',data.plotBox);
-set(handles.editPlotLinewidth,'String',num2str(data.plotLinewidth));
-set(handles.editLabelFontsize,'String',num2str(data.labelFontSize));
-set(handles.popupAspectRatio,'Value',data.autoAspectRatio+1);
+set(handles.checkBox,'Value',data.plotBox,'Visible',flag);
+set(handles.textPlotLinewidth,'Visible',flag);
+set(handles.textLabelFontsize,'Visible',flag);
+set(handles.editPlotLinewidth,'String',num2str(data.plotLinewidth),'Visible',flag);
+set(handles.editLabelFontsize,'String',num2str(data.labelFontSize),'Visible',flag);
+set(handles.textAspectRatio,'Visible',flag);
+set(handles.popupAspectRatio,'Value',data.autoAspectRatio+1,'Visible',flag);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -149,6 +159,13 @@ updateGUI(handles,rdh.prefs);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %checkboxes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --- Executes on button press in checkResample.
+function checkResample_Callback(hObject, eventdata, handles)
+rdh = get(handles.exportOptionsGUIFigure,'userdata');
+rdh.prefs.resampleImage = get(hObject,'Value');
+set(handles.exportOptionsGUIFigure,'userdata',rdh);
+updateGUI(handles,rdh.prefs);
+
 % --- Executes on button press in checkColorbar.
 function checkColorbar_Callback(hObject, eventdata, handles)
 rdh = get(handles.exportOptionsGUIFigure,'userdata');

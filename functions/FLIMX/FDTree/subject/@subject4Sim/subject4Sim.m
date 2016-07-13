@@ -89,6 +89,7 @@ classdef subject4Sim < fluoSubject
             params = this.basicParams;
             if(~isempty(sdc))
                 params.nExp = sdc.nrExponentials;
+                params.curIRFID = sdc.IRFName;
             end
             params.tciMask = true(1,params.nExp);
             params.stretchedExpMask = false(1,params.nExp);
@@ -112,7 +113,7 @@ classdef subject4Sim < fluoSubject
             params.timeInterpMethod = 'linear';
             params.scatterEnable = 0;
             params.scatterStudy = '';
-            params.scatterIRF = 0;
+            params.scatterIRF = 0;            
             this.basicParams = params;
             this.myParamMgr.makeVolatileParams();
             if(~isempty(sdc))
@@ -120,6 +121,7 @@ classdef subject4Sim < fluoSubject
                     this.myResult.allocResults(ch,this.getROIYSz(),this.getROIXSz());
                 end
             end
+            this.updateAuxiliaryData([]); %updates IRF
         end
         
 %         function setTacRange(this,tacRange)

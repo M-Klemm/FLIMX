@@ -85,7 +85,7 @@ classdef simFLIM < handle
 %                 this.mySimSubject.setNrSpectralChannels(sdc.nrSpectralChannels);
                 %this.mySimSubject.getSEPosRM(sdc.channelNr); %make start/end positions + reflection mask                
 %             end
-            out.updatebasicParams(sdc);
+            out.updatebasicParams(sdc);            
             out.preProcessParams.roiBinning = 0;
             out.preProcessParams.roiAdaptiveBinEnable = 0;
         end
@@ -539,7 +539,7 @@ classdef simFLIM < handle
             %popups
             set(this.visHandles.popupTime,'Callback',@this.GUI_popupTime_Callback);
             set(this.visHandles.popupIRF,'Callback',@this.GUI_popupIRF_Callback);
-            %             set(this.visHandles.popupArrayParameter,'Callback',@this.GUI_popupArrayParameter_Callback);
+            set(this.visHandles.popupArrayParameter,'Callback',@this.GUI_popupArrayParameter_Callback);
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback);
             %tables
             set(this.visHandles.tableParameterSets,'CellSelectionCallback',@this.GUI_tableParameterSets_CellSelectionCallback);
@@ -861,19 +861,18 @@ classdef simFLIM < handle
         %% GUI callbacks
         function GUI_buttonClose_Callback(this,hObject,eventdata)
             %close parameter set manager
-%             if(this.FLIMXObj.sDDMgr.anyDirtySDDs())
-%                 choice = questdlg('Save changes to simulation parameter sets?','Save Parameter Sets?','Yes','No','Cancel','Yes');
-%                 switch choice
-%                     case 'Yes'
-%                         this.FLIMXObj.sDDMgr.saveAll();
-%                     case 'No'
-%                         %load unmodified parameter sets
-%                         %                         this.FLIMXObj.sDDMgr.deleteAllSDDs();
-%                         this.FLIMXObj.sDDMgr.scanForSDDs();
-%                     case 'Cancel'
-%                         return
-%                 end
-%             end
+            if(this.FLIMXObj.sDDMgr.anyDirtySDDs())
+                choice = questdlg('Save changes to simulation parameter sets?','Save Parameter Sets?','Yes','No','Cancel','Yes');
+                switch choice
+                    case 'Yes'
+                        this.FLIMXObj.sDDMgr.saveAll();
+                    case 'No'
+                        %load unmodified parameter sets
+                        this.FLIMXObj.sDDMgr.scanForSDDs();
+                    case 'Cancel'
+                        return
+                end
+            end
             if(~isempty(this.visHandles) && ishandle(this.visHandles.simFLIMFigure))
                 delete(this.visHandles.simFLIMFigure);
             end
@@ -935,37 +934,45 @@ classdef simFLIM < handle
             if(isempty(this.FLIMXObj.sDDMgr.getAllSDDNames()))
                 return
             end
-            sdc = this.currentSynthDataCh;
-            oldName = sdc.UID;
-            options.Resize='on';
-            options.WindowStyle='modal';
-            options.Interpreter='none';
-            while(true)
-                newName=inputdlg('Enter new parameter set name:','Parameter Set Name',1,{oldName},options);
-                if(isempty(newName))
-                    return
-                end
-                %remove any '\' a might have entered
-                newName = char(newName{1,1});
-                idx = strfind(newName,filesep);
-                if(~isempty(idx))
-                    newName(idx) = '';
-                end
-                %check if study name is available
-                if(ismember(newName,this.FLIMXObj.sDDMgr.getAllSDDNames()))
-                    choice = questdlg(sprintf('The Parameter Set "%s" is already existent! Please choose another name.',newName),...
-                        'Error adding Parameter Set','Choose new Name','Cancel','Choose new Name');                    
-                    % Handle response
-                    switch choice
-                        case 'Cancel'
-                            return
+            oldName = this.currentSynthDataCh;
+            for i = 1:length(this.mySelection)
+                sdc = this.getSynthDataCh(this.mySelection{i},this.currentChannel);
+                oldName = sdc.UID;
+                options.Resize='on';
+                options.WindowStyle='modal';
+                options.Interpreter='none';
+                while(true)
+                    newName=inputdlg('Enter new parameter set name:','Parameter Set Name',1,{oldName},options);
+                    if(isempty(newName))
+                        return
                     end
-                else
-                    %we have a unique name
-                    break;
+                    %remove any '\' a might have entered
+                    newName = char(newName{1,1});
+                    idx = strfind(newName,filesep);
+                    if(~isempty(idx))
+                        newName(idx) = '';
+                    end
+                    %check if study name is available
+                    if(ismember(newName,this.FLIMXObj.sDDMgr.getAllSDDNames()))
+                        choice = questdlg(sprintf('The Parameter Set "%s" is already existent! Please choose another name.',newName),...
+                            'Error adding Parameter Set','Choose new Name','Cancel','Stop','Choose new Name');
+                        % Handle response
+                        switch choice
+                            case 'Cancel'
+                                continue
+                            case 'Stop'
+                                break
+                        end
+                    else
+                        %we have a unique name
+                        break;
+                    end
                 end
+                this.FLIMXObj.sDDMgr.renameSDD(oldName,newName);
             end
-            this.FLIMXObj.sDDMgr.renameSDD(oldName,newName);
+            if(isempty(newName))
+                newName = oldName;
+            end
             this.mySelection = {newName};
             this.setupGUI();
             this.updateGUI();
@@ -976,7 +983,17 @@ classdef simFLIM < handle
             if(isempty(this.FLIMXObj.sDDMgr.getAllSDDNames()))
                 return
             end
+            askFlag = true;
             for i = 1:length(this.mySelection)
+                if(askFlag)
+                    choice = questdlg(sprintf('Delete simulation parameter set %s?',this.mySelection{i}),'Delete parameter set?','Yes','All','No','No');
+                    switch choice
+                        case 'All'
+                            askFlag = false;
+                        case 'No'
+                            return
+                    end
+                end
                 this.FLIMXObj.sDDMgr.deleteSDD(this.mySelection{i});
             end
             newNames = this.FLIMXObj.sDDMgr.getAllSDDNames();
@@ -993,6 +1010,11 @@ classdef simFLIM < handle
             %remove all parameter sets
             if(isempty(this.FLIMXObj.sDDMgr.getAllSDDNames()))
                 return
+            end
+            choice = questdlg('Delete all simulation parameter sets?','Delete all parameter sets?','Yes','No','No');
+            switch choice
+                case 'No'
+                    return
             end
             this.FLIMXObj.sDDMgr.deleteAllSDDs();
             this.mySelection = [];
@@ -1023,8 +1045,6 @@ classdef simFLIM < handle
                 this.updateProgressbar(1/length(this.mySelection)*(i-1) + 0.5/length(this.mySelection),...
                     sprintf('Exporting ''%s'' - generating synthetic data...',this.mySelection{i}));
                 this.exportParaSet(this.mySelection{i},batchFlag);
-                this.updateProgressbar(1/length(this.mySelection)*i,...
-                    sprintf('Exporting ''%s'' - finished.',this.mySelection{i}));
                 if(this.stop)
                     this.updateProgressbar(0,'');
                     this.stop = false;
@@ -1219,6 +1239,7 @@ classdef simFLIM < handle
                 %reset simulation data
                 this.mySimSubject.updatebasicParams(sdc);%todo: really needed?
                 [sdc.rawData, sdc.modelData] = this.makeSimMExpDec(1,1,sdc);
+                this.setupGUI();
                 this.updateGUI();
             end
         end
@@ -1535,6 +1556,23 @@ classdef simFLIM < handle
             this.updateGUI();
         end
         
+        function GUI_popupArrayParameter_Callback(this,hObject,eventdata)
+            %change parameter set array type
+            parent = this.currentSynthDataCh;
+            if(isempty(parent))
+                return
+            end
+            apStr = get(this.visHandles.popupArrayParameter,'String');
+            apStr = apStr{get(this.visHandles.popupArrayParameter,'Value')};
+            if(strncmp('tc',apStr,2))
+                set(this.visHandles.editArrayStart,'String',-abs(str2double(get(this.visHandles.editArrayStart,'String'))));
+                set(this.visHandles.editArrayEnd,'String',-abs(str2double(get(this.visHandles.editArrayEnd,'String'))));                
+            else
+                set(this.visHandles.editArrayStart,'String',abs(str2double(get(this.visHandles.editArrayStart,'String'))));
+                set(this.visHandles.editArrayEnd,'String',abs(str2double(get(this.visHandles.editArrayEnd,'String'))));
+            end
+        end
+        
         function GUI_buttonCreateParaSetArray_Callback(this,hObject,eventdata)
             % create parameter sets according to defined range
             % create parameter set array based on currently selected set
@@ -1542,16 +1580,28 @@ classdef simFLIM < handle
             if(isempty(parent))
                 return
             end
+            oldStr = get(hObject,'String');
+            try
+                set(hObject,'String',sprintf('<html><img src="file:/%s"/>Creating...</html>',FLIMX.getAnimationPath()));
+                drawnow;
+            end
             apStr = get(this.visHandles.popupArrayParameter,'String');
             parent.arrayParamNr = get(this.visHandles.popupArrayParameter,'Value');
             parent.arrayParamName = apStr{parent.arrayParamNr};
-            parent.arrayParamStart = str2double(get(this.visHandles.editArrayStart,'String'));
-            parent.arrayParamStep = str2double(get(this.visHandles.editArrayStep,'String'));
+            parent.arrayParamStart = str2double(get(this.visHandles.editArrayStart,'String'));            
+            parent.arrayParamStep = abs(str2double(get(this.visHandles.editArrayStep,'String')));            
             parent.arrayParamEnd = str2double(get(this.visHandles.editArrayEnd,'String'));
+            if(strncmp('tc',parent.arrayParamName,2))
+                %make sure tc is negative
+                parent.arrayParamStart = -abs(parent.arrayParamStart);
+                parent.arrayParamStep = -abs(parent.arrayParamStep);
+                parent.arrayParamEnd = -abs(parent.arrayParamEnd);
+            end
             %create fluo file and set correct fit parameters
             this.newSimSubject(parent);
             this.FLIMXObj.sDDMgr.makeArrayParamSet(parent.UID,@this.makeSimMExpDec);
             this.updateProgressbar(0,'');
+            set(hObject,'String',oldStr);
             %select current parameter set
             this.setupGUI();
             this.updateGUI();
@@ -1570,18 +1620,21 @@ classdef simFLIM < handle
             elseif(~isempty(strfind(tag,'End')))
                 choice = 'End';
             end
+            val = abs(str2double(get(hObject,'String')));
+            if(strncmp('tc',sdc.arrayParamName,2))
+                %make sure tc is negative
+                val = -abs(val);
+            end
             switch choice
-                case 'Start'
-                    val = str2double(get(hObject,'String'));
+                case 'Start'                    
                     if(val > sdc.arrayParamEnd)
                         sdc.arrayParamStart = sdc.arrayParamEnd;
                     else
                         sdc.arrayParamStart = val;
                     end
                 case 'Step'
-                    sdc.arrayParamStep = str2double(get(hObject,'String'));
+                    sdc.arrayParamStep = val;
                 case 'End'
-                    val = str2double(get(hObject,'String'));
                     if(val < sdc.arrayParamStart)
                         sdc.arrayParamEnd = sdc.arrayParamStart;
                     else

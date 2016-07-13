@@ -633,59 +633,81 @@ classdef subjectDS < handle
             if(isempty(aiName) || isempty(aiParams))
                 return
             end
-            [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
-            %make sure channel was loaded from disk
-            this.loadChannelResult(aiParams.chA);
-            %ask study for FData object, if this is an arithmetic image, study will buld it if needed
-            fd = this.myParent.getFDataObj(this.name,aiParams.chA,dType{1},dTypeNr(1),1);
-            if(isempty(fd))
-                return
+            [dTypeA, dTypeANr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
+            %check for which channels the arithmetic image should be built
+            [~, totalCh] = this.myParent.getChStr(this.name);
+            if(aiParams.chA == 0 || aiParams.chB == 0)
+                nCh = length(totalCh);
+            else
+                nCh = 1;
             end
-            dataA = fd.getFullImage();
-            if(aiParams.normalizeA)
-                dataA = dataA ./ max(dataA(:));
+            if(aiParams.chA == 0)
+                chAList = totalCh;
+            else
+                chAList = repmat(aiParams.chA,1,nCh);
             end
-            [op, neg] = studyIS.str2logicOp(aiParams.opA);
-            if(strcmp(aiParams.compAgainst,'val'))                
-                if(any(strcmp(op,{'&','|','xor'})))                    
-                    eval(sprintf('idx = logical(dataA) %s %slogical(aiParams.valA);',op,neg));
-                    data = dataA;
-                    data(~idx) = nan;
-                else
-                    eval(sprintf('data = dataA %s %f;',aiParams.opA,single(aiParams.valA)));
-                end
-                [op, neg] = studyIS.str2logicOp(aiParams.valCombi);
-                if(~isempty(op))
-                    eval(sprintf('data = %s(data %s (dataA %s %f));',neg,op,aiParams.opB,single(aiParams.valB)));
-                end
-            else %compare against another FLIMItem
-                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemB);
+            if(aiParams.chB == 0)
+                chBList = totalCh;
+            else
+                chBList = repmat(aiParams.chB,1,nCh);
+            end
+            %loop over channels
+            for chIdx = 1:nCh
                 %make sure channel was loaded from disk
-                this.loadChannelResult(aiParams.chB);
+                this.loadChannelResult(chAList(chIdx));
                 %ask study for FData object, if this is an arithmetic image, study will buld it if needed
-                fd = this.myParent.getFDataObj(this.name,aiParams.chB,dType{1},dTypeNr(1),1);
+                fd = this.myParent.getFDataObj(this.name,chAList(chIdx),dTypeA{1},dTypeANr(1),1);
                 if(isempty(fd))
+                    continue
+                end
+                dataA = fd.getFullImage();
+                if(aiParams.normalizeA)
+                    dataA = dataA ./ max(dataA(:));
+                end
+                [op, neg] = studyIS.str2logicOp(aiParams.opA);
+                if(strcmp(aiParams.compAgainst,'val'))
+                    if(any(strcmp(op,{'&','|','xor'})))
+                        eval(sprintf('idx = logical(dataA) %s %slogical(aiParams.valA);',op,neg));
+                        data = dataA;
+                        data(~idx) = nan;
+                    else
+                        eval(sprintf('data = dataA %s %f;',aiParams.opA,single(aiParams.valA)));
+                    end
+                    [op, neg] = studyIS.str2logicOp(aiParams.valCombi);
+                    if(~isempty(op))
+                        eval(sprintf('data = %s(data %s (dataA %s %f));',neg,op,aiParams.opB,single(aiParams.valB)));
+                    end
+                else %compare against another FLIMItem
+                    [dTypeB, dTypeBNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemB);
+                    %make sure channel was loaded from disk
+                    this.loadChannelResult(chBList(chIdx));
+                    %ask study for FData object, if this is an arithmetic image, study will buld it if needed
+                    fd = this.myParent.getFDataObj(this.name,chBList(chIdx),dTypeB{1},dTypeBNr(1),1);
+                    if(isempty(fd))
+                        continue
+                    end
+                    dataB = fd.getFullImage();
+                    if(aiParams.normalizeB)
+                        dataB = dataB ./ max(dataB(:));
+                    end
+                    if(any(strcmp(op,{'&','|','xor'})))
+                        idxA = ~isnan(dataA);
+                        idxA(idxA) = logical(dataA(idxA));
+                        idxB = ~isnan(dataB);
+                        idxB(idxB) = logical(dataB(idxB));
+                        eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
+                        data = dataA;
+                        data(~idx) = nan;
+                    else
+                        eval(sprintf('data = dataA %s dataB;',aiParams.opA));
+                    end
+                end
+                if(isempty(data))
                     return
                 end
-                dataB = fd.getFullImage();
-                if(aiParams.normalizeB)
-                    dataB = dataB ./ max(dataB(:));
-                end
-                if(any(strcmp(op,{'&','|','xor'})))
-                    idxA = logical(dataA);
-                    idxB = logical(dataB);
-                    eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
-                    data = dataA;
-                    data(~idx) = nan;
-                else
-                    eval(sprintf('data = dataA %s dataB;',aiParams.opA));
-                end
+                %save arithmetic image
+                this.addObjID(0,chAList(chIdx),aiName,1,data);
             end
-            if(isempty(data))
-                return
-            end
-            %save arithmetic image
-            this.addObjID(0,aiParams.chA,aiName,1,data);
             cutVec = this.myParent.getResultCuts(this.name);
             if(~isempty(cutVec))
                 %set cuts for new items

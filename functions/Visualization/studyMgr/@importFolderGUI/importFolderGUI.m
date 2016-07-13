@@ -212,7 +212,7 @@ classdef importFolderGUI < handle
                         subject = this.FLIMXObj.fdt.getSubject4Import(this.currentStudy,mask{i,2});
                         subject.preProcessParams.roiAdaptiveBinEnable = 0;
                         subject.preProcessParams.roiBinning = 0;
-                        subject.importMeasurement(mask{i,1});
+                        subject.importMeasurementFile(mask{i,1});
                     end
                     [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(nSubjects-i)); %mean cputime for finished runs * cycles left
                     this.plotProgressbar(i/nSubjects,[],...

@@ -172,9 +172,9 @@ classdef FDataNormal < FData
             else
                 this.cachedImage.colors = this.getImgSeg(this.color_data,ROICoordinates,ROIType,ROISubType,ROIInvertFlag,this.getFileInfoStruct());
             end            
-            cim = this.getNonInfMin(2,ci);
+            cim = FData.getNonInfMinMax(1,ci);
             %set possible "-inf" in ci to "cim"
-            ci(ci < cim) = cim;            
+            %ci(ci < cim) = cim;            
             %limit z
             if(this.MSZ)
                 zlim_min = this.getZlimMin(cim);
@@ -182,12 +182,12 @@ classdef FDataNormal < FData
                 ci(ci < zlim_min) = NaN;%zlim_min;
                 ci(ci > zlim_max) = NaN;%zlim_max;
                 info.ZMin = zlim_min;
-                info.ZMax = max(ci(:));
+                info.ZMax = FData.getNonInfMinMax(2,ci);
                 %labels
                 [info.ZLblMin, info.ZLblMax] = this.makeZlbls(zlim_min,zlim_max);
             else
                 info.ZMin = cim;
-                info.ZMax = max(ci(:));
+                info.ZMax = FData.getNonInfMinMax(2,ci);
                 %labels
                 [info.ZLblMin, info.ZLblMax] = this.makeZlbls(info.ZMin,info.ZMax);
             end %limit z
