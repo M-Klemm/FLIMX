@@ -54,7 +54,7 @@ function varargout = GUI_FLIMXFitGUIVisualizationOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_FLIMXFitGUIVisualizationOptions
 
-% Last Modified by GUIDE v2.5 02-Jun-2016 00:03:48
+% Last Modified by GUIDE v2.5 12-Jul-2016 14:43:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -123,6 +123,7 @@ function updateGUI(handles,data)
 
 set(handles.checkData,'Value',data.fluoDecay.plotData);
 set(handles.checkExpSum,'Value',data.fluoDecay.plotExpSum);
+set(handles.checkCurLinesAndText,'Value',data.fluoDecay.plotCurLinesAndText);
 set(handles.checkExp,'Value',data.fluoDecay.plotExp);
 set(handles.checkIRF,'Value',data.fluoDecay.plotIRF);
 set(handles.checkStartEnd,'Value',data.fluoDecay.plotStartEnd);
@@ -143,6 +144,7 @@ set(handles.editDataLinewidth,'String',num2str(data.fluoDecay.plotDataLinewidth,
 set(handles.editExpSumLinewidth,'String',num2str(data.fluoDecay.plotExpSumLinewidth,'%d'));
 set(handles.editExpLinewidth,'String',num2str(data.fluoDecay.plotExpLinewidth,'%d'));
 set(handles.editIRFLinewidth,'String',num2str(data.fluoDecay.plotIRFLinewidth,'%d'));
+set(handles.editCurlineswidth,'String',num2str(data.fluoDecay.plotCurlineswidth,'%d'));
 set(handles.editStartEndLinewidth,'String',num2str(data.fluoDecay.plotStartEndLinewidth,'%d'));
 set(handles.editSlopeLinewidth,'String',num2str(data.fluoDecay.plotSlopeLinewidth,'%d'));
 set(handles.editInitLinewidth,'String',num2str(data.fluoDecay.plotInitLinewidth,'%d'));
@@ -151,6 +153,7 @@ set(handles.popupDataLinestyle,'Value',lineStyle2id(data.fluoDecay.plotDataLines
 set(handles.popupExpSumLinestyle,'Value',lineStyle2id(data.fluoDecay.plotExpSumLinestyle));
 set(handles.popupExpLinestyle,'Value',lineStyle2id(data.fluoDecay.plotExpLinestyle));
 set(handles.popupIRFLinestyle,'Value',lineStyle2id(data.fluoDecay.plotIRFLinestyle));
+set(handles.popupCurLinesStyle,'Value',lineStyle2id(data.fluoDecay.plotCurLinesStyle));
 set(handles.popupStartEndLinestyle,'Value',lineStyle2id(data.fluoDecay.plotStartEndLinestyle));
 set(handles.popupSlopeLinestyle,'Value',lineStyle2id(data.fluoDecay.plotSlopeLinestyle));
 set(handles.popupInitLinestyle,'Value',lineStyle2id(data.fluoDecay.plotInitLinestyle));
@@ -158,6 +161,8 @@ set(handles.popupInitLinestyle,'Value',lineStyle2id(data.fluoDecay.plotInitLines
 %color
 set(handles.buttonDataColor,'BackgroundColor',data.fluoDecay.plotDataColor);
 set(handles.buttonExpSumColor,'BackgroundColor',data.fluoDecay.plotExpSumColor);
+set(handles.buttonCurLinesColor,'BackgroundColor',data.fluoDecay.plotCurLinesColor);
+set(handles.buttonCoordinateBoxColor,'BackgroundColor',data.fluoDecay.plotCoordinateBoxColor);
 set(handles.buttonExp1Color,'BackgroundColor',data.fluoDecay.plotExp1Color);
 set(handles.buttonExp2Color,'BackgroundColor',data.fluoDecay.plotExp2Color);
 set(handles.buttonExp3Color,'BackgroundColor',data.fluoDecay.plotExp3Color);
@@ -167,6 +172,10 @@ set(handles.buttonIRFColor,'BackgroundColor',data.fluoDecay.plotIRFColor);
 set(handles.buttonStartEndColor,'BackgroundColor',data.fluoDecay.plotStartEndColor);
 set(handles.buttonSlopeColor,'BackgroundColor',data.fluoDecay.plotSlopeColor);
 set(handles.buttonInitColor,'BackgroundColor',data.fluoDecay.plotInitColor);
+
+%transparency
+set(handles.editCoordinateBoxTransparency,'String',num2str(100*data.fluoDecay.plotCoordinateBoxTransparency,'%d'));
+
 %markerstyle
 set(handles.popupDataMarkerstyle,'Value',markerStyle2id(data.fluoDecay.plotDataMarkerstyle));
 set(handles.popupExpSumMarkerstyle,'Value',markerStyle2id(data.fluoDecay.plotExpSumMarkerstyle));
@@ -377,6 +386,12 @@ rdh.general.reverseYDir = get(hObject,'Value');
 rdh.isDirty(2) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
+function checkCurLinesAndText_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.fluoDecay.plotCurLinesAndText = get(hObject,'Value');
+rdh.isDirty(1) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %edit fields
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -463,6 +478,20 @@ rdh.fluoDecay.plotInitLinewidth = max(1,abs(round(str2double(get(hObject,'String
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 set(hObject,'String',rdh.fluoDecay.plotInitLinewidth);
+
+function editCurlineswidth_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.fluoDecay.plotCurlineswidth = str2double(get(hObject,'String'));
+rdh.isDirty(1) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+set(hObject,'String',rdh.fluoDecay.plotCurlineswidth);
+
+function editCoordinateBoxTransparency_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.fluoDecay.plotCoordinateBoxTransparency = min(100,max(1,abs(round(str2double(get(hObject,'String'))))))/100;
+rdh.isDirty(1) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+updateGUI(handles,rdh);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -598,6 +627,29 @@ if(length(new) == 3)
     set(hObject,'BackgroundColor',new);
 end
 
+% --- Executes on button press in buttonCurLinesColor.
+function buttonCurLinesColor_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+new = GUI_Colorselection(rdh.fluoDecay.plotCurLinesColor);
+if(length(new) == 3)
+    rdh.fluoDecay.plotCurLinesColor = new;
+    rdh.isDirty(1) = 1;
+    set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);    
+    set(hObject,'BackgroundColor',new);
+end
+
+% --- Executes on button press in buttonCoordinateBoxColor.
+function buttonCoordinateBoxColor_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+new = GUI_Colorselection(rdh.fluoDecay.plotCoordinateBoxColor);
+if(length(new) == 3)
+    rdh.fluoDecay.plotCoordinateBoxColor = new;
+    rdh.isDirty(1) = 1;
+    set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);    
+    set(hObject,'BackgroundColor',new);
+end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %popup menus
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -702,6 +754,13 @@ set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 function popupSlopeLinestyle_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
 rdh.fluoDecay.plotSlopeLinestyle = id2LineStyle(get(hObject,'Value'));
+rdh.isDirty(1) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
+% --- Executes on selection change in popupCurLinesStyle.
+function popupCurLinesStyle_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.fluoDecay.plotCurLinesStyle = id2LineStyle(get(hObject,'Value'));
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
@@ -868,6 +927,27 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function popupFLIMItems_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes during object creation, after setting all properties.
+function popupCurLinesStyle_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes during object creation, after setting all properties.
+function editCurlineswidth_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes during object creation, after setting all properties.
+function editCoordinateBoxTransparency_CreateFcn(hObject, eventdata, handles)
+
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
