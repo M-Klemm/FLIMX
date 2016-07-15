@@ -661,6 +661,9 @@ classdef subjectDS < handle
                     continue
                 end
                 dataA = fd.getFullImage();
+                if(isempty(dataA))
+                    continue
+                end
                 if(aiParams.normalizeA)
                     dataA = dataA ./ max(dataA(:));
                 end
@@ -687,6 +690,9 @@ classdef subjectDS < handle
                         continue
                     end
                     dataB = fd.getFullImage();
+                    if(isempty(dataB))
+                        continue
+                    end
                     if(aiParams.normalizeB)
                         dataB = dataB ./ max(dataB(:));
                     end
