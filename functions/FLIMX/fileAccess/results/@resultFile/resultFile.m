@@ -492,7 +492,7 @@ classdef resultFile < handle
             if((isempty(this.results.pixel) || length(this.results.pixel) < ch || isempty(this.results.pixel{ch,1})) && ~any(this.nonEmptyChannelList == ch))
                 return
             end
-            if((isempty(this.results.pixel) || length(this.results.pixel) < ch || isempty(this.results.pixel{ch,1})) && ~any(this.loadedChannelList == ch))
+            if(isempty(this.results.pixel) || length(this.results.pixel) < ch || isempty(this.results.pixel{ch,1}) || ~any(this.loadedChannelList == ch))
                 %what if channel is dirty?
                 this.openChannel(ch);
                 if(isempty(this.results.pixel{ch,1}))
