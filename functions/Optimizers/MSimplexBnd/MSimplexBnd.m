@@ -140,21 +140,17 @@ if(m > 1)
             end
             [x,~,exitflag,output] = mainAlgorithm(v,fv);
         case 3 %compute all seeds
-            fv = zeros(1,m+1);
+            fv = zeros(1,m);
             iterCnt = zeros(1,m);
             funcCnt = zeros(1,m);
             for nx = 1:m
-                [vTmp, fvTmp] = init(mean(x(:,:),2));
+                [vTmp, fvTmp] = init(x(:,nx));
                 [x(:,nx),fv(nx),exitflag,output] = mainAlgorithm(vTmp,fvTmp);
                 iterCnt(nx) = itercount;
                 itercount = 1;
                 funcCnt(nx) = func_evals;
                 func_evals = 0;
             end
-            iterCnt(nx) = itercount;
-            itercount = 1;
-            funcCnt(nx) = func_evals;
-            func_evals = 0;
             [~,best] = min(fv);
             x = x(:,best);
             func_evals = sum(funcCnt(:));
@@ -162,7 +158,7 @@ if(m > 1)
             output.funcCount = func_evals;
         case 4 %mean of seeds
             [vTmp, fvTmp] = init(mean(x,2));
-            [x,~,exitflag,output] = mainAlgorithm(vTmp,fvTmp);            
+            [x,~,exitflag,output] = mainAlgorithm(vTmp,fvTmp);
     end
 else
     [vTmp, fvTmp] = init(x);

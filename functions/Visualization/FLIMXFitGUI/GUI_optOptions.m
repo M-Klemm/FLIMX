@@ -266,7 +266,7 @@ set(hObject,'String',num2str(rdh.optParams.options_msimplexbnd.TolFun));
 
 function popupMSB_MultSeeds_Callback(hObject, eventdata, handles)
 rdh = get(handles.optOptionsFigure,'userdata');
-rdh.optParams.options_msimplexbnd.multipleSeedsMode = get(hObject,'String');
+rdh.optParams.options_msimplexbnd.multipleSeedsMode = get(hObject,'Value');
 rdh.isDirty(2) = 1;
 set(handles.optOptionsFigure,'userdata',rdh);
 
