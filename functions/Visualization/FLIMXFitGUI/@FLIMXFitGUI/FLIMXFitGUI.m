@@ -1592,7 +1592,7 @@ classdef FLIMXFitGUI < handle
                     this.visHandles.coordinateBoxMain = text(NaN, NaN, 'HI BILLY MAYS HERE ;)', 'EdgeColor', [ 0 0 0], 'BackgroundColor', Coordinateboxcolor, 'Parent' , this.visHandles.axesCurMain);
                 end
                 cpStr = FLIMXFitGUI.num4disp(cp);
-                if(Xval <= length(Yval) && ~isempty(this.currentDecayData))
+                if(Xval > 0 && Xval <= length(Yval) && ~isempty(this.currentDecayData))
                     if(Yval(Xval) > 0)
                         if( 1.125*(cp(1)-xl(1)) <= (xl(2)-xl(1)) && Xval < length(Yval))
                             this.visHandles.coordinateBoxMain.Position = [cp(1)+0.02*(xl(2)-xl(1)) cp(2)];%double(Yval(Xval))
