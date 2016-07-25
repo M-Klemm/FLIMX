@@ -1048,9 +1048,7 @@ classdef FDisplay < handle
                                 %z scaling
                                 if(hfd{i}.MSZ)
                                     zData = hfd{i}.getZScaling();
-                                    if(MSZMin ~= -inf)
-                                        zMin(i) = zData(2);
-                                    end
+                                    zMin(i) = zData(2);
                                     zMax(i) = zData(3);
                                 end
                             else
@@ -1069,9 +1067,7 @@ classdef FDisplay < handle
                                 %z scaling
                                 if(hfdT.MSZ)
                                     zData = hfdT.getZScaling();
-                                    if(MSZMin ~= -inf)
-                                        zMin(i) = zData(2);
-                                    end
+                                    zMin(i) = zData(2);
                                     zMax(i) = zData(3);
                                 end
                             end
