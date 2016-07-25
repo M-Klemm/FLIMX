@@ -54,7 +54,7 @@ function varargout = GUI_compInfo(varargin)
 
 % Edit the above text to modify the response to help GUI_compInfo
 
-% Last Modified by GUIDE v2.5 15-Nov-2010 18:19:19
+% Last Modified by GUIDE v2.5 25-Jul-2016 17:11:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -175,15 +175,14 @@ eff(:,1) = time(:,1) ./ work(:,1) *1000;
 eff(:,2) = time(:,2) ./ work(:,2) *1000;
 %ym = max(eff(:));
 %axes(handles.axesHostEff);
-bar(handles.axesHostEff,eff,'Group');
+b = bar(handles.axesHostEff,eff,'Group');
+b(1).FaceColor = 'b';
+b(2).FaceColor = 'r';
+set(handles.buttonDeployed,'Backgroundcolor','b');
+set(handles.buttonMatlab,'Backgroundcolor','r');
 ylabel(handles.axesHostEff,'(ms)');
 title(handles.axesHostEff,'Average Time per Function Evaluation');
-set(handles.axesHostEff,'XTick',round(get(handles.axesHostEff,'XTick')));
-if(length(allHosts) == length(round(get(handles.axesHostEff,'XTick'))))
-    try
-        xticklabel_rotate(handles.axesHostEff,[],45,allHosts);
-    end
-end
+set(handles.axesHostEff,'XTick',round(get(handles.axesHostEff,'XTick')),'XTickLabel',allHosts,'XTickLabelRotation',45);
 %set(handles.axesHostEff,'XTickLabel',allHosts);
 %ylim([0 ym]);
 %efficiency table
@@ -251,8 +250,22 @@ end
 if(any(any(work(:,2),2)))
     lstr(end+1) = {'Matlab'};
 end
-legend(handles.axesHostEff,lstr,'location','NorthEastOutside');
+%legend(handles.axesHostEff,lstr,'location','NorthEastOutside');
 
 % --- Executes on button press in buttonOK.
 function buttonOK_Callback(hObject, eventdata, handles)
 uiresume(handles.compInfoFigure);
+
+
+% --- Executes on button press in buttonDeployed.
+function buttonDeployed_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonDeployed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in buttonMatlab.
+function buttonMatlab_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonMatlab (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
