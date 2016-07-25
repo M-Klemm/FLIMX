@@ -53,7 +53,6 @@ classdef measurementFile < handle
         roiSupport = cell(0,0);
         roiBinLevels = cell(0,0);
         roiMerged = cell(0,0);
-        roiMergedMask = [];
         initData = cell(0,0);
         useMexFlags = [];
         useGPUFlags = [];
@@ -677,18 +676,7 @@ classdef measurementFile < handle
                 if(isvector(raw))
                     this.roiMerged(channel) = {raw};
                 elseif(~isempty(raw) && ndims(raw) == 3)
-                    raw = raw(this.ROICoordinates(3):this.ROICoordinates(4),this.ROICoordinates(1):this.ROICoordinates(2),:);
-                    rawFlat = sum(raw,3);
-                    mv = max(rawFlat(:));
-                    if(isempty(this.roiMergedMask))
-                        mask = rawFlat >= mv/10;
-                        this.roiMergedMask = mask;
-                    else
-                        mask = this.roiMergedMask;
-                    end
-                    raw = reshape(raw,[size(raw,1)*size(raw,2),size(raw,3)]);
-                    this.roiMerged(channel) = {sum(raw(mask(:),:),1)'};
-                    %this.roiMerged(channel) = {sum(reshape(raw(this.ROICoordinates(3):this.ROICoordinates(4),this.ROICoordinates(1):this.ROICoordinates(2),:),[],size(raw,3)),1)'};
+                    this.roiMerged(channel) = {sum(reshape(raw(this.ROICoordinates(3):this.ROICoordinates(4),this.ROICoordinates(1):this.ROICoordinates(2),:),[],size(raw,3)),1)'};
                 end
             end
             if(length(this.roiMerged) < channel || isempty(this.roiMerged{channel}))
@@ -1044,7 +1032,6 @@ classdef measurementFile < handle
             this.rawFluoDataMask = cell(this.nrSpectralChannels,1);
             this.roiFluoDataFlat = cell(this.nrSpectralChannels,1);
             this.roiMerged = cell(this.nrSpectralChannels,1);
-            this.roiMergedMask = [];
             this.roiSupport = cell(this.nrSpectralChannels,1);
             this.initData = cell(this.nrSpectralChannels,1);
             this.fileInfo.reflectionMask = cell(this.nrSpectralChannels,1);
