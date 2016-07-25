@@ -54,7 +54,7 @@ function varargout = GUI_fitOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_fitOptions
 
-% Last Modified by GUIDE v2.5 07-Mar-2016 17:17:05
+% Last Modified by GUIDE v2.5 21-Jul-2016 14:26:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -170,15 +170,16 @@ else
     set(handles.popupIRF,'String',data.IRFStr,'Value',idx);
 end
 switch data.basic.fitModel
-    case 0
+    case 0 %tailfit
         set(handles.radioTciFit,'Value',0);
         set(handles.radioTailFit,'Value',1);
-    case 1
+        set(handles.textTailFitPreMax,'Visible','on');
+        set(handles.editTailFitPreMax,'Visible','on','String',data.basic.tailFitPreMaxSteps);
+    case 1 %all time points
         set(handles.radioTciFit,'Value',1);
         set(handles.radioTailFit,'Value',0);
-    case 2
-        set(handles.radioTciFit,'Value',0);
-        set(handles.radioTailFit,'Value',0);
+        set(handles.textTailFitPreMax,'Visible','off');
+        set(handles.editTailFitPreMax,'Visible','off','String',data.basic.tailFitPreMaxSteps);
 end
 tcilen = length(data.basic.tciMask);
 stelen = length(data.basic.stretchedExpMask);
@@ -612,6 +613,13 @@ updateGUI(handles,rdh);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %edit fields
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function editTailFitPreMax_Callback(hObject, eventdata, handles)
+rdh = get(handles.fitOptionsFigure,'userdata');
+rdh.basic.tailFitPreMaxSteps = abs(str2double(get(hObject,'String')));
+rdh.isDirty(1) = 1;
+set(handles.fitOptionsFigure,'userdata',rdh);
+set(hObject,'String',num2str(rdh.basic.tailFitPreMaxSteps));
+
 function editLifetimeGap_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
 rdh.basic.lifetimeGap = abs(str2double(get(hObject,'String'))) / 100 + 1;
@@ -1157,6 +1165,11 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function popupFigureOfMerit_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editTailFitPreMax_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
