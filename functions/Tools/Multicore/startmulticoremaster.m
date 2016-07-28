@@ -221,111 +221,20 @@ p = [];%gcp('nocreate');%MKlemm
 multicoreCancelled = false;
 tStart = tic;
 lastUpdate = clock;
-for lastFileNrMaster = nrOfFiles:-1:1
-    %     if(~isempty(p) && isa(parameterCell{1}{1},'function_handle'))
-    %         %create workunits in parallel
-    %         for i = 1:min(filesAtOnce,lastFileNrMaster)
-    %             curFileNr = lastFileNrMaster-i+1;
-    %             parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
-    %             pTemp = parameterCell{parIndex};
-    %             f(i) = parfeval(p,pTemp{1},1,pTemp{2:end});
-    %         end
-    %     end
-    fBps = 0;
-    %         if(~isempty(p))
-    %             [idx,parameters] = fetchNext(f);
-    %             curFileNr = lastFileNrMaster-idx+1;
-    %             parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
-    %             parameters = {parameters};
-    %         else
-    curFileNr = lastFileNrMaster; % for simpler copy&paste
-    parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
-    pTemp = parameterCell{parIndex}; %MKlemm
-    if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
-        parameters = {feval(pTemp{1},pTemp{2:end})};
-    else
-        parameters      = parameterCell(parIndex); %#ok
-    end
-    %         end
-    functionHandles = functionHandleCell(parIndex); %#ok
-    parameterFileName = strrep(parameterFileNameTemplate, 'XX', sprintf('%04d', curFileNr));
-    tic;
-    if(isempty(p))
-        if debugMode, t1 = mbtime; end
-        sem = setfilesemaphore(parameterFileName);
-        if debugMode, setTime = setTime + mbtime - t1; end
-        try
-            save(parameterFileName, 'functionHandles', 'parameters'); %% file access %%
-            if debugMode
-                disp(sprintf('Parameter file nr %d generated.', curFileNr));
-            end
-        catch ME
-            if showWarnings
-                disp(textwrap2(sprintf('Warning: Unable to save file %s.', parameterFileName)));
-                displayerrorstruct;
-            end
-        end
-        removefilesemaphore(sem);
-        fInfo = dir(parameterFileName);
-        if(~isempty(fInfo))
-            fBps = fInfo.bytes ./ toc ./1024;
-        else
-            toc;
-            fBps = 0;
-        end
-        multicoreWaitbar('update1', nrOfFiles, curFileNr,fBps);
-    else
-        f(abs(lastFileNrMaster-nrOfFiles-1)) = parfeval(p,@savewrap,1,parameterFileName,functionHandles,parameters);
-        if(etime(clock, lastUpdate) > 2)
-            bytes = 0;
-            idx = 0;
-            while(~isempty(idx))
-                try
-                    [idx,sTmp] = fetchNext(f,0.001);
-                    if(~isempty(sTmp))
-                        if(sTmp.bytes)
-                            bytes = bytes+sTmp.bytes;
-                        else
-                            disp(sTmp.message);
-                        end
-                    end
-                catch
-                    idx = [];
-                end
-            end
-            fBps = bytes ./ etime(clock, lastUpdate) ./1024;
-            multicoreWaitbar('update1', nrOfFiles, curFileNr,fBps);
-            lastUpdate = clock;
-        end
-    end
-    
-    % Update waitbar
-    
-    %     for i = 1:min(filesAtOnce,lastFileNrMaster)
-    %         if debugMode, t1 = mbtime; end
-    %         removefilesemaphore(sem(i));
-    %         if debugMode, removeTime = removeTime + mbtime - t1; end
-    %     end
-    
-    if multicoreCancelled
-        multicoreCancel2(lastFileNrMaster, nrOfFiles);
-        return
-    end
-end
-if(~isempty(p))
-    %wait for the last writes to finish
-    R = fetchOutputs(f);
-end
-fprintf('Parameterfile generation took %f seconds\n',toc(tStart));
-
 resultCell = cell(size(parameterCell));
-
 lastFileNrMaster  = 1;         % start working down the list from top to bottom
 lastFileNrSlave = nrOfFiles; % check for results from bottom to top
 parameterFileFoundTime  = NaN;
 parameterFileRegCounter = 0;
 nrOfFilesMaster = 0;
 nrOfFilesSlaves = 0;
+
+if(~createParameterFiles(nrOfFiles:-1:1))
+    %user pressed cancel
+    multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
+    return
+end
+fprintf('Parameterfile generation took %f seconds\n',toc(tStart));
 
 % Initialize waitbar again
 multicoreWaitbar('init2');
@@ -509,23 +418,7 @@ while ~all(~cellfun(@isempty,resultCell)) %1 % this while-loop will be left if a
                 if debugMode
                     %fprintf(' %d,', k);
                 end
-                %         if iscell(parameterCell{k})
-                %           resultCell{k} = feval(functionHandleCell{k}, parameterCell{k}{:});
-                %         else
-                %           resultCell{k} = feval(functionHandleCell{k}, parameterCell{k});
-                %         end
-                pTemp = parameterCell{k}; %MKlemm
-                if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
-                    parameters = feval(pTemp{1},pTemp{2:end});
-                    %parameters = {feval(pTemp{1},pTemp{2:end})};
-                else
-                    %parameters      = pTemp;
-                    if(iscell(pTemp))
-                        parameters = pTemp;
-                    else
-                        parameters = pTemp;
-                    end
-                end
+                parameters = getWUParameters(k);                
                 resultCell{k} = feval(functionHandleCell{k}, parameters{:});
                 if multicoreCancelled
                     multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
@@ -587,9 +480,26 @@ while ~all(~cellfun(@isempty,resultCell)) %1 % this while-loop will be left if a
     if debugMode
         fprintf('********** 2. Working from bottom to top (file nr %d)\n', lastFileNrSlave);
     end
-    
-    resultFiles = rdir([multicoreDir, filesep, 'result_*.mat']);
-    resultFiles = resultFiles(~[resultFiles.isdir]);
+    files = dir(multicoreDir);
+    files = files(~[files.isdir]); %no directories
+    files = files(~cellfun(@isempty,strfind({files.name},'.mat'))); %only mat files
+    fileNrs = cellfun(@fileName2FileNr,{files.name});
+    fileNrs = fileNrs(~isnan(fileNrs)); %remove NaN, where string coversion did not work
+    resultNrs = find(~cellfun(@isempty,resultCell));
+    missingFiles = setdiff(1:nrOfFiles,[resultNrs fileNrs]); %file lost for unknown reasons
+    if(~isempty(missingFiles))
+        createParameterFiles(missingFiles);
+    end
+    resultIdx = strncmp('result',{files.name},6);
+%     workingIdx = strncmp('working',{files.name},7);
+%     parametersIdx = strncmp('parameters',{files.name},10);
+    resultFiles = files(resultIdx);
+%     workingFiles = files(workingIdx);
+%     parameterFiles = files(parametersIdx);
+%     resultFiles = rdir([multicoreDir, filesep, 'result_*.mat']);
+%     workingFiles = rdir([multicoreDir, filesep, 'working_*.mat']);
+%     parameterFiles = dir([multicoreDir, filesep, 'parameters_*.mat']);
+%     resultFiles = resultFiles(~[resultFiles.isdir]);
     curPauseTime = startPauseTime;
     for i = 1:length(resultFiles) % in this while-loop, lastFileNrSlave will be decremented if results are found
         %     if lastFileNrSlave < 1
@@ -600,9 +510,10 @@ while ~all(~cellfun(@isempty,resultCell)) %1 % this while-loop will be left if a
         %       end
         %       break
         %     end
-        [~,name,~] = fileparts(resultFiles(i).name);
-        if(length(name) >= 10 && all(isstrprop(name(end-3:end),'digit')))
-            curFileNr = str2double(name(end-3:end));
+        %[~,name,~] = fileparts(resultFiles(i).name);
+        name = resultFiles(i).name;
+        if(length(name) >= 10 && all(isstrprop(name(end-7:end-4),'digit'))) %end-3:end
+            curFileNr = str2double(name(end-7:end-4));
         else
             %something is wrong with the file name
             continue
@@ -759,25 +670,7 @@ while ~all(~cellfun(@isempty,resultCell)) %1 % this while-loop will be left if a
                     % should be chosen higher). The parameter file is generated
                     % again, hoping that another slave will finish the job. If all
                     % slaves are dead, the master will later do the job.
-                    functionHandles = functionHandleCell(parIndex); %#ok
-                    pTemp = parameterCell{parIndex}; %MKlemm
-                    if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
-                        parameters = {feval(pTemp{1},pTemp{2:end})};
-                    else
-                        parameters      = parameterCell(parIndex); %#ok
-                    end
-                    try
-                        save(parameterFileName, 'functionHandles', 'parameters'); %% file access %%
-                        if debugMode
-                            fprintf('Parameter file nr %d was generated again (%d. time).\n', ...
-                                curFileNr, parameterFileRegCounter);
-                        end
-                    catch
-                        if showWarnings
-                            disp(textwrap2(sprintf('Warning: Unable to save file %s.', parameterFileName)));
-                            displayerrorstruct;
-                        end
-                    end
+                    createParameterFiles(parIndex);                    
                     parameterFileRegCounter = parameterFileRegCounter + 1;
                 end
                 
@@ -800,21 +693,7 @@ while ~all(~cellfun(@isempty,resultCell)) %1 % this while-loop will be left if a
                         t0 = mbtime;
                     end
                     for k = parIndex
-                        %             if iscell(parameterCell{k})
-                        %               resultCell{k} = feval(functionHandleCell{k}, parameterCell{k}{:});
-                        %             else
-                        %               resultCell{k} = feval(functionHandleCell{k}, parameterCell{k});
-                        %             end
-                        pTemp = parameterCell{k}; %MKlemm
-                        if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
-                            parameters = feval(pTemp{1},pTemp{2:end});
-                        else
-                            if(iscell(pTemp))
-                                parameters = pTemp;
-                            else
-                                parameters = pTemp;
-                            end
-                        end
+                        parameters = getWUParameters(k);
                         resultCell{k} = feval(functionHandleCell{k}, parameters{:});
                         if multicoreCancelled
                             multicoreCancel2(lastFileNrMaster, lastFileNrSlave);
@@ -973,7 +852,7 @@ end
             parameterFileName = strrep(parameterFileNameTemplate, 'XX', sprintf('%04d', curFileNr));
             
             if debugMode, t1 = mbtime; end
-            sem = setfilesemaphore(parameterFileName);
+            mySem = setfilesemaphore(parameterFileName);
             if debugMode
                 setTime = setTime + mbtime - t1;
                 parameterFileExistingTmp = ~isempty(dir(parameterFileName));
@@ -981,7 +860,7 @@ end
             
             mbdelete(parameterFileName, showWarnings);
             if debugMode, t1 = mbtime; end
-            removefilesemaphore(sem);
+            removefilesemaphore(mySem);
             if debugMode, removeTime = removeTime + mbtime - t1; end
             
             multicoreWaitbar('update3', minFileNr, maxFileNr, fileNrTmp);
@@ -998,6 +877,124 @@ end
         [status, message, ~] = rmdir(multicoreDir,'s');
         
     end % function
+
+    function out = getWUParameters(idx)
+        %return cell with work unit parameters
+        out = [];
+        if(idx > nrOfFiles)
+            return
+        end
+        out = parameterCell{idx};
+        if(~isempty(out{1}) && ~iscell(out{1}) && isa(out{1},'function_handle'))
+            out = feval(out{1},out{2:end});        
+        end
+    end
+
+    function out = createParameterFiles(fileIds)
+        %create work units write them to multicore dir
+        fileIds = fileIds(fileIds <= nrOfFiles);
+        for f = fileIds
+            %     if(~isempty(p) && isa(parameterCell{1}{1},'function_handle'))
+            %         %create workunits in parallel
+            %         for i = 1:min(filesAtOnce,lastFileNrMaster)
+            %             curFileNr = lastFileNrMaster-i+1;
+            %             parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
+            %             pTemp = parameterCell{parIndex};
+            %             f(i) = parfeval(p,pTemp{1},1,pTemp{2:end});
+            %         end
+            %     end
+            fBps = 0;
+            %         if(~isempty(p))
+            %             [idx,parameters] = fetchNext(f);
+            %             curFileNr = lastFileNrMaster-idx+1;
+            %             parIndex = ((curFileNr-1)*nrOfEvalsAtOnce+1) : min(curFileNr*nrOfEvalsAtOnce, nrOfEvals);
+            %             parameters = {parameters};
+            %         else
+            parIndex = ((f-1)*nrOfEvalsAtOnce+1) : min(f*nrOfEvalsAtOnce, nrOfEvals);
+%             pTemp = parameterCell{parIndex}; %MKlemm
+%             if(~isempty(pTemp{1}) && ~iscell(pTemp{1}) && isa(pTemp{1},'function_handle'))
+%                 parameters = {feval(pTemp{1},pTemp{2:end})};
+%             else
+%                 parameters      = parameterCell(parIndex); %#ok
+%             end
+            params = getWUParameters(parIndex);
+            if(isempty(params))
+                %throw warning or error?!
+                continue
+            end
+            parameters = {params};
+            %         end
+            functionHandles = functionHandleCell(parIndex); %#ok
+            parameterFileName = strrep(parameterFileNameTemplate, 'XX', sprintf('%04d', f));
+            tic;
+            if(isempty(p))
+                if debugMode, t1 = mbtime; end
+                mySem = setfilesemaphore(parameterFileName);
+                if debugMode, setTime = setTime + mbtime - t1; end
+                try
+                    save(parameterFileName, 'functionHandles', 'parameters'); %% file access %%
+                    if debugMode
+                        disp(sprintf('Parameter file nr %d generated.', f));
+                    end
+                catch ME
+                    if showWarnings
+                        disp(textwrap2(sprintf('Warning: Unable to save file %s.', parameterFileName)));
+                        displayerrorstruct;
+                    end
+                end
+                removefilesemaphore(mySem);
+                fInfo = dir(parameterFileName);
+                if(~isempty(fInfo))
+                    fBps = fInfo.bytes ./ toc ./1024;
+                else
+                    toc;
+                    fBps = 0;
+                end
+                multicoreWaitbar('update1', nrOfFiles, f,fBps);
+            else
+                f(abs(f-nrOfFiles-1)) = parfeval(p,@savewrap,1,parameterFileName,functionHandles,parameters);
+                if(etime(clock, lastUpdate) > 2)
+                    bytes = 0;
+                    idx = 0;
+                    while(~isempty(idx))
+                        try
+                            [idx,sTmp] = fetchNext(f,0.001);
+                            if(~isempty(sTmp))
+                                if(sTmp.bytes)
+                                    bytes = bytes+sTmp.bytes;
+                                else
+                                    disp(sTmp.message);
+                                end
+                            end
+                        catch
+                            idx = [];
+                        end
+                    end
+                    fBps = bytes ./ etime(clock, lastUpdate) ./1024;
+                    multicoreWaitbar('update1', nrOfFiles, f,fBps);
+                    lastUpdate = clock;
+                end
+            end
+            
+            % Update waitbar
+            
+            %     for i = 1:min(filesAtOnce,f)
+            %         if debugMode, t1 = mbtime; end
+            %         removefilesemaphore(mySem(i));
+            %         if debugMode, removeTime = removeTime + mbtime - t1; end
+            %     end
+            
+            if multicoreCancelled
+                out = false;
+                return
+            end
+        end
+        out = true;
+        if(~isempty(p))
+            %wait for the last writes to finish
+            R = fetchOutputs(f);
+        end
+    end %createParameterFiles
 
 end % function startmulticoremaster
 
@@ -1389,5 +1386,11 @@ end
 
 end % function
 
-
-
+function out = fileName2FileNr(name)
+%get file number from work uni file name
+if(length(name) > 10)
+    out = str2double(name(end-7:end-4));
+else
+    out = NaN;
+end
+end %fileName2FileNr
