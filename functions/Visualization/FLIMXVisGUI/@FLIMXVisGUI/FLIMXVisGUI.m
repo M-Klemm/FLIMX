@@ -498,7 +498,7 @@ classdef FLIMXVisGUI < handle
                 %check if channel number exceeds IRF channel number
                 if(fileImport) %we don't need an IRF we have a result structure (amplitues are already in photons)
                     if(opt.ch > this.FLIMXObj.irfMgr.getSpectralChNrs([],'',[]))
-                        choice = questdlg('Channel number exceeds number of IRF channels! Select another Channel?','Error importing Channel','Yes','No','Yes');
+                        choice = questdlg('Channel number exceeds number of IRF channels! Select another channel?','Error importing channel','Yes','No','Yes');
                         switch choice
                             case 'Yes'
                                 continue
@@ -566,7 +566,7 @@ classdef FLIMXVisGUI < handle
                 this.updateGUI([]);
                 success = true;
                 if(fileImport)
-                    choice = questdlg(sprintf('Import another Channel to subject ''%s?''',subjectName),'Import next Channel?','Yes','No','Yes');
+                    choice = questdlg(sprintf('Import another channel to subject ''%s''?',subjectName),'Import next channel?','Yes','No','Yes');
                 else
                     break
                 end

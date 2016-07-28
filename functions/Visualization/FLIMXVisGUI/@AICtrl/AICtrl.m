@@ -196,7 +196,8 @@ classdef AICtrl < handle
             if(isempty(fiNr))
                 %Houston we've got a problem
                 %make warning dialog to switch subject?!
-                fiNr = 1;
+                chObj{end+1,1} = aiParam{idx}.FLIMItemA;
+                fiNr = size(chObj,1);
             end
             set(this.FLIMItemA,'String',chObj,'Value',fiNr);
             %second flim item channel
@@ -206,8 +207,9 @@ classdef AICtrl < handle
             fiNr = find(strcmp(aiParam{idx}.FLIMItemB,chObj));
             if(isempty(fiNr))
                 %Houston we've got a problem
-                %make warning dialog to switch subject?!
-                fiNr = 1;
+                %make warning dialog to switch subject?!                
+                chObj{end+1,1} = aiParam{idx}.FLIMItemB;
+                fiNr = size(chObj,1);
             end            
             set(this.FLIMItemB,'String',chObj,'Value',fiNr);
             opNr = find(strcmp(aiParam{idx}.opA,get(this.opA,'String')));
