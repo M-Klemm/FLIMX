@@ -237,6 +237,11 @@ classdef Channel < handle
             out = this.myParent.getROICoordinates(ROIType);
         end
         
+        function out = getZScaling(this,dType,dTypeNr)
+            %get z scaling
+            out = this.myParent.getZScaling(dType,dTypeNr);
+        end
+        
         function out = getStatsParams(this)
             %get statistics parameters
             out = this.FLIMXParamMgrObj.getParamSection('statistics');
@@ -266,7 +271,7 @@ classdef Channel < handle
             %get a string of all objects in this channel
             str = cell(0,0);
             for i=1:this.myChunks.queueLen
-                if(strncmp('MVGroup',this.myChunks.getDataByPos(i).getdType,7))
+                if(strncmp('MVGroup',this.myChunks.getDataByPos(i).getDType,7))
                     %skip cluster objects
                     continue
                 end                    
@@ -283,7 +288,7 @@ classdef Channel < handle
             str = cell(0,0);
             for i=1:this.myChunks.queueLen
                 chunk = this.myChunks.getDataByPos(i);
-                if(~strcmp('MVGroup',chunk.getdType))
+                if(~strcmp('MVGroup',chunk.getDType))
                     %get only cluster objects
                     continue
                 end                    

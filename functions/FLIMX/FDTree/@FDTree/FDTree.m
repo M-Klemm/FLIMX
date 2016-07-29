@@ -358,39 +358,21 @@ classdef FDTree < handle
                 study.clearClusters(subjectID,dType,dTypeNr);
             end
         end
-        
-%         function setResultROIType(this,studyName,subjectID,dType,dTypeNr,val)
-%             %set the ROI type for study studyName at subject subjectID and dimension dim
-%             study = this.getStudy(studyName);
-%             if(~isempty(study))
-%                 study.setResultROIType(subjectID,dType,dTypeNr,val);
-%                 this.clearGlobalObjMerged(dType);
-%             end
-%         end
-%         
-%         function setResultROISubType(this,studyName,subjectID,dType,dTypeNr,val)
-%             %set the ROI grid selection for study studyName at subject subjectID and dimension dim
-%             study = this.getStudy(studyName);
-%             if(~isempty(study))
-%                 study.setResultROISubType(subjectID,dType,dTypeNr,val);
-%                 this.clearGlobalObjMerged(dType);
-%             end
-%         end
-        
-%         function setResultROISubTypeAnchor(this,studyName,subjectID,dType,dTypeNr,val)
-%             %set the ROI grid anchor for study studyName at subject subjectID and dimension dim
-%             study = this.getStudy(studyName);
-%             if(~isempty(study))
-%                 study.setResultROISubTypeAnchor(subjectID,dType,dTypeNr,val);
-%                 this.clearGlobalObjMerged(dType);
-%             end
-%         end
-        
+                
         function setResultROICoordinates(this,studyName,subjectID,dType,dTypeNr,ROIType,ROICoord)
             %set the ROI coordinates for study studyName at subject subjectID and ROIType
             study = this.getStudy(studyName);
             if(~isempty(study))
                 study.setResultROICoordinates(subjectID,dType,dTypeNr,ROIType,ROICoord);
+                this.clearGlobalObjMerged(dType);
+            end
+        end
+        
+        function setResultZScaling(this,studyName,subjectID,dType,dTypeNr,zValues)
+            %set the z scaling for study studyName at subject subjectID and ROIType
+            study = this.getStudy(studyName);
+            if(~isempty(study))
+                study.setResultZScaling(subjectID,dType,dTypeNr,zValues);
                 this.clearGlobalObjMerged(dType);
             end
         end

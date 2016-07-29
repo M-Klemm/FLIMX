@@ -551,30 +551,9 @@ classdef subjectDS < handle
             out = this.myParent.getResultROICoordinates(this.name,ROIType);
         end
         
-        function [MSX, MSXMin, MSXMax] = getMSX(this)
-            %get manual scaling parameters for x
-            MSX = [];
-            MSXMin = [];
-            MSXMax = [];
-            for i = 1:this.myChannels.queueLen
-                [MSX, MSXMin, MSXMax] = this.myChannels.getDataByPos(i).getMSX();
-                if(~isempty(MSX))
-                    return
-                end
-            end
-        end
-        
-        function [MSY, MSYMin, MSYMax] = getMSY(this)
-            %get manual scaling parameters for y
-            MSY = [];
-            MSYMin = [];
-            MSYMax = [];
-            for i = 1:this.myChannels.queueLen
-                [MSY, MSYMin, MSYMax] = this.myChannels.getDataByPos(i).getMSY();
-                if(~isempty(MSY))
-                    return
-                end
-            end
+        function out = getZScaling(this,dType,dTypeNr)
+            %get z scaling
+            out = this.myParent.getResultZScaling(this.name,dType,dTypeNr);
         end
         
         function out = channelMesurementIsLoaded(this,chan)

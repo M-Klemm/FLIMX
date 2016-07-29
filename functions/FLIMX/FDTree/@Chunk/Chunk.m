@@ -214,7 +214,7 @@ classdef Chunk < handle
             end
         end
         
-        function out = getdType(this)
+        function out = getDType(this)
             %get current data type
             out = this.dType;
         end
@@ -268,6 +268,11 @@ classdef Chunk < handle
         function out = getROICoordinates(this,ROIType)
             %get coordinates of ROI
             out = this.myParent.getROICoordinates(ROIType);
+        end
+        
+        function out = getZScaling(this,dTypeNr)
+            %get z scaling
+            out = this.myParent.getZScaling(this.dType,dTypeNr);
         end
         
         function out = getStatsParams(this)

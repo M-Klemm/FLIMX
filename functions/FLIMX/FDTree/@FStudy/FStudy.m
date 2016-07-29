@@ -51,7 +51,7 @@ classdef FStudy < handle
             % Constructor for FStudy.
             this.myParent = parent;
             this.name = name;
-            this.revision = 20;
+            this.revision = 21;
             this.myDir = sDir;
             this.mySubjects = LinkedList();
             this.myStudyInfoSet = studyIS(this);
@@ -279,7 +279,7 @@ classdef FStudy < handle
         end
         
         function setResultROICoordinates(this,subjectID,dType,dTypeNr,ROIType,ROICoord)
-            %set the ROI vector at subject subjectID and dimension dim
+            %set the ROI vector at subject subjectID
             subject = this.getSubject(subjectID);
             if(isempty(subject))
                 return
@@ -287,6 +287,20 @@ classdef FStudy < handle
             %subject.setResultROICoordinates(dType,ROIType,ROICoord);
 %             if(subject.getGlobalScale(dType))
                 this.myStudyInfoSet.setResultROICoordinates(subjectID,ROIType,ROICoord);
+%             end
+            this.clearObjMerged();
+            this.clearClusters(subjectID,dType,dTypeNr);
+        end
+        
+        function setResultZScaling(this,subjectID,dType,dTypeNr,zValues)
+            %set the z scaling at subject subjectID
+            subject = this.getSubject(subjectID);
+            if(isempty(subject))
+                return
+            end
+            %subject.setResultROICoordinates(dType,ROIType,ROICoord);
+%             if(subject.getGlobalScale(dType))
+                this.myStudyInfoSet.setResultZScaling(subjectID,dType,dTypeNr,zValues);
 %             end
             this.clearObjMerged();
             this.clearClusters(subjectID,dType,dTypeNr);
@@ -1309,6 +1323,11 @@ classdef FStudy < handle
             %
             out = this.myStudyInfoSet.getResultROICoordinates(subName,ROIType);
         end
+        
+        function out = getResultZScaling(this,subName,dType,dTypeNr)
+            %
+            out = this.myStudyInfoSet.getResultZScaling(subName,dType,dTypeNr);
+        end
                 
         function out = getResultCuts(this,subName)
             %
@@ -1512,6 +1531,7 @@ classdef FStudy < handle
                     %we know the subject but there is nothing on disk
                     this.myStudyInfoSet.clearFilesList(idx);
                     this.myStudyInfoSet.clearROI(idx);
+                    this.myStudyInfoSet.clearZScaling(idx);
                     this.myStudyInfoSet.clearCuts(idx);
                     return
                 else
@@ -1551,6 +1571,7 @@ classdef FStudy < handle
                 if(~isempty(idx))
                     this.myStudyInfoSet.clearFilesList(idx);
                     this.myStudyInfoSet.clearROI(idx);
+                    this.myStudyInfoSet.clearZScaling(idx);
                     this.myStudyInfoSet.clearCuts(idx);
                 end
                 subDir = fullfile(this.myDir,subName);

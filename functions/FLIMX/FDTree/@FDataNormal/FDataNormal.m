@@ -176,9 +176,10 @@ classdef FDataNormal < FData
             %set possible "-inf" in ci to "cim"
             %ci(ci < cim) = cim;            
             %limit z
-            if(this.MSZ)
+            zVec = this.getZScaling();
+            if(length(zVec) == 3 && zVec(1))
                 zlim_min = this.getZlimMin(cim);
-                zlim_max = this.MSZMax;
+                zlim_max = zVec(3);
                 ci(ci < zlim_min) = NaN;%zlim_min;
                 ci(ci > zlim_max) = NaN;%zlim_max;
                 info.ZMin = zlim_min;
