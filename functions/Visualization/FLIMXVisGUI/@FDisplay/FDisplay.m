@@ -616,8 +616,8 @@ classdef FDisplay < handle
                     return
                 end
                 %z scaling
-                if(hfd{i}.MSZ)
-                    zData = hfd{i}.getZScaling();
+                zData = hfd{i}.getZScaling();
+                if(~isempty(zData) && zData(1))                    
                     zMin(i) = zData(2);
                     if(isinf(zMin))
                         zMin(i) = hfd{i}.getCImin();
@@ -1046,8 +1046,8 @@ classdef FDisplay < handle
                                 zMin(i) = hfd{i}.getCImin(rc,rt,rs,ri);
                                 zMax(i) = hfd{i}.getCImax(rc,rt,rs,ri);
                                 %z scaling
-                                if(hfd{i}.MSZ)
-                                    zData = hfd{i}.getZScaling();
+                                zData = hfd{i}.getZScaling();
+                                if(~isempty(zData) && zData(1))                                    
                                     zMin(i) = zData(2);
                                     zMax(i) = zData(3);
                                 end
@@ -1065,8 +1065,8 @@ classdef FDisplay < handle
                                 zMin(i) = hfdT.getCImin();
                                 zMax(i) = hfdT.getCImax();
                                 %z scaling
-                                if(hfdT.MSZ)
-                                    zData = hfdT.getZScaling();
+                                zData = hfdT.getZScaling();
+                                if(~isempty(zData) && zData(1))                                    
                                     zMin(i) = zData(2);
                                     zMax(i) = zData(3);
                                 end
@@ -1252,8 +1252,8 @@ classdef FDisplay < handle
                     img_min = 0;
                     img_max = 0;
                 else
-                    if(hfd{1}.MSZ)
-                        zData = hfd{1}.getZScaling();
+                    zData = hfd{1}.getZScaling();
+                    if(~isempty(zData) && zData(1))                        
                         img_min = zData(2);
                         img_max = zData(3);
                     else
