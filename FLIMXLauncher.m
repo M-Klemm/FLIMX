@@ -30,6 +30,7 @@ if(exist('FLIMXObj','var'))
 else
     FLIMXObj = FLIMX();
 end
+FLIMXObj.updateSplashScreenProgressLong(0.9,'Opening GUIs...');
 %open GUI(s)
 if(FLIMXObj.paramMgr.generalParams.openFitGUIonStartup)
     FLIMXObj.openFLIMXFitGUI();
@@ -38,4 +39,7 @@ if(~FLIMXObj.paramMgr.generalParams.openFitGUIonStartup || FLIMXObj.paramMgr.gen
     %force to open the visualization GUI if both should be set to 0
     FLIMXObj.openFLIMXVisGUI();
 end
+FLIMXObj.updateSplashScreenProgressLong(1,'FLIMX Startup complete');
+pause(0.1);
+FLIMXObj.closeSplashScreen();
 
