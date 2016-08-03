@@ -90,8 +90,9 @@ classdef subject4Import < fluoSubject
             for ch = 1:this.myMeasurement.nrSpectralChannels
                 %read the actual payload
                 if(ch == 1 && isempty(this.myMeasurement.ROICoord))
-                    %get auto roi
-                    ROIVec = importWizard.getAutoROI(this.myMeasurement.getRawDataFlat(ch),this.preProcessParams.roiBinning);
+                    %get full roi
+                    ROIVec = [1 this.myMeasurement.getRawXSz() 1 this.myMeasurement.getRawYSz()];
+                    %ROIVec = importWizard.getAutoROI(this.myMeasurement.getRawDataFlat(ch),this.preProcessParams.roiBinning);
                     if(ROIVec(1) > 5 || ROIVec(3) > 5 || ROIVec(2) < this.myMeasurement.rawXSz-5 || ROIVec(4) < this.myMeasurement.rawYSz-5)
                         this.myMeasurement.setROICoord(ROIVec);
                     end

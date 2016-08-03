@@ -111,8 +111,9 @@ classdef importWizard < handle
                 ch = 1;
             end
             if(ch <= this.measurementObj.nrSpectralChannels)
-                %get auto roi
-                ROIVec = importWizard.getAutoROI(this.measurementObj.getRawDataFlat(ch),this.measurementObj.roiStaticBinningFactor);
+                %get full roi
+                ROIVec = [1 this.myMeasurement.getRawXSz() 1 this.myMeasurement.getRawYSz()];
+                %ROIVec = importWizard.getAutoROI(this.measurementObj.getRawDataFlat(ch),this.measurementObj.roiStaticBinningFactor);
                 if(ROIVec(1) > 5 || ROIVec(3) > 5 || ROIVec(2) < this.myMeasurement.rawXSz-5 || ROIVec(4) < this.myMeasurement.rawYSz-5)
                     this.finalROIVec = ROIVec;
                 end
@@ -368,12 +369,17 @@ classdef importWizard < handle
                     set(this.visHandles.radioDefault,'Value',1);
             end
             if(isempty(this.myMeasurement.ROICoordinates))
-                %propose auto roi
-                this.editFieldROIVec = importWizard.getAutoROI(this.myMeasurement.getRawDataFlat(this.currentChannel),pPParam.roiBinning);                
+                %propose full roi
+                this.editFieldROIVec = [1 this.myMeasurement.getRawXSz() 1 this.myMeasurement.getRawYSz()];
+                %this.editFieldROIVec = importWizard.getAutoROI(this.myMeasurement.getRawDataFlat(this.currentChannel),pPParam.roiBinning);                
                 this.isDirty(1) = 1;
             else
                 this.editFieldROIVec = this.myMeasurement.ROICoordinates;
-                this.roiMode = 3; %we have a roi defined, assume this to be custom made
+                if(all(this.editFieldROIVec == [1 this.myMeasurement.getRawXSz() 1 this.myMeasurement.getRawYSz()]))
+                    this.roiMode = 1;
+                else
+                    this.roiMode = 3; %we have a roi defined, assume this to be custom made
+                end
             end
             %set initial study
             this.setSubject('','');            
