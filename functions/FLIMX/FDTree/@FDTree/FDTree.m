@@ -64,6 +64,9 @@ classdef FDTree < handle
             if(this.myStudies.queueLen == 0)
                 this.addStudy('Default');
             end
+            try
+                this.setShortProgressCallback(@parent.updateSplashScreenProgressShort);
+            end
             this.scanForStudies();            
         end
         
@@ -283,7 +286,7 @@ classdef FDTree < handle
             %set callback function for short progress bar
             this.shortProgressCb(end+1) = {cb};
         end
-        
+                
         function setLongProgressCallback(this,cb)
             %set callback function for short progress bar
             this.longProgressCb(end+1) = {cb};
@@ -1417,11 +1420,17 @@ classdef FDTree < handle
         function scanForStudies(this)
             %scan the disk for studies
             dirs = dir(this.myDir);
+            lastUpdate = clock;
             for i = 1:length(dirs)
                 if(dirs(i,1).isdir && ~strcmp(dirs(i,1).name(1),'.'))
                     this.addStudy(dirs(i,1).name);
+                    if(etime(clock, lastUpdate) > 0.5)
+                        this.updateShortProgress(i/length(dirs),sprintf('Loading studies %0.1f%% complete',100*i/length(dirs)));
+                        lastUpdate = clock;
+                    end
                 end
             end
+            this.updateShortProgress(1,'Study scan 100 %% complete');
         end
         
         function swapColumn(this,studyID,col,idx)

@@ -50,6 +50,7 @@ classdef FLIMX < handle
         batchJobMgrGUIObj = [];%batch job manager GUI
         importGUIObj = [];  %import wizard
         matlabPoolTimer = [];
+        splashScreenGUIObj = [];
     end
     
     properties (Dependent = true)
@@ -65,17 +66,22 @@ classdef FLIMX < handle
         irfMgrGUI = [];  %GUI to handle IRF access
         batchJobMgrGUI = [];%batch job manager GUI
         importGUI = [];  %import wizard
+        splashScreenGUI = []; %splash screen
     end
     
     methods
         function this = FLIMX()
             %constructor
-            %parameters from ini file            
+            this.splashScreenGUIObj = FLIMXSplashScreen();
+            this.updateSplashScreenProgressLong(0.01,'Loading IRFs...');
+            %parameters from ini file
             warning('off','parallel:gpu:DeviceCapabiity');
             %make lower level objects
             this.paramMgr = FLIMXParamMgr(this,FLIMX.getVersionInfo());
-            this.irfMgr = IRFMgr(this,fullfile(FLIMX.getWorkingDir(),'data')); 
+            this.irfMgr = IRFMgr(this,fullfile(FLIMX.getWorkingDir(),'data'));
+            this.updateSplashScreenProgressLong(0.3,'Building data tree structure...');
             this.fdt = FDTree(this,FLIMX.getWorkingDir()); %replace with path from config?!
+            this.updateSplashScreenProgressShort(0,'');
             fp = this.paramMgr.getParamSection('filtering');
             if(fp.ifilter)
                 alg = fp.ifilter_type;
@@ -86,6 +92,7 @@ classdef FLIMX < handle
             end
             this.fdt.setDataSmoothFilter(alg,params);
             %load a subject
+            this.updateSplashScreenProgressLong(0.5,'Loading first subject...');
             subs = this.fdt.getSubjectsNames('Default','-');
             if(isempty(subs))
                 %todo: generate a dummy subject with simulated data
@@ -93,7 +100,10 @@ classdef FLIMX < handle
             else
                 this.setCurrentSubject('Default','-',subs{1});
             end
+            this.updateSplashScreenProgressLong(0.7,'Opening MATLAB pool...');
             this.openMatlabPool();
+            this.updateSplashScreenProgressShort(0,'');
+            
         end
         
         function openFLIMXFitGUI(this)
@@ -112,25 +122,30 @@ classdef FLIMX < handle
             p = gcp('nocreate');
             if(computationParams.useMatlabDistComp > 0 && isempty(p))
                 %start local matlab workers
-                hwb = waitbar(0,sprintf('Trying to open pool of Matlab workers - \nthis may take some time.\n\nMatlab pool workers can be disabled in Settings -> Computation'));
+                this.splashScreenGUIObj.updateProgressShort(0.5,sprintf('MATLAB pool workers can be disabled in Settings -> Computation'));
                 try                    
                     p = parpool('local',feature('numCores')); 
-                    waitbar(1,hwb,'Trying to open pool of Matlab workers - done');  
+                    this.splashScreenGUIObj.updateProgressShort(1,'Trying to open pool of MATLAB workers - done');  
                     %p.IdleTimeout = 0;
                 catch ME
                     if(ishandle(hwb))
-                        waitbar(1,hwb,'Trying to open pool of Matlab workers - failed');
+                        this.splashScreenGUIObj.updateProgressShort(1,'Trying to open pool of Matlab workers - failed');
                     end
                     warning('FLIMX:openMatlabPool','Could not open Matlab pool for parallel computations: %s',ME.message);
-                end 
-                if(ishandle(hwb))
-                    close(hwb);
                 end
             end
             if(~isempty(p))
                 this.matlabPoolTimer = timer('ExecutionMode','fixedRate','Period',p.IdleTimeout/2*60,'TimerFcn','FLIMX.MatlabPoolIdleFcn','Tag','FLIMXMatlabPoolTimer');
                 start(this.matlabPoolTimer);
             end
+        end
+        
+        function closeSplashScreen(this)
+            %close splash screen window
+            try
+                delete(this.splashScreenGUIObj.delete());
+            end
+            this.splashScreenGUIObj = [];
         end
         
         function closeMatlabPool(this)
@@ -242,6 +257,14 @@ classdef FLIMX < handle
             out = this.FLIMFitGUIObj;
         end
         
+        function out = get.splashScreenGUI(this)
+            %get splash screen object
+%             if(isempty(this.splashScreenGUIObj))
+%                 this.splashScreenGUIObj = FLIMXSplashScreen();
+%             end
+            out = this.splashScreenGUIObj;
+        end
+        
         function out = get.FLIMVisGUI(this)
             %get FLIMVisGUI object
             if(isempty(this.FLIMVisGUIObj))
@@ -342,6 +365,20 @@ classdef FLIMX < handle
             this.FLIMFitGUI.updateProgressShort(x,text);
         end
         
+        function updateSplashScreenProgressShort(this,x,text)
+            %set short progress in splash screen to new value
+            if(~isempty(this.splashScreenGUIObj))
+                this.splashScreenGUIObj.updateProgressShort(x,text);
+            end
+        end
+        
+        function updateSplashScreenProgressLong(this,x,text)
+            %set short progress in splash screen to new value
+            if(~isempty(this.splashScreenGUIObj))
+                this.splashScreenGUIObj.updateProgressLong(x,text);
+            end
+        end        
+        
     end %methods
     
     methods(Static)
@@ -368,11 +405,20 @@ classdef FLIMX < handle
             out = myDir;
         end
         
+        function out = getLogoPath()
+            %get path to FLIMX_Logo.png
+            persistent myDir
+            if(isempty(myDir))
+                myDir = which('FLIMX_Logo.png');
+            end
+            out = myDir;
+        end
+        
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 259;
-            out.client_revision = 350;
+            out.client_revision = 351;
             out.core_revision = 359;
             out.results_revision = 256;
             out.measurement_revision = 204;

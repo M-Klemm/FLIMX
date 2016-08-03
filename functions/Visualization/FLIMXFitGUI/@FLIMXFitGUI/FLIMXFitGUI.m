@@ -2226,8 +2226,7 @@ classdef FLIMXFitGUI < handle
             axis(this.visHandles.axesSupp,'off');
             axis(this.visHandles.axesRes,'off');
             axis(this.visHandles.axesResHis,'off');
-            
-            
+                        
             %set objects for mainax
             this.visHandles.cursorLineMainVertical = -1; %cursorline in mainax
             this.visHandles.cursorLineMainHorizontal = -1; %cursorline in mainax
@@ -2235,9 +2234,6 @@ classdef FLIMXFitGUI < handle
             this.visHandles.setScaleStartLine = -1; %startline when clicking down
             this.visHandles.isSettingScale = -1; %variable to help identify whether the scale is getting set by clicking right now
             this.visHandles.coordinateBoxMain = -1; %Textbox that displays coordinates of Datapoints in the Mainax
-            
-            
-            
             
             %set callbacks
             set(this.visHandles.FLIMXFitGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback, 'WindowButtonDownFcn', @this.GUI_mouseButtonDown_Callback);
