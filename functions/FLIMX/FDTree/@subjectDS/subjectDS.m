@@ -694,7 +694,7 @@ classdef subjectDS < handle
                 this.addObjID(0,chAList(chIdx),aiName,1,data);
             end
             cutVec = this.myParent.getResultCuts(this.name);
-            if(~isempty(cutVec))
+            if(~isempty(cutVec) && length(cutVec) == 6)
                 %set cuts for new items
                 this.setCutVec('X',cutVec(1:3));
                 this.setCutVec('Y',cutVec(4:6));
