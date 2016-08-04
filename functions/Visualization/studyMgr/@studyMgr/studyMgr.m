@@ -204,15 +204,22 @@ classdef studyMgr < handle
                 set(this.visHandles.popupStudySelection,'String','no studies found');
             else
                 set(this.visHandles.popupStudySelection,'String',sStr,'Value',min(length(sStr),get(this.visHandles.popupStudySelection,'Value')));
-            end                        
+            end
             infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'infoHeaders');
+            if(~isempty(this.selectedInfoField))
+                curColumn = get(this.visHandles.popupColumnSelection,'String'); %current column name and index
+                curColumn = curColumn{min(length(curColumn),this.selectedInfoField(2))};
+                curColumnIdx = find(strcmp(curColumn,infoHeaders),1);
+            else
+                curColumnIdx = [];
+            end
             set(this.visHandles.tableStudyData,'ColumnName',infoHeaders);
             if(~isempty(infoHeaders))
-                set(this.visHandles.popupColumnSelection,'String',infoHeaders);
-                if(~isempty(this.selectedInfoField))
-                    set(this.visHandles.popupColumnSelection,'Value',min(this.selectedInfoField(2),length(infoHeaders)));
+                if(isempty(curColumnIdx))
+                    set(this.visHandles.popupColumnSelection,'Value',min(get(this.visHandles.popupColumnSelection,'Value'),length(infoHeaders)),'String',infoHeaders);
                 else
-                    set(this.visHandles.popupColumnSelection,'Value',1);
+                    set(this.visHandles.popupColumnSelection,'String',infoHeaders,'Value',curColumnIdx);
+                    this.selectedInfoField(2) = curColumnIdx;
                 end
             else
                 set(this.visHandles.popupColumnSelection,'String','-');
