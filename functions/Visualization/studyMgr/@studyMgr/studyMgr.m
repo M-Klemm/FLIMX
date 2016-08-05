@@ -227,7 +227,10 @@ classdef studyMgr < handle
             end            
             subjectInfo = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfo');
             subjectFilesData = this.fdt.getSubjectFilesData(this.curStudyName);
-            set(this.visHandles.tableStudyData,'Data',subjectInfo,'RowName',subjectFilesData(:,1),'ColumnEditable',true(1,size(subjectInfo,2)));
+            set(this.visHandles.tableStudyData,'Data',subjectInfo,'ColumnEditable',true(1,size(subjectInfo,2))); 
+            if(~isempty(subjectFilesData))
+                set(this.visHandles.tableStudyData,'RowName',subjectFilesData(:,1));
+            end
             set(this.visHandles.tableFileData,'ColumnName',this.fdt.getDataFromStudyInfo(this.curStudyName,'filesHeaders'),'Data',subjectFilesData);
             sStr = this.fdt.getSubjectsNames(this.curStudyName,'-');
             if(isempty(sStr))
