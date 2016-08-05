@@ -226,11 +226,9 @@ classdef studyMgr < handle
                 set(this.visHandles.popupColumnSelection,'Value',1);
             end            
             subjectInfo = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfo');
-            set(this.visHandles.tableStudyData,'Data',subjectInfo);
-            set(this.visHandles.tableStudyData,'ColumnEditable',true(1,size(subjectInfo,2)));
-            set(this.visHandles.tableFileData,'ColumnName',this.fdt.getDataFromStudyInfo(this.curStudyName,'filesHeaders'));
             subjectFilesData = this.fdt.getSubjectFilesData(this.curStudyName);
-            set(this.visHandles.tableFileData,'Data',subjectFilesData);
+            set(this.visHandles.tableStudyData,'Data',subjectInfo,'RowName',subjectFilesData(:,1),'ColumnEditable',true(1,size(subjectInfo,2)));
+            set(this.visHandles.tableFileData,'ColumnName',this.fdt.getDataFromStudyInfo(this.curStudyName,'filesHeaders'),'Data',subjectFilesData);
             sStr = this.fdt.getSubjectsNames(this.curStudyName,'-');
             if(isempty(sStr))
                 set(this.visHandles.popupSubjectSelection,'String','no subjects found');
