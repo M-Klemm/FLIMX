@@ -208,7 +208,9 @@ classdef studyMgr < handle
             infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'infoHeaders');
             if(~isempty(this.selectedInfoField))
                 curColumn = get(this.visHandles.popupColumnSelection,'String'); %current column name and index
-                curColumn = curColumn{min(length(curColumn),this.selectedInfoField(2))};
+                if(iscell(curColumn))
+                    curColumn = curColumn{min(length(curColumn),this.selectedInfoField(2))};
+                end
                 curColumnIdx = find(strcmp(curColumn,infoHeaders),1);
             else
                 curColumnIdx = [];
