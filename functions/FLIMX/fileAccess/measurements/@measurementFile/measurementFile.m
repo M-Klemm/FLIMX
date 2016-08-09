@@ -492,7 +492,7 @@ classdef measurementFile < handle
                 roi(2) = xR;
                 roi(4) = yR;
             end
-            if(noBinFlag)
+            if(noBinFlag && ~isempty(raw))
                 out = int32(sum(raw(roi(3):roi(4),roi(1):roi(2),:),3));
                 return
             end
@@ -998,8 +998,8 @@ classdef measurementFile < handle
                     else
                         if(computationParams.useGPU && this.useGPU4StaticBin && binFactor >= 2)
                             out = gather(getStaticBinROI(gpuArray(raw),roi,binFactor));
-%                         elseif(this.useMex4StaticBin)
-%                             out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));                           
+                        elseif(this.useMex4StaticBin)
+                            out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));
                         else
                             out = getStaticBinROI(raw,uint16(roi),uint16(binFactor));
                         end
