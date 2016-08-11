@@ -78,15 +78,6 @@ for j = 1:size(expModels,3)
                 expModels(:,tciFlags(i),j) = qinterp1(t,expModels(:,tciFlags(i),j),t + (tciHShiftFine(tciFlags(i),j)).*t(2,1),optimize4CodegenFlag);
             end
         end
-    end        
-    if(optimize4CodegenFlag)
-        %% use this for codegen!
-        for i = 1:size(tcis,1)
-            expModels(:,i,j) = expModels(:,i,j)./max(expModels(:,i,j));
-        end
-    else
-        %% use this for matlab execution
-        expModels(:,1:size(tcis,1),j) = bsxfun(@times,expModels(:,1:size(tcis,1),j),1./max(expModels(:,1:size(tcis,1),j)));
     end
     %determine amplitudes
     if(linOptFlag)        

@@ -501,7 +501,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 for i = 1:size(exponentialsLong,2)
                     exponentialsLong(:,i,1:nVecs) = circShiftArrayNoLUT(squeeze(exponentialsLong(:,i,1:nVecs)),repmat(this.iMaxPos,nVecs,1));
                 end
-            end            
+            end
             %% incomplete decay
             if(bp.incompleteDecay)
                 exponentialsShort(1:nTimeCh,1:nExp,1:nVecs) = exponentialsLong(1:nTimeCh,:,1:nVecs) + exponentialsLong(nTimeCh+1:2*nTimeCh,:,1:nVecs) + exponentialsLong(2*nTimeCh+1:3*nTimeCh,:,1:nVecs) + exponentialsLong(3*nTimeCh+1:end,:,1:nVecs);
