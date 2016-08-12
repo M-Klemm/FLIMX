@@ -614,6 +614,7 @@ classdef FluoDecayFit < handle
                 goOn = 'nothingToDo';
                 return
             end
+            this.parameters.stopOptimization = false;
             goOn = 'normal';
             %[dStr, stratStr] = this.getOutlierSearchStr();
             if(any(this.volatilePixelParams.globalFitMask))
