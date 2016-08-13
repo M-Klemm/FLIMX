@@ -239,7 +239,7 @@ classdef Channel < handle
         
         function out = getZScaling(this,dType,dTypeNr)
             %get z scaling
-            out = this.myParent.getZScaling(dType,dTypeNr);
+            out = this.myParent.getZScaling(dType,this.getMyChannelNr(),dTypeNr);
         end
         
         function out = getStatsParams(this)

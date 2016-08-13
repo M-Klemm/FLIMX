@@ -322,7 +322,7 @@ classdef studyIS < handle
             this.setDirty(true);
         end
         
-        function setResultZScaling(this,subName,dType,dTypeNr,zValues)
+        function setResultZScaling(this,subName,ch,dType,dTypeNr,zValues)
             %set the ROI vector for subject subName
             idx = this.subName2idx(subName);
             if(isempty(idx) || isempty(dType) || length(zValues) ~= 3)
@@ -331,24 +331,35 @@ classdef studyIS < handle
             end
             tmp = this.resultZScaling{idx};
             if(isempty(tmp))
-                tmp = cell(0,3);
+                tmp = cell(0,4);
             end
-            idxType = strcmp(dType,tmp(:,1));
+            idxCh = ch == [tmp{:,1}];
+            if(~any(idxCh))
+                %channel not found
+                idxCh(end+1,1) = true;
+                tmp{idxCh,1} = ch;
+                tmp{idxCh,2} = dType;
+                tmp{idxCh,3} = dTypeNr;
+            end
+            idxType = strcmp(dType,tmp(:,2));
+            idxType = idxType(:) & idxCh(:);
             if(~any(idxType))
                 %dType not found
                 idxType(end+1,1) = true;
-                tmp{end+1,1} = dType;
-                tmp{end,2} = dTypeNr;
+                tmp{idxType,1} = ch;
+                tmp{idxType,2} = dType;                
+                tmp{idxType,3} = dTypeNr;
             end
-            idxNr = dTypeNr == [tmp{:,2}];
-            idxNr = idxNr(:) & idxType(:);
+            idxNr = dTypeNr == [tmp{:,3}];
+            idxNr = idxNr(:) & idxType(:) & idxCh(:);
             if(~any(idxNr))
                 %dType number not found
                 idxNr(end+1,1) = true;
-                tmp{idxNr,1} = dType;
-                tmp{idxNr,2} = dTypeNr;
+                tmp{idxNr,1} = ch;
+                tmp{idxNr,2} = dType;
+                tmp{idxNr,3} = dTypeNr;
             end
-            tmp{find(idxNr,1),3} = zValues;
+            tmp{find(idxNr,1),4} = zValues;
             this.resultZScaling(idx) = {tmp};
             this.setDirty(true);
         end
@@ -879,7 +890,7 @@ classdef studyIS < handle
             end
         end
         
-        function out = getResultZScaling(this,subName,dType,dTypeNr)
+        function out = getResultZScaling(this,subName,ch,dType,dTypeNr)
             %return z scaling values for specific subject and data type
             if(isempty(subName))
                 out = this.resultZScaling;
@@ -896,18 +907,24 @@ classdef studyIS < handle
                 if(isempty(tmp))                    
                     return
                 end
-                idxType = strcmp(dType,tmp(:,1));
+                idxCh = ch == [tmp{:,1}];
+                if(~any(idxCh))
+                    %channel number not found
+                    return
+                end
+                idxType = strcmp(dType,tmp(:,2));
+                idxType = idxType(:) & idxCh(:);
                 if(~any(idxType))
                     %dType not found
                     return
                 end
-                idxNr = dTypeNr == [tmp{:,2}];
-                idxNr = idxNr(:) & idxType(:);
+                idxNr = dTypeNr == [tmp{:,3}];
+                idxNr = idxNr(:) & idxType(:) & idxCh(:);
                 if(~any(idxNr))
                     %dType number not found
                     return
                 end
-                out = tmp{find(idxNr,1),3};
+                out = tmp{find(idxNr,1),4};
             end
         end
                 
@@ -1563,7 +1580,24 @@ classdef studyIS < handle
                     oldStudy.resultZScaling = cell(size(oldStudy.resultROICoordinates));
                 end
             end
-                            
+            
+            if(oldStudy.revision < 22)
+                %add channel to resultZScaling
+                if(isfield(oldStudy,'resultZScaling'))
+                    tmp = oldStudy.resultZScaling;
+                    idx = ~cellfun(@isempty,tmp);
+                    if(any(idx))
+                        idx = find(idx);
+                        for i = 1:length(idx)
+                            tmp3 = tmp{idx(i)};
+                            tmp3(:,2:end+1) = tmp3;
+                            tmp3(:,1) = {1}; %set old z scaling to channel 1
+                            tmp(idx(i)) = {tmp3};
+                        end
+                        oldStudy.resultZScaling = tmp;
+                    end
+                end
+            end
             this.setDirty(true);
         end
         

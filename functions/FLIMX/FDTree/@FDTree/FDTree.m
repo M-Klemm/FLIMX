@@ -371,11 +371,11 @@ classdef FDTree < handle
             end
         end
         
-        function setResultZScaling(this,studyName,subjectID,dType,dTypeNr,zValues)
+        function setResultZScaling(this,studyName,subjectID,ch,dType,dTypeNr,zValues)
             %set the z scaling for study studyName at subject subjectID and ROIType
             study = this.getStudy(studyName);
             if(~isempty(study))
-                study.setResultZScaling(subjectID,dType,dTypeNr,zValues);
+                study.setResultZScaling(subjectID,ch,dType,dTypeNr,zValues);
                 this.clearGlobalObjMerged(dType);
             end
         end

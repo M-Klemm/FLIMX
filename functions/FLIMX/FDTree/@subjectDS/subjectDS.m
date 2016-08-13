@@ -551,9 +551,9 @@ classdef subjectDS < handle
             out = this.myParent.getResultROICoordinates(this.name,ROIType);
         end
         
-        function out = getZScaling(this,dType,dTypeNr)
+        function out = getZScaling(this,ch,dType,dTypeNr)
             %get z scaling
-            out = this.myParent.getResultZScaling(this.name,dType,dTypeNr);
+            out = this.myParent.getResultZScaling(this.name,ch,dType,dTypeNr);
         end
         
         function out = channelMesurementIsLoaded(this,chan)

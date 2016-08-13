@@ -51,7 +51,7 @@ classdef FStudy < handle
             % Constructor for FStudy.
             this.myParent = parent;
             this.name = name;
-            this.revision = 21;
+            this.revision = 22;
             this.myDir = sDir;
             this.mySubjects = LinkedList();
             this.myStudyInfoSet = studyIS(this);
@@ -71,11 +71,11 @@ classdef FStudy < handle
                 %version problem
                 import = this.updateStudyVer(import);
             end            
+            dirty = this.isDirty; %loadStudyIS may reset dirty flag from revision update
             this.name = import.name;
-            this.myStudyInfoSet.loadStudyIS(import);
-            dirty = this.isDirty;
+            this.myStudyInfoSet.loadStudyIS(import);            
             this.checkSubjectFiles('');
-            this.setDirty(dirty);
+            this.setDirty(dirty || this.isDirty);
             if(this.isDirty)
                 %study version updated
                 this.save();
@@ -292,7 +292,7 @@ classdef FStudy < handle
             this.clearClusters(subjectID,dType,dTypeNr);
         end
         
-        function setResultZScaling(this,subjectID,dType,dTypeNr,zValues)
+        function setResultZScaling(this,subjectID,ch,dType,dTypeNr,zValues)
             %set the z scaling at subject subjectID
             subject = this.getSubject(subjectID);
             if(isempty(subject))
@@ -300,7 +300,7 @@ classdef FStudy < handle
             end
             %subject.setResultROICoordinates(dType,ROIType,ROICoord);
 %             if(subject.getGlobalScale(dType))
-                this.myStudyInfoSet.setResultZScaling(subjectID,dType,dTypeNr,zValues);
+                this.myStudyInfoSet.setResultZScaling(subjectID,ch,dType,dTypeNr,zValues);
 %             end
             this.clearObjMerged();
             this.clearClusters(subjectID,dType,dTypeNr);
@@ -1324,9 +1324,9 @@ classdef FStudy < handle
             out = this.myStudyInfoSet.getResultROICoordinates(subName,ROIType);
         end
         
-        function out = getResultZScaling(this,subName,dType,dTypeNr)
+        function out = getResultZScaling(this,subName,ch,dType,dTypeNr)
             %
-            out = this.myStudyInfoSet.getResultZScaling(subName,dType,dTypeNr);
+            out = this.myStudyInfoSet.getResultZScaling(subName,dType,ch,dTypeNr);
         end
                 
         function out = getResultCuts(this,subName)
@@ -1599,7 +1599,6 @@ classdef FStudy < handle
 %                 'Study "%s" is not compatible with current FLIMVis version!\nFLIMVis will now update your study to Revision-No. %d!',...
 %                 oldStudy.name,this.revision),'Study Data incompatible!','modal'));
             oldStudy = this.myStudyInfoSet.updateStudyInfoSet(oldStudy);
-            this.setDirty(true);
         end
         
         function setDirty(this,flag)
