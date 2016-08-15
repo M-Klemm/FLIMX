@@ -303,6 +303,7 @@ classdef studyIS < handle
                 if(ROIType >= 1 && ROIType < 6 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
                     tmp(ROIType,1:3,1:2) = int16(ROICoord');
                 elseif(ROIType >= 6 && ROIType <= 7 && size(ROICoord,1) == 2)
+                    %polygons
                     if(size(ROICoord,2) > size(tmp,2))
                         tmpNew = zeros(7,size(ROICoord,2),2,'int16');
                         tmpNew(:,1:size(tmp,2),:) = tmp;
@@ -313,9 +314,9 @@ classdef studyIS < handle
                         tmp(ROIType,max(4,size(ROICoord,2)+1):end,:) = 0;
                     end
                     %polygon could have shrinked, remove trailing zeros
-                    idx = squeeze(any(any(tmp,1),3));
-                    idx(1:3) = true;
-                    tmp(:,find(idx,1,'last')+1:end,:) = [];
+                    idxZeros = squeeze(any(any(tmp,1),3));
+                    idxZeros(1:3) = true;
+                    tmp(:,find(idxZeros,1,'last')+1:end,:) = [];
                 end
             end
             this.resultROICoordinates(idx) = {tmp};
@@ -673,10 +674,10 @@ classdef studyIS < handle
             %export Subject Data to Excel File
             if(exist(file,'file') == 2)
                 [~, desc] = xlsfinfo(file);
-                idx = find(strcmp('Patientendaten',desc),1);
+                idx = find(strcmp('Subjectinfo',desc),1);
                 if(~isempty(idx))
                     %spreadsheet is already in the selected file
-                    [~, ~, raw] = xlsread(file,'Patientendaten');
+                    [~, ~, raw] = xlsread(file,'Subjectinfo');
                     if(size(raw,1)>(size(this.subjectInfo,1)+1))...
                             ||(size(raw,2)>(size(this.subjectInfo,2)+1))
                         %delete old data in the spreadsheet
@@ -696,7 +697,7 @@ classdef studyIS < handle
             ex(1,2:length(this.infoHeaders)+1) = this.infoHeaders;
             ex(2:size(this.subjectInfo,1)+1,2:length(this.infoHeaders)+1) = this.subjectInfo;
             %Save to file
-            exportExcel(file,ex,'','','Patientendaten','');
+            exportExcel(file,ex,'','','Subjectinfo','');
         end
         
         function out = getColReference(this,n)

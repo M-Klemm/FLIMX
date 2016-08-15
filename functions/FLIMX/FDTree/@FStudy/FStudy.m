@@ -385,13 +385,13 @@ classdef FStudy < handle
                 errordlg('This is not an Excel file!','No Excel file','modal')
                 return;
             end
-            idx = find(strcmp('Patientendaten',desc),1);
+            idx = find(strcmp('Subjectinfo',desc),1);
             if(isempty(idx))
                 %no appropriate spreadsheet
-                errordlg('Spreadsheet ''Patientendaten'' not found!','No appropriate spreadsheet','modal');
+                errordlg('Spreadsheet ''Subjectinfo'' not found!','No appropriate spreadsheet','modal');
                 return;
             else
-                [~, ~, raw] = xlsread(file,'Patientendaten');
+                [~, ~, raw] = xlsread(file,'Subjectinfo');
             end
             %get subject and header names
             xlsSubs = raw(2:end,1);
