@@ -488,7 +488,7 @@ classdef ZCtrl < handle
             elseif(strncmp('GlobalMVGroup',hfd.dType,13))
                 hfd.setZScaling([this.checkZ this.editZlo this.editZu]);
             else
-                this.visObj.fdt.setResultZScaling(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),hfd.dType,hfd.id,[this.checkZ this.editZlo this.editZu]);
+                this.visObj.fdt.setResultZScaling(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),this.visObj.getChannel(this.mySide),hfd.dType,hfd.id,[this.checkZ this.editZlo this.editZu]);
                 hfd.clearFilteredImage();
             end
         end
