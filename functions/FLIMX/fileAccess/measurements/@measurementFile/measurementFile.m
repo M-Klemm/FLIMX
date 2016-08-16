@@ -185,6 +185,7 @@ classdef measurementFile < handle
                 useMaskFlag = true;
             end
             raw = [];
+            bp = this.paramMgrObj.basicParams;
             if(channel <= this.nrSpectralChannels && length(this.rawFluoData) >= channel)
                 raw = this.rawFluoData{channel};
                 %if there is a mask, use it
@@ -208,7 +209,28 @@ classdef measurementFile < handle
                     else
                         raw = this.rawFluoDataMask{channel};
                     end
+                end                
+            elseif(channel > 2 && bp.approximationTarget == 2 && ~isMultipleCall())
+                %get anisotropy data from channel 1 and 2 (ch1 is parallel; ch2 is perpendicular)
+                if(this.nrSpectralChannels >= 2)
+                    pP = double(this.getRawData(1,useMaskFlag)); %parallel %getROIData(1,y,x))
+                    pS = double(this.getRawData(2,useMaskFlag)); %senkrecht
+                    pS = circshift(pS,bp.anisotropyChannelShift);
+                    %pP(isnan(pP)) = 0;
+                    %pS(isnan(pS)) = 0;
+                    if(channel == 3)
+                        raw = pP+pS;
+                    elseif(channel == 4)
+                        raw = (pP-bp.anisotropyGFactor*pS)./(pP+bp.anisotropyGFactor*bp.anisotropyPerpendicularFactor*pS);
+                        raw(isnan(raw)) = 0;
+                    end
+                    this.rawFluoData{channel} = raw;
                 end
+%                 if(isempty(y) && isempty(x))
+%                     flat = out;
+%                     flat(isnan(flat)) = 0;
+%                     this.roiFluoDataFlat{channel} = sum(flat,3,'native');
+%                 end
             end
         end
         
@@ -585,12 +607,19 @@ classdef measurementFile < handle
                     out = squeeze(out(1,1,:));
                 end
             else
+                %we've got spatial resolution
                 if(~isempty(y) && ~isempty(x) && (length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel})) && (~this.roiAdaptiveBinEnable || ~(length(this.roiBinLevels) < channel || isempty(this.roiBinLevels{channel}))))
-                    %no pre binning, do binning for pixel (y,x) on the fly
+                    %single pixel is requested => we do binning for pixel (y,x) on the fly
                     if(~this.roiAdaptiveBinEnable)
+                        %static binning
                         bin = this.roiStaticBinningFactor;
-                        out = eval([this.ROIDataType '(sum(reshape(raw(max(roi(3)+y-bin-1,1):min(roi(3)+y+bin-1,yR), max(roi(1)+x-bin-1,1):min(roi(1)+x+bin-1,xR), :),[],zR),1))'])';
+                        if(bp.approximationTarget == 2 && channel == 4)
+                            out = sum(reshape(raw(max(roi(3)+y-bin-1,1):min(roi(3)+y+bin-1,yR), max(roi(1)+x-bin-1,1):min(roi(1)+x+bin-1,xR), :),[],zR),1)';
+                        else
+                            out = eval([this.ROIDataType '(sum(reshape(raw(max(roi(3)+y-bin-1,1):min(roi(3)+y+bin-1,yR), max(roi(1)+x-bin-1,1):min(roi(1)+x+bin-1,xR), :),[],zR),1))'])';
+                        end
                     else
+                        %adaptive binning
                         bl = this.getROIAdaptiveBinLevels(channel);
                         if(y <= size(bl,1) && x <= size(bl,2))
                             [binXcoord, binYcoord, binRho, binRhoU] = makeBinMask(100);
@@ -601,43 +630,38 @@ classdef measurementFile < handle
                         end
                     end
                 else
+                    %whole ROI is requested
                     if(length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel}))
                         %try to load this channel, cut and bin raw data
-                        bl = this.getROIAdaptiveBinLevels(channel);
+                        ROIComputedFlag = false;
+                        bl = this.getROIAdaptiveBinLevels(channel); %returns [] in case of static binning
                         if(isempty(bl))
+                            %we don't have pre-computed adaptive binning levels or static binning is requested => compute the whole ROI
                             out = this.makeROIData(channel);
+                            ROIComputedFlag = true;
                         else
+                            %we have pre-computed adaptive binning levels, reconstruct the actual binning per pixel
                             if(isempty(this.roiFluoData{channel}))
                                 this.updateProgress(0.5,sprintf('rebuilding ROI channel %d',channel));
-%                                 out = getAdaptiveBinRebuild(raw,roi,bl);
+                                out = getAdaptiveBinRebuild(raw,roi,bl);
 %                                 tic;out2 = getAdaptiveBinRebuild_mex(raw,roi,bl);toc
-                                tic;out = gather(getAdaptiveBinRebuild(gpuArray(raw),roi,bl));toc
-%                                 out = zeros(size(bl,1),size(bl,2),zR,this.ROIDataType);
-%                                 [binXcoord, binYcoord, binRho, binRhoU] = makeBinMask(100);
-%                                 raw = reshape(raw,[yR*xR,zR]);
-%                                 parfor i = 1:size(bl,1)
-%                                     tmp = out(i,:,:);
-%                                     for j = 1:size(bl,2)
-%                                         idx = getAdaptiveBinningIndex(roi(3)+i-1,roi(1)+j-1,bl(i,j),yR,xR,binXcoord, binYcoord, binRho, binRhoU);
-%                                         %tmp(1,j,:) = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')';
-%                                         tmp(1,j,:) = sum(raw(idx, :),1,'native')';
-%                                     end
-%                                     out(i,:,:) = tmp;
-%                                 end
+%                                 tic;out = gather(getAdaptiveBinRebuild(gpuArray(raw),roi,bl));toc
                                 this.updateProgress(1,sprintf('ROI rebuild channel %d 100% done',channel));
-                            end
-                            this.roiFluoData{channel} = out;
-                            this.roiFluoDataFlat{channel} = sum(uint32(out),3,'native');
-                            this.updateProgress(0,'');
+                            end                            
                         end
+                        this.roiFluoData{channel} = out;
+                        this.roiFluoDataFlat{channel} = sum(uint32(out),3,'native');
+                        this.updateProgress(0,'');
                         if(isempty(out) && bp.approximationTarget ~= 2)
                             return
                         end
                         this.setDirtyFlags(channel,4,true);
-                        if(this.roiAdaptiveBinEnable)
+                        if(this.roiAdaptiveBinEnable && ROIComputedFlag)
+                            %save adaptive binning levels in measuremen %file
                             this.saveMatFile2Disk(channel);
                         end
                     else
+                        %we've got the pre-computed ROI
                         out = this.roiFluoData{channel};
                     end
                     if(~isempty(y) && ~isempty(x))
@@ -645,26 +669,26 @@ classdef measurementFile < handle
                     end
                 end
             end
-            if(bp.approximationTarget == 2 && ~isMultipleCall() && channel > 2)
-                %get anisotropy data from channel 1 and 2 (ch1 is parallel; ch2 is perpendicular)
-                if(this.nrSpectralChannels >= 2)
-                    pP = double(this.getROIData(1,y,x)); %parallel
-                    pS = double(this.getROIData(2,y,x)); %senkrecht
-                    pS = circshift(pS,bp.anisotropyChannelShift);
-                    %pP(isnan(pP)) = 0;
-                    %pS(isnan(pS)) = 0;
-                    if(channel == 3)
-                        out = pP+pS;
-                    elseif(channel == 4)
-                        out = (pP-bp.anisotropyGFactor*pS)./(pP+bp.anisotropyGFactor*bp.anisotropyPerpendicularFactor*pS);
-                    end
-                end
-                if(isempty(y) && isempty(x))
-                    flat = out;
-                    flat(isnan(flat)) = 0;
-                    this.roiFluoDataFlat{channel} = sum(flat,3,'native');
-                end
-            end
+%             if(bp.approximationTarget == 2 && ~isMultipleCall() && channel > 2)
+%                 %get anisotropy data from channel 1 and 2 (ch1 is parallel; ch2 is perpendicular)
+%                 if(this.nrSpectralChannels >= 2)
+%                     pP = double(this.getROIData(1,y,x)); %parallel
+%                     pS = double(this.getROIData(2,y,x)); %senkrecht
+%                     pS = circshift(pS,bp.anisotropyChannelShift);
+%                     %pP(isnan(pP)) = 0;
+%                     %pS(isnan(pS)) = 0;
+%                     if(channel == 3)
+%                         out = pP+pS;
+%                     elseif(channel == 4)
+%                         out = (pP-bp.anisotropyGFactor*pS)./(pP+bp.anisotropyGFactor*bp.anisotropyPerpendicularFactor*pS);
+%                     end
+%                 end
+%                 if(isempty(y) && isempty(x))
+%                     flat = out;
+%                     flat(isnan(flat)) = 0;
+%                     this.roiFluoDataFlat{channel} = sum(flat,3,'native');
+%                 end
+%             end
             out(isnan(out)) = 0;
         end
         
@@ -763,12 +787,11 @@ classdef measurementFile < handle
                             targetPhotons = int32(param.gridPhotons);
                         end
                     end
-                    if(gridSz == 1 && targetPhotons == 0)
+                    if(gridSz <= 1 && targetPhotons == 0)
                         out(1,1,:) = this.getROIMerged(ch);
                         bl = 0;
                     else
-                        %get target nr of photons
-                        
+                        %get target nr of photons                        
                         [~,bl,out] = getAdaptiveBinROI(raw,roiX,roiY,targetPhotons,int32(50),false);
                     end
                 end
@@ -961,7 +984,12 @@ classdef measurementFile < handle
                 %bin raw data
                 computationParams = this.paramMgrObj.getParamSection('computation');
                 generalParams = this.paramMgrObj.getParamSection('general');
-                binFactor = this.roiStaticBinningFactor;
+                bp = this.paramMgrObj.basicParams;
+                if(bp.approximationTarget == 2 && channel > 2)
+                    binFactor = 0;
+                else
+                    binFactor = this.roiStaticBinningFactor;
+                end
                 if(binFactor > 0)
                     this.updateProgress(0.5,sprintf('ROI preparation channel %d',channel));
                 end
@@ -996,9 +1024,10 @@ classdef measurementFile < handle
                         this.roiBinLevels{channel} = binLevels;
                         this.setDirtyFlags(channel,4,true);
                     else
+                        %static binning
                         if(computationParams.useGPU && this.useGPU4StaticBin && binFactor >= 2)
                             out = gather(getStaticBinROI(gpuArray(raw),roi,binFactor));
-                        elseif(this.useMex4StaticBin)
+                        elseif(this.useMex4StaticBin && isa(raw,'uint16'))
                             out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));
                         else
                             out = getStaticBinROI(raw,uint16(roi),uint16(binFactor));
