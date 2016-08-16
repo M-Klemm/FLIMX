@@ -130,6 +130,13 @@ classdef batchJobMgrGUI < handle
         
         function GUI_buttonRemoveAll_Callback(this,hObject,eventdata)
             %delete all jobs
+            choice = questdlg('Delete all batch jobs?',...
+                'Delete All Batch Jobs','Yes','No','No');
+            % Handle response
+            switch choice
+                case 'No'
+                    return
+            end
             this.batchJobMgr.deleteAllJobs();
             this.mySelJobs = 1;
             this.updateGUI();
