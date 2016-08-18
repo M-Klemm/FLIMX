@@ -115,6 +115,13 @@ end
 
 function updateGUI(handles,dataS,dataR)
 %
+try
+    img = imread(FLIMX.getLogoPath());
+    image(img,'Parent',handles.axesLogo);    
+end
+axis(handles.axesLogo,'off');
+daspect(handles.axesLogo,[1 1 1]);
+
 set(handles.textSclient,'String',num2str(dataS.client_revision/100,'%01.2f'));
 set(handles.textScore,'String',num2str(dataS.core_revision/100,'%01.2f'));
 set(handles.textSconfig,'String',num2str(dataS.config_revision/100,'%01.2f'));

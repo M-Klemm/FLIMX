@@ -68,6 +68,7 @@ try
     image(img,'Parent',handles.axesSplash);    
 end
 axis(handles.axesSplash,'off');
+daspect(handles.axesSplash,[1 1 1]);
 axis(handles.axesWaitShort,'off');
 axis(handles.axesWaitLong,'off');
 
