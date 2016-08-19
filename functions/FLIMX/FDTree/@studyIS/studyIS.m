@@ -494,7 +494,7 @@ classdef studyIS < handle
             %insert new column at the end of the table            
             this.infoHeaders(end+1)= {name};
             this.subjectInfo(:,end+1)= cell(max(1,size(this.subjectInfo,1)),1);
-            this.subjectInfoCombi(end+1) = cell(1,1);
+            this.subjectInfoCombi(1,end+1) = cell(1,1);
             this.setDirty(true);
         end
         
