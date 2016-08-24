@@ -319,6 +319,25 @@ classdef ROICtrl < handle
             end          
         end
         
+        function moveROI(this,d,saveFlag)
+            %move ROI to new start point but keep its shape
+            if(isempty(d) || (~any(d) && ~saveFlag))
+                return
+            end
+            ROICoord = this.getCurROIInfo();            
+            ROICoord = ROICoord(:,2:end);
+            ROICoord = bsxfun(@minus,ROICoord,int16(d));
+            if(saveFlag)
+                if(this.ROIType == 2 || this.ROIType == 3)
+                    ROICoord = sort(ROICoord,2);
+                end
+                this.updateGUI(ROICoord);
+                this.save();
+            else
+                this.updateGUI(ROICoord);
+            end
+        end
+        
         function setupGUI(this)
             %setup GUI controls for current ROI Type
             switch this.ROIType
@@ -521,7 +540,7 @@ classdef ROICtrl < handle
             if(this.ROIType == 1)
                 out(:,3) = out(:,2);
             elseif(this.ROIType == 6 || this.ROIType == 7)
-                out = [[1;this.ROIInvertFlag], cell2mat(get(this.roi_table,'Data'))];
+                out = int16([[1;this.ROIInvertFlag], cell2mat(get(this.roi_table,'Data'))]);
             else
                 out(1,3) = hfd.yLbl2Pos(sscanf(get(this.y_u_edit,'String'),'%i',1));
                 out(2,3) = hfd.xLbl2Pos(sscanf(get(this.x_u_edit,'String'),'%i',1));                

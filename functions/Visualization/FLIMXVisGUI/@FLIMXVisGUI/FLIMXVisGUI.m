@@ -1003,16 +1003,31 @@ classdef FLIMXVisGUI < handle
                 inFunction = []; %enable callback
                 return
             end
+            thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
+            otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
             if(~isempty(cp) && this.getROIDisplayMode(thisSide) < 3)
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
                 if(this.dynParams.mouseButtonDown)% && this.getROIType(s) == 2)
-                    this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
-                    if(strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
-                        this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
-                    end
-                    %this.objHandles.rdo.drawROI(this.getROIType(tS),flipud(cp),flipud(this.dynParams.mouseButtonDownCoord),false);
-                    if(this.getROIType(thisSide) >= 1 && this.getROIType(thisSide) < 6)
-                        this.objHandles.(sprintf('%sROI',thisSide)).setEndPoint(flipud(cp),false);
+                    if(strcmp('normal',get(hObject,'SelectionType')))
+                        %left click
+                        this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
+                        if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
+                            this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
+                        end
+                        if(this.getROIType(thisSide) >= 1 && this.getROIType(thisSide) < 6)
+                            thisROIObj.setEndPoint(flipud(cp),false);
+                        end
+                    else
+                        %right click
+                        dTarget = int16(flipud(this.dynParams.mouseButtonDownCoord-cp));
+                        ROICoord = this.objHandles.(sprintf('%sROI',thisSide)).getCurROIInfo();
+                        ROICoord = ROICoord(:,2:end);
+                        dMoved = this.dynParams.mouseButtonDownROI - ROICoord(:,1);
+                        thisROIObj.moveROI(dTarget-dMoved,false);
+                        this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),ROICoord(:,1),ROICoord(:,2:end),false);
+                        if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
+                            this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),ROICoord(:,1),ROICoord(:,2:end),false);
+                        end
                     end
                 end
             end 
@@ -1031,23 +1046,31 @@ classdef FLIMXVisGUI < handle
             end
             if(this.getROIType(thisSide) < 1)
                 return
-            end            
+            end
+            mLeftButton = strcmp('normal',get(hObject,'SelectionType'));
+            thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
+            otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
             if(isempty(cp))
                 %set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-            elseif(this.getROIDisplayMode(thisSide) < 3 && this.getROIType(thisSide) >= 1 && this.getROIType(thisSide) < 6)
+            elseif(this.getROIDisplayMode(thisSide) < 3 && this.getROIType(thisSide) >= 1)
                 this.dynParams.mouseButtonDown = true;
                 this.dynParams.mouseButtonDownCoord = cp;
+                currentROI = thisROIObj.getCurROIInfo();
+                this.dynParams.mouseButtonDownROI = currentROI(:,2);
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
-                if(get(this.visHandles.enableMouse_check,'Value'))
-                    this.objHandles.(sprintf('%sROI',thisSide)).setStartPoint(flipud(cp));
+                if(get(this.visHandles.enableMouse_check,'Value') && mLeftButton && this.getROIType(thisSide) < 6)
+                    %left click
+                    thisROIObj.setStartPoint(flipud(cp));
                 end
             else
                 return
-            end
-            %draw current point in both (empty cp deletes old lines)
-            this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(cp),flipud(cp),false);
-            if(strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
-                this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(cp),flipud(cp),false);
+            end            
+            if(mLeftButton && this.getROIType(thisSide) < 6)
+                %draw current point in both (empty cp deletes old lines)
+                this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(cp),flipud(cp),false);
+                if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
+                    this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(cp),flipud(cp),false);
+                end
             end
         end
         
@@ -1069,7 +1092,16 @@ classdef FLIMXVisGUI < handle
             elseif(this.getROIDisplayMode(thisSide) < 3)
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
                 if(this.getROIType(thisSide) >= 1 && get(this.visHandles.enableMouse_check,'Value'))
-                    this.objHandles.(sprintf('%sROI',thisSide)).setEndPoint(flipud(cp),true);
+                    if(strcmp('normal',get(hObject,'SelectionType')))
+                        this.objHandles.(sprintf('%sROI',thisSide)).setEndPoint(flipud(cp),true);
+                    else
+                        %right click
+                        dTarget = int16(flipud(this.dynParams.mouseButtonDownCoord-cp));
+                        ROICoord = this.objHandles.(sprintf('%sROI',thisSide)).getCurROIInfo();
+                        ROICoord = ROICoord(:,2:end);
+                        dMoved = this.dynParams.mouseButtonDownROI - ROICoord(:,1);
+                        this.objHandles.(sprintf('%sROI',thisSide)).moveROI(dTarget-dMoved,true);
+                    end
                     this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
                     this.myStatsGroupComp.clearResults();
                     this.objHandles.rdo.updatePlots();
