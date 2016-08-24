@@ -1110,6 +1110,7 @@ classdef FLIMXVisGUI < handle
                     this.objHandles.rdo.drawCP(cp);
                 end
                 this.dynParams.mouseButtonDown = false;
+                this.dynParams.mouseButtonDownCoord = [];
             end
         end
         
