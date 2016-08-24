@@ -329,41 +329,41 @@ classdef AICtrl < handle
         function setUIHandles(this)
             %builds the uicontrol handles for the AICtrl object for axis ax
             this.FLIMItemA = this.visObj.visHandles.ai_flimitem_a_pop;
-            set(this.FLIMItemA,'Callback',@this.ui_Callback);
+            set(this.FLIMItemA,'Callback',@this.ui_Callback,'TooltipString','Select FLIM parameter');
             this.FLIMItemB = this.visObj.visHandles.ai_flimitem_b_pop;
-            set(this.FLIMItemB,'Callback',@this.ui_Callback);
+            set(this.FLIMItemB,'Callback',@this.ui_Callback,'TooltipString','Select FLIM parameter');
             this.combi = this.visObj.visHandles.ai_combi_pop;
-            set(this.combi,'Callback',@this.ui_Callback);
+            set(this.combi,'Callback',@this.ui_Callback,'TooltipString','Select logical operator');
             this.combiText = this.visObj.visHandles.ai_combi_text;
             this.chA = this.visObj.visHandles.ai_ch_a_pop;
-            set(this.chA,'Callback',@this.ui_Callback);
+            set(this.chA,'Callback',@this.ui_Callback,'TooltipString','Select spectral channel; ''all Ch'' will compute the arithmetic image for all channels separately');
             this.chB = this.visObj.visHandles.ai_ch_b_pop;
-            set(this.chB,'Callback',@this.ui_Callback);
+            set(this.chB,'Callback',@this.ui_Callback,'TooltipString','Select spectral channel; ''all Ch'' will compute the arithmetic image for all channels separately');
             this.opA = this.visObj.visHandles.ai_op_a_pop;
-            set(this.opA,'Callback',@this.ui_Callback);
+            set(this.opA,'Callback',@this.ui_Callback,'TooltipString','Select logical or arithmetic operator');
             this.opB = this.visObj.visHandles.ai_op_b_pop;
-            set(this.opB,'Callback',@this.ui_Callback);
+            set(this.opB,'Callback',@this.ui_Callback,'TooltipString','Select arithmetic operator');
             this.opBText = this.visObj.visHandles.ai_op_b_text;
             this.valA = this.visObj.visHandles.ai_val_a_edit;            
-            set(this.valA,'Callback',@this.ui_Callback);
+            set(this.valA,'Callback',@this.ui_Callback,'TooltipString','Enter value');
             this.valAText = this.visObj.visHandles.ai_val_a_text;  
             this.valB = this.visObj.visHandles.ai_val_b_edit;
-            set(this.valB,'Callback',@this.ui_Callback);
+            set(this.valB,'Callback',@this.ui_Callback,'TooltipString','Enter value');
             this.valBText = this.visObj.visHandles.ai_val_b_text;  
             this.valRadio = this.visObj.visHandles.ai_val_radio;
-            set(this.valRadio,'Callback',@this.ui_Callback);
+            set(this.valRadio,'Callback',@this.ui_Callback,'TooltipString','Compute arithmetic image from FLIM parameter (left) and numerical values(s)');
             this.FLIMItemRadio = this.visObj.visHandles.ai_flimitem_radio;
-            set(this.FLIMItemRadio,'Callback',@this.ui_Callback);
+            set(this.FLIMItemRadio,'Callback',@this.ui_Callback,'TooltipString','Compute arithmetic image from two FLIM parameter (which can be arithmetic images themselves); for logicals operations the FLIM item to the right is converted to a mask (boolean)');
             this.aiSel = this.visObj.visHandles.ai_sel_pop;
-            set(this.aiSel,'Callback',@this.ui_Callback);
+            set(this.aiSel,'Callback',@this.ui_Callback,'TooltipString','Select existing arithmetic image');
             this.newButton = this.visObj.visHandles.ai_new_button;
-            set(this.newButton,'Callback',@this.new_Callback);
+            set(this.newButton,'Callback',@this.new_Callback,'TooltipString','Create new arithmetic image, which is computed for each subject of the current study');
             this.delButton = this.visObj.visHandles.ai_del_button;
-            set(this.delButton,'Callback',@this.del_Callback);
+            set(this.delButton,'Callback',@this.del_Callback,'TooltipString','Delete selected arithmetic image');
             this.normalizeA = this.visObj.visHandles.ai_normalize_a_check;
-            set(this.normalizeA,'Callback',@this.ui_Callback);
+            set(this.normalizeA,'Callback',@this.ui_Callback,'TooltipString','Normalize FLIM parameter');
             this.normalizeB = this.visObj.visHandles.ai_normalize_b_check;
-            set(this.normalizeB,'Callback',@this.ui_Callback);
+            set(this.normalizeB,'Callback',@this.ui_Callback,'TooltipString','Normalize FLIM parameter');
         end
     end %methods protected
     

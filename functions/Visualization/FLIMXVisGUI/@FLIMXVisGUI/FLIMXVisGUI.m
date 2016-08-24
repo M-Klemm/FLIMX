@@ -1426,41 +1426,41 @@ classdef FLIMXVisGUI < handle
             %set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);%,'WindowButtonUpFcn',@this.mouseButtonUp);
             set(this.visHandles.FLIMXVisGUIFigure,'Units','Pixels');
             %popups
-            set(this.visHandles.enableMouse_check,'Callback',@this.GUI_enableMouseCheck_Callback,'Value',0,'String','enable ROI definition');
-            set(this.visHandles.sync3DViews_check,'Callback',@this.GUI_sync3DViews_check_Callback,'Value',0);
+            set(this.visHandles.enableMouse_check,'Callback',@this.GUI_enableMouseCheck_Callback,'Value',0,'String','enable ROI definition','TooltipString','Enable or disable the ROI definition using the mouse pointer (no 3D rotation possible if enabled!)');
+            set(this.visHandles.sync3DViews_check,'Callback',@this.GUI_sync3DViews_check_Callback,'Value',0,'TooltipString','Enable or disable synchronization of 3D views on left and right side');
             %main axes
-            set(this.visHandles.dataset_l_pop,'Callback',@this.GUI_subjectPop_Callback);
-            set(this.visHandles.dataset_r_pop,'Callback',@this.GUI_subjectPop_Callback);
-            set(this.visHandles.dataset_l_dec_button,'FontName','Symbol','String',char(173),'Callback',@this.GUI_subjectButton_Callback);
-            set(this.visHandles.dataset_l_inc_button,'FontName','Symbol','String',char(175),'Callback',@this.GUI_subjectButton_Callback);
-            set(this.visHandles.dataset_r_dec_button,'FontName','Symbol','String',char(173),'Callback',@this.GUI_subjectButton_Callback);
-            set(this.visHandles.dataset_r_inc_button,'FontName','Symbol','String',char(175),'Callback',@this.GUI_subjectButton_Callback);            
-            set(this.visHandles.main_axes_l_pop,'Callback',@this.GUI_mainAxesPop_Callback);
-            set(this.visHandles.main_axes_r_pop,'Callback',@this.GUI_mainAxesPop_Callback);            
-            set(this.visHandles.main_axes_var_l_pop,'Callback',@this.GUI_mainAxesVarPop_Callback);
-            set(this.visHandles.main_axes_var_r_pop,'Callback',@this.GUI_mainAxesVarPop_Callback);            
-            set(this.visHandles.main_axes_pdim_l_pop,'Callback',@this.GUI_mainAxesDimPop_Callback);
-            set(this.visHandles.main_axes_pdim_r_pop,'Callback',@this.GUI_mainAxesDimPop_Callback);            
-            set(this.visHandles.main_axes_chan_l_pop,'Callback',@this.GUI_mainAxesChPop_Callback);
-            set(this.visHandles.main_axes_chan_r_pop,'Callback',@this.GUI_mainAxesChPop_Callback);            
-            set(this.visHandles.main_axes_scale_l_pop,'Callback',@this.GUI_mainAxesScalePop_Callback,'Enable','off','Value',1);
-            set(this.visHandles.main_axes_scale_r_pop,'Callback',@this.GUI_mainAxesScalePop_Callback,'Enable','off','Value',1); 
+            set(this.visHandles.dataset_l_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the left side');
+            set(this.visHandles.dataset_r_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the right side');
+            set(this.visHandles.dataset_l_dec_button,'FontName','Symbol','String',char(173),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to previous subject on the left side');
+            set(this.visHandles.dataset_l_inc_button,'FontName','Symbol','String',char(175),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to next subject on the left side');
+            set(this.visHandles.dataset_r_dec_button,'FontName','Symbol','String',char(173),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to previous subject on the right side');
+            set(this.visHandles.dataset_r_inc_button,'FontName','Symbol','String',char(175),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to next subject on the right side');            
+            set(this.visHandles.main_axes_l_pop,'Callback',@this.GUI_mainAxesPop_Callback,'TooltipString','Select FLIM parameter to display on the left side');
+            set(this.visHandles.main_axes_r_pop,'Callback',@this.GUI_mainAxesPop_Callback,'TooltipString','Select FLIM parameter to display on the right side');            
+            set(this.visHandles.main_axes_var_l_pop,'Callback',@this.GUI_mainAxesVarPop_Callback,'TooltipString','Display one or multiple FLIM parameters on the left side');
+            set(this.visHandles.main_axes_var_r_pop,'Callback',@this.GUI_mainAxesVarPop_Callback,'TooltipString','Display one or multiple FLIM parameters on the right side');            
+            set(this.visHandles.main_axes_pdim_l_pop,'Callback',@this.GUI_mainAxesDimPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the left side');
+            set(this.visHandles.main_axes_pdim_r_pop,'Callback',@this.GUI_mainAxesDimPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the right side');            
+            set(this.visHandles.main_axes_chan_l_pop,'Callback',@this.GUI_mainAxesChPop_Callback,'TooltipString','Switch the spectral channel on the left side');
+            set(this.visHandles.main_axes_chan_r_pop,'Callback',@this.GUI_mainAxesChPop_Callback,'TooltipString','Switch the spectral channel on the right side');            
+            set(this.visHandles.main_axes_scale_l_pop,'Callback',@this.GUI_mainAxesScalePop_Callback,'Enable','off','Value',1,'TooltipString','Select linear or log10 scaling of the FLIM parameter on the left side');
+            set(this.visHandles.main_axes_scale_r_pop,'Callback',@this.GUI_mainAxesScalePop_Callback,'Enable','off','Value',1,'TooltipString','Select linear or log10 scaling of the FLIM parameter on the right side'); 
             %supp axes
-            set(this.visHandles.supp_axes_l_pop,'Callback',@this.GUI_suppAxesPop_Callback); 
-            set(this.visHandles.supp_axes_r_pop,'Callback',@this.GUI_suppAxesPop_Callback); 
-            set(this.visHandles.supp_axes_hist_l_pop,'Callback',@this.GUI_suppAxesHistPop_Callback); 
-            set(this.visHandles.supp_axes_hist_r_pop,'Callback',@this.GUI_suppAxesHistPop_Callback); 
-            set(this.visHandles.supp_axes_scale_l_pop,'Callback',@this.GUI_suppAxesScalePop_Callback); 
-            set(this.visHandles.supp_axes_scale_r_pop,'Callback',@this.GUI_suppAxesScalePop_Callback);            
+            set(this.visHandles.supp_axes_l_pop,'Callback',@this.GUI_suppAxesPop_Callback,'TooltipString','Show histogram or cross-section for current subject','Value',2); 
+            set(this.visHandles.supp_axes_r_pop,'Callback',@this.GUI_suppAxesPop_Callback,'TooltipString','Show histogram or cross-section for current subject','Value',2); 
+            set(this.visHandles.supp_axes_hist_l_pop,'Callback',@this.GUI_suppAxesHistPop_Callback,'TooltipString','Show histogram for current subject or current study / condition'); 
+            set(this.visHandles.supp_axes_hist_r_pop,'Callback',@this.GUI_suppAxesHistPop_Callback,'TooltipString','Show histogram for current subject or current study / condition'); 
+            set(this.visHandles.supp_axes_scale_l_pop,'Callback',@this.GUI_suppAxesScalePop_Callback,'TooltipString','Select linear or log10 scaling for cross-section'); 
+            set(this.visHandles.supp_axes_scale_r_pop,'Callback',@this.GUI_suppAxesScalePop_Callback,'TooltipString','Select linear or log10 scaling for cross-section');            
             %cuts
-            set(this.visHandles.cut_x_l_check,'Callback',@this.GUI_cut_Callback);
-            set(this.visHandles.cut_y_l_check,'Callback',@this.GUI_cut_Callback);
-            set(this.visHandles.cut_y_l_slider,'Callback',@this.GUI_cut_Callback);
-            set(this.visHandles.cut_x_l_slider,'Callback',@this.GUI_cut_Callback);
-            set(this.visHandles.cut_y_l_edit,'Callback',@this.GUI_cut_Callback);
-            set(this.visHandles.cut_x_l_edit,'Callback',@this.GUI_cut_Callback);
-            set(this.visHandles.cut_x_inv_check,'Callback',@this.GUI_cut_Callback);
-            set(this.visHandles.cut_y_inv_check,'Callback',@this.GUI_cut_Callback);
+            set(this.visHandles.cut_x_l_check,'Callback',@this.GUI_cut_Callback,'TooltipString','Enable or disable the vertical cross-section');
+            set(this.visHandles.cut_y_l_check,'Callback',@this.GUI_cut_Callback,'TooltipString','Enable or disable the horizontal cross-section');
+            set(this.visHandles.cut_y_l_slider,'Callback',@this.GUI_cut_Callback,'TooltipString','Move horizontal cross-section');
+            set(this.visHandles.cut_x_l_slider,'Callback',@this.GUI_cut_Callback,'TooltipString','Move vertical cross-section');
+            set(this.visHandles.cut_y_l_edit,'Callback',@this.GUI_cut_Callback,'TooltipString','Enter position in pixels for horizontal cross-section');
+            set(this.visHandles.cut_x_l_edit,'Callback',@this.GUI_cut_Callback,'TooltipString','Enter position in pixels for vertical cross-section');
+            set(this.visHandles.cut_x_inv_check,'Callback',@this.GUI_cut_Callback,'TooltipString','Toggle which side of the cross-section is cut off (3D plot only)');
+            set(this.visHandles.cut_y_inv_check,'Callback',@this.GUI_cut_Callback,'TooltipString','Toggle which side of the cross-section is cut off (3D plot only)');
             %manual scaling
             dims =['x','y','z'];
             axs = ['l','r'];
@@ -1468,19 +1468,19 @@ classdef FLIMXVisGUI < handle
                 ax = axs(j);
                 for i=1:3
                     dim = dims(i);
-                    set(this.visHandles.(sprintf('ms_%s_%s_lo_dec_button',ax,dim)),'Callback',@this.GUI_roi_Callback);
-                    set(this.visHandles.(sprintf('ms_%s_%s_lo_inc_button',ax,dim)),'Callback',@this.GUI_roi_Callback);
-                    set(this.visHandles.(sprintf('ms_%s_%s_lo_edit',ax,dim)),'Callback',@this.GUI_roi_Callback);
-                    set(this.visHandles.(sprintf('ms_%s_%s_u_dec_button',ax,dim)),'Callback',@this.GUI_roi_Callback);
-                    set(this.visHandles.(sprintf('ms_%s_%s_u_inc_button',ax,dim)),'Callback',@this.GUI_roi_Callback);
-                    set(this.visHandles.(sprintf('ms_%s_%s_u_edit',ax,dim)),'Callback',@this.GUI_roi_Callback);
-                    set(this.visHandles.(sprintf('ms_%s_%s_check',ax,dim)),'Callback',@this.GUI_roi_Callback);
+                    set(this.visHandles.(sprintf('ms_%s_%s_lo_dec_button',ax,dim)),'Callback',@this.GUI_roi_Callback,'TooltipString',sprintf('Decrease %s-value',dim));
+                    set(this.visHandles.(sprintf('ms_%s_%s_lo_inc_button',ax,dim)),'Callback',@this.GUI_roi_Callback,'TooltipString',sprintf('Increase %s-value',dim));
+                    set(this.visHandles.(sprintf('ms_%s_%s_lo_edit',ax,dim)),'Callback',@this.GUI_roi_Callback,'TooltipString',sprintf('Enter %s-value',dim));
+                    set(this.visHandles.(sprintf('ms_%s_%s_u_dec_button',ax,dim)),'Callback',@this.GUI_roi_Callback,'TooltipString',sprintf('Decrease %s-value',dim));
+                    set(this.visHandles.(sprintf('ms_%s_%s_u_inc_button',ax,dim)),'Callback',@this.GUI_roi_Callback,'TooltipString',sprintf('Increase %s-value',dim));
+                    set(this.visHandles.(sprintf('ms_%s_%s_u_edit',ax,dim)),'Callback',@this.GUI_roi_Callback,'TooltipString',sprintf('Enter %s-value',dim));
                 end
-                set(this.visHandles.(sprintf('roi_type_%s_popup',ax)),'Callback',@this.GUI_roi_Callback);
-                set(this.visHandles.(sprintf('roi_subtype_%s_popup',ax)),'Callback',@this.GUI_roi_Callback);
+                set(this.visHandles.(sprintf('ms_%s_z_check',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Enable or disable z scaling');
+                set(this.visHandles.(sprintf('roi_type_%s_popup',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Select ROI type');
+                set(this.visHandles.(sprintf('roi_subtype_%s_popup',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Select subfield of ETDRS grid');
                 set(this.visHandles.(sprintf('roi_%s_table',ax)),'CellEditCallback',@this.GUI_roi_Callback);
-                set(this.visHandles.(sprintf('roi_table_clearLast_%s_button',ax)),'Callback',@this.GUI_roi_Callback);
-                set(this.visHandles.(sprintf('roi_table_clearAll_%s_button',ax)),'Callback',@this.GUI_roi_Callback);
+                set(this.visHandles.(sprintf('roi_table_clearLast_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Clear last node of current polygon ROI');
+                set(this.visHandles.(sprintf('roi_table_clearAll_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Clear all nodes of current polygon ROI');
             end
             %menu            
             set(this.visHandles.menuImportResult,'Callback',@this.menuImport_Callback); 
@@ -1506,14 +1506,14 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.menuOpenFLIMXFit,'Callback',@this.menuOpenFLIMXFit_Callback);            
             set(this.visHandles.menuAbout,'Callback',@this.menuAbout_Callback);            
             %intensity overlay
-            set(this.visHandles.IO_l_check,'Callback',@this.GUI_intOverlay_Callback);
-            set(this.visHandles.IO_r_check,'Callback',@this.GUI_intOverlay_Callback);
-            set(this.visHandles.IO_l_dec_button,'Callback',@this.GUI_intOverlay_Callback);            
-            set(this.visHandles.IO_r_dec_button,'Callback',@this.GUI_intOverlay_Callback);
-            set(this.visHandles.IO_l_inc_button,'Callback',@this.GUI_intOverlay_Callback);
-            set(this.visHandles.IO_r_inc_button,'Callback',@this.GUI_intOverlay_Callback);
-            set(this.visHandles.IO_l_edit,'Callback',@this.GUI_intOverlay_Callback);
-            set(this.visHandles.IO_r_edit,'Callback',@this.GUI_intOverlay_Callback);            
+            set(this.visHandles.IO_l_check,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Enable or disable overlay of the intensity image on the left side');
+            set(this.visHandles.IO_r_check,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Enable or disable overlay of the intensity image on the right side');
+            set(this.visHandles.IO_l_dec_button,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Decrease brightness of intensity overlay on the left side');            
+            set(this.visHandles.IO_r_dec_button,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Decrease brightness of intensity overlay on the right side');
+            set(this.visHandles.IO_l_inc_button,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Increase brightness of intensity overlay on the left side');
+            set(this.visHandles.IO_r_inc_button,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Increase brightness of intensity overlay on the right side');
+            set(this.visHandles.IO_l_edit,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Enter brightness value for the intensity overlay on the left side (0: dark; 1: bright)');
+            set(this.visHandles.IO_r_edit,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Enter brightness value for the intensity overlay on the right side (0: dark; 1: bright)');            
             %current point
             set(this.visHandles.cp_l_desc_text,'Visible','on');
             set(this.visHandles.cp_r_desc_text,'Visible','on');
@@ -1522,15 +1522,15 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.cp_l_val_text,'Visible','on');
             set(this.visHandles.cp_r_val_text,'Visible','on');            
             %setup study controls
-            set(this.visHandles.study_l_pop,'Callback',@this.GUI_studySet_Callback);
-            set(this.visHandles.study_r_pop,'Callback',@this.GUI_studySet_Callback);
-            set(this.visHandles.view_l_pop,'Callback',@this.GUI_viewSet_Callback);
-            set(this.visHandles.view_r_pop,'Callback',@this.GUI_viewSet_Callback);            
+            set(this.visHandles.study_l_pop,'Callback',@this.GUI_studySet_Callback,'TooltipString','Select current study for the left side');
+            set(this.visHandles.study_r_pop,'Callback',@this.GUI_studySet_Callback,'TooltipString','Select current study for the right side');
+            set(this.visHandles.view_l_pop,'Callback',@this.GUI_viewSet_Callback,'TooltipString','Select current condition for the current study on left side');
+            set(this.visHandles.view_r_pop,'Callback',@this.GUI_viewSet_Callback,'TooltipString','Select current condition for the current study on right side');            
             %study color selection
-            set(this.visHandles.study_color_l_button,'Callback',@this.GUI_viewColorSelection_Callback);
-            set(this.visHandles.study_color_r_button,'Callback',@this.GUI_viewColorSelection_Callback);            
+            set(this.visHandles.study_color_l_button,'Callback',@this.GUI_viewColorSelection_Callback,'TooltipString','Set color for current condition on the left side (only for scatter plots)');
+            set(this.visHandles.study_color_r_button,'Callback',@this.GUI_viewColorSelection_Callback,'TooltipString','Set color for current condition on the right side (only for scatter plots)');            
             %progress bars
-            set(this.visHandles.cancel_button,'Callback',@this.GUI_cancelButton_Callback);
+            set(this.visHandles.cancel_button,'Callback',@this.GUI_cancelButton_Callback,'TooltipString','Stop current operation');
             xpatch = [0 0 0 0];
             ypatch = [0 0 1 1];
             axis(this.visHandles.short_progress_axes ,'off');            
