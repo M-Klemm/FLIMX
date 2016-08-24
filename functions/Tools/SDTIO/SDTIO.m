@@ -144,8 +144,11 @@ classdef SDTIO < handle
                     height = obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y;
                     
                     no_of_curves = double(pReqDBI.uNextBlockOffset-pReqDBI.uFileOffset)/double(resolution)/type_len;
-                    raw = fread(obj.m_hInFile, (double(pReqDBI.uNextBlockOffset-pReqDBI.uFileOffset)/type_len),type_str);
-                    
+                    targetCount = double(pReqDBI.uNextBlockOffset-pReqDBI.uFileOffset)/type_len;
+                    [raw, readCount] = fread(obj.m_hInFile, targetCount, type_str);
+                    if(readCount ~= targetCount)
+                        error('Failed to read %d characters from data block %d - got %d (file: %s).',targetCount,iDataBlock,readCount,obj.FileInformation.Name);
+                    end
                     if no_of_curves == width*height
                         raw = reshape(raw, resolution, width, height);
                     else
