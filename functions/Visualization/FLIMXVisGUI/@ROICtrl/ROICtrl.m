@@ -57,6 +57,9 @@ classdef ROICtrl < handle
         x_text = [];
         x_sz_text = [];
         x_sz_edit = [];
+        x_szMM_text = [];
+        x_szPX_text = [];
+        x_szMM_edit = [];
         
         y_check = [];
         y_lo_dec_button = [];
@@ -68,17 +71,9 @@ classdef ROICtrl < handle
         y_text = [];
         y_sz_text = [];
         y_sz_edit = [];
-        
-%         z_lo_dec_button = [];
-%         z_lo_inc_button = [];
-%         z_lo_edit = [];
-%         z_u_dec_button = [];
-%         z_u_inc_button = [];
-%         z_u_edit = [];
-%         z_check = [];
-%         z_text = [];
-%         z_sz_text = [];
-%         z_sz_edit = [];
+        y_szMM_text = [];
+        y_szPX_text = [];
+        y_szMM_edit = [];
     end
     
     properties (Dependent = true)
@@ -172,6 +167,9 @@ classdef ROICtrl < handle
                 set(this.(sprintf('%s_u_inc_button',dim(i))),'Enable',argEn,'Visible',argVis);
                 set(this.(sprintf('%s_sz_text',dim(i))),'Enable',argEn,'Visible',argVis);
                 set(this.(sprintf('%s_sz_edit',dim(i))),'Enable','off','Visible',argVis);
+                set(this.(sprintf('%s_szMM_text',dim(i))),'Enable',argEn,'Visible',argVis);
+                set(this.(sprintf('%s_szPX_text',dim(i))),'Enable',argEn,'Visible',argVis);
+                set(this.(sprintf('%s_szMM_edit',dim(i))),'Enable','off','Visible',argVis);
             end
         end
         
@@ -352,6 +350,9 @@ classdef ROICtrl < handle
                     this.enDisAble('on','on');
                     set(this.y_sz_text','Enable','off','Visible','off');
                     set(this.y_sz_edit,'Enable','off','Visible','off');
+                    set(this.y_szMM_text','Enable','off','Visible','off');
+                    set(this.y_szPX_text','Enable','off','Visible','off');
+                    set(this.y_szMM_edit,'Enable','off','Visible','off');
                     set(this.roi_table,'Visible','off');
                     set(this.roi_table_clearLast_button,'Visible','off');
                     set(this.roi_table_clearAll_button,'Visible','off');
@@ -374,11 +375,11 @@ classdef ROICtrl < handle
         
         function updateGUI(this,ROICoord)
             %set GUI items to values from FDTree / FData object
+            hfd = this.myHFD;
+            if(isempty(hfd))
+                return
+            end
             if(isempty(ROICoord))
-                hfd = this.myHFD;
-                if(isempty(hfd))
-                    return
-                end
                 ROICoord = hfd.getROICoordinates(this.ROIType);
                 if(isempty(ROICoord) || ~any(ROICoord(:)))
                     if(this.ROIType < 6)
@@ -387,7 +388,14 @@ classdef ROICtrl < handle
                         ROICoord = [];
                     end
                 end
-            end            
+            end
+            fi = hfd.getFileInfoStruct();
+            if(~isempty(fi))
+                res = fi.pixelResolution/1000;
+            else
+                res = 0;%58.66666666666/1000;
+                %todo: warning/error message
+            end
             switch this.ROIType
                 case 1 %ETDRS grid                    
                     set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
@@ -397,8 +405,12 @@ classdef ROICtrl < handle
                     set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
                     set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
                     set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
-                    set(this.y_sz_edit,'String',num2str(abs(ROICoord(1,2)-ROICoord(1,1))+1));
-                    set(this.x_sz_edit,'String',num2str(abs(ROICoord(2,2)-ROICoord(2,1))+1));
+                    d = abs(ROICoord(1,2)-ROICoord(1,1))+1;
+                    set(this.y_sz_edit,'String',num2str(d));
+                    set(this.y_szMM_edit,'String',FLIMXFitGUI.num4disp(res*double(d)));
+                    d = abs(ROICoord(2,2)-ROICoord(2,1))+1;
+                    set(this.x_sz_edit,'String',num2str(d));
+                    set(this.x_szMM_edit,'String',FLIMXFitGUI.num4disp(res*double(d)));
                 case {4,5} %circle
                     set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
                     set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
@@ -406,6 +418,7 @@ classdef ROICtrl < handle
                     set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
                     d = 2*sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
                     set(this.x_sz_edit,'String',FLIMXFitGUI.num4disp(d));
+                    set(this.x_szMM_edit,'String',FLIMXFitGUI.num4disp(res*d));
                 case {6,7} %polygon
                     set(this.roi_table,'Data',num2cell(ROICoord))
                     if(~isempty(ROICoord))
@@ -674,10 +687,12 @@ classdef ROICtrl < handle
                 this.(sprintf('%s_u_dec_button',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_u_dec_button',s,dim));
                 this.(sprintf('%s_u_inc_button',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_u_inc_button',s,dim));
                 this.(sprintf('%s_u_edit',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_u_edit',s,dim));
-                %this.(sprintf('%s_check',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_check',s,dim));
                 this.(sprintf('%s_text',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_text',s,dim));
                 this.(sprintf('%s_sz_text',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_sz_text',s,dim));
                 this.(sprintf('%s_sz_edit',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_sz_edit',s,dim));
+                this.(sprintf('%s_szMM_text',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_szMM_text',s,dim));
+                this.(sprintf('%s_szPX_text',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_szPX_text',s,dim));
+                this.(sprintf('%s_szMM_edit',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_szMM_edit',s,dim));
             end
         end
     end %methods protected
