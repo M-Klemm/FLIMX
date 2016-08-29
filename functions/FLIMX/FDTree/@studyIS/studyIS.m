@@ -335,6 +335,7 @@ classdef studyIS < handle
                 tmp = cell(0,4);
             end
             idxCh = ch == [tmp{:,1}];
+            idxCh = idxCh(:);
             if(~any(idxCh))
                 %channel not found
                 idxCh(end+1,1) = true;
