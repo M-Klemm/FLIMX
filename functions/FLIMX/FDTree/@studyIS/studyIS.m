@@ -347,6 +347,7 @@ classdef studyIS < handle
             idxType = idxType(:) & idxCh(:);
             if(~any(idxType))
                 %dType not found
+                idxCh(end+1,1) = true;
                 idxType(end+1,1) = true;
                 tmp{idxType,1} = ch;
                 tmp{idxType,2} = dType;                
