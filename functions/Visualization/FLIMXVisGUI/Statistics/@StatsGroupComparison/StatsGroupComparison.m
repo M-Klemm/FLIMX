@@ -555,8 +555,10 @@ classdef StatsGroupComparison < handle
                 hSumMin = min([this.histogramSum{1}(histIdxStart:histIdxEnd), this.histogramSum{2}(histIdxStart:histIdxEnd)]);
                 hSumMax = max([this.histogramSum{1}(histIdxStart:histIdxEnd), this.histogramSum{2}(histIdxStart:histIdxEnd)]);
                 if(abs(hDiffMin - hDiffMax) < eps)
+                    hDiffMax = hDiffMax + eps + abs(hDiffMax)*0.1;
                 end
                 if(abs(hSumMin - hSumMax) < eps)
+                    hSumMax = hSumMax + eps + abs(hSumMax)*0.1;
                 end
                 cla(this.visHandles.axesSumGrps);
                 cla(this.visHandles.axesDiffGrps);
