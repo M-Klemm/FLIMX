@@ -555,10 +555,8 @@ classdef StatsGroupComparison < handle
                 hSumMin = min([this.histogramSum{1}(histIdxStart:histIdxEnd), this.histogramSum{2}(histIdxStart:histIdxEnd)]);
                 hSumMax = max([this.histogramSum{1}(histIdxStart:histIdxEnd), this.histogramSum{2}(histIdxStart:histIdxEnd)]);
                 if(abs(hDiffMin - hDiffMax) < eps)
-                    hDiffMax = (hDiffMax+eps)*1.1;
                 end
                 if(abs(hSumMin - hSumMax) < eps)
-                    hSumMax = (hSumMax+eps)*1.1;
                 end
                 cla(this.visHandles.axesSumGrps);
                 cla(this.visHandles.axesDiffGrps);
@@ -1128,7 +1126,7 @@ classdef StatsGroupComparison < handle
             dType = [];
             out = get(this.visHandles.popupSelParam,'String');
             if(~ischar(out))
-                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam,'Value')});
+                [dType, ~] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam,'Value')});
                 dType = dType{1};
             end            
         end
@@ -1137,13 +1135,18 @@ classdef StatsGroupComparison < handle
             dTypeNr = [];
             out = get(this.visHandles.popupSelParam,'String');
             if(~ischar(out))
-                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam,'Value')});
+                [~, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam,'Value')});
                 dTypeNr = dTypeNr(1);
             end  
         end
         
         function out = get.sortP(this)
-            out = get(this.visHandles.checkSortP,'Value');
+            %flag if group histograms should sorted by p values
+            if(get(this.visHandles.popupTestSel,'Value') ~= 5)
+                out = false;
+            else
+                out = get(this.visHandles.checkSortP,'Value');
+            end
         end
         
         function out = get.currentRowHeaders(this)
