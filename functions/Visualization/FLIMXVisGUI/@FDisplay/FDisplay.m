@@ -425,7 +425,7 @@ classdef FDisplay < handle
                 bgc = [0 0 0 0];
                 if(~strcmp(this.staticVisParams.ETDRS_subfield_values,'none'))
                     if(strcmp(this.staticVisParams.ETDRS_subfield_values,'field name'))
-                        txt = {'C','IN','IS','II','IT','OS','ON','OI','OT'}';
+                        txt = {'C','IS','IN','II','IT','OS','ON','OI','OT'}';
                     else
                         tmp = hfd.getROISubfieldStatistics(cp,1,this.staticVisParams.ETDRS_subfield_values);                        
                         %txt = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%FLIMXFitGUI.num4disp(tmp(i));
@@ -436,7 +436,7 @@ classdef FDisplay < handle
                     end
                 end
                 if(strcmp(this.measurementPosition,'OD'))
-                    txt = txt([1,5,3,4,2,6,9,8,7],1); %re-order nasal and temporal fields
+                    txt = txt([1,2,5,4,3,6,9,8,7],1); %re-order nasal and temporal fields
                 end
                 if(~isempty(idxT) && all(idxT(:)))
                     set(this.h_ETDRSGridText(1),'Position',[cp(2),cp(1)],'String',txt{1});
