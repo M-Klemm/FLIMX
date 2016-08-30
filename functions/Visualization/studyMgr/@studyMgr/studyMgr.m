@@ -460,15 +460,24 @@ classdef studyMgr < handle
             %executes on figure close
             %close StudyManager
             studies = this.fdt.getStudyNames();
+            askUser = true;            
             for i = 1:length(studies)
                 if(~isempty(studies{i}) && any(this.fdt.checkStudyDirtyFlag(studies{i})))
-                    choice = questdlg(sprintf('Save changes to study ''%s''?',studies{i}),'Save study?','Yes','No','Yes');
-                    switch choice
-                        case 'Yes'
-                            this.fdt.saveStudy(studies{i});
-                        case 'No'
-                            %load unmodified study and check files
-                            this.fdt.loadStudy(studies{i});
+                    if(askUser)
+                        choice = questdlg(sprintf('Save changes to study ''%s''?',studies{i}),'Save study?','Yes','All','No','Yes');
+                        switch choice
+                            case 'Yes'
+                                this.fdt.saveStudy(studies{i});
+                            case 'All'
+                                askUser = false;
+                                this.fdt.saveStudy(studies{i});
+                            case 'No'
+                                %load unmodified study and check files
+                                this.fdt.loadStudy(studies{i});
+                        end
+                    else
+                        %always save changes
+                        this.fdt.saveStudy(studies{i});
                     end
                     this.fdt.checkStudyFiles(studies{i});
                 end
