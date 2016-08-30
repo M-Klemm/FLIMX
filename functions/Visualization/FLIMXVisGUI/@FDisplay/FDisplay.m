@@ -372,12 +372,6 @@ classdef FDisplay < handle
                 return
             end
             res = this.pixelResolution;
-            switch this.measurementPosition
-                case 'OS'
-                    pos = 1;                    
-                otherwise
-                    pos = 1;
-            end
             gc = this.staticVisParams.ROIColor;%[1 1 1];
             if(res > 0)
                 %radius ring1 = 500 µm
@@ -431,7 +425,7 @@ classdef FDisplay < handle
                 bgc = [0 0 0 0];
                 if(~strcmp(this.staticVisParams.ETDRS_subfield_values,'none'))
                     if(strcmp(this.staticVisParams.ETDRS_subfield_values,'field name'))
-                        txt = {'C','IN','IS','II','IT','OS','ON','OI','OT'};
+                        txt = {'C','IN','IS','II','IT','OS','ON','OI','OT'}';
                     else
                         tmp = hfd.getROISubfieldStatistics(cp,1,this.staticVisParams.ETDRS_subfield_values);                        
                         %txt = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%FLIMXFitGUI.num4disp(tmp(i));
@@ -441,28 +435,31 @@ classdef FDisplay < handle
                         bgc = this.staticVisParams.ETDRS_subfield_bg_color;%[0.3 0.3 0.3 0.33];
                     end
                 end
+                if(strcmp(this.measurementPosition,'OD'))
+                    txt = txt([1,5,3,4,2,6,9,8,7],1); %re-order nasal and temporal fields
+                end
                 if(~isempty(idxT) && all(idxT(:)))
                     set(this.h_ETDRSGridText(1),'Position',[cp(2),cp(1)],'String',txt{1});
                     set(this.h_ETDRSGridText(2),'Position',[cp(2),cp(1)+d1/2+(d2-d1)/4,cp(1)],'String',txt{2});
-                    set(this.h_ETDRSGridText(3),'Position',[cp(2)-pos*(d1/2+(d2-d1)/4),cp(1)],'String',txt{3});
+                    set(this.h_ETDRSGridText(3),'Position',[cp(2)-(d1/2+(d2-d1)/4),cp(1)],'String',txt{3});
                     set(this.h_ETDRSGridText(4),'Position',[cp(2),cp(1)-d1/2-(d2-d1)/4,cp(1)],'String',txt{4});
-                    set(this.h_ETDRSGridText(5),'Position',[cp(2)+pos*(d1/2+(d2-d1)/4),cp(1)],'String',txt{5});                    
+                    set(this.h_ETDRSGridText(5),'Position',[cp(2)+(d1/2+(d2-d1)/4),cp(1)],'String',txt{5});                    
                     set(this.h_ETDRSGridText(6),'Position',[cp(2),cp(1)+d2/2+(d3-d2)/4,cp(1)],'String',txt{6});
-                    set(this.h_ETDRSGridText(9),'Position',[cp(2)-pos*(d2/2+(d3-d2)/4),cp(1)],'String',txt{7});
+                    set(this.h_ETDRSGridText(9),'Position',[cp(2)-(d2/2+(d3-d2)/4),cp(1)],'String',txt{7});
                     set(this.h_ETDRSGridText(7),'Position',[cp(2),cp(1)-d2/2-(d3-d2)/4,cp(1)],'String',txt{8});
-                    set(this.h_ETDRSGridText(8),'Position',[cp(2)+pos*(d2/2+(d3-d2)/4),cp(1)],'String',txt{9});                    
+                    set(this.h_ETDRSGridText(8),'Position',[cp(2)+(d2/2+(d3-d2)/4),cp(1)],'String',txt{9});                    
                 else
                     delete(this.h_ETDRSGridText(idxT));
                     h = zeros(9,1);
                     h(1) = text(cp(2),cp(1),txt{1},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     h(2) = text(cp(2),cp(1)+d1/2+(d2-d1)/4,txt{2},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
-                    h(3) = text(cp(2)-pos*(d1/2+(d2-d1)/4),cp(1),txt{3},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(3) = text(cp(2)-(d1/2+(d2-d1)/4),cp(1),txt{3},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     h(4) = text(cp(2),cp(1)-d1/2-(d2-d1)/4,txt{4},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
-                    h(5) = text(cp(2)+pos*(d1/2+(d2-d1)/4),cp(1),txt{5},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(5) = text(cp(2)+(d1/2+(d2-d1)/4),cp(1),txt{5},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     h(6) = text(cp(2),cp(1)+d2/2+(d3-d2)/4,txt{6},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
-                    h(7) = text(cp(2)-pos*(d2/2+(d3-d2)/4),cp(1),txt{7},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(7) = text(cp(2)-(d2/2+(d3-d2)/4),cp(1),txt{7},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     h(8) = text(cp(2),cp(1)-d2/2-(d3-d2)/4,txt{8},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
-                    h(9) = text(cp(2)+pos*(d2/2+(d3-d2)/4),cp(1),txt{9},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(9) = text(cp(2)+(d2/2+(d3-d2)/4),cp(1),txt{9},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     this.h_ETDRSGridText = h;
                 end
             end
