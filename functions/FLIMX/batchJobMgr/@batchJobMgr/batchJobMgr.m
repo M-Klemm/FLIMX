@@ -320,6 +320,7 @@ classdef batchJobMgr < handle
             this.stopFlag = false;
             jobs = this.getJobUID(jobPos);
             tStart = clock;
+            this.updateProgress(0.001,sprintf('0/%d (0.0%%) done - Time left: estimating...',length(jobs)));                
             for i = 1:length(jobs)
                 if(~isempty(jobs{i}))
                     this.startJob(jobs{i});
