@@ -824,8 +824,13 @@ classdef StatsGroupComparison < handle
             end
             switch test
                 case 'ks'
-                    [hP,pP] = kstest(this.grpData{1},'Alpha',this.alpha);
-                    [hC,pC] = kstest(this.grpData{2},'Alpha',this.alpha);
+                    %center data for ks test
+                    tmp = this.grpData{1}(:);
+                    tmp = (tmp-mean(tmp(:)))/std(tmp);
+                    [hP,pP] = kstest(tmp,'Alpha',this.alpha);
+                    tmp = this.grpData{2}(:);
+                    tmp = (tmp-mean(tmp(:)))/std(tmp);
+                    [hC,pC] = kstest(tmp,'Alpha',this.alpha);
                 case 'sw'
                     [hP,pP] = swtest(this.grpData{1},this.alpha);
                     [hC,pC] = swtest(this.grpData{2},this.alpha);
