@@ -39,7 +39,8 @@ classdef StatsDescriptive < handle
         subjectDesc = cell(0,0);
         statHist = [];
         statCenters = [];
-        dispView = [-10 25];
+        normDistTests = [];
+        normDistTestsLegend = cell(0,0);
     end
     properties (Dependent = true)
         study = '';
@@ -56,10 +57,12 @@ classdef StatsDescriptive < handle
         exportModeROI = 1;
         exportModeStat = 0;
         exportModeCh = 1;
+        exportNormDistTests = 0;
         currentSheetName = '';
         ROIType = 1;
         ROISubType = 1;
         ROIInvertFlag = 0;
+        alpha = 5;
     end
     
     methods
@@ -90,9 +93,11 @@ classdef StatsDescriptive < handle
             set(this.visHandles.popupSelExportCh,'Callback',@this.GUI_popupSelExportCh_Callback);
             %display
             set(this.visHandles.buttonUpdateGUI,'Callback',@this.GUI_buttonUpdateGUI_Callback);
-            %table callback
+            %table main
             axis(this.visHandles.axesBar,'off');
-            set(this.visHandles.popupSelStatParam,'String',FData.getDescriptiveStatisticsDescription(),'Value',1);
+            set(this.visHandles.popupSelStatParam,'String',FData.getDescriptiveStatisticsDescription(),'Value',3);
+            %normal distribution tests
+            set(this.visHandles.editAlpha,'Callback',@this.GUI_editAlpha_Callback);
         end
         
         function checkVisWnd(this)
@@ -173,6 +178,13 @@ classdef StatsDescriptive < handle
         
         function GUI_DispGrpPop_Callback(this,hObject,eventdata)
             %
+            this.updateGUI();
+        end
+        
+        function GUI_editAlpha_Callback(this,hObject,eventdata)
+            %alpha value changed
+            set(hObject,'String',num2str(abs(max(0.1,min(10,abs(str2double(get(hObject,'string'))))))));
+            this.clearResults();
             this.updateGUI();
         end
         
@@ -313,11 +325,16 @@ classdef StatsDescriptive < handle
                                     data(end+1,1) = str(i);
                                     data(end,2:1+length(statCenters)) = num2cell(statCenters);
                                     data(end+1,2:1+length(statHist)) = num2cell(statHist);
-                                    data(end+1,1) = cell(1,1);
-                                    
+                                    data(end+1,1) = cell(1,1);                                    
                                 end
                             end
                             exportExcel(fn,data,'',num2cell(this.statCenters),['Hist-' this.currentSheetName],sprintf('%s%d',this.dType,this.id));
+                        end
+                        if(this.exportNormDistTests)
+                            data = this.normDistTestsLegend;
+                            data(:,2) = sprintfc('%1.4f',this.normDistTests(:,1));
+                            data(:,3) = num2cell(logical(this.normDistTests(:,2)));
+                            exportExcel(fn,data,{'Test','p','Significance'},'',[this.statType '-' this.currentSheetName],'');
                         end
                     end
                 end
@@ -333,6 +350,8 @@ classdef StatsDescriptive < handle
             this.subjectDesc = cell(0,0);
             this.statHist = [];
             this.statCenters = [];
+            this.normDistTests = [];
+            this.normDistTestsLegend = cell(0,0);
         end
         
         function clearPlots(this)
@@ -340,6 +359,7 @@ classdef StatsDescriptive < handle
             if(~isempty(this.visHandles) && ishandle(this.visHandles.StatsDescriptiveFigure) && strcmp(get(this.visHandles.StatsDescriptiveFigure,'Tag'),'StatsDescriptiveFigure'))
                 cla(this.visHandles.axesBar);
                 set(this.visHandles.tableMain,'ColumnName','','RowName','','Data',[],'ColumnEditable',[]);
+                set(this.visHandles.tableNormalTests,'Data',[]);
             end
         end
         
@@ -402,6 +422,7 @@ classdef StatsDescriptive < handle
                 end
             end
             set(this.visHandles.tableMain,'ColumnName',this.statsDesc,'RowName',this.subjectDesc,'Data',FLIMXFitGUI.num4disp(this.stats));
+            %set(this.visHandles.tableNormalTests,'Data',[]);
             %axes
             if(~isempty(this.statHist))
                 bar(this.visHandles.axesBar,this.statCenters,this.statHist);
@@ -413,23 +434,36 @@ classdef StatsDescriptive < handle
                 %                 set(this.visHandles.axesBar,'XTickLabel',ticklbl(get(this.visHandles.axesBar,'XTick')));
                 %                 view(this.visHandles.axesBar,this.dispView);
                 %                 setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.axesBar,true);
+                if(~isempty(this.normDistTests))
+                    tmp = this.normDistTestsLegend;
+                    tmp(:,2) = sprintfc('%1.4f',this.normDistTests(:,1));
+                    tmp(:,3) = num2cell(logical(this.normDistTests(:,2)));
+                    set(this.visHandles.tableNormalTests,'Data',tmp);
+                end
             end
         end
-        
-        function rotateCallback(this, eventdata, axes)
-            %Executes on mouse press over axes background.
-            this.setDispView(get(this.visHandles.axesBar,'View'));
-        end
-        
-        function setDispView(this,val)
-            %set display view to new value
-            this.dispView = val;
-        end
-        
+                
         function makeStats(this)
             %collect stats info from FDTree
             [this.stats, this.statsDesc, this.subjectDesc] = this.visObj.fdt.getStudyStatistics(this.study,this.view,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,true);
             [this.statHist, this.statCenters] = this.makeHistogram(this.statPos);
+            [this.normDistTests, this.normDistTestsLegend]= this.makeNormalDistributionTests(this.statPos);
+        end
+        
+        function [result, legend] = makeNormalDistributionTests(this,statsID)
+            %test statsID for normal distribution
+            result = []; legend = cell(0,0);
+            if(isempty(this.stats) || statsID > length(this.stats))
+                return
+            end
+            legend = {'Lilliefors';'Shapiro-Wilk';'Kolmogorov-Smirnov'};
+            ci = this.stats(:,statsID);
+            if(~any(ci(:)))
+                return
+            end
+            [result(1,2),result(1,1)] = StatsDescriptive.test4NormalDist('li',ci,this.alpha);
+            [result(2,2),result(2,1)] = StatsDescriptive.test4NormalDist('sw',ci,this.alpha);
+            [result(3,2),result(3,1)] = StatsDescriptive.test4NormalDist('ks',ci,this.alpha);
         end
         
         function [statHist, statCenters] = makeHistogram(this,statsID)
@@ -557,7 +591,11 @@ classdef StatsDescriptive < handle
         
         function out = get.exportModeStat(this)
             out = get(this.visHandles.checkExportStatsHist,'Value');
-        end        
+        end  
+        
+        function out = get.exportNormDistTests(this)
+            out = get(this.visHandles.checkExportNormalTests,'Value');
+        end 
         
         function out = get.exportModeROI(this)
             out = get(this.visHandles.popupSelExportROI,'Value');
@@ -602,6 +640,33 @@ classdef StatsDescriptive < handle
         
         function out = get.ROIInvertFlag(this)
             out = 0; %get(this.visHandles.popupSelROISubType,'Value');
-        end        
-    end %methods    
+        end
+        
+        function out = get.alpha(this)
+            %get current alpha value
+            out = abs(str2double(get(this.visHandles.editAlpha,'string')))/100;
+        end
+    end %methods
+    
+    methods(Static)
+        function [h,p] = test4NormalDist(test,data,alpha)
+            %test group data for normal distribution
+            h = []; p = [];
+            if(~any(data(:)))
+                return
+            end
+            switch test
+                case 'li' %Lilliefors test
+                    [h,p] = lillietest(data,'Alpha',alpha);
+                case 'ks' %kolmogorov smirnov test
+                    %center data for ks test
+                    tmp = data(:);
+                    tmp = (tmp-mean(tmp(:)))/std(tmp);
+                    [h,p] = kstest(tmp,'Alpha',alpha);
+                case 'sw' %shapiro-wilk test
+                    [h,p] = swtest(data,alpha);
+            end
+        end
+        
+    end %static
 end %class
