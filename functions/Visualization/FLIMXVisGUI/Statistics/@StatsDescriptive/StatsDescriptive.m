@@ -44,7 +44,7 @@ classdef StatsDescriptive < handle
     end
     properties (Dependent = true)
         study = '';
-        view = '';
+        condition = '';
         ch = 1;
         dType = '';
         totalDTypes = 0;
@@ -57,6 +57,7 @@ classdef StatsDescriptive < handle
         exportModeROI = 1;
         exportModeStat = 0;
         exportModeCh = 1;
+        exportModeCondition = 1;
         exportNormDistTests = 0;
         currentSheetName = '';
         ROIType = 1;
@@ -77,7 +78,7 @@ classdef StatsDescriptive < handle
             set(this.visHandles.menuExit,'Callback',@this.menuExit_Callback);
             %set callbacks
             set(this.visHandles.popupSelStudy,'Callback',@this.GUI_SelStudyPop_Callback);
-            set(this.visHandles.popupSelView,'Callback',@this.GUI_SelViewPop_Callback);
+            set(this.visHandles.popupSelCondition,'Callback',@this.GUI_SelConditionPop_Callback);
             set(this.visHandles.popupSelCh,'Callback',@this.GUI_SelChPop_Callback);
             set(this.visHandles.popupSelFLIMParam,'Callback',@this.GUI_SelFLIMParamPop_Callback);
             set(this.visHandles.popupSelROIType,'Callback',@this.GUI_SelROITypePop_Callback);
@@ -88,9 +89,11 @@ classdef StatsDescriptive < handle
             set(this.visHandles.checkSNFLIM,'Callback',@this.GUI_checkExcelExport_Callback);
             set(this.visHandles.checkSNROI,'Callback',@this.GUI_checkExcelExport_Callback);
             set(this.visHandles.checkSNCh,'Callback',@this.GUI_checkExcelExport_Callback);
+            set(this.visHandles.checkSNCondition,'Callback',@this.GUI_checkExcelExport_Callback);
             set(this.visHandles.popupSelExportFLIM,'Callback',@this.GUI_popupSelExportFLIM_Callback);
             set(this.visHandles.popupSelExportROI,'Callback',@this.GUI_popupSelExportROI_Callback);
             set(this.visHandles.popupSelExportCh,'Callback',@this.GUI_popupSelExportCh_Callback);
+            set(this.visHandles.popupSelExportCondition,'Callback',@this.GUI_popupSelExportCondition_Callback);
             %display
             set(this.visHandles.buttonUpdateGUI,'Callback',@this.GUI_buttonUpdateGUI_Callback);
             %table main
@@ -110,8 +113,8 @@ classdef StatsDescriptive < handle
             figure(this.visHandles.StatsDescriptiveFigure);
         end
         
-        function setCurrentStudy(this,studyName,view)
-            %set the GUI to a certain study and view
+        function setCurrentStudy(this,studyName,condition)
+            %set the GUI to a certain study and condition
             if(isempty(this.visHandles) || ~ishandle(this.visHandles.StatsDescriptiveFigure) || ~strcmp(get(this.visHandles.StatsDescriptiveFigure,'Tag'),'StatsDescriptiveFigure'))
                 %no window 
                 return
@@ -123,12 +126,12 @@ classdef StatsDescriptive < handle
             end
             set(this.visHandles.popupSelStudy,'Value',idx);
             this.setupGUI();
-            %find view
-            idx = find(strcmp(get(this.visHandles.popupSelView,'String'),view),1);
+            %find condition
+            idx = find(strcmp(get(this.visHandles.popupSelCondition,'String'),condition),1);
             if(isempty(idx))
                 return
             end
-            set(this.visHandles.popupSelView,'Value',idx);
+            set(this.visHandles.popupSelCondition,'Value',idx);
         end 
         
         %% GUI callbacks
@@ -137,7 +140,7 @@ classdef StatsDescriptive < handle
             this.setupGUI();
         end
         
-        function GUI_SelViewPop_Callback(this,hObject,eventdata)
+        function GUI_SelConditionPop_Callback(this,hObject,eventdata)
             %
             this.setupGUI();
         end
@@ -220,6 +223,16 @@ classdef StatsDescriptive < handle
             GUI_checkExcelExport_Callback(this,this.visHandles.checkSNCh,eventdata);
         end
         
+        function GUI_popupSelExportCondition_Callback(this,hObject,eventdata)
+            %
+            if(get(hObject,'Value') == 1)
+                set(this.visHandles.checkSNCondition,'Enable','on')
+            else
+                set(this.visHandles.checkSNCondition,'Enable','off','Value',1)
+            end
+            GUI_checkExcelExport_Callback(this,this.visHandles.checkSNCondition,eventdata);
+        end
+        
         function GUI_checkExcelExport_Callback(this,hObject,eventdata)
             %
             set(this.visHandles.editSNPreview,'String',this.currentSheetName);
@@ -235,7 +248,7 @@ classdef StatsDescriptive < handle
             end
             fn = fullfile(path,file);
             switch this.exportModeFLIM
-                case 1 %single (current) result                    
+                case 1 %single (current) result
                     if(isempty(this.stats))
                         this.makeStats();
                         if(isempty(this.stats))
@@ -243,24 +256,9 @@ classdef StatsDescriptive < handle
                         end
                     end
                     FLIMIds = get(this.visHandles.popupSelFLIMParam,'Value');
-%                     exportExcel(fn,this.stats,this.statsDesc,this.subjectDesc,...
-%                         this.currentSheetName,sprintf('%s%d',this.dType,this.id));
                 case 2 %all FLIM parameters
                     FLIMIds = 1:this.totalDTypes;
                     this.clearResults();
-%                     for i = 1:this.totalDTypes
-%                         set(this.visHandles.popupSelFLIMParam,'Value',i);
-%                         this.GUI_SelFLIMParamPop_Callback(this.visHandles.popupSelFLIMParam,[]); %will call setupGUI
-%                         this.updateGUI();
-%                         if(isempty(this.stats))
-%                             this.makeStats();
-%                             if(isempty(this.stats))
-%                                 continue;
-%                             end
-%                         end
-%                         exportExcel(fn,this.stats,this.statsDesc,this.subjectDesc,...
-%                             sprintf('%s%d(%s_%s)',this.dType,this.id,this.study,this.view),sprintf('%s%d',this.dType,this.id));
-%                     end
             end
             switch this.exportModeROI
                 case 1 %current ROI
@@ -270,7 +268,7 @@ classdef StatsDescriptive < handle
                     this.setupGUI();
                     this.clearResults();
                     ROIIds = 1:length(get(this.visHandles.popupSelROISubType,'String'));
-                case 3 %all major ROIs except for the ETDRS grid 
+                case 3 %all major ROIs except for the ETDRS grid
                     this.clearResults();
                     ROIIds = 3:8;
             end
@@ -281,65 +279,78 @@ classdef StatsDescriptive < handle
                     chIds = 1:length(get(this.visHandles.popupSelCh,'String'));
                     this.clearResults();
             end
-            %loop over all export paramters
-            for f = 1:length(FLIMIds)
-                if(length(FLIMIds) > 1)
-                    set(this.visHandles.popupSelFLIMParam,'Value',f);
+            switch this.exportModeCondition
+                case 1 %current condition
+                    condIds = get(this.visHandles.popupSelCondition,'Value');
+                case 2 % all conditions
+                    condIds = 1:length(get(this.visHandles.popupSelCondition,'String'));
                     this.clearResults();
-                    this.GUI_SelFLIMParamPop_Callback(this.visHandles.popupSelFLIMParam,[]); %will call setupGUI
+            end
+            %loop over all export paramters
+            for v = 1:length(condIds)
+                if(length(condIds) > 1)
+                    set(this.visHandles.popupSelCondition,'Value',v);
+                    this.clearResults();
+                    this.GUI_SelConditionPop_Callback(this.visHandles.popupSelCondition,[]); %will call setupGUI
                 end
-                for r = 1:length(ROIIds)
-                    if(length(ROIIds) > 1)
-                        switch this.exportModeROI
-                            case 2 %all ETDRS grid ROIs
-                                set(this.visHandles.popupSelROIType,'Value',2); %switch to ETDRS grid
-                                set(this.visHandles.popupSelROISubType,'Value',ROIIds(r));
-                                this.clearResults();
-                                this.GUI_SelROITypePop_Callback(this.visHandles.popupSelROIType,[]); %will call setupGUI
-                            case 3 %all major ROIs except for the ETDRS grid
-                                set(this.visHandles.popupSelROIType,'Value',ROIIds(r));
-                                this.clearResults();
-                                this.GUI_SelROITypePop_Callback(this.visHandles.popupSelROIType,[]); %will call setupGUI
-                        end
+                for f = 1:length(FLIMIds)
+                    if(length(FLIMIds) > 1)
+                        set(this.visHandles.popupSelFLIMParam,'Value',f);
+                        this.clearResults();
+                        this.GUI_SelFLIMParamPop_Callback(this.visHandles.popupSelFLIMParam,[]); %will call setupGUI
                     end
-                    for c = 1:length(chIds)
-                        if(length(chIds) > 1)
-                            set(this.visHandles.popupSelCh,'Value',c);
-                            this.clearResults();
-                            this.GUI_SelChPop_Callback(this.visHandles.popupSelCh,[]);
-                        end
-                        this.updateGUI();
-                        if(isempty(this.stats))
-                            this.makeStats();
-                            if(isempty(this.stats))
-                                continue;
+                    for r = 1:length(ROIIds)
+                        if(length(ROIIds) > 1)
+                            switch this.exportModeROI
+                                case 2 %all ETDRS grid ROIs
+                                    set(this.visHandles.popupSelROIType,'Value',2); %switch to ETDRS grid
+                                    set(this.visHandles.popupSelROISubType,'Value',ROIIds(r));
+                                    this.clearResults();
+                                    this.GUI_SelROITypePop_Callback(this.visHandles.popupSelROIType,[]); %will call setupGUI
+                                case 3 %all major ROIs except for the ETDRS grid
+                                    set(this.visHandles.popupSelROIType,'Value',ROIIds(r));
+                                    this.clearResults();
+                                    this.GUI_SelROITypePop_Callback(this.visHandles.popupSelROIType,[]); %will call setupGUI
                             end
                         end
-                        exportExcel(fn,this.stats,this.statsDesc,this.subjectDesc,this.currentSheetName,sprintf('%s%d',this.dType,this.id));
-                        if(this.exportModeStat)
-                            data = cell(0,0);
-                            str = get(this.visHandles.popupSelStatParam,'String');
-                            for i = 1:this.totalStatTypes
-                                [statHist, statCenters] = makeHistogram(this,i);
-                                if(~isempty(statHist))
-                                    data(end+1,1) = str(i);
-                                    data(end,2:1+length(statCenters)) = num2cell(statCenters);
-                                    data(end+1,2:1+length(statHist)) = num2cell(statHist);
-                                    data(end+1,1) = cell(1,1);                                    
+                        for c = 1:length(chIds)
+                            if(length(chIds) > 1)
+                                set(this.visHandles.popupSelCh,'Value',c);
+                                this.clearResults();
+                                this.GUI_SelChPop_Callback(this.visHandles.popupSelCh,[]);
+                            end
+                            this.updateGUI();
+                            if(isempty(this.stats))
+                                this.makeStats();
+                                if(isempty(this.stats))
+                                    continue;
                                 end
                             end
-                            exportExcel(fn,data,'',num2cell(this.statCenters),['Hist-' this.currentSheetName],sprintf('%s%d',this.dType,this.id));
-                        end
-                        if(this.exportNormDistTests)
-                            data = this.normDistTestsLegend;
-                            data(:,2) = sprintfc('%1.4f',this.normDistTests(:,1));
-                            data(:,3) = num2cell(logical(this.normDistTests(:,2)));
-                            exportExcel(fn,data,{'Test','p','Significance'},'',[this.statType '-' this.currentSheetName],'');
+                            exportExcel(fn,this.stats,this.statsDesc,this.subjectDesc,this.currentSheetName,sprintf('%s%d',this.dType,this.id));
+                            if(this.exportModeStat)
+                                data = cell(0,0);
+                                str = get(this.visHandles.popupSelStatParam,'String');
+                                for i = 1:this.totalStatTypes
+                                    [statHist, statCenters] = makeHistogram(this,i);
+                                    if(~isempty(statHist))
+                                        data(end+1,1) = str(i);
+                                        data(end,2:1+length(statCenters)) = num2cell(statCenters);
+                                        data(end+1,2:1+length(statHist)) = num2cell(statHist);
+                                        data(end+1,1) = cell(1,1);
+                                    end
+                                end
+                                exportExcel(fn,data,'',num2cell(this.statCenters),['Hist-' this.currentSheetName],sprintf('%s%d',this.dType,this.id));
+                            end
+                            if(this.exportNormDistTests)
+                                data = this.normDistTestsLegend;
+                                data(:,2) = sprintfc('%1.4f',this.normDistTests(:,1));
+                                data(:,3) = num2cell(logical(this.normDistTests(:,2)));
+                                exportExcel(fn,data,{'Test','p','Significance'},'',[this.statType '-' this.currentSheetName],'');
+                            end
                         end
                     end
                 end
             end
-                
             set(hObject,'String','Go');
         end
         
@@ -375,9 +386,9 @@ classdef StatsDescriptive < handle
             set(this.visHandles.popupSelStudy,'String',sStr,'Value',min(length(sStr),get(this.visHandles.popupSelStudy,'Value')));
             %get views for the selected studies
             vStr = this.visObj.fdt.getStudyViewsStr(this.study);
-            set(this.visHandles.popupSelView,'String',vStr,'Value',min(length(vStr),get(this.visHandles.popupSelView,'Value')));
+            set(this.visHandles.popupSelCondition,'String',vStr,'Value',min(length(vStr),get(this.visHandles.popupSelCondition,'Value')));
             %update channels and parameters
-            ds1 = this.visObj.fdt.getSubjectsNames(this.study,this.view);
+            ds1 = this.visObj.fdt.getSubjectsNames(this.study,this.condition);
             if(~isempty(ds1))
                 chStr = this.visObj.fdt.getChStr(this.study,ds1{1});
                 coStr = this.visObj.fdt.getChObjStr(this.study,ds1{1},this.ch);
@@ -445,7 +456,7 @@ classdef StatsDescriptive < handle
                 
         function makeStats(this)
             %collect stats info from FDTree
-            [this.stats, this.statsDesc, this.subjectDesc] = this.visObj.fdt.getStudyStatistics(this.study,this.view,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,true);
+            [this.stats, this.statsDesc, this.subjectDesc] = this.visObj.fdt.getStudyStatistics(this.study,this.condition,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,true);
             [this.statHist, this.statCenters] = this.makeHistogram(this.statPos);
             [this.normDistTests, this.normDistTestsLegend]= this.makeNormalDistributionTests(this.statPos);
         end
@@ -509,10 +520,10 @@ classdef StatsDescriptive < handle
             end
         end
         
-        function out = get.view(this)
-            out = get(this.visHandles.popupSelView,'String');
+        function out = get.condition(this)
+            out = get(this.visHandles.popupSelCondition,'String');
             if(~ischar(out) && ~isempty(out))
-                gNr = get(this.visHandles.popupSelView,'Value');
+                gNr = get(this.visHandles.popupSelCondition,'Value');
                 out = out{min(gNr,length(out))};
             end
         end
@@ -604,9 +615,22 @@ classdef StatsDescriptive < handle
         function out = get.exportModeCh(this)
             out = get(this.visHandles.popupSelExportCh,'Value');
         end
+        
+        function out = get.exportModeCondition(this)
+            out = get(this.visHandles.popupSelExportCondition,'Value');
+        end
                 
         function out = get.currentSheetName(this)
-            out = '';            
+            %build current sheet name
+            out = '';      
+            if(get(this.visHandles.checkSNCondition,'Value'))
+                out = this.condition;
+                if(strcmp(out,'-'))
+                    out = '';
+                else
+                    out = [out '_'];
+                end
+            end
             if(get(this.visHandles.checkSNROI,'Value'))
                 if(this.ROIType == 1)
                     str = get(this.visHandles.popupSelROISubType,'String');
