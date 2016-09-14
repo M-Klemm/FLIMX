@@ -681,6 +681,8 @@ classdef StatsDescriptive < handle
         function [h,p] = test4NormalDist(test,data,alpha)
             %test group data for normal distribution
             h = []; p = [];
+            data = data(~isnan(data));
+            data = data(~isinf(data));
             if(~any(data(:)))
                 return
             end
