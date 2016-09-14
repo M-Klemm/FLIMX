@@ -75,7 +75,7 @@ classdef StatsDescriptive < handle
         function createVisWnd(this)
             %make a new window
             this.visHandles = StatsDescriptiveFigure();
-            set(this.visHandles.menuExit,'Callback',@this.menuExit_Callback);
+            set(this.visHandles.StatsDescriptiveFigure,'CloseRequestFcn',@this.menuExit_Callback);
             %set callbacks
             set(this.visHandles.popupSelStudy,'Callback',@this.GUI_SelStudyPop_Callback);
             set(this.visHandles.popupSelCondition,'Callback',@this.GUI_SelConditionPop_Callback);
@@ -103,9 +103,14 @@ classdef StatsDescriptive < handle
             set(this.visHandles.editAlpha,'Callback',@this.GUI_editAlpha_Callback);
         end
         
+        function out = isOpenVisWnd(this)
+            %check if figure is still open
+            out = ~(isempty(this.visHandles) || ~isfield(this.visHandles,'StatsDescriptiveFigure') || ~ishandle(this.visHandles.StatsDescriptiveFigure) || ~strcmp(get(this.visHandles.StatsDescriptiveFigure,'Tag'),'StatsDescriptiveFigure'));
+        end
+        
         function checkVisWnd(this)
-            %
-            if(isempty(this.visHandles) || ~ishandle(this.visHandles.StatsDescriptiveFigure) || ~strcmp(get(this.visHandles.StatsDescriptiveFigure,'Tag'),'StatsDescriptiveFigure'))
+            %check if my window is open, if not: create it
+            if(~this.isOpenVisWnd())
                 %no window - open one
                 this.createVisWnd();
             end
@@ -115,7 +120,7 @@ classdef StatsDescriptive < handle
         
         function setCurrentStudy(this,studyName,condition)
             %set the GUI to a certain study and condition
-            if(isempty(this.visHandles) || ~ishandle(this.visHandles.StatsDescriptiveFigure) || ~strcmp(get(this.visHandles.StatsDescriptiveFigure,'Tag'),'StatsDescriptiveFigure'))
+            if(~this.isOpenVisWnd())
                 %no window 
                 return
             end
@@ -367,7 +372,7 @@ classdef StatsDescriptive < handle
         
         function clearPlots(this)
             %clear 3D plot and table
-            if(~isempty(this.visHandles) && ishandle(this.visHandles.StatsDescriptiveFigure) && strcmp(get(this.visHandles.StatsDescriptiveFigure,'Tag'),'StatsDescriptiveFigure'))
+            if(~this.isOpenVisWnd())
                 cla(this.visHandles.axesBar);
                 set(this.visHandles.tableMain,'ColumnName','','RowName','','Data',[],'ColumnEditable',[]);
                 set(this.visHandles.tableNormalTests,'Data',[]);
@@ -376,7 +381,7 @@ classdef StatsDescriptive < handle
         
         function setupGUI(this)
             %setup GUI control
-            if(isempty(this.visHandles) || ~(ishandle(this.visHandles.StatsDescriptiveFigure) || ~strcmp(get(this.visHandles.StatsDescriptiveFigure,'Tag'),'StatsDescriptiveFigure')))
+            if(~this.isOpenVisWnd())
                 %no window
                 return
             end
