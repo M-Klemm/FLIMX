@@ -112,6 +112,7 @@ Autofluorescence Decay Fitting  -  Dependency List
 - URL: http://www.mathworks.com/matlabcentral/fileexchange/19950-roc-curve
 - license: license_roc.txt
 
+
 * Clinical Test Performance
 - Author: Giuseppe Cardillo  
 - files: partest.m
@@ -119,9 +120,18 @@ Autofluorescence Decay Fitting  -  Dependency List
 - URL: http://www.mathworks.com/matlabcentral/fileexchange/12705
 - license: license_partest.txt
 
+
 * rotate xtick labels of an axes
 - Author: Brian Katz  
 - files: xticklabel_rotate.m
 - modified: yes (added functionality to plot to given axes)
-- URL: http://www.mathworks.de/matlabcentral/fileexchange/3486
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/3486
 - license: license_xticklabel_rotate.txt
+
+
+* findjobj - find java handles of Matlab graphic objects
+- Author: Yair Altman  
+- files: findjobj.m
+- modified: no
+- URL: http://www.mathworks.com/matlabcentral/fileexchange/14317-findjobj-find-java-handles-of-matlab-graphic-objects
+- license: license_findjobj.txt

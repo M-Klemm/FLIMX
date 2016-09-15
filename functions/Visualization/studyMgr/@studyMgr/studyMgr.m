@@ -489,7 +489,12 @@ classdef studyMgr < handle
         
         function menuSaveStudy_Callback(this,hObject,eventdata)
             %
+            try
+                set(hObject,'String',sprintf('<html><img src="file:/%s"/> Save</html>',FLIMX.getAnimationPath()));
+                drawnow;
+            end
             this.fdt.saveStudy(this.curStudyName);
+            set(hObject,'String','Save');
         end
         
         function menuDeleteStudy_Callback(this,hObject,eventdata)
@@ -497,11 +502,15 @@ classdef studyMgr < handle
             if(strcmp(this.curStudyName,'Default'))
                 errordlg('Study ''Default'' can not be deleted!','Error deleting Study');
                 return
-            end
+            end            
             choice = questdlg(sprintf('Do really want to delete study ''%s'' PERMANENTLY?',this.curStudyName),'Delete Study','Yes','No','No');
             switch choice
                 case 'No'
                     return
+            end
+            try
+                set(hObject,'String',sprintf('<html><img src="file:/%s"/> Delete</html>',FLIMX.getAnimationPath()));
+                drawnow;
             end
             this.fdt.removeStudy(this.curStudyName);
             this.updateGUI();
@@ -509,6 +518,7 @@ classdef studyMgr < handle
             this.visObj.updateGUI('');
             this.FLIMXObj.FLIMFitGUI.setupGUI();
             this.FLIMXObj.FLIMFitGUI.updateGUI(true);
+            set(hObject,'String','Delete');
             figure(this.visHandles.studyMgrFigure);
         end
         
@@ -518,6 +528,10 @@ classdef studyMgr < handle
             if(isempty(newStudyName))
                 %user pressed cancel
                 return
+            end
+            try
+                set(hObject,'String',sprintf('<html><img src="file:/%s"/> Duplicate</html>',FLIMX.getAnimationPath()));
+                drawnow;
             end
             %duplicate study using the copySubject method and Clipboard
             this.clearClipboard;
@@ -530,6 +544,7 @@ classdef studyMgr < handle
             this.insertSubjects(newStudyName);            
             this.fdt.saveStudy(newStudyName);
             this.clearClipboard;
+            set(hObject,'String','Duplicate');
             this.updateGUI();
         end
         
@@ -620,7 +635,7 @@ classdef studyMgr < handle
                                 end
                                 import.study.name = newName;
                                 % update name in export file
-                                v = genvarname(sprintf('study%d',i));
+                                v = matlab.lang.makeValidName(sprintf('study%d',i));
                                 eval([v ' = import']);
                                 save(fn,v,'-append');
                                 studiesFile{i} = newName;
@@ -633,7 +648,7 @@ classdef studyMgr < handle
                     end
                 end                
                 %update progress bar
-                [hours minutes secs] = secs2hms(etime(clock,tStart)/i*(nStudies-i)); %mean cputime for finished runs * cycles left
+                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(nStudies-i)); %mean cputime for finished runs * cycles left
                 this.plotProgressbar(i/(nStudies),[],...
                     sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec - Checking Study ''%s''',...
                     100*i/nStudies,hours,minutes,secs,import.study.name));
@@ -650,7 +665,7 @@ classdef studyMgr < handle
                 for i=1:length(list)
                     this.fdt.importStudy(list{i},fn);                    
                     %update progress bar
-                    [hours minutes secs] = secs2hms(etime(clock,tStart)/i*(length(list)-i)); %mean cputime for finished runs * cycles left
+                    [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(list)-i)); %mean cputime for finished runs * cycles left
                     this.plotProgressbar(i/(length(list)),[],...
                         sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec - Importing Study ''%s''',...
                         100*i/length(list),hours,minutes,secs,list{i}));
@@ -662,6 +677,10 @@ classdef studyMgr < handle
         
         function menuRenameStudy_Callback(this,hObject,eventdata)
             %rename study
+            try
+                set(hObject,'String',sprintf('<html><img src="file:/%s"/> Rename</html>',FLIMX.getAnimationPath()));
+                drawnow;
+            end
             oldSub = '';
             subs = this.fdt.getSubjectsNames(this.curStudyName,'-');
             if(strcmp(this.FLIMXObj.curSubject.myParent.name,this.curStudyName) && any(strcmp(this.FLIMXObj.curSubject.name,subs)))
@@ -679,6 +698,7 @@ classdef studyMgr < handle
                 this.FLIMXObj.FLIMFitGUI.setupGUI();
                 this.FLIMXObj.FLIMFitGUI.updateGUI(true);
             end
+            set(hObject,'String','Rename');
         end
         
         function menuImportMeasurementSingle_Callback(this,hObject,eventdata)

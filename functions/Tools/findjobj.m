@@ -88,6 +88,10 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
 %    Please send to Yair Altman (altmany at gmail dot com)
 %
 % Change log:
+%    2016-04-19: Fixed edge-cases in old Matlab release; slightly improved performance even further
+%    2016-04-14: Improved performance for the most common use-case (single input/output): improved code + allow inspecting groot
+%    2016-04-11: Improved performance for the most common use-case (single input/output)
+%    2015-01-12: Differentiate between overlapping controls (for example in different tabs); fixed case of docked figure
 %    2014-10-20: Additional fixes for R2014a, R2014b
 %    2014-10-13: Fixes for R2014b
 %    2014-01-04: Minor fix for R2014a; check for newer FEX version up to twice a day only
@@ -140,7 +144,7 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
 % referenced and attributed as such. The original author maintains the right to be solely associated with this work.
 
 % Programmed and Copyright by Yair M. Altman: altmany(at)gmail.com
-% $Revision: 1.43 $  $Date: 2014/10/20 04:24:43 $
+% $Revision: 1.49 $  $Date: 2016/04/18 23:44:49 $
 
     % Ensure Java AWT is enabled
     error(javachk('awt'));
@@ -170,7 +174,7 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
             if isempty(container)  % empty container - bail out
                 return;
             elseif ischar(container)  % container skipped - this is part of the args list...
-                varargin = {container, varargin{:}};
+                varargin = [{container}, varargin];
                 origContainer = getCurrentFigure;
                 [container,contentSize] = getRootPanel(origContainer);
             elseif isequal(container,0)  % root
@@ -181,10 +185,23 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
                 container = container(1);  % another current limitation...
                 hFig = ancestor(container,'figure');
                 origContainer = handle(container);
-                if isa(origContainer,'uimenu')
+                if isa(origContainer,'uimenu') || isa(origContainer,'matlab.ui.container.Menu')
                     % getpixelposition doesn't work for menus... - damn!
                     varargin = {'class','MenuPeer', 'property',{'Label',strrep(get(container,'Label'),'&','')}, varargin{:}};
                 elseif ~isa(origContainer, 'figure') && ~isempty(hFig) && ~isa(origContainer, 'matlab.ui.Figure')
+                    % For a single input & output, try using the fast variant
+                    if nargin==1 && nargout==1
+                        try
+                            handles = findjobj_fast(container);
+                            if ~isempty(handles)
+                                try handles = handle(handles,'callbackproperties'); catch, end
+                                return
+                            end
+                        catch
+                            % never mind - proceed normally using the slower variant below...
+                        end
+                    end
+
                     % See limitations section above: should find a better way to directly refer to the element's java container
                     try
                         % Note: 'PixelBounds' is undocumented and unsupported, but much faster than getpixelposition!
@@ -277,10 +294,10 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
 
         % Debug-list all found compponents and their positions
         if paramSupplied(varargin,'debug')
-            for handleIdx = 1 : length(allHandles)
-                thisObj = handles(handleIdx);
-                pos = sprintf('%d,%d %dx%d',[positions(handleIdx,:) getWidth(thisObj) getHeight(thisObj)]);
-                disp([repmat(' ',1,levels(handleIdx)) '[' pos '] ' char(toString(thisObj))]);
+            for origHandleIdx = 1 : length(allHandles)
+                thisObj = handles(origHandleIdx);
+                pos = sprintf('%d,%d %dx%d',[positions(origHandleIdx,:) getWidth(thisObj) getHeight(thisObj)]);
+                disp([repmat(' ',1,levels(origHandleIdx)) '[' pos '] ' char(toString(thisObj))]);
             end
         end
 
@@ -315,6 +332,64 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
                 for listingIdx = 1 : length(listing)
                     disp(listing{listingIdx});
                 end
+            end
+        end
+
+        % If the number of output handles does not match the number of inputs, try to match via tooltips
+        if nargout && numel(handles) ~= numel(origContainer)
+            newHandles = handle([]);
+            switchHandles = false;
+            handlesToCheck = handles;
+            if isempty(handles)
+                handlesToCheck = allHandles;
+            end
+            for origHandleIdx = 1 : numel(origContainer)
+                try
+                    thisContainer = origContainer(origHandleIdx);
+                    if isa(thisContainer,'figure') || isa(thisContainer,'matlab.ui.Figure')
+                        break;
+                    end
+                    try
+                        newHandles(origHandleIdx) = handlesToCheck(origHandleIdx); %#ok<AGROW>
+                    catch
+                        % maybe no corresponding handle in [handles]
+                    end
+
+                    % Assign a new random tooltip to the original (Matlab) handle
+                    oldTooltip = get(thisContainer,'Tooltip');
+                    newTooltip = num2str(rand,99);
+                    set(thisContainer,'Tooltip',newTooltip);
+                    drawnow;  % force the Java handle to sync with the Matlab prop-change
+                    try
+                        % Search for a Java handle that has the newly-generated tooltip
+                        for newHandleIdx = 1 : numel(handlesToCheck)
+                            testTooltip = '';
+                            thisHandle = handlesToCheck(newHandleIdx);
+                            try
+                                testTooltip = char(thisHandle.getToolTipText);
+                            catch
+                                try testTooltip = char(thisHandle.getTooltipText); catch, end
+                            end
+                            if isempty(testTooltip)
+                                % One more attempt - assume it's enclosed by a scroll-pane
+                                try testTooltip = char(thisHandle.getViewport.getView.getToolTipText); catch, end
+                            end
+                            if strcmp(testTooltip, newTooltip)
+                                newHandles(origHandleIdx) = thisHandle;
+                                switchHandles = true;
+                                break;
+                            end
+                        end
+                    catch
+                        % never mind - skip to the next handle
+                    end
+                    set(thisContainer,'Tooltip',oldTooltip);
+                catch
+                    % never mind - skip to the next handle (maybe handle doesn't have a tooltip prop)
+                end
+            end
+            if switchHandles
+                handles = newHandles;
             end
         end
 
@@ -443,7 +518,8 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
         thisIdx = length(levels) + 1;
         levels(thisIdx) = level;
         parentIdx(thisIdx) = parent;
-        handles(thisIdx) = handle(jcontainer,'callbackproperties');
+        try newHandle = handle(jcontainer,'callbackproperties'); catch, newHandle = handle(jcontainer); end
+        try handles(thisIdx) = newHandle; catch, handles = newHandle; end
         try
             positions(thisIdx,:) = getXY(jcontainer);
             %sizes(thisIdx,:) = [jcontainer.getWidth, jcontainer.getHeight];
@@ -1411,7 +1487,7 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
         cbNameCellEditor.setClickCountToStart(intmax);  % i.e, never enter edit mode...
         callbacksTable.getColumnModel.getColumn(0).setCellEditor(cbNameCellEditor);
         if ~cbTableEnabled
-            callbacksTable.getColumnModel.getColumn(1).setCellEditor(cbNameCellEditor);
+            try callbacksTable.getColumnModel.getColumn(1).setCellEditor(cbNameCellEditor); catch, end
         end
         hModel = callbacksTable.getModel;
         set(handle(hModel,'CallbackProperties'), 'TableChangedCallback',{@tbCallbacksChanged,container,callbacksTable});
@@ -1779,7 +1855,7 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
                             continue;
 
                         % HG handles are highlighted by setting their 'Selected' property
-                        elseif isa(jComp,'uimenu')
+                        elseif isa(jComp,'uimenu') || isa(jComp,'matlab.ui.container.Menu')
                             if visible
                                 oldColor = get(jComp,'ForegroundColor');
                                 setappdata(jComp,'findjobj_oldColor',oldColor);
@@ -2376,7 +2452,7 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
                 numChildren = length(childIdx);
                 for cIdx = 1 : numChildren
                     thisChildIdx = childIdx(cIdx);
-                    thisChildHandle = hdls(thisChildIdx);
+                    try thisChildHandle = hdls(thisChildIdx); catch, continue, end
                     childName = getNodeName(thisChildHandle);
                     try
                         visible = thisChildHandle.Visible;
@@ -3292,17 +3368,61 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
         end
     end  % requestFocus
 
-
 end  % FINDJOBJ
 
+% Fast implementation
+function jControl = findjobj_fast(hControl, jContainer)
+    try jControl = hControl.Table; return, catch, end  % fast bail-out for old uitables
+    try jControl = hControl.JavaFrame.getGUIDEView; return, catch, end  % bail-out for HG2 matlab.ui.container.Panel
+    oldWarn = warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
+    if nargin < 2 || isempty(jContainer)
+        % Use a HG2 matlab.ui.container.Panel jContainer if the control's parent is a uipanel
+        hParent = get(hControl,'Parent');
+        try jContainer = hParent.JavaFrame.getGUIDEView; catch, jContainer = []; end
+    end
+    if isempty(jContainer)
+        hFig = ancestor(hControl,'figure');
+        jf = get(hFig, 'JavaFrame');
+        jContainer = jf.getFigurePanelContainer.getComponent(0);
+    end
+    warning(oldWarn);
+    jControl = [];
+    counter = 100;
+    oldTooltip = get(hControl,'Tooltip');
+    set(hControl,'Tooltip','!@#$%^&*');
+    while isempty(jControl) && counter>0
+        counter = counter - 1;
+        pause(0.001);
+        jControl = findTooltipIn(jContainer);
+    end
+    set(hControl,'Tooltip',oldTooltip);
+    try jControl.setToolTipText(oldTooltip); catch, end
+    try jControl = jControl.getParent.getView.getParent.getParent; catch, end  % return JScrollPane if exists
+end
+function jControl = findTooltipIn(jContainer)
+    try
+        tooltipStr = jContainer.getToolTipText;
+        %if strcmp(char(tooltipStr),'!@#$%^&*')
+        if ~isempty(tooltipStr) && tooltipStr.startsWith('!@#$%^&*')  % a bit faster
+            jControl = jContainer;
+        else
+            for idx = 1 : jContainer.getComponentCount
+                jControl = findTooltipIn(jContainer.getComponent(idx-1));
+                if ~isempty(jControl), return; end
+            end
+        end
+    catch
+        % ignore
+        jControl = [];
+    end
+end
 
 %% TODO TODO TODO
 %{
-- Enh: Improve performance - esp. expandNode() (performance solved in non-interactive mode)
+- Enh: Improve interactive-GUI performance - esp. expandNode()
 - Enh: Add property listeners - same problem in MathWork's inspect.m
 - Enh: Display additional properties - same problem in MathWork's inspect.m
 - Enh: Add axis (plot, Graphics) component handles
-- Enh: Group callbacks according to the first word (up to 2nd cap letter)
 - Enh: Add figure thumbnail image below the java tree (& indicate corresponding jObject when selected)
 - Enh: scroll initially-selected node into view (problem because treenode has no pixel location)
 - Fix: java exceptions when getting some fields (com.mathworks.mlwidgets.inspector.PropertyRootNode$PropertyListener$1$1.run)
