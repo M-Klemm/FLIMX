@@ -1029,55 +1029,121 @@ classdef FLIMXVisGUI < handle
                 thisSide = 'r';
                 otherSide = 'l';
             end
-            if(this.getROIType(thisSide) < 1)
-                return
-            end            
-            if(isempty(cp))
-                %set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-            elseif(this.getROIDisplayMode(thisSide) < 3 && this.getROIType(thisSide) >= 1 && this.getROIType(thisSide) < 6)
-                this.dynParams.mouseButtonDown = true;
-                this.dynParams.mouseButtonDownCoord = cp;
-                set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
-                if(get(this.visHandles.enableMouse_check,'Value'))
-                    this.objHandles.(sprintf('%sROI',thisSide)).setStartPoint(flipud(cp));
+            if(~this.getROIType(thisSide) < 1)
+                if(isempty(cp))
+                    %set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
+                elseif(this.getROIDisplayMode(thisSide) < 3 && this.getROIType(thisSide) >= 1 && this.getROIType(thisSide) < 6)
+                    this.dynParams.mouseButtonDown = true;
+                    this.dynParams.mouseButtonDownCoord = cp;
+                    set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
+                    if(get(this.visHandles.enableMouse_check,'Value'))
+                        this.objHandles.(sprintf('%sROI',thisSide)).setStartPoint(flipud(cp));
+                    end
+                else
+                    return
                 end
-            else
-                return
             end
+            
             %draw current point in both (empty cp deletes old lines)
             this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(cp),flipud(cp),false);
             if(strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
                 this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(cp),flipud(cp),false);
             end
+            
+            %stuff for the colorbar in histogram
+            
+            cp = get(this.visHandles.supp_l_axes,'CurrentPoint');
+            cp = cp(logical([1 1 0; 0 0 0]));
+            xl = xlim(this.visHandles.supp_l_axes);
+            yl = ylim(this.visHandles.supp_l_axes);
+            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
+                this.visHandles.ColorStartingPoint_L = cp(1);
+                
+                if(ishandle(this.visHandles.lineStart))
+                    delete(this.visHandles.lineStart)
+                end
+                this.visHandles.lineStart = line([cp(1) cp(1)], ylim(this.visHandles.supp_l_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_l_axes);
+                
+            else
+                cp = get(this.visHandles.supp_r_axes,'CurrentPoint');
+                cp = cp(logical([1 1 0; 0 0 0]));
+                xl = xlim(this.visHandles.supp_r_axes);
+                yl = ylim(this.visHandles.supp_r_axes);
+                if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
+                    this.visHandles.ColorStartingPoint_R = cp(1);
+                    
+                    if(ishandle(this.visHandles.lineStart))
+                        delete(this.visHandles.lineStart)
+                    end
+                    this.visHandles.lineStart = line([cp(1) cp(1)], ylim(this.visHandles.supp_r_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_r_axes);
+                    
+                    
+                end
+            end
         end
+
         
         function GUI_mouseButtonUp_Callback(this,hObject,eventdata)
-            %executes on mouse button up in window 
-            cp = this.objHandles.ldo.getMyCP();
-            thisSide = 'l';
-            otherSide = 'r';
-            if(isempty(cp))
-                cp = this.objHandles.rdo.getMyCP();
-                thisSide = 'r';
-                otherSide = 'l';
-            end
-            %draw current point in both (empty cp deletes old lines)
-            this.objHandles.ldo.drawCP(cp);
-            this.objHandles.rdo.drawCP(cp);
-            if(isempty(cp))
-                %set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-            elseif(this.getROIDisplayMode(thisSide) < 3)
-                set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
-                if(this.getROIType(thisSide) >= 1 && get(this.visHandles.enableMouse_check,'Value'))
-                    this.objHandles.(sprintf('%sROI',thisSide)).setEndPoint(flipud(cp),true);
-                    this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
-                    this.myStatsGroupComp.clearResults();
-                    this.objHandles.rdo.updatePlots();
-                    this.objHandles.ldo.updatePlots();
-                    this.objHandles.ldo.drawCP(cp);
-                    this.objHandles.rdo.drawCP(cp);
+                        %executes on mouse button up in window
+                        cp = this.objHandles.ldo.getMyCP();
+                        thisSide = 'l';
+                        otherSide = 'r';
+                        if(isempty(cp))
+                            cp = this.objHandles.rdo.getMyCP();
+                            thisSide = 'r';
+                            otherSide = 'l';
+                        end
+                        
+
+                        %draw current point in both (empty cp deletes old lines)
+                        this.objHandles.ldo.drawCP(cp);
+                        this.objHandles.rdo.drawCP(cp);
+                        if(isempty(cp))
+                            %set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
+                        elseif(this.getROIDisplayMode(thisSide) < 3)
+                            set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
+                            if(this.getROIType(thisSide) >= 1 && get(this.visHandles.enableMouse_check,'Value'))
+                                this.objHandles.(sprintf('%sROI',thisSide)).setEndPoint(flipud(cp),true);
+                                this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
+                                this.myStatsGroupComp.clearResults();
+                                this.objHandles.rdo.updatePlots();
+                                this.objHandles.ldo.updatePlots();
+                                this.objHandles.ldo.drawCP(cp);
+                                this.objHandles.rdo.drawCP(cp);
+                            end
+                            this.dynParams.mouseButtonDown = false;
+                        end
+
+                        
+                        
+                        
+            cp = get(this.visHandles.supp_l_axes,'CurrentPoint');
+            cp = cp(logical([1 1 0; 0 0 0]));
+            xl = xlim(this.visHandles.supp_l_axes);
+            yl = ylim(this.visHandles.supp_l_axes);
+            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
+%                 if(ishandle(this.visHandles.lineFin))
+%                     delete(this.visHandles.lineFin)
+%                 end
+%                 this.visHandles.lineFin = line([cp(1) cp(1)], ylim(this.visHandles.supp_l_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_l_axes);
+
+
+                this.visHandles.ColorFinishPoint_L = cp(1);
+                addColorBar = true;
+                this.objHandles.(sprintf('%sdo','l')).makeSuppPlot(addColorBar, this.visHandles.ColorStartingPoint_L , this.visHandles.ColorFinishPoint_L);
+            
+            else
+                cp = get(this.visHandles.supp_r_axes,'CurrentPoint');
+                cp = cp(logical([1 1 0; 0 0 0]));
+                xl = xlim(this.visHandles.supp_r_axes);
+                yl = ylim(this.visHandles.supp_r_axes);
+                if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
+                    this.visHandles.ColorFinishPoint_R = cp(1);
+                    addColorBar = true;
+                    this.objHandles.(sprintf('%sdo','r')).makeSuppPlot(addColorBar, this.visHandles.ColorStartingPoint_R , this.visHandles.ColorFinishPoint_R);
+                    
+                    
                 end
-                this.dynParams.mouseButtonDown = false;
             end
         end
         
@@ -1421,6 +1487,18 @@ classdef FLIMXVisGUI < handle
                     this.visHandles = FLIMXVisGUIFigureLarge();
             end
             figure(this.visHandles.FLIMXVisGUIFigure);
+            
+            %set stuff for Histogram-Colorbars
+            this.visHandles.lineStart = -1; %cursorline in Suppaxe - Start
+            this.visHandles.lineFin = -1; %cursorline in Suppaxe- Finish
+            this.visHandles.ColorStartingPoint_L = -1; %Coordinates of left End of Colorbar in the Left Suppaxe
+            this.visHandles.ColorStartingPoint_R = -1; %Coordinates of left End of Colorbar in the Left Suppaxe
+            this.visHandles.ColorFinishPoint_L = -1; %Coordinates of right End of Colorbar in the Right Suppaxe
+            this.visHandles.ColorFinishPoint_R = -1; %Coordinates of right End of Colorbar in the Right Suppaxe
+            this.visHandles.asdf3 = -1;
+            this.visHandles.asdf4 = -1;
+            
+            
             
             %set callbacks
             %set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);%,'WindowButtonUpFcn',@this.mouseButtonUp);
