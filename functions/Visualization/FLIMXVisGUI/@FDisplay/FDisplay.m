@@ -964,7 +964,17 @@ classdef FDisplay < handle
             set(this.h_m_ax,'XTickLabel',xCell,'YTickLabel',yCell);
         end
           
-        function makeSuppPlot(this)
+        function makeSuppPlot(this, addColorBar, ColorBarStart, ColorBarFinish)
+            %manage input variables
+            
+            if (nargin < 2)
+                addColorBar = false;
+                ColorBarStart = -1;
+                ColorBarFinish = -1;
+            end
+            
+            
+            
             %make current supplemental plot                        
             hfd = this.myhfdSupp;
             if(isempty(hfd{1}))
@@ -991,6 +1001,7 @@ classdef FDisplay < handle
                     if(length(hfd) == 1) %only for univariate data
                         switch this.sDispHistMode
                             case 1 %histogram of current subject
+                                                               
                                 [histo, centers] = hfd{1}.getCIHist(rc,rt,rs,ri);
                                 %centers = hfd{1}.getCIHistCenters();
                             case 2 %histogram of current study view
@@ -1013,7 +1024,9 @@ classdef FDisplay < handle
                             return
                         end
                         this.suppExport = [centers' histo'];
-                        bar(this.h_s_ax,histo,'hist');
+                     
+                        bar(this.h_s_ax,histo,'hist', 'Parent', this.h_s_ax);
+                   
                         if(this.staticVisParams.grid)
                             grid(this.h_s_ax,'on');
                         else
@@ -1021,12 +1034,42 @@ classdef FDisplay < handle
                         end
                         if(length(histo) > 1)
                             xlim(this.h_s_ax,size(histo));
+
                         end
                         xtick = get(this.h_s_ax,'XTick');
                         if(xtick(1) == 0)
                             xtick = xtick+1;
                         end
                         set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',FLIMXFitGUI.num4disp(centers(xtick)'));
+                         
+                if(addColorBar == true)                      
+
+                    
+                    testwithoutcustombar = 1:100;
+                xtemp =[ColorBarStart ColorBarFinish];
+                ytemp = this.h_s_ax.YLim;
+                
+                
+                %ytemp = this.visObj.visHandles.supp_l_axes.YLim;
+                %this.visHandles.testline3 = image('XData',xtemp, 'YData',ytemp ,'CData' ,this.dynParams.cm);
+                
+                
+                image = imagesc('XData' , xtemp, 'YData' , ytemp, 'CData',testwithoutcustombar, 'Parent' , this.h_s_ax);
+                 this.h_s_ax.YLim = ytemp;
+              uistack(image, 'bottom');
+                
+                
+                
+                end
+                
+                
+                
+                
+                
+                
+                
+                        
+                        
                     else %nothing to do
                         cla(this.h_s_ax);
                         axis(this.h_s_ax,'off');
