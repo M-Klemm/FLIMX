@@ -92,6 +92,12 @@ function GUI_FLIMXFitGUIVisualizationOptions_OpeningFcn(hObject, eventdata, hand
 rdh.fluoDecay = varargin{1};
 rdh.general = varargin{2};
 rdh.isDirty = [0 0]; %1: FLIMXFitGUI, 2: general
+[mapNames, iconPaths] = FLIMX.getColormaps();
+if(~isempty(iconPaths))
+    %thanks to Yair Altman
+    htmlStr = strcat('<html><img width=105 height=10 src="file:///', iconPaths,'">', mapNames');
+    set(handles.popupColormap,'String',htmlStr);
+end
 updateGUI(handles, rdh);
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
@@ -132,11 +138,21 @@ set(handles.checkInit,'Value',data.fluoDecay.plotInit);
 %general
 set(handles.checkLegend,'Value',data.fluoDecay.showLegend);
 set(handles.checkInvertColormap,'Value',data.general.cmInvert);
-idx = find(strcmpi(get(handles.popupColormap,'String'),data.general.cmType),1);
+idx = find(strcmpi(regexprep(get(handles.popupColormap,'String'), '<html><.*">', ''),data.general.cmType),1);
 if(isempty(idx))
     idx = 10; %jet
 end
 set(handles.popupColormap,'Value',idx);
+%plot colormap
+try
+    cm = eval(sprintf('%s(256)',lower(data.general.cmType)));
+    if(data.general.cmInvert)
+        cm = flipud(cm);
+    end
+    temp(1,:,:) = cm;
+    image(temp,'Parent',handles.axesCM);
+    axis(handles.axesCM,'off');
+end
 set(handles.checkReverseYDir,'Value',data.general.reverseYDir);
 
 %linewidth
@@ -378,6 +394,7 @@ rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
 rdh.general.cmInvert = get(hObject,'Value');
 rdh.isDirty(2) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+updateGUI(handles,rdh);
 
 % --- Executes on button press in checkReverseYDir.
 function checkReverseYDir_Callback(hObject, eventdata, handles)
@@ -782,10 +799,12 @@ set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 function popupColormap_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
 str = get(hObject,'String');
-str = str{get(hObject,'Value')};
-rdh.general.cmType = str;
+str = str(get(hObject,'Value'));
+str = regexprep(str, '<html><.*">', '');
+rdh.general.cmType = str{:};
 rdh.isDirty(2) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+updateGUI(handles,rdh);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % create functions

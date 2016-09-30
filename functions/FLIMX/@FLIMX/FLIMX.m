@@ -414,6 +414,25 @@ classdef FLIMX < handle
             out = myDir;
         end
         
+        function [mapNames, iconPaths] = getColormaps()
+            %get names and path to images of color maps            
+            persistent cmNames cmPaths
+            if(isempty(cmPaths))
+                %thanks to Yair Altman
+                iPath = [docroot, filesep 'matlab' filesep 'ref'];
+                icons = dir([iPath filesep 'colormap_*.png']);
+                cmNames = regexprep({icons.name}, '.*_(.*).png', '$1');
+                if(isempty(cmNames))
+                    mapNames = {'Autumn','Bone','Colorcube','Cool','Copper','Flag','Gray','Hot','Hsv','Jet','Lines','Pink','Prism','Spring','Summer','White','Winter'};
+                    iconPaths = [];
+                    return
+                end
+                cmPaths = strcat([iPath, filesep 'colormap_'], cmNames', '.png');
+            end
+            mapNames = cmNames;
+            iconPaths = cmPaths;
+        end
+        
         function out = getLogoPath()
             %get path to FLIMX_Logo.png
             persistent myDir
@@ -427,7 +446,7 @@ classdef FLIMX < handle
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 259;
-            out.client_revision = 358;
+            out.client_revision = 359;
             out.core_revision = 360;
             out.results_revision = 256;
             out.measurement_revision = 204;
