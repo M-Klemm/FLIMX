@@ -466,7 +466,7 @@ classdef FluoDecayFit < handle
                 else % > 4*24 = 96 pixel, = 24/48/96/... pixel/wu -> >= 8 wu
                     atOncePixel = this.computationParams.mcTargetPixelPerWU*ceil(max(1,round(totalPixel/this.computationParams.mcTargetNrWUs))/this.computationParams.mcTargetPixelPerWU);                    
                 end
-                mcSettings.maxEvalTimeSingle = atOncePixel*1/8; %= guess 1s per pixel, running on 8 cores in parallel; todo
+                mcSettings.maxEvalTimeSingle = atOncePixel*2/8; %= guess 2s per pixel, running on 8 cores in parallel; todo
                 %                 else
                 %                     %don't use parfor
                 %                     if(fitDim == 2)
@@ -614,6 +614,7 @@ classdef FluoDecayFit < handle
                 goOn = 'nothingToDo';
                 return
             end
+            this.parameters.stopOptimization = false;
             goOn = 'normal';
             %[dStr, stratStr] = this.getOutlierSearchStr();
             if(any(this.volatilePixelParams.globalFitMask))

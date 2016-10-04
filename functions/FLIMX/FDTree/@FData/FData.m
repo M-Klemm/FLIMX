@@ -42,7 +42,7 @@ classdef FData < handle
         rawImgXSz = [];
         rawImgYSz = [];  
         rawImgZSz = [];
-        MSZ = false;
+        %MSZ = false;
     end
     properties(Dependent = true, SetAccess = public,GetAccess = public) 
         dType = [];
@@ -55,8 +55,8 @@ classdef FData < handle
     end
     properties(SetAccess = protected,GetAccess = protected)
         myParent = [];
-        MSZMin = [];
-        MSZMax = [];
+        %MSZMin = [];
+        %MSZMax = [];
         cachedImage = [];
         maxHistClasses = 5000;
     end
@@ -152,33 +152,12 @@ classdef FData < handle
         function setRawDataZSz(this,val)
             %set rawImgZSz property
             this.rawImgZSz = val;  
-        end                                                 
-        
-        function setZScaling(this,data)
-            %set z scaling; data = [flag min max]
-            this.MSZ = logical(data(1));
-            if(this.sType == 2)
-                %transform input to log10 space
-                if(data(2) <= 0)
-                    data(2) = 0;
-                else
-                    data(2) = log10(data(2));
-                end
-                if(data(3) <= 0)
-                    data(3) = -Inf;
-                else
-                    data(3) = log10(data(3));
-                end
-            end
-            this.MSZMin = data(2);
-            this.MSZMax = data(3);
-            this.clearCachedImage();
         end
         
-        function setCIROICoordinates(this,val)
-            %set coordinates of cached ROI
-            this.cachedImage.ROI.ROICoordinates = val;
-        end
+%         function setCIROICoordinates(this,val)
+%             %set coordinates of cached ROI
+%             this.cachedImage.ROI.ROICoordinates = val;
+%         end
         
         function setCIROIType(this,val)
             %set type of cached ROI
@@ -221,37 +200,37 @@ classdef FData < handle
             this.sType = val;
             tmp = this.getFullImage();
             this.rawImgZSz = [FData.getNonInfMinMax(1,tmp) FData.getNonInfMinMax(2,tmp)];
-            if(val == 2)                
-                %set init-values borders for log scaling                
-                this.MSZMin = log10(this.MSZMin);
-                this.MSZMax = log10(this.MSZMax);
-            else
-                %set init-values for linear scaling
-                this.MSZMin = 10^this.MSZMin;
-                this.MSZMax = 10^this.MSZMax;
-            end                        
+%             if(val == 2)                
+%                 %set init-values borders for log scaling                
+%                 this.MSZMin = log10(this.MSZMin);
+%                 this.MSZMax = log10(this.MSZMax);
+%             else
+%                 %set init-values for linear scaling
+%                 this.MSZMin = 10^this.MSZMin;
+%                 this.MSZMax = 10^this.MSZMax;
+%             end                        
             this.clearCachedImage();
         end          
         
         %% output functions
         function out = get.dType(this)
             %get current data type
-            out = this.myParent.getdType;
+            out = this.myParent.getDType();
         end
         
         function out = get.globalScale(this)
             %get global scale flag
-            out = this.myParent.getGlobalScale;
+            out = this.myParent.getGlobalScale();
         end        
                 
         function nr = get.channel(this)
             %
-            nr = this.myParent.getMyChannelNr;
+            nr = this.myParent.getMyChannelNr();
         end
         
         function nr = get.subjectName(this)
             %
-            nr = this.myParent.getMySubjectName;
+            nr = this.myParent.getMySubjectName();
         end
         
         function [ROIlb, ROIub, stepSize] = getROIParameters(this,ROIType,dim,isMatrixPos)
@@ -282,7 +261,7 @@ classdef FData < handle
 
         function out = getZScaling(this)
             %get z scaling parameters
-            out = [double(this.MSZ), this.MSZMin, this.MSZMax];
+            out = this.myParent.getZScaling(this.id);
         end
         
         function out = get.isEmptyStat(this)
@@ -428,8 +407,9 @@ classdef FData < handle
         function out = getCIminLbl(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
             %get label for minimum of current image
             if(ROIType == 0)
-                if(this.MSZ)
-                    out = this.makeZlbls(this.MSZMin,this.MSZMax);
+                zVec = this.getZScaling();
+                if(length(zVec) == 3 && zVec(1))
+                    out = this.makeZlbls(zVec(2),zVec(3));
                 else
                     out = this.makeZlbls(this.rawImgZSz(1),this.rawImgZSz(2));
                 end
@@ -444,8 +424,9 @@ classdef FData < handle
         function out = getCImaxLbl(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
             %get label for maximum of current image
             if(ROIType == 0)
-                if(this.MSZ)
-                    [~,out] = this.makeZlbls(this.MSZMin,this.MSZMax);
+                zVec = this.getZScaling();
+                if(length(zVec) == 3 && zVec(1))
+                    [~,out] = this.makeZlbls(zVec(2),zVec(3));
                 else
                     [~,out] = this.makeZlbls(this.rawImgZSz(1),this.rawImgZSz(2));
                 end
@@ -734,9 +715,10 @@ classdef FData < handle
                 cim = FData.getNonInfMinMax(1,ci);
                 %set possible "-inf" in curImg to "cim"
                 ci(ci < cim) = cim;
-                if(this.MSZ)
+                zVec = this.getZScaling();
+                if(length(zVec) == 3 && zVec(1))
                     zlim_min = this.getZlimMin(ci);
-                    zlim_max = this.MSZMax;
+                    zlim_max = zVec(3);
                     ci(ci < zlim_min) = zlim_min;
                     ci(ci > zlim_max) = zlim_max;
                 end
@@ -853,17 +835,22 @@ classdef FData < handle
     methods (Access = protected)
         function zl_min = getZlimMin(this,cim)
             %
+            zVec = this.getZScaling();
+            if(length(zVec) ~= 3 || (length(zVec) == 3 && ~zVec(1)))
+                zl_min = cim;
+                return
+            end
             if(this.sType == 2)
                 %log10 scaling
-                if(this.MSZMin == -inf)
+                if(zVec(2) == -inf)
                     %cim is already in log10
                     zl_min = cim;
                 else
-                    zl_min = this.MSZMin;
+                    zl_min = zVec(2);
                 end
             else
                 %linear
-                zl_min = this.MSZMin;
+                zl_min = zVec(2);
             end
         end
         

@@ -555,10 +555,10 @@ classdef StatsGroupComparison < handle
                 hSumMin = min([this.histogramSum{1}(histIdxStart:histIdxEnd), this.histogramSum{2}(histIdxStart:histIdxEnd)]);
                 hSumMax = max([this.histogramSum{1}(histIdxStart:histIdxEnd), this.histogramSum{2}(histIdxStart:histIdxEnd)]);
                 if(abs(hDiffMin - hDiffMax) < eps)
-                    hDiffMax = (hDiffMax+eps)*1.1;
+                    hDiffMax = hDiffMax + eps + abs(hDiffMax)*0.1;
                 end
                 if(abs(hSumMin - hSumMax) < eps)
-                    hSumMax = (hSumMax+eps)*1.1;
+                    hSumMax = hSumMax + eps + abs(hSumMax)*0.1;
                 end
                 cla(this.visHandles.axesSumGrps);
                 cla(this.visHandles.axesDiffGrps);
@@ -654,12 +654,13 @@ classdef StatsGroupComparison < handle
                     end
                     tmp(end+1,1) = cell(1,1);
                     %test for normal distribution
-                    %Kolmogorov-Smirnov
+                    %Lilliefors test
                     tmp2 = cell(7,2);
-                    tmp2{1,1} = 'Normal Distribution'; tmp2{1,2} = 'Kolmogorov-Smirnov';
+                    tmp2{1,1} = 'Normal Distribution'; tmp2{1,2} = 'Lilliefors';
                     tmp2{2,1} = 'Null Hypothesis'; 
                     tmp2{2,2} = 'Group data comes from a standard normal distribution, against the alternative that it does not come from such a distribution';                    
-                    [hP,pP,hC,pC] = this.test4NormalDist('ks');
+                    [hP,pP] = StatsDescriptive.test4NormalDist('li',this.grpData{1},this.alpha);
+                    [hC,pC] = StatsDescriptive.test4NormalDist('li',this.grpData{2},this.alpha);
                     tmp2{3,1} = 'Decision PATHOLOGIC';
                     if(hP)
                         tmp2{3,2} = 'null hypothesis rejected';
@@ -681,7 +682,8 @@ classdef StatsGroupComparison < handle
                     %Shapiro-Wilk
                     tmp2{1,2} = 'Shapiro-Wilk';
                     tmp2{2,2} = 'The Shapiro-Wilk and Shapiro-Francia null hypothesis is: "group data is normal with unspecified mean and variance."';                    
-                    [hP,pP,hC,pC] = this.test4NormalDist('sw');
+                    [hP,pP] = StatsDescriptive.test4NormalDist('sw',this.grpData{1},this.alpha);
+                    [hC,pC] = StatsDescriptive.test4NormalDist('sw',this.grpData{2},this.alpha);
                     if(hP)
                         tmp2{3,2} = 'null hypothesis rejected';
                     else
@@ -696,6 +698,31 @@ classdef StatsGroupComparison < handle
                     tmp2{6,2} = num2str(pC,5);
                     tmp2{7,1} = ''; tmp2{7,2} = ''; 
                     tmp(end+1:end+7,:) = tmp2;                    
+                    %Kolmogorov-Smirnov
+                    tmp2 = cell(7,2);
+                    tmp2{1,1} = 'Normal Distribution'; tmp2{1,2} = 'Kolmogorov-Smirnov';
+                    tmp2{2,1} = 'Null Hypothesis'; 
+                    tmp2{2,2} = 'Group data comes from a standard normal distribution, against the alternative that it does not come from such a distribution';                    
+                    [hP,pP] = StatsDescriptive.test4NormalDist('ks',this.grpData{1},this.alpha);
+                    [hC,pC] = StatsDescriptive.test4NormalDist('ks',this.grpData{2},this.alpha);
+                    tmp2{3,1} = 'Decision PATHOLOGIC';
+                    if(hP)
+                        tmp2{3,2} = 'null hypothesis rejected';
+                    else
+                        tmp2{3,2} = 'null hypothesis NOT rejected';
+                    end
+                    tmp2{4,1} = 'p Value PATHOLOGIC';
+                    tmp2{4,2} = num2str(pP,5);
+                    tmp2{5,1} = 'Decision CONTROLS';
+                    if(hC)
+                        tmp2{5,2} = 'null hypothesis rejected';
+                    else
+                        tmp2{5,2} = 'null hypothesis NOT rejected';
+                    end
+                    tmp2{6,1} = 'p Value CONTROLS';
+                    tmp2{6,2} = num2str(pC,5);
+                    tmp2{7,1} = ''; tmp2{7,2} = ''; 
+                    tmp(end+1:end+7,:) = tmp2;
                     
                     set(this.visHandles.tableExtAnalysis,'Data',tmp,'ColumnWidth',{120 700});
                     if(~isempty(this.grpData))
@@ -814,22 +841,6 @@ classdef StatsGroupComparison < handle
                         ci = [];
                 end                
             end            
-        end
-        
-        function [hP,pP,hC,pC] = test4NormalDist(this,test)
-            %test group data for normal distribution
-            hP = []; pP = []; hC = []; pC = [];
-            if(isempty(this.grpData)) 
-                return
-            end
-            switch test
-                case 'ks'
-                    [hP,pP] = kstest(this.grpData{1},'Alpha',this.alpha);
-                    [hC,pC] = kstest(this.grpData{2},'Alpha',this.alpha);
-                case 'sw'
-                    [hP,pP] = swtest(this.grpData{1},this.alpha);
-                    [hC,pC] = swtest(this.grpData{2},this.alpha);
-            end
         end
         
         function makePValues(this)
@@ -1128,7 +1139,7 @@ classdef StatsGroupComparison < handle
             dType = [];
             out = get(this.visHandles.popupSelParam,'String');
             if(~ischar(out))
-                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam,'Value')});
+                [dType, ~] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam,'Value')});
                 dType = dType{1};
             end            
         end
@@ -1137,13 +1148,18 @@ classdef StatsGroupComparison < handle
             dTypeNr = [];
             out = get(this.visHandles.popupSelParam,'String');
             if(~ischar(out))
-                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam,'Value')});
+                [~, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam,'Value')});
                 dTypeNr = dTypeNr(1);
             end  
         end
         
         function out = get.sortP(this)
-            out = get(this.visHandles.checkSortP,'Value');
+            %flag if group histograms should sorted by p values
+            if(get(this.visHandles.popupTestSel,'Value') ~= 5)
+                out = false;
+            else
+                out = get(this.visHandles.checkSortP,'Value');
+            end
         end
         
         function out = get.currentRowHeaders(this)

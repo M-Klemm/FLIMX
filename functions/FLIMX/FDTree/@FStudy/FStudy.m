@@ -51,7 +51,7 @@ classdef FStudy < handle
             % Constructor for FStudy.
             this.myParent = parent;
             this.name = name;
-            this.revision = 20;
+            this.revision = 22;
             this.myDir = sDir;
             this.mySubjects = LinkedList();
             this.myStudyInfoSet = studyIS(this);
@@ -71,11 +71,11 @@ classdef FStudy < handle
                 %version problem
                 import = this.updateStudyVer(import);
             end            
+            dirty = this.isDirty; %loadStudyIS may reset dirty flag from revision update
             this.name = import.name;
-            this.myStudyInfoSet.loadStudyIS(import);
-            dirty = this.isDirty;
+            this.myStudyInfoSet.loadStudyIS(import);            
             this.checkSubjectFiles('');
-            this.setDirty(dirty);
+            this.setDirty(dirty || this.isDirty);
             if(this.isDirty)
                 %study version updated
                 this.save();
@@ -279,7 +279,7 @@ classdef FStudy < handle
         end
         
         function setResultROICoordinates(this,subjectID,dType,dTypeNr,ROIType,ROICoord)
-            %set the ROI vector at subject subjectID and dimension dim
+            %set the ROI vector at subject subjectID
             subject = this.getSubject(subjectID);
             if(isempty(subject))
                 return
@@ -287,6 +287,20 @@ classdef FStudy < handle
             %subject.setResultROICoordinates(dType,ROIType,ROICoord);
 %             if(subject.getGlobalScale(dType))
                 this.myStudyInfoSet.setResultROICoordinates(subjectID,ROIType,ROICoord);
+%             end
+            this.clearObjMerged();
+            this.clearClusters(subjectID,dType,dTypeNr);
+        end
+        
+        function setResultZScaling(this,subjectID,ch,dType,dTypeNr,zValues)
+            %set the z scaling at subject subjectID
+            subject = this.getSubject(subjectID);
+            if(isempty(subject))
+                return
+            end
+            %subject.setResultROICoordinates(dType,ROIType,ROICoord);
+%             if(subject.getGlobalScale(dType))
+                this.myStudyInfoSet.setResultZScaling(subjectID,ch,dType,dTypeNr,zValues);
 %             end
             this.clearObjMerged();
             this.clearClusters(subjectID,dType,dTypeNr);
@@ -371,13 +385,13 @@ classdef FStudy < handle
                 errordlg('This is not an Excel file!','No Excel file','modal')
                 return;
             end
-            idx = find(strcmp('Patientendaten',desc),1);
+            idx = find(strcmp('Subjectinfo',desc),1);
             if(isempty(idx))
                 %no appropriate spreadsheet
-                errordlg('Spreadsheet ''Patientendaten'' not found!','No appropriate spreadsheet','modal');
+                errordlg('Spreadsheet ''Subjectinfo'' not found!','No appropriate spreadsheet','modal');
                 return;
             else
-                [~, ~, raw] = xlsread(file,'Patientendaten');
+                [~, ~, raw] = xlsread(file,'Subjectinfo');
             end
             %get subject and header names
             xlsSubs = raw(2:end,1);
@@ -1309,6 +1323,11 @@ classdef FStudy < handle
             %
             out = this.myStudyInfoSet.getResultROICoordinates(subName,ROIType);
         end
+        
+        function out = getResultZScaling(this,subName,ch,dType,dTypeNr)
+            %
+            out = this.myStudyInfoSet.getResultZScaling(subName,dType,ch,dTypeNr);
+        end
                 
         function out = getResultCuts(this,subName)
             %
@@ -1512,6 +1531,7 @@ classdef FStudy < handle
                     %we know the subject but there is nothing on disk
                     this.myStudyInfoSet.clearFilesList(idx);
                     this.myStudyInfoSet.clearROI(idx);
+                    this.myStudyInfoSet.clearZScaling(idx);
                     this.myStudyInfoSet.clearCuts(idx);
                     return
                 else
@@ -1551,6 +1571,7 @@ classdef FStudy < handle
                 if(~isempty(idx))
                     this.myStudyInfoSet.clearFilesList(idx);
                     this.myStudyInfoSet.clearROI(idx);
+                    this.myStudyInfoSet.clearZScaling(idx);
                     this.myStudyInfoSet.clearCuts(idx);
                 end
                 subDir = fullfile(this.myDir,subName);
@@ -1578,7 +1599,6 @@ classdef FStudy < handle
 %                 'Study "%s" is not compatible with current FLIMVis version!\nFLIMVis will now update your study to Revision-No. %d!',...
 %                 oldStudy.name,this.revision),'Study Data incompatible!','modal'));
             oldStudy = this.myStudyInfoSet.updateStudyInfoSet(oldStudy);
-            this.setDirty(true);
         end
         
         function setDirty(this,flag)

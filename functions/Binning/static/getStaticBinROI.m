@@ -43,7 +43,7 @@ nPixel = roiYLen*roiXLen;
 %calculate coordinates of output grid
 [pxYcoord, pxXcoord] = ind2sub([roiYLen,roiXLen],1:nPixel);
 if(binFactor == 0)
-    out = uint16(data(roiY,roiX,:));
+    out = data(roiY,roiX,:);
 else
     out = zeros(roiYLen*roiXLen,1,siz(3),'like',data);
     parfor px = 1:nPixel

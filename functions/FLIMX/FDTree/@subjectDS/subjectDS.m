@@ -551,30 +551,9 @@ classdef subjectDS < handle
             out = this.myParent.getResultROICoordinates(this.name,ROIType);
         end
         
-        function [MSX, MSXMin, MSXMax] = getMSX(this)
-            %get manual scaling parameters for x
-            MSX = [];
-            MSXMin = [];
-            MSXMax = [];
-            for i = 1:this.myChannels.queueLen
-                [MSX, MSXMin, MSXMax] = this.myChannels.getDataByPos(i).getMSX();
-                if(~isempty(MSX))
-                    return
-                end
-            end
-        end
-        
-        function [MSY, MSYMin, MSYMax] = getMSY(this)
-            %get manual scaling parameters for y
-            MSY = [];
-            MSYMin = [];
-            MSYMax = [];
-            for i = 1:this.myChannels.queueLen
-                [MSY, MSYMin, MSYMax] = this.myChannels.getDataByPos(i).getMSY();
-                if(~isempty(MSY))
-                    return
-                end
-            end
+        function out = getZScaling(this,ch,dType,dTypeNr)
+            %get z scaling
+            out = this.myParent.getResultZScaling(this.name,ch,dType,dTypeNr);
         end
         
         function out = channelMesurementIsLoaded(this,chan)
@@ -715,7 +694,7 @@ classdef subjectDS < handle
                 this.addObjID(0,chAList(chIdx),aiName,1,data);
             end
             cutVec = this.myParent.getResultCuts(this.name);
-            if(~isempty(cutVec))
+            if(~isempty(cutVec) && length(cutVec) == 6)
                 %set cuts for new items
                 this.setCutVec('X',cutVec(1:3));
                 this.setCutVec('Y',cutVec(4:6));

@@ -478,41 +478,19 @@ classdef ZCtrl < handle
             hfd = this.myHFD;%(sprintf('myFDisplay%s',upper(this.mySide))).gethfd();
             if(isempty(hfd))
                 return
+            end            
+%             this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),hfd.dType,hfd.id);
+%             hfd.setZScaling([this.checkZ this.editZlo this.editZu]);
+            if(strncmp('ConditionMVGroup',hfd.dType,16))
+                tmp = hfd.dType;
+                this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
+                hfd.setZScaling([this.checkZ this.editZlo this.editZu]);
+            elseif(strncmp('GlobalMVGroup',hfd.dType,13))
+                hfd.setZScaling([this.checkZ this.editZlo this.editZu]);
+            else
+                this.visObj.fdt.setResultZScaling(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),this.visObj.getChannel(this.mySide),hfd.dType,hfd.id,[this.checkZ this.editZlo this.editZu]);
+                hfd.clearFilteredImage();
             end
-            
-%             ROIInfo = this.getCurROIInfo();
-%             if(strncmp('ConditionMVGroup',hfd.dType,16))
-%                 tmp = hfd.dType;
-%                 this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
-%                 hfd.setROICoordinates(this.ROIType,ROIInfo);
-%             elseif(strncmp('GlobalMVGroup',hfd.dType,13))
-%                 hfd.setROICoordinates(this.ROIType,ROIInfo);
-%             else
-%                 this.visObj.fdt.setResultROICoordinates(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),hfd.dType,hfd.id,this.ROIType,ROIInfo);
-%             end
-%             if(ROIType == 1) %custom ROI
-%                 if(~isempty(dim))
-%                     minVal = hfd.(sprintf('%sLbl2Pos',dim))(str2double(get(this.(sprintf('%s_lo_edit',dim)),'String')));
-%                     maxVal = hfd.(sprintf('%sLbl2Pos',dim))(str2double(get(this.(sprintf('%s_u_edit',dim)),'String')));
-%                     check = get(this.(sprintf('%s_check',dim)),'Value');
-%                 end
-%                 if(strcmp(dim,'z'))
-                    this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),hfd.dType,hfd.id);
-                    hfd.setZScaling([this.checkZ this.editZlo this.editZu]);
-%                 elseif(strncmp('ConditionMVGroup',hfd.dType,16))
-%                     tmp = hfd.dType;
-%                     this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
-%                     hfd.setResultROICoordinates(dim,[check minVal maxVal]);
-%                 elseif(strncmp('GlobalMVGroup',hfd.dType,13))
-%                     hfd.setResultROICoordinates(dim,[check minVal maxVal]);
-%                 elseif(hfd.globalScale && isempty(dim))
-%                     
-%                 elseif(hfd.globalScale && ~isempty(dim))
-%                     this.visObj.fdt.setResultROICoordinates(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),hfd.dType,hfd.id,dim,[check minVal maxVal]);
-%                 else
-%                     hfd.setROIVec(dim,[check minVal maxVal]);
-%                 end                
-%             end
         end
         
         function setUIHandles(this)

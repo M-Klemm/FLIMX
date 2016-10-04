@@ -1624,7 +1624,7 @@ classdef simAnalysis < handle
                 if(isempty(tmp))                    
                     continue
                 end
-                data(:,k) = tmp(:);                
+                data(:,k) = tmp(1:x*y);                
             end
             this.updateProgressbar(0,'');
         end

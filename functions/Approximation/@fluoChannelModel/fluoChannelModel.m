@@ -281,7 +281,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             [maxVal, dMaxPosTmp2] = max(pixelData(min(dLenTmp,max(1,dMaxPosTmp-5)):min(dLenTmp,dMaxPosTmp+5),1));
             this.dMaxPos = dMaxPosTmp-5+dMaxPosTmp2-1;
             if(this.basicParams.fitModel ~=1)
-                this.myStartPos = this.dMaxPos;
+                this.myStartPos = max(1,this.dMaxPos-this.basicParams.tailFitPreMaxSteps-1);
             end
             this.dMaxVal = double(maxVal);
             this.dFWHMPos = find(bsxfun(@lt,pixelData(1:this.dMaxPos),maxVal/2),1,'last');
@@ -291,7 +291,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             %                 end
             %% get postions where data is zero
             if(~isempty(pixelData))
-                this.dataStorage.measurement.nonZeroMask = pixelData > 0; %~= 0;
+                this.dataStorage.measurement.nonZeroMask = pixelData ~= 0;
                 this.dataStorage.measurement.nonZeroMask(1:fi.StartPosition-1,:) = false;
                 %this.dataStorage.measurement.nonZeroMask(fitParams.EndPosition+1:end,:) = 0;
                 if(isempty(fi.reflectionMask))
@@ -299,7 +299,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 end
                 this.dataStorage.measurement.nonZeroMask = this.dataStorage.measurement.nonZeroMask & fi.reflectionMask;
                 this.dataStorage.measurement.nonZeroMaskTail = this.dataStorage.measurement.nonZeroMask;
-                this.dataStorage.measurement.nonZeroMaskTail(1:this.dMaxPos-1,:) = false;
+                this.dataStorage.measurement.nonZeroMaskTail(1:max(1,this.dMaxPos-this.basicParams.tailFitPreMaxSteps-1),:) = false;
             else
                 this.dataStorage.measurement.nonZeroMask = false;
                 this.dataStorage.measurement.nonZeroMaskTail = false;
@@ -501,7 +501,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 for i = 1:size(exponentialsLong,2)
                     exponentialsLong(:,i,1:nVecs) = circShiftArrayNoLUT(squeeze(exponentialsLong(:,i,1:nVecs)),repmat(this.iMaxPos,nVecs,1));
                 end
-            end            
+            end
             %% incomplete decay
             if(bp.incompleteDecay)
                 exponentialsShort(1:nTimeCh,1:nExp,1:nVecs) = exponentialsLong(1:nTimeCh,:,1:nVecs) + exponentialsLong(nTimeCh+1:2*nTimeCh,:,1:nVecs) + exponentialsLong(2*nTimeCh+1:3*nTimeCh,:,1:nVecs) + exponentialsLong(3*nTimeCh+1:end,:,1:nVecs);

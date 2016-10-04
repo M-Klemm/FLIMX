@@ -42,7 +42,8 @@ classdef studyIS < handle
         measurementFileChs = cell(0,0); %measurement channels of each subject
         studyClusters = cell(0,0); %cluster parameters for this study
         resultCuts = cell(0,0); %cuts for each subject
-        resultROICoordinates = cell(0,0); %rois for each subject        
+        resultROICoordinates = cell(0,0); %rois for each subject  
+        resultZScaling = cell(0,0); %z scaling for each subject  
         allFLIMItems = cell(0,0); %selected FLIM parameters, for each subject and channel
         IRFInfo = []; %information per channel: which IRF was used, sum of IRF
         arithmeticImageInfo = cell(0,2);
@@ -79,6 +80,7 @@ classdef studyIS < handle
             this.measurementFileChs = import.measurementFileChs;
             this.studyClusters = import.studyClusters;
             this.resultROICoordinates = import.resultROICoordinates;
+            this.resultZScaling = import.resultZScaling;
             this.resultCuts = import.resultCuts;
             this.IRFInfo = import.IRFInfo;
             this.arithmeticImageInfo = import.arithmeticImageInfo;
@@ -204,7 +206,7 @@ classdef studyIS < handle
         end
         
         function clearROI(this,idx)
-            %set ROI for subject
+            %reset ROI for subject
             if(isempty(idx))
                 this.resultROICoordinates = [];
                 this.resultROICoordinates = cell(size(this.subjects));
@@ -218,8 +220,23 @@ classdef studyIS < handle
             end
         end
         
+        function clearZScaling(this,idx)
+            %reset z scaling for subject
+            if(isempty(idx))
+                this.resultZScaling = [];
+                this.resultZScaling = cell(size(this.subjects));
+            else
+                %set single value
+                idx = this.subName2idx(idx);
+                if(~isempty(idx))
+                    this.resultZScaling(idx) = cell(1,1);
+                    this.setDirty(true);
+                end
+            end
+        end
+        
         function clearCuts(this,idx)
-            %
+            %reset cross sections
             if(isempty(idx))
                 this.resultCuts = cell(size(this.subjects));
             else
@@ -286,6 +303,7 @@ classdef studyIS < handle
                 if(ROIType >= 1 && ROIType < 6 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
                     tmp(ROIType,1:3,1:2) = int16(ROICoord');
                 elseif(ROIType >= 6 && ROIType <= 7 && size(ROICoord,1) == 2)
+                    %polygons
                     if(size(ROICoord,2) > size(tmp,2))
                         tmpNew = zeros(7,size(ROICoord,2),2,'int16');
                         tmpNew(:,1:size(tmp,2),:) = tmp;
@@ -296,12 +314,56 @@ classdef studyIS < handle
                         tmp(ROIType,max(4,size(ROICoord,2)+1):end,:) = 0;
                     end
                     %polygon could have shrinked, remove trailing zeros
-                    idx = squeeze(any(any(tmp,1),3));
-                    idx(1:3) = true;
-                    tmp(:,find(idx,1,'last')+1:end,:) = [];
+                    idxZeros = squeeze(any(any(tmp,1),3));
+                    idxZeros(1:3) = true;
+                    tmp(:,find(idxZeros,1,'last')+1:end,:) = [];
                 end
             end
             this.resultROICoordinates(idx) = {tmp};
+            this.setDirty(true);
+        end
+        
+        function setResultZScaling(this,subName,ch,dType,dTypeNr,zValues)
+            %set the ROI vector for subject subName
+            idx = this.subName2idx(subName);
+            if(isempty(idx) || isempty(dType) || length(zValues) ~= 3)
+                %subject not in study or z values size is wrong
+                return
+            end
+            tmp = this.resultZScaling{idx};
+            if(isempty(tmp))
+                tmp = cell(0,4);
+            end
+            idxCh = ch == [tmp{:,1}];
+            idxCh = idxCh(:);
+            if(~any(idxCh))
+                %channel not found
+                idxCh(end+1,1) = true;
+                tmp{idxCh,1} = ch;
+                tmp{idxCh,2} = dType;
+                tmp{idxCh,3} = dTypeNr;
+            end
+            idxType = strcmp(dType,tmp(:,2));
+            idxType = idxType(:) & idxCh(:);
+            if(~any(idxType))
+                %dType not found
+                idxCh(end+1,1) = true;
+                idxType(end+1,1) = true;
+                tmp{idxType,1} = ch;
+                tmp{idxType,2} = dType;                
+                tmp{idxType,3} = dTypeNr;
+            end
+            idxNr = dTypeNr == [tmp{:,3}];
+            idxNr = idxNr(:) & idxType(:) & idxCh(:);
+            if(~any(idxNr))
+                %dType number not found
+                idxNr(end+1,1) = true;
+                tmp{idxNr,1} = ch;
+                tmp{idxNr,2} = dType;
+                tmp{idxNr,3} = dTypeNr;
+            end
+            tmp{find(idxNr,1),4} = zValues;
+            this.resultZScaling(idx) = {tmp};
             this.setDirty(true);
         end
         
@@ -413,6 +475,7 @@ classdef studyIS < handle
             this.measurementFileChs(end+1,:) = cell(1,max(1,size(this.measurementFileChs,2)));
             this.subjectInfo(end+1,:) = cell(1,max(1,size(this.subjectInfo,2)));
             this.resultROICoordinates(end+1) = cell(1,1);
+            this.resultZScaling(end+1) = cell(1,1);
             this.resultCuts(end+1) = cell(1,1);
             this.allFLIMItems(end+1,:) = cell(1,max(1,size(this.resultFileChs,2)));
             %sort subjects
@@ -433,7 +496,7 @@ classdef studyIS < handle
             %insert new column at the end of the table            
             this.infoHeaders(end+1)= {name};
             this.subjectInfo(:,end+1)= cell(max(1,size(this.subjectInfo,1)),1);
-            this.subjectInfoCombi(end+1) = cell(1,1);
+            this.subjectInfoCombi(1,end+1) = cell(1,1);
             this.setDirty(true);
         end
         
@@ -471,6 +534,7 @@ classdef studyIS < handle
                 this.subjectInfo(subjectPos,idx) = data.subjectInfo(1,i);
             end
             this.resultROICoordinates(subjectPos) = data.resultROICoordinates;
+            this.resultZScaling(subjectPos) = data.resultZScaling;
             this.resultCuts(subjectPos) = data.resultCuts;
             this.setDirty(true);
         end
@@ -600,6 +664,7 @@ classdef studyIS < handle
             export.measurementFileChs = this.measurementFileChs(idx,:);
             export.studyClusters = this.studyClusters;
             export.resultROICoordinates = this.resultROICoordinates(idx);
+            export.resultZScaling = this.resultZScaling(idx);
             export.resultCuts = this.resultCuts(idx);
             export.allFLIMItems = this.allFLIMItems(idx,:);
             export.IRFInfo = this.IRFInfo;
@@ -611,10 +676,10 @@ classdef studyIS < handle
             %export Subject Data to Excel File
             if(exist(file,'file') == 2)
                 [~, desc] = xlsfinfo(file);
-                idx = find(strcmp('Patientendaten',desc),1);
+                idx = find(strcmp('Subjectinfo',desc),1);
                 if(~isempty(idx))
                     %spreadsheet is already in the selected file
-                    [~, ~, raw] = xlsread(file,'Patientendaten');
+                    [~, ~, raw] = xlsread(file,'Subjectinfo');
                     if(size(raw,1)>(size(this.subjectInfo,1)+1))...
                             ||(size(raw,2)>(size(this.subjectInfo,2)+1))
                         %delete old data in the spreadsheet
@@ -634,7 +699,7 @@ classdef studyIS < handle
             ex(1,2:length(this.infoHeaders)+1) = this.infoHeaders;
             ex(2:size(this.subjectInfo,1)+1,2:length(this.infoHeaders)+1) = this.subjectInfo;
             %Save to file
-            exportExcel(file,ex,'','','Patientendaten','');
+            exportExcel(file,ex,'','','Subjectinfo','');
         end
         
         function out = getColReference(this,n)
@@ -796,7 +861,7 @@ classdef studyIS < handle
         end
         
         function out = getResultROICoordinates(this,subName,ROIType)
-            %
+            %return ROI coordinates for specific subject and ROI type
             if(isempty(subName))
                 out = this.resultROICoordinates;
             else
@@ -825,6 +890,44 @@ classdef studyIS < handle
                 else
                     out = [];
                 end
+            end
+        end
+        
+        function out = getResultZScaling(this,subName,ch,dType,dTypeNr)
+            %return z scaling values for specific subject and data type
+            if(isempty(subName))
+                out = this.resultZScaling;
+            else
+                if(~isnumeric(subName))
+                    subName = this.subName2idx(subName);
+                    if(isempty(subName))
+                        out = [];
+                        return
+                    end
+                end
+                out = [];
+                tmp = this.resultZScaling{subName};
+                if(isempty(tmp))                    
+                    return
+                end
+                idxCh = ch == [tmp{:,1}];
+                if(~any(idxCh))
+                    %channel number not found
+                    return
+                end
+                idxType = strcmp(dType,tmp(:,2));
+                idxType = idxType(:) & idxCh(:);
+                if(~any(idxType))
+                    %dType not found
+                    return
+                end
+                idxNr = dTypeNr == [tmp{:,3}];
+                idxNr = idxNr(:) & idxType(:) & idxCh(:);
+                if(~any(idxNr))
+                    %dType number not found
+                    return
+                end
+                out = tmp{find(idxNr,1),4};
             end
         end
                 
@@ -988,6 +1091,7 @@ classdef studyIS < handle
                 this.resultFileChs(idx,:) = [];
                 this.measurementFileChs(idx,:) = [];
                 this.resultROICoordinates(idx) = [];
+                this.resultZScaling(idx) = [];
                 this.resultCuts(idx) = [];
                 this.subjects(idx) = [];
                 this.subjectInfo(idx,:) = [];
@@ -997,6 +1101,7 @@ classdef studyIS < handle
                 this.resultFileChs = cell(0,0);
                 this.measurementFileChs = cell(0,0);
                 this.resultROICoordinates = cell(0,0);
+                this.resultZScaling = cell(0,0);
                 this.resultCuts = cell(0,0);
                 this.subjects = cell(0,0);
                 this.subjectInfo = cell(0,0);
@@ -1011,6 +1116,7 @@ classdef studyIS < handle
             if(~isempty(idx))
                 this.resultFileChs(idx,:) = cell(1,max(1,size(this.resultFileChs,2)));
                 this.resultROICoordinates(idx) = cell(1,1);
+                this.resultZScaling(idx) = cell(1,1);
                 this.resultCuts(idx) = cell(1,1);
                 this.allFLIMItems(idx) = cell(1,1);
                 this.setDirty(true);
@@ -1217,6 +1323,7 @@ classdef studyIS < handle
                 this.measurementFileChs = this.measurementFileChs(idx,:);
                 this.subjectInfo = this.subjectInfo(idx,:);
                 this.resultROICoordinates = this.resultROICoordinates(idx);
+                this.resultZScaling = this.resultZScaling(idx);
                 this.resultCuts = this.resultCuts(idx);
                 this.allFLIMItems = this.allFLIMItems(idx,:);
                 this.setDirty(true);
@@ -1228,6 +1335,7 @@ classdef studyIS < handle
                 oldStudy.measurementFileChs = oldStudy.measurementFileChs(idx,:);
                 oldStudy.subjectInfo = oldStudy.subjectInfo(idx,:);
                 oldStudy.resultROICoordinates = oldStudy.resultROICoordinates(idx);
+                oldStudy.resultZScaling = oldStudy.resultZScaling(idx);
                 oldStudy.resultCuts = oldStudy.resultCuts(idx);
                 oldStudy.allFLIMItems = oldStudy.allFLIMItems(idx,:);
                 out = oldStudy;
@@ -1468,7 +1576,31 @@ classdef studyIS < handle
                     end
                 end                
             end
-                            
+            
+            if(oldStudy.revision < 21)
+                %new field resultZScaling
+                if(isfield(oldStudy,'resultROICoordinates'))
+                    oldStudy.resultZScaling = cell(size(oldStudy.resultROICoordinates));
+                end
+            end
+            
+            if(oldStudy.revision < 22)
+                %add channel to resultZScaling
+                if(isfield(oldStudy,'resultZScaling'))
+                    tmp = oldStudy.resultZScaling;
+                    idx = ~cellfun(@isempty,tmp);
+                    if(any(idx))
+                        idx = find(idx);
+                        for i = 1:length(idx)
+                            tmp3 = tmp{idx(i)};
+                            tmp3(:,2:end+1) = tmp3;
+                            tmp3(:,1) = {1}; %set old z scaling to channel 1
+                            tmp(idx(i)) = {tmp3};
+                        end
+                        oldStudy.resultZScaling = tmp;
+                    end
+                end
+            end
             this.setDirty(true);
         end
         
@@ -1668,6 +1800,19 @@ classdef studyIS < handle
                 testStudy.resultROICoordinates = testStudy.resultROICoordinates(1:nrSubjects);
                 dirty = true;
             end
+            %resultZScaling
+            if(size(testStudy.resultZScaling,2) > 1)
+                testStudy.resultZScaling = testStudy.resultZScaling(:);
+                dirty = true;
+            end
+            tmpLen = length(testStudy.resultZScaling);
+            if(tmpLen < nrSubjects)
+                testStudy.resultZScaling(end+1:end+nrSubjects-tmpLen) = cell(nrSubjects-tmpLen,1);
+                dirty = true;
+            elseif(tmpLen > nrSubjects)
+                testStudy.resultZScaling = testStudy.resultZScaling(1:nrSubjects);
+                dirty = true;
+            end            
             %resultCuts
             if(size(testStudy.resultCuts,2) > 1)
                 testStudy.resultCuts = testStudy.resultCuts(:);

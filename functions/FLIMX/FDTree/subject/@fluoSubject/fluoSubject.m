@@ -240,21 +240,25 @@ classdef fluoSubject < handle
                                         if(~strcmp(bp.curIRFID,this.basicParams.curIRFID))
                                             curScatterFile.basicParams.curIRFID = this.basicParams.curIRFID;
                                         end
-                                        if(bp.nExp ~= 2)
-                                            bp.nExp = 2;
-                                            bp.incompleteDecay = 1;
-                                            bp.tciMask = [0 0];
-                                            bp.stretchedExpMask = [0 0];
-                                            bp.nonLinOffsetFit = 1;
-                                            bp.constMaskSaveStrCh1 = '';
-                                            bp.constMaskSaveStrCh2 = '';
-                                            curScatterFile.basicParams = bp;
-                                        end
+                                        bp.approximationTarget = 1;
+                                        bp.hybridFit = 1;
+                                        bp.reconvoluteWithIRF = 1;
+                                        bp.fitModel = 0;
+                                        bp.nExp = 2;
+                                        bp.incompleteDecay = 1;
+                                        bp.tciMask = [0 0];
+                                        bp.stretchedExpMask = [0 0];
+                                        bp.nonLinOffsetFit = 1;
+                                        bp.constMaskSaveStrCh1 = '';
+                                        bp.constMaskSaveStrCh2 = '';
+                                        curScatterFile.basicParams = bp;
+                                        curScatterFile.boundsParams.bounds_offset.ub = 1000;
+                                        curScatterFile.boundsParams.bounds_offset.lb = 0.1;
                                         if(curScatterFile.initFitParams.gridSize ~= 1)
                                             curScatterFile.initFitParams.gridSize = 1;
-                                            curScatterFile.initFitParams.gridPhotons = 500000;
+                                            curScatterFile.initFitParams.gridPhotons = 0;
                                             curScatterFile.preProcessParams.autoStartPos = 1;
-                                            curScatterFile.preProcessParams.autoEndPos = 1;                                            
+                                            curScatterFile.preProcessParams.autoEndPos = 1;
                                             curScatterFile.preProcessParams.autoReflRem = -1;
                                             curScatterFile.preProcessParams.roiAdaptiveBinMax = 10;
                                         end
@@ -263,7 +267,7 @@ classdef fluoSubject < handle
                                         if(isstruct(resultStruct))
                                             if(resultStruct.chi2 > 2)
                                                 %todo: throw warning / error
-                                            end                                                
+                                            end
                                             curScatterFile.addInitResult(chList,[1 1],resultStruct);
                                         end
                                         curScatterFile.updateSubjectChannel(chList,'result'); %update measurement as well?

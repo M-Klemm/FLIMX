@@ -192,7 +192,8 @@ classdef paramMgr < handle
             def.basic_fit.tcOrder               =   1; %force time shifts (tc) of shifted exponentials to be ordered: e.g. tc3 > tc2
             def.basic_fit.lifetimeGap           =   1.3; %minimal gap/distance between lifetimes (relative factor, e.g. tau2 >= tau1 * factor)
             def.basic_fit.resultValidyCheckCnt  =   1; %retries for optimizer to get valid result (all amps & offset ~= zero)
-            def.basic_fit.fitModel              =   1; %0: tail fit (incl. IRF), 1: tci fit, 2: tail fit (excl. IRF)
+            def.basic_fit.fitModel              =   1; %0: tail fit, 1: tci fit
+            def.basic_fit.tailFitPreMaxSteps    =   10; %number of time points prior to the maximum which are used additionally in case of tail fits
             def.basic_fit.compMaxCorrTci        =	0;
             def.basic_fit.curIRFID              =   1;
             def.basic_fit.incompleteDecay       =	1;
@@ -317,22 +318,14 @@ classdef paramMgr < handle
             def.fluo_decay_fit_gui.plotInitMarkerstyle    = 'none';
             def.fluo_decay_fit_gui.plotInitMarkersize     = 6;
             
-            def.fluo_decay_fit_gui.plotCurLinesAndText  =	0;
-            def.fluo_decay_fit_gui.plotCurlineswidth    =	1;
-            def.fluo_decay_fit_gui.plotCurLinesStyle    =	'-';
-            def.fluo_decay_fit_gui.plotCurLinesColor    =	[0 0 0];
-            def.fluo_decay_fit_gui.plotCoordinateBoxColor    =	[0 0 0];
-            def.fluo_decay_fit_gui.plotCoordinateBoxTransparency    =	0.1;
-      
-            
-            
-            
-            
-            
-            
-            
-            
-            def.fluo_decay_fit_gui.showLegend             =	1;
+            def.fluo_decay_fit_gui.plotCurLinesAndText              =	1;
+            def.fluo_decay_fit_gui.plotCurlineswidth                =	1;
+            def.fluo_decay_fit_gui.plotCurLinesStyle                =	'--';
+            def.fluo_decay_fit_gui.plotCurLinesColor                =	[0 0 0];
+            def.fluo_decay_fit_gui.plotCoordinateBoxColor           =	[1 1 1];
+            def.fluo_decay_fit_gui.plotCoordinateBoxTransparency    =	0.9;
+                  
+            def.fluo_decay_fit_gui.showLegend   =	1;
             
             def.bounds_1_exp.init               =	[1  500];
             def.bounds_1_exp.lb                 =	[0.01           10];

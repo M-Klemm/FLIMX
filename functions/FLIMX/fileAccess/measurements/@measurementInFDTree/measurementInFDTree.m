@@ -36,6 +36,7 @@ classdef measurementInFDTree < measurementFile
         filesOnHDD = false(1,0);
         myFiles = cell(0,0);
         roiInfoLoaded = false;
+        roiMergedMask = [];
     end
     
     properties (Dependent = true)
@@ -246,9 +247,9 @@ classdef measurementInFDTree < measurementFile
                 useMaskFlag = true;
             end
             raw = [];
-            if(this.paramMgrObj.basicParams.approximationTarget == 2 && ch > 2)
-                return
-            end
+%             if(this.paramMgrObj.basicParams.approximationTarget == 2 && ch > 2)
+%                 return
+%             end
             if(any(this.nonEmptyChannelList == ch))
                 if(~any(this.loadedChannelList == ch))
                     %we have to load it from disk first
@@ -265,6 +266,8 @@ classdef measurementInFDTree < measurementFile
                     raw = getRawData@measurementFile(this,ch,useMaskFlag);
                     %raw = this.rawFluoData{ch};
                 end
+            elseif(this.paramMgrObj.basicParams.approximationTarget == 2 && ch > 2)
+                raw = getRawData@measurementFile(this,ch,useMaskFlag);
             end
         end
         
@@ -289,6 +292,47 @@ classdef measurementInFDTree < measurementFile
             else
                 out = fastIntersect(this.nonEmptyChannelList,find(~cellfun('isempty',this.rawFluoData)));
             end
+        end
+        
+        function out = getROIMerged(this,channel)
+            %get the ROI merged to a single decay
+            bp = this.paramMgrObj.basicParams;
+            if(bp.approximationTarget == 2)
+                if(length(this.roiMerged) < channel || isempty(this.roiMerged{channel}))
+                    %merge raw ROI to single decay
+                    raw = this.getRawData(channel);
+                    if(isvector(raw))
+                        this.roiMerged(channel) = {raw};
+                    elseif(~isempty(raw) && ndims(raw) == 3)
+                        raw = raw(this.ROICoordinates(3):this.ROICoordinates(4),this.ROICoordinates(1):this.ROICoordinates(2),:);
+                        rawFlat = sum(raw,3);
+                        mv = max(rawFlat(:));
+                        if(isempty(this.roiMergedMask))
+                            mask = rawFlat >= mv/10;
+                            this.roiMergedMask = mask;
+                        else
+                            mask = this.roiMergedMask;
+                        end
+                        raw = reshape(raw,[size(raw,1)*size(raw,2),size(raw,3)]);
+                        this.roiMerged(channel) = {sum(raw(mask(:),:),1)'};
+                        %this.roiMerged(channel) = {sum(reshape(raw(this.ROICoordinates(3):this.ROICoordinates(4),this.ROICoordinates(1):this.ROICoordinates(2),:),[],size(raw,3)),1)'};
+                    end
+                end
+                if(length(this.roiMerged) < channel || isempty(this.roiMerged{channel}))
+                    %still no data available
+                    out = [];
+                else
+                    out = this.roiMerged{channel};
+                end
+            else
+                out = getROIMerged@measurementFile(this,channel);
+            end
+        end
+        
+        function clearROIData(this)
+            %clear everything except for the measurement data
+            this.roiMergedMask = [];
+            clearROIData@measurementFile(this);
         end
     end %methods
     

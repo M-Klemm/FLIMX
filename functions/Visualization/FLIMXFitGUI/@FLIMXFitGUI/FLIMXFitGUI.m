@@ -1593,7 +1593,7 @@ classdef FLIMXFitGUI < handle
                     this.visHandles.coordinateBoxMain = text(NaN, NaN, 'HI BILLY MAYS HERE ;)', 'EdgeColor', [ 0 0 0], 'BackgroundColor', Coordinateboxcolor, 'Parent' , this.visHandles.axesCurMain);
                 end
                 cpStr = FLIMXFitGUI.num4disp(cp);
-                if(Xval <= length(Yval) && ~isempty(this.currentDecayData))
+                if(Xval > 0 && Xval <= length(Yval) && ~isempty(this.currentDecayData))
                     if(Yval(Xval) > 0)
                         if( 1.125*(cp(1)-xl(1)) <= (xl(2)-xl(1)) && Xval < length(Yval))
                             this.visHandles.coordinateBoxMain.Position = [cp(1)+0.02*(xl(2)-xl(1)) cp(2)];%double(Yval(Xval))
@@ -2227,8 +2227,7 @@ classdef FLIMXFitGUI < handle
             axis(this.visHandles.axesSupp,'off');
             axis(this.visHandles.axesRes,'off');
             axis(this.visHandles.axesResHis,'off');
-            
-            
+                        
             %set objects for mainax
             this.visHandles.cursorLineMainVertical = -1; %cursorline in mainax
             this.visHandles.cursorLineMainHorizontal = -1; %cursorline in mainax
@@ -2236,9 +2235,6 @@ classdef FLIMXFitGUI < handle
             this.visHandles.setScaleStartLine = -1; %startline when clicking down
             this.visHandles.isSettingScale = -1; %variable to help identify whether the scale is getting set by clicking right now
             this.visHandles.coordinateBoxMain = -1; %Textbox that displays coordinates of Datapoints in the Mainax
-            
-            
-            
             
             %set callbacks
             set(this.visHandles.FLIMXFitGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback, 'WindowButtonDownFcn', @this.GUI_mouseButtonDown_Callback);

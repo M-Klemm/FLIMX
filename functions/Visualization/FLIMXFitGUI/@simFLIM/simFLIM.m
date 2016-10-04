@@ -1621,13 +1621,14 @@ classdef simFLIM < handle
                 choice = 'End';
             end
             val = abs(str2double(get(hObject,'String')));
-            if(strncmp('tc',sdc.arrayParamName,2))
+            tcMode = strncmp('tc',sdc.arrayParamName,2);
+            if(tcMode)
                 %make sure tc is negative
                 val = -abs(val);
             end
             switch choice
                 case 'Start'                    
-                    if(val > sdc.arrayParamEnd)
+                    if(val > sdc.arrayParamEnd && ~tcMode)
                         sdc.arrayParamStart = sdc.arrayParamEnd;
                     else
                         sdc.arrayParamStart = val;
@@ -1635,7 +1636,7 @@ classdef simFLIM < handle
                 case 'Step'
                     sdc.arrayParamStep = val;
                 case 'End'
-                    if(val < sdc.arrayParamStart)
+                    if(val < sdc.arrayParamStart && ~tcMode)
                         sdc.arrayParamEnd = sdc.arrayParamStart;
                     else
                         sdc.arrayParamEnd = val;

@@ -36,6 +36,9 @@ classdef FDataMerge < FData
         ROIType = [];
         ROISubType = [];
         ROICoordinates = [];
+        MSZ = [];
+        MSZMin = [];
+        MSZMax = [];
     end    
     
     methods
@@ -52,6 +55,27 @@ classdef FDataMerge < FData
         function setROICoordinates(this,val)
             %set coordinates of ROI
             this.ROICoordinates = val;
+            this.clearCachedImage();
+        end
+        
+        function setZScaling(this,data)
+            %set z scaling; data = [flag min max]
+            this.MSZ = logical(data(1));
+            if(this.sType == 2)
+                %transform input to log10 space
+                if(data(2) <= 0)
+                    data(2) = 0;
+                else
+                    data(2) = log10(data(2));
+                end
+                if(data(3) <= 0)
+                    data(3) = -Inf;
+                else
+                    data(3) = log10(data(3));
+                end
+            end
+            this.MSZMin = data(2);
+            this.MSZMax = data(3);
             this.clearCachedImage();
         end
         
@@ -94,6 +118,11 @@ classdef FDataMerge < FData
                     out = squeeze(out(ROIType,2:end,:))';
                 end
             end
+        end
+        
+        function out = getZScaling(this)
+            %get z scaling parameters
+            out = [double(this.MSZ), this.MSZMin, this.MSZMax];
         end
         
         function out = getROIType(this)
