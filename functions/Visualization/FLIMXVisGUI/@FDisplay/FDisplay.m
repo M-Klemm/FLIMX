@@ -1282,7 +1282,8 @@ classdef FDisplay < handle
             if(size(intImg,1) == size(colorImg,1) && size(intImg,2) == size(colorImg,2))
                 brightness = this.intOverBright;
                 %contrast = 1;
-                intImg = histeq(intImg./max(intImg(:)));
+                intImg = intImg - min(intImg(:));
+                %intImg = histeq(intImg./max(intImg(:)));
                 intImg = intImg/max(intImg(:));  %*(size(this.dynVisParams.cm,1)-1)+1; %mapping for colorbar
                 intImg(isnan(intImg)) = 0;
                 %adapt brightness and contrast of intensity image
