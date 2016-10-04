@@ -67,6 +67,12 @@ rdh.flimvis = varargin{1};
 rdh.general = varargin{2};
 rdh.defaults = varargin{3};
 rdh.isDirty = [0 0]; %1: flimvis, 2: general
+[mapNames, iconPaths] = FLIMX.getColormaps();
+if(~isempty(iconPaths))
+    %thanks to Yair Altman
+    htmlStr = strcat('<html><img width=105 height=10 src="file:///', iconPaths,'">', mapNames');
+    set(handles.popupColormap,'String',htmlStr);
+end
 updateGUI(handles, rdh);
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 
@@ -115,7 +121,7 @@ if(strcmp(data.flimvis.shading,'flat'))
 else
     set(handles.shading_pop,'Value',2);
 end
-idx = find(strcmpi(get(handles.popupColormap,'String'),data.general.cmType),1);
+idx = find(strcmpi(regexprep(get(handles.popupColormap,'String'), '<html><.*">', ''),data.general.cmType),1);
 if(isempty(idx))
     idx = 10; %jet
 end
@@ -212,8 +218,9 @@ updateGUI(handles,rdh);
 function popupColormap_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 str = get(hObject,'String');
-str = str{get(hObject,'Value')};
-rdh.general.cmType = str;
+str = str(get(hObject,'Value'));
+str = regexprep(str, '<html><.*">', '');
+rdh.general.cmType = str{:};
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
