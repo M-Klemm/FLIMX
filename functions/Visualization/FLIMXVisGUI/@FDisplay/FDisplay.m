@@ -650,6 +650,8 @@ classdef FDisplay < handle
                     end
                     colors = colors/(zMax(i)-zMin(i))*(size(cm,1)-1)+1; %mapping for colorbar
                     colors(isnan(colors)) = 1;
+                    colors(colors > size(cm,1)) = size(cm,1); 
+                    colors(colors < 1) = 1;
                     if(strncmp(hfd{i}.dType,'MVGroup',7)  || strncmp(hfd{i}.dType,'ConditionMVGroup',16))
                         cm = repmat([0:1/(size(cm,1)-1):1]',1,3);
                         color = this.visObj.fdt.getViewColor(this.visObj.getStudy(this.mySide),this.visObj.getView(this.mySide));
