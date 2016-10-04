@@ -1025,7 +1025,7 @@ classdef FDisplay < handle
                         end
                         this.suppExport = [centers' histo'];
                      
-                        bar(this.h_s_ax,histo,'hist', 'Parent', this.h_s_ax);
+                        bar(this.h_s_ax,histo,'hist', 'Color', 'black', 'Parent', this.h_s_ax);
                    
                         if(this.staticVisParams.grid)
                             grid(this.h_s_ax,'on');
@@ -1041,26 +1041,35 @@ classdef FDisplay < handle
                             xtick = xtick+1;
                         end
                         set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',FLIMXFitGUI.num4disp(centers(xtick)'));
-                         
-                if(addColorBar == true)                      
 
-                    
-                    testwithoutcustombar = 1:100;
+                        
+                        
+                if (ColorBarFinish == -1)
+                    xtemp=this.h_s_ax.XLim;
+                else
                 xtemp =[ColorBarStart ColorBarFinish];
-                ytemp = this.h_s_ax.YLim;
-                
-                
-                %ytemp = this.visObj.visHandles.supp_l_axes.YLim;
-                %this.visHandles.testline3 = image('XData',xtemp, 'YData',ytemp ,'CData' ,this.dynParams.cm);
-                
-                
-                image = imagesc('XData' , xtemp, 'YData' , ytemp, 'CData',testwithoutcustombar, 'Parent' , this.h_s_ax);
-                 this.h_s_ax.YLim = ytemp;
-              uistack(image, 'bottom');
-                
-                
-                
                 end
+                
+                ytemp = this.h_s_ax.YLim;
+                bartype = this.visObj.visHandles.main_axes_l_pop.String{1, 1};
+                if (strcmp(bartype ,'Intensity'))
+                    YESRIGHTBRANCH = 1;
+                    temp = zeros(1,length(this.dynVisParams.cmIntensity), 3);
+                    temp(1,:,:) = this.dynVisParams.cmIntensity;
+                else
+                    
+                    
+                    temp = zeros(1,length(this.dynVisParams.cm), 3);
+                    temp(1,:,:) = this.dynVisParams.cm;
+                end
+                
+                
+                image = imagesc('XData' , xtemp, 'YData' , ytemp, 'CData',temp, 'Parent' , this.h_s_ax);
+                this.h_s_ax.YLim = ytemp;
+                
+                uistack(image, 'bottom');
+ 
+            % end
                 
                 
                 
