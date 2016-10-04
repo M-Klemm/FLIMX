@@ -242,8 +242,10 @@ classdef FDisplay < handle
                 %nothing to do
                 ROIType = 0;
             end
+            op = double(op); 
+            cp = double(cp);            
             switch ROIType
-                case 1
+                case 1                    
                     this.drawETDRSGrid(cp,drawTextFlag);
                 case {2,3}
                     if(isempty(op))
@@ -257,7 +259,7 @@ classdef FDisplay < handle
                     radius = sqrt(sum((op-cp).^2));
                     this.drawCircle(op,radius,drawTextFlag);
                 case {6,7}
-                    this.drawPolygon(cp,drawTextFlag);                    
+                    this.drawPolygon([op,cp],drawTextFlag);                    
                 otherwise
                     try
                         delete(this.h_Rectangle);
@@ -370,12 +372,6 @@ classdef FDisplay < handle
                 return
             end
             res = this.pixelResolution;
-            switch this.measurementPosition
-                case 'OS'
-                    pos = 1;                    
-                otherwise
-                    pos = 1;
-            end
             gc = this.staticVisParams.ROIColor;%[1 1 1];
             if(res > 0)
                 %radius ring1 = 500 µm
@@ -429,7 +425,7 @@ classdef FDisplay < handle
                 bgc = [0 0 0 0];
                 if(~strcmp(this.staticVisParams.ETDRS_subfield_values,'none'))
                     if(strcmp(this.staticVisParams.ETDRS_subfield_values,'field name'))
-                        txt = {'C','IN','IS','II','IT','OS','ON','OI','OT'};
+                        txt = {'C','IS','IN','II','IT','OS','ON','OI','OT'}';
                     else
                         tmp = hfd.getROISubfieldStatistics(cp,1,this.staticVisParams.ETDRS_subfield_values);                        
                         %txt = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%FLIMXFitGUI.num4disp(tmp(i));
@@ -439,28 +435,31 @@ classdef FDisplay < handle
                         bgc = this.staticVisParams.ETDRS_subfield_bg_color;%[0.3 0.3 0.3 0.33];
                     end
                 end
+                if(strcmp(this.measurementPosition,'OD'))
+                    txt = txt([1,2,5,4,3,6,9,8,7],1); %re-order nasal and temporal fields
+                end
                 if(~isempty(idxT) && all(idxT(:)))
                     set(this.h_ETDRSGridText(1),'Position',[cp(2),cp(1)],'String',txt{1});
                     set(this.h_ETDRSGridText(2),'Position',[cp(2),cp(1)+d1/2+(d2-d1)/4,cp(1)],'String',txt{2});
-                    set(this.h_ETDRSGridText(3),'Position',[cp(2)-pos*(d1/2+(d2-d1)/4),cp(1)],'String',txt{3});
+                    set(this.h_ETDRSGridText(3),'Position',[cp(2)-(d1/2+(d2-d1)/4),cp(1)],'String',txt{3});
                     set(this.h_ETDRSGridText(4),'Position',[cp(2),cp(1)-d1/2-(d2-d1)/4,cp(1)],'String',txt{4});
-                    set(this.h_ETDRSGridText(5),'Position',[cp(2)+pos*(d1/2+(d2-d1)/4),cp(1)],'String',txt{5});                    
+                    set(this.h_ETDRSGridText(5),'Position',[cp(2)+(d1/2+(d2-d1)/4),cp(1)],'String',txt{5});                    
                     set(this.h_ETDRSGridText(6),'Position',[cp(2),cp(1)+d2/2+(d3-d2)/4,cp(1)],'String',txt{6});
-                    set(this.h_ETDRSGridText(9),'Position',[cp(2)-pos*(d2/2+(d3-d2)/4),cp(1)],'String',txt{7});
+                    set(this.h_ETDRSGridText(9),'Position',[cp(2)-(d2/2+(d3-d2)/4),cp(1)],'String',txt{7});
                     set(this.h_ETDRSGridText(7),'Position',[cp(2),cp(1)-d2/2-(d3-d2)/4,cp(1)],'String',txt{8});
-                    set(this.h_ETDRSGridText(8),'Position',[cp(2)+pos*(d2/2+(d3-d2)/4),cp(1)],'String',txt{9});                    
+                    set(this.h_ETDRSGridText(8),'Position',[cp(2)+(d2/2+(d3-d2)/4),cp(1)],'String',txt{9});                    
                 else
                     delete(this.h_ETDRSGridText(idxT));
                     h = zeros(9,1);
                     h(1) = text(cp(2),cp(1),txt{1},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     h(2) = text(cp(2),cp(1)+d1/2+(d2-d1)/4,txt{2},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
-                    h(3) = text(cp(2)-pos*(d1/2+(d2-d1)/4),cp(1),txt{3},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(3) = text(cp(2)-(d1/2+(d2-d1)/4),cp(1),txt{3},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     h(4) = text(cp(2),cp(1)-d1/2-(d2-d1)/4,txt{4},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
-                    h(5) = text(cp(2)+pos*(d1/2+(d2-d1)/4),cp(1),txt{5},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(5) = text(cp(2)+(d1/2+(d2-d1)/4),cp(1),txt{5},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     h(6) = text(cp(2),cp(1)+d2/2+(d3-d2)/4,txt{6},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
-                    h(7) = text(cp(2)-pos*(d2/2+(d3-d2)/4),cp(1),txt{7},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(7) = text(cp(2)-(d2/2+(d3-d2)/4),cp(1),txt{7},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     h(8) = text(cp(2),cp(1)-d2/2-(d3-d2)/4,txt{8},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
-                    h(9) = text(cp(2)+pos*(d2/2+(d3-d2)/4),cp(1),txt{9},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(9) = text(cp(2)+(d2/2+(d3-d2)/4),cp(1),txt{9},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     this.h_ETDRSGridText = h;
                 end
             end
@@ -616,8 +615,8 @@ classdef FDisplay < handle
                     return
                 end
                 %z scaling
-                if(hfd{i}.MSZ)
-                    zData = hfd{i}.getZScaling();
+                zData = hfd{i}.getZScaling();
+                if(~isempty(zData) && zData(1))                    
                     zMin(i) = zData(2);
                     if(isinf(zMin))
                         zMin(i) = hfd{i}.getCImin();
@@ -722,11 +721,11 @@ classdef FDisplay < handle
                             rt = this.ROIType;
                             if(rt >= 1)
                                 ROICoord = this.ROICoordinates;
-                                if(rt >= 1 && rt < 6)
-                                this.drawROI(rt,ROICoord(:,1),ROICoord(:,2),true);
-                                else
-                                    this.drawROI(rt,[],ROICoord,true);
-                                end
+%                                 if(rt >= 1 && rt < 6)
+                                this.drawROI(rt,ROICoord(:,1),ROICoord(:,2:end),true);
+%                                 else
+%                                     this.drawROI(rt,[],ROICoord,true);
+%                                 end
                             end
                         end
                         %save for export
@@ -965,6 +964,7 @@ classdef FDisplay < handle
         end
           
         function makeSuppPlot(this, addColorBar, ColorBarStart, ColorBarFinish)
+            
             %manage input variables
             
             if (nargin < 2)
@@ -972,7 +972,6 @@ classdef FDisplay < handle
                 ColorBarStart = -1;
                 ColorBarFinish = -1;
             end
-            
             
             
             %make current supplemental plot                        
@@ -1001,7 +1000,6 @@ classdef FDisplay < handle
                     if(length(hfd) == 1) %only for univariate data
                         switch this.sDispHistMode
                             case 1 %histogram of current subject
-                                                               
                                 [histo, centers] = hfd{1}.getCIHist(rc,rt,rs,ri);
                                 %centers = hfd{1}.getCIHistCenters();
                             case 2 %histogram of current study view
@@ -1024,9 +1022,7 @@ classdef FDisplay < handle
                             return
                         end
                         this.suppExport = [centers' histo'];
-                     
-                        bar(this.h_s_ax,histo,'hist', 'Color', 'black', 'Parent', this.h_s_ax);
-                   
+                        bar(this.h_s_ax,histo,'hist', 'Color', 'b', 'Parent', this.h_s_ax);
                         if(this.staticVisParams.grid)
                             grid(this.h_s_ax,'on');
                         else
@@ -1034,49 +1030,39 @@ classdef FDisplay < handle
                         end
                         if(length(histo) > 1)
                             xlim(this.h_s_ax,size(histo));
-
                         end
                         xtick = get(this.h_s_ax,'XTick');
                         if(xtick(1) == 0)
                             xtick = xtick+1;
                         end
                         set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',FLIMXFitGUI.num4disp(centers(xtick)'));
-
+                        
+                        %add colorbar either in Full Axe or Specified part,
+                        %put it behind the bar
+                        
+                        if (ColorBarFinish == -1)
+                            xtemp=this.h_s_ax.XLim;
+                        else
+                            xtemp =[ColorBarStart ColorBarFinish];
+                        end
+                        
+                        ytemp = this.h_s_ax.YLim;
+                        bartype = this.visObj.visHandles.main_axes_l_pop.String{1, 1};
+                        if (strcmp(bartype ,'Intensity'))
+                            temp = zeros(1,length(this.dynVisParams.cmIntensity), 3);
+                            temp(1,:,:) = this.dynVisParams.cmIntensity;
+                        else
+                            
+                            
+                            temp = zeros(1,length(this.dynVisParams.cm), 3);
+                            temp(1,:,:) = this.dynVisParams.cm;
+                        end
                         
                         
-                if (ColorBarFinish == -1)
-                    xtemp=this.h_s_ax.XLim;
-                else
-                xtemp =[ColorBarStart ColorBarFinish];
-                end
-                
-                ytemp = this.h_s_ax.YLim;
-                bartype = this.visObj.visHandles.main_axes_l_pop.String{1, 1};
-                if (strcmp(bartype ,'Intensity'))
-                    YESRIGHTBRANCH = 1;
-                    temp = zeros(1,length(this.dynVisParams.cmIntensity), 3);
-                    temp(1,:,:) = this.dynVisParams.cmIntensity;
-                else
-                    
-                    
-                    temp = zeros(1,length(this.dynVisParams.cm), 3);
-                    temp(1,:,:) = this.dynVisParams.cm;
-                end
-                
-                
-                image = imagesc('XData' , xtemp, 'YData' , ytemp, 'CData',temp, 'Parent' , this.h_s_ax);
-                this.h_s_ax.YLim = ytemp;
-                
-                uistack(image, 'bottom');
- 
-            % end
-                
-                
-                
-                
-                
-                
-                
+                        image = imagesc('XData' , xtemp, 'YData' , ytemp, 'CData',temp, 'Parent' , this.h_s_ax);
+                        this.h_s_ax.YLim = ytemp;
+                        
+                        uistack(image, 'bottom');
                         
                         
                     else %nothing to do
@@ -1098,11 +1084,9 @@ classdef FDisplay < handle
                                 zMin(i) = hfd{i}.getCImin(rc,rt,rs,ri);
                                 zMax(i) = hfd{i}.getCImax(rc,rt,rs,ri);
                                 %z scaling
-                                if(hfd{i}.MSZ)
-                                    zData = hfd{i}.getZScaling();
-                                    if(MSZMin ~= -inf)
-                                        zMin(i) = zData(2);
-                                    end
+                                zData = hfd{i}.getZScaling();
+                                if(~isempty(zData) && zData(1))                                    
+                                    zMin(i) = zData(2);
                                     zMax(i) = zData(3);
                                 end
                             else
@@ -1119,11 +1103,9 @@ classdef FDisplay < handle
                                 zMin(i) = hfdT.getCImin();
                                 zMax(i) = hfdT.getCImax();
                                 %z scaling
-                                if(hfdT.MSZ)
-                                    zData = hfdT.getZScaling();
-                                    if(MSZMin ~= -inf)
-                                        zMin(i) = zData(2);
-                                    end
+                                zData = hfdT.getZScaling();
+                                if(~isempty(zData) && zData(1))                                    
+                                    zMin(i) = zData(2);
                                     zMax(i) = zData(3);
                                 end
                             end
@@ -1308,8 +1290,8 @@ classdef FDisplay < handle
                     img_min = 0;
                     img_max = 0;
                 else
-                    if(hfd{1}.MSZ)
-                        zData = hfd{1}.getZScaling();
+                    zData = hfd{1}.getZScaling();
+                    if(~isempty(zData) && zData(1))                        
                         img_min = zData(2);
                         img_max = zData(3);
                     else
