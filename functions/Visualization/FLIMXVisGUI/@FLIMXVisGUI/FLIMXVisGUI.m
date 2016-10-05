@@ -943,19 +943,7 @@ classdef FLIMXVisGUI < handle
         end
         
         function GUI_enableMouseCheck_Callback(this,hObject,eventdata)
-            %en/dis-able mouse motion callbacks
-            switch get(hObject,'Value')
-                case 0
-                    set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonDown','');
-                    set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonUpFcn','');
-                    set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
-                    set(this.visHandles.hrotate3d,'Enable','on','ActionPostCallback',{@FLIMXVisGUI.rotate_postCallback,this});
-                case 1
-                    set(this.visHandles.hrotate3d,'Enable','off','ActionPostCallback',{@FLIMXVisGUI.rotate_postCallback,this});
-                    set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonDown',@this.GUI_mouseButtonDown_Callback);
-                    set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
-                    set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
-            end
+            %en/dis-able ROI definition using the mouse
         end
         
         function GUI_sync3DViews_check_Callback(this,hObject,eventdata)
@@ -1036,6 +1024,7 @@ classdef FLIMXVisGUI < handle
         
         function GUI_mouseButtonDown_Callback(this,hObject,eventdata)
             %executes on mouse button down in window
+            %this function is now always called by the its wrapper: rotate_mouseButtonDownWrapper
             cp = this.objHandles.ldo.getMyCP();
             thisSide = 'l';
             otherSide = 'r';
@@ -1052,13 +1041,13 @@ classdef FLIMXVisGUI < handle
             otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
             if(isempty(cp))
                 %set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-            elseif(this.getROIDisplayMode(thisSide) < 3 && this.getROIType(thisSide) >= 1)
+            elseif(this.getROIDisplayMode(thisSide) < 3 && get(this.visHandles.enableMouse_check,'Value') && this.getROIType(thisSide) >= 1)
                 this.dynParams.mouseButtonDown = true;
                 this.dynParams.mouseButtonDownCoord = cp;
                 currentROI = thisROIObj.getCurROIInfo();
                 this.dynParams.mouseButtonDownROI = currentROI(:,2);
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
-                if(get(this.visHandles.enableMouse_check,'Value') && mLeftButton && this.getROIType(thisSide) < 6)
+                if(mLeftButton && this.getROIType(thisSide) < 6)
                     %left click
                     thisROIObj.setStartPoint(flipud(cp));
                 end
@@ -1075,7 +1064,8 @@ classdef FLIMXVisGUI < handle
         end
         
         function GUI_mouseButtonUp_Callback(this,hObject,eventdata)
-            %executes on mouse button up in window 
+            %executes on mouse button up in window
+            %this function is now always called by the its wrapper: rotate_mouseButtonUpWrapper
             cp = this.objHandles.ldo.getMyCP();
             thisSide = 'l';
             otherSide = 'r';
@@ -1453,13 +1443,11 @@ classdef FLIMXVisGUI < handle
                 case 3
                     this.visHandles = FLIMXVisGUIFigureLarge();
             end
-            figure(this.visHandles.FLIMXVisGUIFigure);
-            
+            figure(this.visHandles.FLIMXVisGUIFigure);            
             %set callbacks
-            %set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);%,'WindowButtonUpFcn',@this.mouseButtonUp);
             set(this.visHandles.FLIMXVisGUIFigure,'Units','Pixels');
             %popups
-            set(this.visHandles.enableMouse_check,'Callback',@this.GUI_enableMouseCheck_Callback,'Value',0,'String','enable ROI definition','TooltipString','Enable or disable the ROI definition using the mouse pointer (no 3D rotation possible if enabled!)');
+            set(this.visHandles.enableMouse_check,'Callback',@this.GUI_enableMouseCheck_Callback,'Value',0,'String','enable ROI definition','TooltipString','Enable or disable the ROI definition using the mouse pointer');
             set(this.visHandles.sync3DViews_check,'Callback',@this.GUI_sync3DViews_check_Callback,'Value',0,'TooltipString','Enable or disable synchronization of 3D views on left and right side');
             %main axes
             set(this.visHandles.dataset_l_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the left side');
@@ -1599,6 +1587,16 @@ classdef FLIMXVisGUI < handle
             this.objHandles.lZScale.updateGUI([]);
             this.objHandles.rZScale.updateGUI([]);
             set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
+            %enable mouse button callbacks although 3d rotation is enabled
+            %thanks to http://undocumentedmatlab.com/blog/enabling-user-callbacks-during-zoom-pan
+            hManager = uigetmodemanager(this.visHandles.FLIMXVisGUIFigure);
+            try
+                set(hManager.WindowListenerHandles, 'Enable', 'off');  % HG1
+            catch
+                [hManager.WindowListenerHandles.Enabled] = deal(false);  % HG2
+            end
+            set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonDownFcn',{@FLIMXVisGUI.rotate_mouseButtonDownWrapper,this});
+            set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonUpFcn',{@FLIMXVisGUI.rotate_mouseButtonUpWrapper,this});
         end   
     end %methods protected   
     
@@ -1815,8 +1813,34 @@ classdef FLIMXVisGUI < handle
             end
         end
         
-        % --- Executes on mouse press over axes background.
+        function rotate_mouseButtonDownWrapper(hObject, eventdata, hFLIMXVis)
+            %wrapper for mouse button down funtion in rotate3d mode
+            hFLIMXVis.GUI_mouseButtonDown_Callback(hObject, eventdata);
+            %now run hrotate3d callback
+            %rdata = getuimode(hFig,'Exploration.Rotate3d');
+            hManager = uigetmodemanager(hObject);
+            hManager.CurrentMode.WindowButtonDownFcn(hObject,eventdata);
+            %hrotate3d callback set the button up function to empty
+            try
+                set(hManager.WindowListenerHandles, 'Enable', 'off');  % HG1
+            catch
+                [hManager.WindowListenerHandles.Enabled] = deal(false);  % HG2
+            end
+            set(hObject,'WindowButtonUpFcn',{@FLIMXVisGUI.rotate_mouseButtonUpWrapper,hFLIMXVis});                        
+        end
+        
+        function rotate_mouseButtonUpWrapper(hObject, eventdata, hFLIMXVis)
+            %wrapper for mouse button up funtion in rotate3d mode
+            hFLIMXVis.GUI_mouseButtonUp_Callback(hObject, eventdata);
+            %in case of 3d roation, we have to call the button up function to stop rotating
+            hManager = uigetmodemanager(hObject);
+            if(~isempty(hManager.CurrentMode.WindowButtonUpFcn))
+                hManager.CurrentMode.WindowButtonUpFcn(hObject,eventdata);
+            end
+        end
+        
         function rotate_postCallback(hObject, eventdata, hFLIMXVis)
+            %after rotation we may have to update the axis labels
             if(eventdata.Axes == hFLIMXVis.visHandles.main_l_axes)
                 side = 'l';
                 otherSide = 'r';

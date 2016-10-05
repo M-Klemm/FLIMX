@@ -721,11 +721,7 @@ classdef FDisplay < handle
                             rt = this.ROIType;
                             if(rt >= 1)
                                 ROICoord = this.ROICoordinates;
-%                                 if(rt >= 1 && rt < 6)
                                 this.drawROI(rt,ROICoord(:,1),ROICoord(:,2:end),true);
-%                                 else
-%                                     this.drawROI(rt,[],ROICoord,true);
-%                                 end
                             end
                         end
                         %save for export
