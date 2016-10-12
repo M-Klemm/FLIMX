@@ -447,16 +447,20 @@ classdef StatsGroupComparison < handle
             end
             set(this.visHandles.popupSelROISubType,'Visible',flag);
             %params
-            oldPStr = get(this.visHandles.popupSelParam,'String');
-            if(iscell(oldPStr) && ~isempty(oldPStr))
-                oldPStr = oldPStr(get(this.visHandles.popupSelParam,'Value'));
+            if(isempty(coStr))
+                set(this.visHandles.popupSelParam,'String','FLIM param','Value',1);
+            else
+                oldPStr = get(this.visHandles.popupSelParam,'String');
+                if(iscell(oldPStr) && ~isempty(oldPStr))
+                    oldPStr = oldPStr(get(this.visHandles.popupSelParam,'Value'));
+                end
+                %try to find oldPStr in new pstr
+                idx = find(strcmp(oldPStr,coStr),1);
+                if(isempty(idx))
+                    idx = min(get(this.visHandles.popupSelParam,'Value'),length(coStr));
+                end
+                set(this.visHandles.popupSelParam,'String',coStr,'Value',idx);
             end
-            %try to find oldPStr in new pstr
-            idx = find(strcmp(oldPStr,coStr),1);
-            if(isempty(idx))
-                idx = min(get(this.visHandles.popupSelParam,'Value'),length(coStr));
-            end
-            set(this.visHandles.popupSelParam,'String',coStr,'Value',idx);
             set(this.visHandles.buttonStudyPColor,'Backgroundcolor',this.settings.colorPath);
             set(this.visHandles.buttonStudyCColor,'Backgroundcolor',this.settings.colorControls);
             set(this.visHandles.buttonSigClassColor,'Backgroundcolor',this.settings.colorSigClass);

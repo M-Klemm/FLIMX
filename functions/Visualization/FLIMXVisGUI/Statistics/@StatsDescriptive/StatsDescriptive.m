@@ -691,11 +691,19 @@ classdef StatsDescriptive < handle
                     [h,p] = lillietest(data,'Alpha',alpha);
                 case 'ks' %kolmogorov smirnov test
                     %center data for ks test
-                    tmp = data(:);
-                    tmp = (tmp-mean(tmp(:)))/std(tmp);
-                    [h,p] = kstest(tmp,'Alpha',alpha);
+                    if(var(data(:)) < eps)
+                        h = 1; p = 0;
+                    else
+                        tmp = data(:);
+                        tmp = (tmp-mean(tmp(:)))/std(tmp);
+                        [h,p] = kstest(tmp,'Alpha',alpha);
+                    end
                 case 'sw' %shapiro-wilk test
-                    [h,p] = swtest(data,alpha);
+                    if(var(data(:)) < eps)
+                        h = 1; p = 0;
+                    else
+                        [h,p] = swtest(data,alpha);
+                    end
             end
         end
         
