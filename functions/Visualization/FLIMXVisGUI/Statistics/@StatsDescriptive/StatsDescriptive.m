@@ -683,7 +683,7 @@ classdef StatsDescriptive < handle
             h = []; p = [];
             data = data(~isnan(data));
             data = data(~isinf(data));
-            if(~any(data(:)))
+            if(~any(data(:)) || length(data) < 4)
                 return
             end
             switch test
