@@ -290,22 +290,23 @@ classdef FDisplay < handle
                 return
             end
             gc = this.staticVisParams.ROIColor;
-            lw = 2;
+            lw = this.staticVisParams.ROILinewidth;
+            ls = this.staticVisParams.ROILinestyle;
             idx = widths < 0;
             cp(idx) = cp(idx) + widths(idx);
             widths = abs(widths);
             isHG = ishghandle(this.h_Rectangle);
             if(~isempty(isHG) && isHG)
-                set(this.h_Rectangle,'Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw);
+                set(this.h_Rectangle,'Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls);
             else
                 try
                     delete(this.h_Rectangle);
                 end
                 if(this.staticVisParams.ROI_fill_enable)
                     fc = [gc this.staticVisParams.ETDRS_subfield_bg_color(end)];
-                    this.h_Rectangle = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
+                    this.h_Rectangle = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
                 else
-                    this.h_Rectangle = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    this.h_Rectangle = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                 end
             end
             %             if(MSX)
@@ -325,19 +326,20 @@ classdef FDisplay < handle
                 return
             end
             gc = this.staticVisParams.ROIColor;
-            lw = 2;
+            lw = this.staticVisParams.ROILinewidth;
+            ls = this.staticVisParams.ROILinestyle;
             isHG = ishghandle(this.h_Circle);
             if(~isempty(isHG) && isHG)
-                set(this.h_Circle,'Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'LineWidth',lw);
+                set(this.h_Circle,'Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'LineWidth',lw,'LineStyle',ls);
             else
                 try
                     delete(this.h_Circle);
                 end
                 if(this.staticVisParams.ROI_fill_enable)
                     fc = [gc this.staticVisParams.ETDRS_subfield_bg_color(end)];
-                    this.h_Circle = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
+                    this.h_Circle = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
                 else
-                    this.h_Circle = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    this.h_Circle = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                 end
             end
         end
@@ -345,18 +347,19 @@ classdef FDisplay < handle
         function drawPolygon(this,points,drawTextFlag)
             %draw polygon into 2D plot
             gc = this.staticVisParams.ROIColor;
-            lw = 2;
+            lw = this.staticVisParams.ROILinewidth;
+            ls = this.staticVisParams.ROILinestyle;
             isHG = ishghandle(this.h_Polygon);
             if(~isempty(isHG) && isHG)
-                set(this.h_Polygon,'Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw);
+                set(this.h_Polygon,'Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls);
             else
                 try
                     delete(this.h_Polygon);
                 end
                 if(this.staticVisParams.ROI_fill_enable)
-                    this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'EdgeColor',gc,'FaceColor',gc,'FaceAlpha',this.staticVisParams.ETDRS_subfield_bg_color(end),'Parent',this.h_m_ax);
+                    this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls,'EdgeColor',gc,'FaceColor',gc,'FaceAlpha',this.staticVisParams.ETDRS_subfield_bg_color(end),'Parent',this.h_m_ax);
                 else
-                    this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'EdgeColor',gc,'FaceAlpha',0,'Parent',this.h_m_ax);
+                    this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls,'EdgeColor',gc,'FaceAlpha',0,'Parent',this.h_m_ax);
                 end
             end
         end
@@ -378,37 +381,37 @@ classdef FDisplay < handle
                 d1 = 1000/res;
                 d2 = 3000/res;
                 d3 = 6000/res;                
-                lw = 2;
+                lw = this.staticVisParams.ROILinewidth;
+                ls = this.staticVisParams.ROILinestyle;
                 fs = this.staticVisParams.fontsize;
                 if(~isempty(idxG) && all(idxG(:)))
                     %circles
-                    set(this.h_ETDRSGrid(1),'Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'LineWidth',lw);
-                    set(this.h_ETDRSGrid(2),'Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'LineWidth',lw);
-                    set(this.h_ETDRSGrid(3),'Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'LineWidth',lw);
+                    set(this.h_ETDRSGrid(1),'Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(2),'Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(3),'Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'LineWidth',lw,'LineStyle',ls);
                     %lines
-                    set(this.h_ETDRSGrid(4),'XData',[cp(2)+cos(pi/4)*d1/2  cp(2)+cos(pi/4)*d3/2],'YData',[cp(1)+sin(pi/4)*d1/2 cp(1)+sin(pi/4)*d3/2],'LineWidth',lw);
-                    set(this.h_ETDRSGrid(5),'XData',[cp(2)+cos(3*pi/4)*d1/2  cp(2)+cos(3*pi/4)*d3/2],'YData',[cp(1)+sin(3*pi/4)*d1/2 cp(1)+sin(3*pi/4)*d3/2],'LineWidth',lw);
-                    set(this.h_ETDRSGrid(6),'XData',[cp(2)+cos(-pi/4)*d1/2  cp(2)+cos(-pi/4)*d3/2],'YData',[cp(1)+sin(-pi/4)*d1/2 cp(1)+sin(-pi/4)*d3/2],'LineWidth',lw);
-                    set(this.h_ETDRSGrid(7),'XData',[cp(2)+cos(-3*pi/4)*d1/2  cp(2)+cos(-3*pi/4)*d3/2],'YData',[cp(1)+sin(-3*pi/4)*d1/2 cp(1)+sin(-3*pi/4)*d3/2],'LineWidth',lw);
+                    set(this.h_ETDRSGrid(4),'XData',[cp(2)+cos(pi/4)*d1/2  cp(2)+cos(pi/4)*d3/2],'YData',[cp(1)+sin(pi/4)*d1/2 cp(1)+sin(pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(5),'XData',[cp(2)+cos(3*pi/4)*d1/2  cp(2)+cos(3*pi/4)*d3/2],'YData',[cp(1)+sin(3*pi/4)*d1/2 cp(1)+sin(3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(6),'XData',[cp(2)+cos(-pi/4)*d1/2  cp(2)+cos(-pi/4)*d3/2],'YData',[cp(1)+sin(-pi/4)*d1/2 cp(1)+sin(-pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(7),'XData',[cp(2)+cos(-3*pi/4)*d1/2  cp(2)+cos(-3*pi/4)*d3/2],'YData',[cp(1)+sin(-3*pi/4)*d1/2 cp(1)+sin(-3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
                 else
                     try
                         delete(this.h_ETDRSGrid(idxG));
                     end
-                    h = zeros(7,1);
-                    
-                    h(1) = rectangle('Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc);
-                    h(2) = rectangle('Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    h = zeros(7,1);                    
+                    h(1) = rectangle('Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    h(2) = rectangle('Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                     if(this.staticVisParams.ROI_fill_enable)
                         fc = [gc this.staticVisParams.ETDRS_subfield_bg_color(end)];
-                        h(3) = rectangle('Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
+                        h(3) = rectangle('Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
                     else
-                        h(3) = rectangle('Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc);
+                        h(3) = rectangle('Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                     end
                     %lines
-                    h(4) = line('XData',[cp(2)+cos(pi/4)*d1/2  cp(2)+cos(pi/4)*d3/2],'YData',[cp(1)+sin(pi/4)*d1/2 cp(1)+sin(pi/4)*d3/2],'LineWidth',lw,'Parent',this.h_m_ax,'Color',gc);
-                    h(5) = line('XData',[cp(2)+cos(3*pi/4)*d1/2  cp(2)+cos(3*pi/4)*d3/2],'YData',[cp(1)+sin(3*pi/4)*d1/2 cp(1)+sin(3*pi/4)*d3/2],'LineWidth',lw,'Parent',this.h_m_ax,'Color',gc);
-                    h(6) = line('XData',[cp(2)+cos(-pi/4)*d1/2  cp(2)+cos(-pi/4)*d3/2],'YData',[cp(1)+sin(-pi/4)*d1/2 cp(1)+sin(-pi/4)*d3/2],'LineWidth',lw,'Parent',this.h_m_ax,'Color',gc);
-                    h(7) = line('XData',[cp(2)+cos(-3*pi/4)*d1/2  cp(2)+cos(-3*pi/4)*d3/2],'YData',[cp(1)+sin(-3*pi/4)*d1/2 cp(1)+sin(-3*pi/4)*d3/2],'LineWidth',lw,'Parent',this.h_m_ax,'Color',gc);
+                    h(4) = line('XData',[cp(2)+cos(pi/4)*d1/2  cp(2)+cos(pi/4)*d3/2],'YData',[cp(1)+sin(pi/4)*d1/2 cp(1)+sin(pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);
+                    h(5) = line('XData',[cp(2)+cos(3*pi/4)*d1/2  cp(2)+cos(3*pi/4)*d3/2],'YData',[cp(1)+sin(3*pi/4)*d1/2 cp(1)+sin(3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);
+                    h(6) = line('XData',[cp(2)+cos(-pi/4)*d1/2  cp(2)+cos(-pi/4)*d3/2],'YData',[cp(1)+sin(-pi/4)*d1/2 cp(1)+sin(-pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);
+                    h(7) = line('XData',[cp(2)+cos(-3*pi/4)*d1/2  cp(2)+cos(-3*pi/4)*d3/2],'YData',[cp(1)+sin(-3*pi/4)*d1/2 cp(1)+sin(-3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);
                     this.h_ETDRSGrid = h;
                 end
                 %text in subfields
@@ -624,8 +627,8 @@ classdef FDisplay < handle
                     zMax(i) = zData(3);
                     if(dispDim == 1)
                         %do z scaling here
-                        current_img(current_img < zMin(i)) = NaN;%zMin(i);
-                        current_img(current_img > zMax(i)) = NaN;%zMax(i);
+                        current_img(current_img < zMin(i)) = zMin(i);
+                        current_img(current_img > zMax(i)) = zMax(i);
                     end
                 else
                     if(dispDim == 1)
@@ -639,7 +642,8 @@ classdef FDisplay < handle
                 if((zMax - zMin) < 0.1)
                     zMax = zMax + 0.1;
                 end
-                %color mapping                
+                %color mapping
+                %zMin = 500; zMax = 3500;
                 if(dispDim == 1 || isempty(hfd{i}.getCIColor(rc,rt,rs,ri)))
                     colors = current_img - zMin(i);
                     colors(isinf(colors)) = NaN;
@@ -650,6 +654,8 @@ classdef FDisplay < handle
                     end
                     colors = colors/(zMax(i)-zMin(i))*(size(cm,1)-1)+1; %mapping for colorbar
                     colors(isnan(colors)) = 1;
+                    colors = max(colors,1);
+                    colors = min(colors,256);                    
                     if(strncmp(hfd{i}.dType,'MVGroup',7)  || strncmp(hfd{i}.dType,'ConditionMVGroup',16))
                         cm = repmat([0:1/(size(cm,1)-1):1]',1,3);
                         color = this.visObj.fdt.getViewColor(this.visObj.getStudy(this.mySide),this.visObj.getView(this.mySide));

@@ -35,7 +35,7 @@ function varargout = GUI_FLIMXVisGUIVisualizationOptions(varargin)
 % vargin - structure with preferences and defaults
 %output: same as input, but altered according to user input
 
-% Last Modified by GUIDE v2.5 01-Jun-2016 23:57:55
+% Last Modified by GUIDE v2.5 19-Oct-2016 17:29:22
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -106,20 +106,20 @@ function updateGUI(handles,data)
 set(handles.plot_bg_color_button,'Backgroundcolor',data.flimvis.supp_plot_bg_color);
 set(handles.plot_cutXLine_color_button,'Backgroundcolor',data.flimvis.cutXColor);
 set(handles.plot_cutYLine_color_button,'Backgroundcolor',data.flimvis.cutYColor);
-set(handles.plot_ROILine_color_button,'Backgroundcolor',data.flimvis.ROIColor);
-set(handles.supp_plot_value_color_button,'Backgroundcolor',data.flimvis.supp_plot_color);
-set(handles.cluster_grp_bg_color_button,'Backgroundcolor',data.flimvis.cluster_grp_bg_color);
-set(handles.supp_plot_linewidth_edit,'String',num2str(data.flimvis.supp_plot_linewidth));
-set(handles.padd_zero_checkbox,'Value',data.flimvis.padd);
-set(handles.check_grid_3d,'Value',data.flimvis.grid);
-set(handles.check_grid_supp,'Value',data.flimvis.grid);
-set(handles.alpha_edit,'String',num2str(data.flimvis.alpha,'%03.2f'));
-set(handles.fontsize_edit,'String',num2str(data.flimvis.fontsize,'%2d'));
+set(handles.ButtonROILinecolor,'Backgroundcolor',data.flimvis.ROIColor);
+set(handles.buttonSuppLinecolor,'Backgroundcolor',data.flimvis.supp_plot_color);
+set(handles.buttonMVGrpBgColor,'Backgroundcolor',data.flimvis.cluster_grp_bg_color);
+set(handles.editSuppLinewidth,'String',num2str(data.flimvis.supp_plot_linewidth));
+set(handles.checkPaddZero,'Value',data.flimvis.padd);
+set(handles.checkGrid3D,'Value',data.flimvis.grid);
+set(handles.checkSuppGrid,'Value',data.flimvis.grid);
+set(handles.EditTrans3D,'String',num2str(data.flimvis.alpha,'%03.2f'));
+set(handles.editFontsize,'String',num2str(data.flimvis.fontsize,'%2d'));
 set(handles.checkReverseYDir,'Value',data.general.reverseYDir);
 if(strcmp(data.flimvis.shading,'flat'))
-    set(handles.shading_pop,'Value',1);
+    set(handles.popupShading3D,'Value',1);
 else
-    set(handles.shading_pop,'Value',2);
+    set(handles.popupShading3D,'Value',2);
 end
 idx = find(strcmpi(regexprep(get(handles.popupColormap,'String'), '<html><.*">', ''),data.general.cmType),1);
 if(isempty(idx))
@@ -138,35 +138,37 @@ try
     image(temp,'Parent',handles.axesCM);
     axis(handles.axesCM,'off');
 end
-set(handles.check_fill_roi,'Value',data.flimvis.ROI_fill_enable);
-val = find(strncmp(get(handles.popup_ETDRS_subfield_values,'String'),data.flimvis.ETDRS_subfield_values,length(data.flimvis.ETDRS_subfield_values)),1);
+set(handles.checkFillROI,'Value',data.flimvis.ROI_fill_enable);
+val = find(strncmp(get(handles.popupETDRSSubfieldValues,'String'),data.flimvis.ETDRS_subfield_values,length(data.flimvis.ETDRS_subfield_values)),1);
 if(isempty(val))
     val = 1;
 end
-set(handles.popup_ETDRS_subfield_values,'Value',val);
+set(handles.popupROILinestyle,'Value',lineStyle2id(data.flimvis.ROILinestyle));
+set(handles.editROILinewidth,'Value',data.flimvis.ROILinewidth);
+set(handles.popupETDRSSubfieldValues,'Value',val);
 if(val > 1 && data.flimvis.ETDRS_subfield_bg_enable) %sum(data.flimvis.ETDRS_subfield_bg_color(:)) < 1)
-    set(handles.check_EDTRS_subfield_bg,'Value',1);
+    set(handles.checkEDTRSSubfieldBg,'Value',1);
     set(handles.textSubfieldBGColor,'Visible','on');
     %set(handles.textSubfieldBGTrans,'Visible','on');
-    set(handles.button_ETDRS_bg_color,'Visible','on','Backgroundcolor',data.flimvis.ETDRS_subfield_bg_color(1:3));
-    %set(handles.edit_ETDRS_bg_trans,'Visible','on','String',data.flimvis.ETDRS_subfield_bg_color(4));
+    set(handles.buttonETDRSBgColor,'Visible','on','Backgroundcolor',data.flimvis.ETDRS_subfield_bg_color(1:3));
+    %set(handles.editETDRSBgTrans,'Visible','on','String',data.flimvis.ETDRS_subfield_bg_color(4));
 else
-    set(handles.check_EDTRS_subfield_bg,'Value',0);
+    set(handles.checkEDTRSSubfieldBg,'Value',0);
     set(handles.textSubfieldBGColor,'Visible','off');
     %set(handles.textSubfieldBGTrans,'Visible','off');
-    set(handles.button_ETDRS_bg_color,'Visible','off');
-    %set(handles.edit_ETDRS_bg_trans,'Visible','off');
+    set(handles.buttonETDRSBgColor,'Visible','off');
+    %set(handles.editETDRSBgTrans,'Visible','off');
 end
-set(handles.edit_ETDRS_bg_trans,'Visible','on','String',data.flimvis.ETDRS_subfield_bg_color(4));
-set(handles.offset_m3d_checkbox,'Value',data.flimvis.offset_m3d);
-set(handles.color_cuts_checkbox,'Value',data.flimvis.color_cuts);
-set(handles.show_cut_checkbox,'Value',data.flimvis.show_cut);
+set(handles.editETDRSBgTrans,'Visible','on','String',data.flimvis.ETDRS_subfield_bg_color(4));
+set(handles.checkOffsetM3D,'Value',data.flimvis.offset_m3d);
+set(handles.checkColorCrossSections,'Value',data.flimvis.color_cuts);
+set(handles.checkSuppShowCrossSectionPos,'Value',data.flimvis.show_cut);
 if(data.flimvis.offset_m3d)
-    set(handles.offset_fixed_radio,'Value',data.flimvis.offset_sc,'Enable','on');
-    set(handles.offset_adaptive_radio,'Value',~data.flimvis.offset_sc,'Enable','on');
+    set(handles.radioOffsetFixed,'Value',data.flimvis.offset_sc,'Enable','on');
+    set(handles.radioOffsetAdaptive,'Value',~data.flimvis.offset_sc,'Enable','on');
 else
-    set(handles.offset_fixed_radio,'Value',data.flimvis.offset_sc,'Enable','off');
-    set(handles.offset_adaptive_radio,'Value',~data.flimvis.offset_sc,'Enable','off');
+    set(handles.radioOffsetFixed,'Value',data.flimvis.offset_sc,'Enable','off');
+    set(handles.radioOffsetAdaptive,'Value',~data.flimvis.offset_sc,'Enable','off');
 end
 %startup
 if(data.general.openFitGUIonStartup && ~data.general.openVisGUIonStartup)
@@ -182,16 +184,16 @@ set(handles.popupWindowSize,'Value',data.general.windowSize);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %radio buttons
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% --- Executes on button press in offset_fixed_radio.
-function offset_fixed_radio_Callback(hObject, eventdata, handles)
+% --- Executes on button press in radioOffsetFixed.
+function radioOffsetFixed_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.offset_sc = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
-% --- Executes on button press in offset_adaptive_radio.
-function offset_adaptive_radio_Callback(hObject, eventdata, handles)
+% --- Executes on button press in radioOffsetAdaptive.
+function radioOffsetAdaptive_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.offset_sc = double(~get(hObject,'Value'));
 rdh.isDirty(1) = 1;
@@ -202,8 +204,8 @@ updateGUI(handles,rdh);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %popup menus
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% --- Executes on selection change in shading_pop.
-function shading_pop_Callback(hObject, eventdata, handles)
+% --- Executes on selection change in popupShading3D.
+function popupShading3D_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 if(get(hObject,'Value')==1)
     rdh.flimvis.shading = 'flat';
@@ -261,8 +263,8 @@ rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
-% --- Executes on selection change in popup_ETDRS_subfield_values.
-function popup_ETDRS_subfield_values_Callback(hObject, eventdata, handles)
+% --- Executes on selection change in popupETDRSSubfieldValues.
+function popupETDRSSubfieldValues_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 str = get(hObject,'String');
 rdh.flimvis.ETDRS_subfield_values = strtrim(str{get(hObject,'Value')});
@@ -270,36 +272,43 @@ rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
+% --- Executes on selection change in popupROILinestyle.
+function popupROILinestyle_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+rdh.flimvis.ROILinestyle = id2LineStyle(get(hObject,'Value'));
+rdh.isDirty(1) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+updateGUI(handles,rdh);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %checkboxes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% --- Executes on button press in check_fill_roi.
-function check_fill_roi_Callback(hObject, eventdata, handles)
+% --- Executes on button press in checkFillROI.
+function checkFillROI_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.ROI_fill_enable = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
-% --- Executes on button press in check_EDTRS_subfield_bg.
-function check_EDTRS_subfield_bg_Callback(hObject, eventdata, handles)
+% --- Executes on button press in checkEDTRSSubfieldBg.
+function checkEDTRSSubfieldBg_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.ETDRS_subfield_bg_enable = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
-% --- Executes on button press in check_grid_3d.
-function check_grid_3d_Callback(hObject, eventdata, handles)
+% --- Executes on button press in checkGrid3D.
+function checkGrid3D_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.grid = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
-% --- Executes on button press in check_grid_supp.
-function check_grid_supp_Callback(hObject, eventdata, handles)
+% --- Executes on button press in checkSuppGrid.
+function checkSuppGrid_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.grid = get(hObject,'Value');
 rdh.isDirty(1) = 1;
@@ -314,32 +323,32 @@ rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
-% --- Executes on button press in padd_zero_checkbox.
-function padd_zero_checkbox_Callback(hObject, eventdata, handles)
+% --- Executes on button press in checkPaddZero.
+function checkPaddZero_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.padd = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
-% --- Executes on button press in offset_m3d_checkbox.
-function offset_m3d_checkbox_Callback(hObject, eventdata, handles)
+% --- Executes on button press in checkOffsetM3D.
+function checkOffsetM3D_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.offset_m3d = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
-% --- Executes on button press in color_cuts_checkbox.
-function color_cuts_checkbox_Callback(hObject, eventdata, handles)
+% --- Executes on button press in checkColorCrossSections.
+function checkColorCrossSections_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.color_cuts = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
-% --- Executes on button press in show_cut_checkbox.
-function show_cut_checkbox_Callback(hObject, eventdata, handles)
+% --- Executes on button press in checkSuppShowCrossSectionPos.
+function checkSuppShowCrossSectionPos_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.show_cut = get(hObject,'Value');
 rdh.isDirty(1) = 1;
@@ -357,7 +366,18 @@ updateGUI(handles,rdh);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %edit fields
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function edit_ETDRS_bg_trans_Callback(hObject, eventdata, handles)
+function editROILinewidth_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+tmp = max(1,abs(str2double(get(hObject,'String'))));
+if(isnan(tmp))
+    tmp = 1;
+end
+rdh.flimvis.ROILinewidth = tmp;
+set(hObject,'String',rdh.flimvis.ROILinewidth);
+rdh.isDirty(1) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+
+function editETDRSBgTrans_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 tmp = max(0,min(1,abs(str2double(get(hObject,'String')))));
 if(isnan(tmp))
@@ -368,7 +388,7 @@ set(hObject,'String',rdh.flimvis.ETDRS_subfield_bg_color(4));
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 
-function alpha_edit_Callback(hObject, eventdata, handles)
+function EditTrans3D_Callback(hObject, eventdata, handles)
 current = abs(str2double(get(hObject,'String')));
 if(current > 1)
     current = 1;
@@ -379,7 +399,7 @@ rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
-function fontsize_edit_Callback(hObject, eventdata, handles)
+function editFontsize_Callback(hObject, eventdata, handles)
 current = abs(str2double(get(hObject,'String')));
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.fontsize = current;
@@ -387,7 +407,7 @@ rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
-function supp_plot_linewidth_edit_Callback(hObject, eventdata, handles)
+function editSuppLinewidth_Callback(hObject, eventdata, handles)
 current = max(round(abs(str2double(get(hObject,'String')))),1);
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.supp_plot_linewidth = current;
@@ -399,8 +419,8 @@ updateGUI(handles,rdh);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %push buttons
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% --- Executes on button press in button_ETDRS_bg_color.
-function button_ETDRS_bg_color_Callback(hObject, eventdata, handles)
+% --- Executes on button press in buttonETDRSBgColor.
+function buttonETDRSBgColor_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 cs = GUI_Colorselection(rdh.flimvis.ETDRS_subfield_bg_color(1:3));
 if(length(cs) == 3)
@@ -446,8 +466,8 @@ if(length(cs) == 3)
 end
 updateGUI(handles,rdh);
 
-% --- Executes on button press in plot_ROILine_color_button.
-function plot_ROILine_color_button_Callback(hObject, eventdata, handles)
+% --- Executes on button press in ButtonROILinecolor.
+function ButtonROILinecolor_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 cs = GUI_Colorselection(rdh.flimvis.ROIColor);
 if(length(cs) == 3)
@@ -459,8 +479,8 @@ end
 updateGUI(handles,rdh);
 
 
-% --- Executes on button press in supp_plot_value_color_button.
-function supp_plot_value_color_button_Callback(hObject, eventdata, handles)
+% --- Executes on button press in buttonSuppLinecolor.
+function buttonSuppLinecolor_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 cs = GUI_Colorselection(rdh.flimvis.supp_plot_color);
 if(length(cs) == 3)
@@ -471,8 +491,8 @@ if(length(cs) == 3)
 end
 updateGUI(handles,rdh);
 
-% --- Executes on button press in cluster_grp_bg_color_button.
-function cluster_grp_bg_color_button_Callback(hObject, eventdata, handles)
+% --- Executes on button press in buttonMVGrpBgColor.
+function buttonMVGrpBgColor_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 cs = GUI_Colorselection(rdh.flimvis.cluster_grp_bg_color);
 if(length(cs) == 3)
@@ -517,22 +537,22 @@ delete(handles.FLIMXVisVisualizationOptionsFigure);
 % create functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % --- Executes during object creation, after setting all properties.
-function alpha_edit_CreateFcn(hObject, eventdata, handles)
+function EditTrans3D_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 % --- Executes during object creation, after setting all properties.
-function fontsize_edit_CreateFcn(hObject, eventdata, handles)
+function editFontsize_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 % --- Executes during object creation, after setting all properties.
-function shading_pop_CreateFcn(hObject, eventdata, handles)
+function popupShading3D_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 % --- Executes during object creation, after setting all properties.
-function supp_plot_linewidth_edit_CreateFcn(hObject, eventdata, handles)
+function editSuppLinewidth_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
@@ -552,12 +572,22 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 % --- Executes during object creation, after setting all properties.
-function edit_ETDRS_bg_trans_CreateFcn(hObject, eventdata, handles)
+function editETDRSBgTrans_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 % --- Executes during object creation, after setting all properties.
 function popupFLIMItems_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupROILinestyle_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editROILinewidth_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
