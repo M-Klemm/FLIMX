@@ -375,7 +375,7 @@ classdef FDisplay < handle
                 return
             end
             res = this.pixelResolution;
-            gc = this.staticVisParams.ROIColor;%[1 1 1];
+            gc = this.staticVisParams.ROIColor;
             if(res > 0)
                 %radius ring1 = 500 µm
                 d1 = 1000/res;
@@ -384,7 +384,7 @@ classdef FDisplay < handle
                 lw = this.staticVisParams.ROILinewidth;
                 ls = this.staticVisParams.ROILinestyle;
                 fs = this.staticVisParams.fontsize;
-                if(~isempty(idxG) && all(idxG(:)))
+                if(~isempty(idxG) && all(idxG(:)) && ~this.staticVisParams.ROI_fill_enable)
                     %circles
                     set(this.h_ETDRSGrid(1),'Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'LineWidth',lw,'LineStyle',ls);
                     set(this.h_ETDRSGrid(2),'Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'LineWidth',lw,'LineStyle',ls);
@@ -398,15 +398,28 @@ classdef FDisplay < handle
                     try
                         delete(this.h_ETDRSGrid(idxG));
                     end
-                    h = zeros(7,1);                    
+                    h = zeros(8,1); 
+                    if(this.staticVisParams.ROI_fill_enable)
+                        %draw filled segment below the grid
+                        fileInfo.pixelResolution = res;
+                        fileInfo.position = this.measurementPosition;
+                        mask = zeros(size(this.mainExportXls),'single');
+                        [~,idx] = FData.getImgSeg(zeros(size(this.mainExportXls)),this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag,fileInfo);
+                        if(~isempty(idx))
+                            mask(idx) = 1;
+                            mask = repmat(mask,1,1,4);
+                            mask(:,:,1) = mask(:,:,1) .* gc(1);
+                            mask(:,:,2) = mask(:,:,2) .* gc(2);
+                            mask(:,:,3) = mask(:,:,3) .* gc(3);
+                            mask(:,:,4) = mask(:,:,4) .* this.staticVisParams.ETDRS_subfield_bg_color(end);
+                            hold(this.h_m_ax,'on');
+                            h(8) = image(this.h_m_ax,mask(:,:,1:3),'AlphaData',mask(:,:,4));
+                            hold(this.h_m_ax,'off');
+                        end
+                    end
                     h(1) = rectangle('Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                     h(2) = rectangle('Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
-                    if(this.staticVisParams.ROI_fill_enable)
-                        fc = [gc this.staticVisParams.ETDRS_subfield_bg_color(end)];
-                        h(3) = rectangle('Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
-                    else
-                        h(3) = rectangle('Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
-                    end
+                    h(3) = rectangle('Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                     %lines
                     h(4) = line('XData',[cp(2)+cos(pi/4)*d1/2  cp(2)+cos(pi/4)*d3/2],'YData',[cp(1)+sin(pi/4)*d1/2 cp(1)+sin(pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);
                     h(5) = line('XData',[cp(2)+cos(3*pi/4)*d1/2  cp(2)+cos(3*pi/4)*d3/2],'YData',[cp(1)+sin(3*pi/4)*d1/2 cp(1)+sin(3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);

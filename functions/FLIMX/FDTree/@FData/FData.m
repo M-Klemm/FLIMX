@@ -892,9 +892,10 @@ classdef FData < handle
     end%methods(protected)
     
     methods(Static)
-        function data = getImgSeg(data,ROICoord,ROIType,ROISubType,ROIInvertFlag,fileInfo)
+        function [data,idx] = getImgSeg(data,ROICoord,ROIType,ROISubType,ROIInvertFlag,fileInfo)
             %make current data segment respecting x / y scaling
             %data can be 2- or 3- dimensional
+            idx = [];
             if(isempty(data) || isempty(ROICoord))                
                 return;
             end
@@ -967,7 +968,7 @@ classdef FData < handle
                             thetaRange = [-pi, 0; 0, pi];
                             r = rOuter;
                     end
-                    data = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,ROISubType,rCenter,rInner);                    
+                    [data,idx] = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,ROISubType,rCenter,rInner);                    
                 case {2,3} %rectangle
                     if(ROICoord(2,2) > x && ROICoord(2,1) < 1)
                         temp = zeros(y,ROICoord(2,2)-ROICoord(2,1)+1,z,'like',data);
@@ -1028,7 +1029,7 @@ classdef FData < handle
             end
         end
         
-        function out = getCircleSegment(data,coord,r,thetaRange,ROISubType,rCenter,rInner)
+        function [out,idx] = getCircleSegment(data,coord,r,thetaRange,ROISubType,rCenter,rInner)
             %get sircle or a segment of a circle from data at position coord
             [y,x,z] = size(data);
             px = -ceil(r):ceil(r);
