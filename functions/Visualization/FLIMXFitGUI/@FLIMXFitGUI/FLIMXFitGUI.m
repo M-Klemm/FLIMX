@@ -189,7 +189,7 @@ classdef FLIMXFitGUI < handle
             %try to find oldPStr in new pstr
             idx = find(strcmp(oldVStr,views),1);
             if(isempty(idx) || isempty(this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,views{idx})))
-                idx = 1;%choose '-' view
+                idx = 1;%choose FDTree.defaultConditionName() view
             end
             set(this.visHandles.popupCondition,'String',views,'Value',idx);
             %update subject controls
@@ -449,7 +449,7 @@ classdef FLIMXFitGUI < handle
         
         function out = get.currentCondition(this)
             %get current view name from GUI
-            out = '-';
+            out = FDTree.defaultConditionName();
             if(~this.isOpenVisWnd())
                 return;
             end
@@ -1198,11 +1198,11 @@ classdef FLIMXFitGUI < handle
                 set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/></html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,'-');
+            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName());
             if(~isempty(subjects) && iscell(subjects))
                 cs = subjects{min(get(this.visHandles.popupSubject,'Value'),length(subjects))};
                 set(this.visHandles.popupCondition,'Value',1);
-                this.FLIMXObj.setCurrentSubject(this.currentStudy,'-',cs);
+                this.FLIMXObj.setCurrentSubject(this.currentStudy,FDTree.defaultConditionName(),cs);
                 %             else
                 %                 this.FLIMXObj.newSDTFile('');
                 %                 this.setupGUI();
@@ -1652,8 +1652,6 @@ classdef FLIMXFitGUI < handle
             %executes on clickrelease in window            
             switch get(hObject,'SelectionType')
                 case 'normal'
-                    cp = get(this.visHandles.axesCurSupp,'CurrentPoint');
-                    cp = cp(logical([1 1 0; 0 0 0]));
                     this.currentX = max(min(round(abs(str2double(get(this.visHandles.editX,'String')))),this.maxX),1);
                     this.currentY = max(min(round(abs(str2double(get(this.visHandles.editY,'String')))),this.maxY),1);
                     if(get(this.visHandles.checkAutoFitPixel,'Value') && ~this.FLIMXObj.curSubject.isPixelResult(this.currentChannel,this.currentY,this.currentX,this.showInitialization))

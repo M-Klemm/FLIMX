@@ -113,7 +113,7 @@ classdef importFolderGUI < handle
                     end
                 end
             end
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,'-');
+            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTRee.defaultConditionName());
             for i = 1:size(out,1)
                 %check if we have this name in the list already
                 if(i > 1 && any(strcmp(out{i,2},out(1:i-1,2))))
@@ -240,7 +240,7 @@ classdef importFolderGUI < handle
             data = get(hObject,'Data');
             newName = importFolderGUI.getNewSubjectName(eventdata.NewData,data(setdiff(1:size(data,1),eventdata.Indices(1,1)),2));
             %we got a unique name for the current list
-            if(any(strcmp(newName,this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,'-'))))
+            if(any(strcmp(newName,this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTRee.defaultConditionName()))))
                 data{eventdata.Indices(1,1),3} = true;
                 data{eventdata.Indices(1,1),4} = false;
             else

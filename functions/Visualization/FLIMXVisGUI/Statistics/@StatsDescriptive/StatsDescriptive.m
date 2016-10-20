@@ -630,7 +630,7 @@ classdef StatsDescriptive < handle
             out = '';      
             if(get(this.visHandles.checkSNCondition,'Value'))
                 out = this.condition;
-                if(strcmp(out,'-'))
+                if(strcmp(out,FDTree.defaultConditionName()))
                     out = '';
                 else
                     out = [out '_'];

@@ -51,7 +51,7 @@ classdef FStudy < handle
             % Constructor for FStudy.
             this.myParent = parent;
             this.name = name;
-            this.revision = 22;
+            this.revision = 23;
             this.myDir = sDir;
             this.mySubjects = LinkedList();
             this.myStudyInfoSet = studyIS(this);
@@ -185,7 +185,7 @@ classdef FStudy < handle
         function setClusterName(this,clusterID,val)
             %set cluster name            
             %set name of local cluster objects
-            subStr = this.getSubjectsNames('-');
+            subStr = this.getSubjectsNames(FDTree.defaultConditionName());
             for i=1:length(subStr)
                 subject = this.getSubject(subStr{i});
                 if(~isempty(subject))
@@ -401,7 +401,7 @@ classdef FStudy < handle
                 idx(i) = ischar(xlsSubs{i});
             end
             xlsSubs = xlsSubs(idx);
-            newSubs = setdiff(xlsSubs,this.getSubjectsNames('-'));            
+            newSubs = setdiff(xlsSubs,this.getSubjectsNames(FDTree.defaultConditionName()));            
             %add new subjects
             for i=1:length(newSubs)
                 this.addSubject(newSubs{i});
@@ -456,7 +456,7 @@ classdef FStudy < handle
         
         function unloadAllChannels(this)
             %remove all channels in all subjects from memory
-            subStr = this.getSubjectsNames('-');
+            subStr = this.getSubjectsNames(FDTree.defaultConditionName());
             for i=1:length(subStr)
                 subject = this.getSubject(subStr{i});
                 chs = subject.getNrChannels();
@@ -593,7 +593,7 @@ classdef FStudy < handle
         function removeCluster(this,clusterID)
             %remove cluster and corresponding objects            
             %delete local cluster objects
-            subStr = this.getSubjectsNames('-');
+            subStr = this.getSubjectsNames(FDTree.defaultConditionName());
             for i=1:length(subStr)
                 subject = this.getSubject(subStr{i});
                 if(~isempty(subject))
@@ -781,7 +781,7 @@ classdef FStudy < handle
             if(~ischar(subjectID))
                 subjectID = this.myStudyInfoSet.idx2SubName(subjectID);
             end
-            if(any(strcmp(subjectID,this.getSubjectsNames('-'))))
+            if(any(strcmp(subjectID,this.getSubjectsNames(FDTree.defaultConditionName()))))
                 out = subject4Approx(this,subjectID);
             else
                 out = [];
@@ -892,7 +892,7 @@ classdef FStudy < handle
             out = cell(0,0);
             tStart = clock;
             persistent lastUpdate                
-            if(strcmp(vName,'-'))
+            if(strcmp(vName,FDTree.defaultConditionName()))
                 %get all objects
                 for i=1:this.mySubjects.queueLen
                     %try to get data
@@ -982,7 +982,7 @@ classdef FStudy < handle
             %get name of view out of study data
             if(vNr == 1)
                 %all subjects
-                out = '-';
+                out = FDTree.defaultConditionName();
                 return
             end
             subjectInfoHeaders = this.getSubjectInfoHeaders();
@@ -1035,7 +1035,7 @@ classdef FStudy < handle
         
         function nr = getNrSubjects(this,vName)
             %get number of subjects in study with view vName
-            if(strcmp(vName,'-'))
+            if(strcmp(vName,FDTree.defaultConditionName()))
                 %no view
                 nr = this.mySubjects.queueLen;
             else
@@ -1053,7 +1053,7 @@ classdef FStudy < handle
             for i=1:this.mySubjects.queueLen
                 dStr(i,1) = {this.mySubjects.getDataByPos(i).getSubjectName};
             end
-            if(strcmp(vName,'-'))
+            if(strcmp(vName,FDTree.defaultConditionName()))
                 %no view selected, show all subjects
 %                 %make sure no suject name is empty
 %                 idx = cellfun('isempty',dStr);

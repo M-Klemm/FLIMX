@@ -443,8 +443,7 @@ classdef FDisplay < handle
                     if(strcmp(this.staticVisParams.ETDRS_subfield_values,'field name'))
                         txt = {'C','IS','IN','II','IT','OS','ON','OI','OT'}';
                     else
-                        tmp = hfd.getROISubfieldStatistics(cp,1,this.staticVisParams.ETDRS_subfield_values);                        
-                        %txt = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%FLIMXFitGUI.num4disp(tmp(i));
+                        tmp = hfd.getROISubfieldStatistics(cp,1,this.staticVisParams.ETDRS_subfield_values);
                         txt = FLIMXFitGUI.num4disp(tmp);
                     end
                     if(this.staticVisParams.ETDRS_subfield_bg_enable)

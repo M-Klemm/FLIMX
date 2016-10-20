@@ -807,7 +807,7 @@ classdef FDTree < handle
             % get views of study
             study = this.getStudy(studyID);
             if(isempty(studyID))
-                out = '-';
+                out = FDTree.defaultConditionName();
                 return
             end
             out = study.getViewsStr();
@@ -1312,7 +1312,7 @@ classdef FDTree < handle
             ciMerged = [];
             for i=1:this.myStudies.queueLen
                 %merge image of all subjects in all studies
-                hg = this.myStudies.getDataByPos(i).getStudyObjs('-',chan,dType,id,1);
+                hg = this.myStudies.getDataByPos(i).getStudyObjs(FDTree.defaultConditionName(),chan,dType,id,1);
                 for j=1:length(hg)
                     ci = hg{j}.getROIImage(); %[],0,1,0
                     ciMerged = [ciMerged; ci(:);];
@@ -1492,4 +1492,11 @@ classdef FDTree < handle
         end
         
     end %methods
+    
+    methods(Static)
+        function out = defaultConditionName()
+            %return the default condition name
+            out = '-all subjects-';
+        end
+    end %methods(static)
 end %classdef

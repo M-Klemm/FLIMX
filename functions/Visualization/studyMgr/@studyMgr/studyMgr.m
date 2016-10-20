@@ -234,7 +234,7 @@ classdef studyMgr < handle
                 set(this.visHandles.tableStudyData,'RowName',subjectFilesData(:,1));
             end
             set(this.visHandles.tableFileData,'ColumnName',this.fdt.getDataFromStudyInfo(this.curStudyName,'filesHeaders'),'Data',subjectFilesData);
-            sStr = this.fdt.getSubjectsNames(this.curStudyName,'-');
+            sStr = this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName());
             if(isempty(sStr))
                 set(this.visHandles.popupSubjectSelection,'String','no subjects found');
             else
@@ -537,7 +537,7 @@ classdef studyMgr < handle
             this.clearClipboard;
             this.add2Clipboard(1);
             this.add2Clipboard(this.curStudyName);
-            for i=1:this.fdt.getNrSubjects(this.curStudyName,'-')
+            for i=1:this.fdt.getNrSubjects(this.curStudyName,FDTree.defaultConditionName())
                 this.add2Clipboard(i)
             end            
             this.addStudy(newStudyName);
@@ -682,18 +682,18 @@ classdef studyMgr < handle
                 drawnow;
             end
             oldSub = '';
-            subs = this.fdt.getSubjectsNames(this.curStudyName,'-');
+            subs = this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName());
             if(strcmp(this.FLIMXObj.curSubject.myParent.name,this.curStudyName) && any(strcmp(this.FLIMXObj.curSubject.name,subs)))
                 %a subject of the study we want to rename is currently loaded in FLIMX
                 %toDo: load dummy subject?! load other study?!
                 oldSub = this.FLIMXObj.curSubject.name;
-                this.FLIMXObj.setCurrentSubject(this.curStudyName,'-','');                
+                this.FLIMXObj.setCurrentSubject(this.curStudyName,FDTree.defaultConditionName(),'');                
             end
             this.renameStudy(this.curStudyName);
             this.updateGUI();
             this.visObj.setupGUI();
             if(~isempty(oldSub))
-                this.FLIMXObj.setCurrentSubject(this.curStudyName,'-',oldSub);
+                this.FLIMXObj.setCurrentSubject(this.curStudyName,FDTree.defaultConditionName(),oldSub);
             else                
                 this.FLIMXObj.FLIMFitGUI.setupGUI();
                 this.FLIMXObj.FLIMFitGUI.updateGUI(true);
@@ -703,7 +703,7 @@ classdef studyMgr < handle
         
         function menuImportMeasurementSingle_Callback(this,hObject,eventdata)
             %import measurement file
-            if(isempty(this.fdt.getSubjectsNames(this.curStudyName,'-')) || isempty(this.selectedSubjects))
+            if(isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())) || isempty(this.selectedSubjects))
                 %no subjects in current study
                 return
             end
@@ -723,7 +723,7 @@ classdef studyMgr < handle
         
         function menuImportResultSelSub_Callback(this,hObject,eventdata)
             %import ASCII results for selected subject(s)
-            if(isempty(this.fdt.getSubjectsNames(this.curStudyName,'-')))
+            if(isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())))
                 %no subjects in current study
                 return
             end            
@@ -733,11 +733,11 @@ classdef studyMgr < handle
         
         function menuImportResultAll_Callback(this,hObject,eventdata)
             %import ASCII results for all subjects
-            if(isempty(this.fdt.getSubjectsNames(this.curStudyName,'-')))
+            if(isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())))
                 %no subjects in current study
                 return
             end            
-            subjects = this.fdt.getSubjectsNames(this.curStudyName,'-');
+            subjects = this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName());
             for i=1:length(subjects)
                 subidx(i) = this.fdt.getSubjectNr(this.curStudyName,subjects{i});
             end            
@@ -753,17 +753,18 @@ classdef studyMgr < handle
         function contextNewColumn_Callback(this,hObject,eventdata)
             %Create new conditional column
             infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'infoHeaders');
+            infoHeaders(end+1,1) = {FDTree.defaultConditionName()};
             %init GUI with arbitrary start values
             opt.list = infoHeaders;
             opt.cond = false;
-            opt.ops = {'-','AND','OR','!AND','!OR','XOR','<','>','<=','>=','==','!='};
+            opt.ops = {'-no op-','AND','OR','!AND','!OR','XOR','<','>','<=','>=','==','!='};
             opt.name = [];
             opt.colA = 1;
             opt.colB = 2;
-            opt.relA = 1;
-            opt.valA = 10;
-            opt.relB = 1;
-            opt.valB = 10;
+            opt.relA = 5;
+            opt.valA = 1;
+            opt.relB = 5;
+            opt.valB = 1;
             opt.logOp = 1;
             %start GUI
             opt = GUI_conditionalCol(opt);
@@ -794,7 +795,7 @@ classdef studyMgr < handle
             ref = this.fdt.getColReference(this.curStudyName,this.selectedInfoField(2));
             infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'infoHeaders');
             opt.list = infoHeaders;
-            opt.ops = {'-','AND','OR','!AND','!OR','XOR','<','>','<=','>=','==','!='};
+            opt.ops = {'-no op-','AND','OR','!AND','!OR','XOR','<','>','<=','>=','==','!='};
             opt.name = infoHeaders{this.selectedInfoField(2)};
             if(isempty(ref))
                 opt.cond = false;
@@ -810,10 +811,10 @@ classdef studyMgr < handle
                 opt.colA = this.fdt.infoHeaderName2idx(this.curStudyName,ref.colA);
                 opt.colB = this.fdt.infoHeaderName2idx(this.curStudyName,ref.colB);
                 [~, loc] = ismember(ref.relA,opt.ops);
-                opt.relA = loc-5;
+                opt.relA = loc-6;
                 opt.valA = ref.valA;
                 [~, loc] = ismember(ref.relB,opt.ops);
-                opt.relB = loc -5;
+                opt.relB = loc-6;
                 opt.valB = ref.valB;
                 [~, loc] = ismember(ref.logOp,opt.ops);
                 opt.logOp = loc;
@@ -881,14 +882,14 @@ classdef studyMgr < handle
             %delete selected column
             col=this.selectedInfoField(2);
             infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'infoHeaders');
-            if(col > size(infoHeaders))
+            if(col > size(infoHeaders,1))
                 %if index is greater than column number (i.e. table is empty or
                 %user deleted a column at the end without selecting new cell)
                 col = size(infoHeaders,1);
             end
             if(col>0);
                 choice = questdlg(sprintf('Do you really want to delete Column "%s" ?',...
-                    infoHeaders{col}),'Delete Column','Yes','Cancel','Yes');
+                    infoHeaders{col,1}),'Delete Column','Yes','Cancel','Yes');
                 %Handle response
                 switch choice
                     case 'Cancel'
@@ -896,7 +897,7 @@ classdef studyMgr < handle
                 end
             end
             %User want to delete column or column is empty:
-            this.fdt.removeColumn(this.curStudyName,infoHeaders{col})
+            this.fdt.removeColumn(this.curStudyName,infoHeaders{col,1})
             this.updateGUI();
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
@@ -916,7 +917,7 @@ classdef studyMgr < handle
         function GUI_tableFileDataSel_Callback(this,hObject,eventdata)
             %select a subject
             if(~isempty(eventdata.Indices))
-                this.selectedSubjects = unique(min(eventdata.Indices(:,1),this.fdt.getNrSubjects(this.curStudyName,'-')));
+                this.selectedSubjects = unique(min(eventdata.Indices(:,1),this.fdt.getNrSubjects(this.curStudyName,FDTree.defaultConditionName())));
                 if(~isempty(this.selectedSubjects))
                     set(this.visHandles.popupSubjectSelection,'Value',min(length(get(this.visHandles.popupSubjectSelection,'String')),this.selectedSubjects(1)));
                 end
@@ -1030,13 +1031,13 @@ classdef studyMgr < handle
             end
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
-            subs = this.fdt.getSubjectsNames(this.curStudyName,'-');
+            subs = this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName());
             if(strcmp(this.FLIMXObj.curSubject.myParent.name,this.curStudyName) && strcmp(this.FLIMXObj.curSubject.name,subName))
                 if(~isempty(subs))
-                    this.FLIMXObj.setCurrentSubject(this.curStudyName,'-',subs{1});
+                    this.FLIMXObj.setCurrentSubject(this.curStudyName,FDTree.defaultConditionName(),subs{1});
                 else
                     %toDo: load dummy subject?! load other study?!
-                    this.FLIMXObj.setCurrentSubject(this.curStudyName,'-','');
+                    this.FLIMXObj.setCurrentSubject(this.curStudyName,FDTree.defaultConditionName(),'');
                 end
             else
                 this.FLIMXObj.FLIMFitGUI.setupGUI();
@@ -1296,7 +1297,7 @@ classdef studyMgr < handle
         function menuImportExcel_Callback(this,hObject,eventdata)
             %import subject info from excel file
             mode = 1;
-            if(~isempty(this.fdt.getSubjectsNames(this.curStudyName,'-')))
+            if(~isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())))
                 choice = questdlg(sprintf('Either delete all current subject information for all subjects in study ''%s'' or update existing subject information and add new subjects?',this.curStudyName),'Importing Subject Information from Excel Data','Update and Add New','Delete Old Info','Abort','Update and Add New');
                 switch choice
                     case 'Update and Add New'
@@ -1321,7 +1322,7 @@ classdef studyMgr < handle
         
         function menuExportExcel_Callback(this,hObject,eventdata)
             %save Subjects and corresponding study data to Excel file
-            if(isempty(this.fdt.getSubjectsNames(this.curStudyName,'-')))
+            if(isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())))
                 return
             end
             

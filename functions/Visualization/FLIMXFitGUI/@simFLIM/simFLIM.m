@@ -299,7 +299,7 @@ classdef simFLIM < handle
 %                     end
 %             end            
             %check if we have subjects already in FDTree
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,'-');
+            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName());
             if(any(strcmp(paraSetName,subjects)))
                 %synthetic data (subject) already in study
                 choice = questdlg(sprintf('Study "%s" already contains a subject called "%s". Do you want to overwrite?',this.currentStudy,paraSetName),...
@@ -351,7 +351,7 @@ classdef simFLIM < handle
                 %we have one of the subjects currently loaded in FLIMXFitGUI
                 %flush the result and reload the subject
 %                 this.FLIMXObj.curSubject.setDirty(find(this.FLIMXObj.curSubject.isDirty),false(this.FLIMXObj.curSubject.isDirty,1));
-                this.FLIMXObj.setCurrentSubject(this.currentStudy,'-',paraSetName);
+                this.FLIMXObj.setCurrentSubject(this.currentStudy,FDTree.defaultConditionName(),paraSetName);
             end
             %add to batchjob manager
             if(batchJobFlag)
@@ -1780,7 +1780,7 @@ classdef simFLIM < handle
             preProcess.roiBinning = 0;
             this.FLIMXObj.paramMgr.setParamSection('pre_processing',preProcess,true);
             %setup
-            this.FLIMXObj.setCurrentSubject(this.currentStudy,'-',this.currentSynthDataName);
+            this.FLIMXObj.setCurrentSubject(this.currentStudy,FDTree.defaultConditionName(),this.currentSynthDataName);
             %check irf
             if(isempty(this.FLIMXObj.irfMgr.getCurIRF(this.currentChannel)))
                 [irfStr,IRFmask] = this.FLIMXObj.irfMgr.getIRFNames(this.mySimSubject.nrTimeChannels);

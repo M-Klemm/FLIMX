@@ -175,12 +175,12 @@ classdef simAnalysis < handle
             end           
         end
         
-        function [arrayStr arrayID] = findArrayParaSet4Study(this,study,ch)
+        function [arrayStr, arrayID] = findArrayParaSet4Study(this,study,ch)
             %find first array parameter set for study
             arrayStr = '';
             arrayID = 0;
             aStr = this.FLIMXObj.sDDMgr.getAllArrayParamSetNames(ch);            
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(study,'-');
+            subjects = this.FLIMXObj.fdt.getSubjectsNames(study,FDTree.defaultConditionName());
             if(isempty(aStr) || isempty(subjects))
                 return
             end
@@ -1624,7 +1624,9 @@ classdef simAnalysis < handle
                 if(isempty(tmp))                    
                     continue
                 end
-                data(:,k) = tmp(1:x*y);                
+                n = x*y;
+                iStart = max(1,floor((n-length(tmp))/2));
+                data(:,k) = tmp(iStart:iStart+n-1); %if we have more values than we need, take them roughly from the center               
             end
             this.updateProgressbar(0,'');
         end

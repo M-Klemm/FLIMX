@@ -103,7 +103,7 @@ classdef StatsMVGroupMgr < handle
         function updateCtrls(this)
             %updates controls to current values
             %pick first subject and first channel if current subject is empty (e.g. not loaded from disk)
-            curSubName = this.visObj.fdt.getSubjectsNames(this.curStudyName,'-');
+            curSubName = this.visObj.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName());
             if(isempty(curSubName) && iscell(curSubName))
                 curSubName = '';
             else
