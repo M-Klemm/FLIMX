@@ -156,6 +156,8 @@ classdef FDTree < handle
         %% input functions
         function study = addStudy(this,name)
             %add a study to studyMgr
+            %check name
+            name = studyMgr.checkFolderName(name);
             %make folder for study
             study = this.getStudy(name);
             if(~isempty(study))
@@ -250,6 +252,7 @@ classdef FDTree < handle
         
         function addSubject(this,studyID,subjectID)
             %add empty subject by studyMgr
+            subjectID = studyMgr.checkFolderName(subjectID);
             study = this.getStudy(studyID);
             if(~isempty(study))
                 study.addSubject(subjectID);
@@ -713,10 +716,16 @@ classdef FDTree < handle
         
         function out = getSubject4Import(this,studyID,subjectID)
             %get subject object to import measurements or results
+            studyID = studyMgr.checkFolderName(studyID);
+            subjectID = studyMgr.checkFolderName(subjectID);
+            if(isempty(studyID) || isempty(subjectID))
+                out = [];
+                return
+            end
             study = this.getStudy(studyID);
             if(isempty(study))
                 study = this.addStudy(studyID);
-            end
+            end            
             out = study.getSubject4Import(subjectID);
         end
         

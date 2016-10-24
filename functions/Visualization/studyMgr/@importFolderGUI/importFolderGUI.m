@@ -238,7 +238,7 @@ classdef importFolderGUI < handle
                 return
             end
             data = get(hObject,'Data');
-            newName = importFolderGUI.getNewSubjectName(eventdata.NewData,data(setdiff(1:size(data,1),eventdata.Indices(1,1)),2));
+            newName = importFolderGUI.getNewSubjectName(eventdata.NewData,data(setdiff(1:size(data,1),eventdata.Indices(1,1)),2));            
             %we got a unique name for the current list
             if(any(strcmp(newName,this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTRee.defaultConditionName()))))
                 data{eventdata.Indices(1,1),3} = true;
@@ -373,6 +373,7 @@ classdef importFolderGUI < handle
         
         function subName = getNewSubjectName(subName,otherNames)
             %generate automated subject name, must not be in otherNames already
+            subName = studyMgr.checkFolderName(subName);
             if(any(strcmp(subName,otherNames)))
                 if(length(subName) >= 3 && strcmp(subName(end-2),'_') && all(isstrprop(subName(end-1:end), 'digit')))
                     
