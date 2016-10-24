@@ -1217,6 +1217,15 @@ classdef FLIMXVisGUI < handle
             this.objHandles.(sprintf('%sdo',s)).updatePlots();
         end
         
+        function GUI_mainAxesZoom_Callback(this,hObject,eventdata)
+            %zoom
+            s = 'r';
+            if(strcmp(get(hObject,'Tag'),'slider_l_zoom'))
+                s = 'l';
+            end
+            this.objHandles.(sprintf('%sdo',s)).makeZoom();
+        end
+        
         function GUI_cut_Callback(this,hObject,eventdata)
             %access cut controls
             if(this.fdt.getNrSubjects(this.getStudy('l'),this.getView('l')) < 1)
@@ -1466,6 +1475,8 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.main_axes_chan_r_pop,'Callback',@this.GUI_mainAxesChPop_Callback,'TooltipString','Switch the spectral channel on the right side');            
             set(this.visHandles.main_axes_scale_l_pop,'Callback',@this.GUI_mainAxesScalePop_Callback,'Enable','off','Value',1,'TooltipString','Select linear or log10 scaling of the FLIM parameter on the left side');
             set(this.visHandles.main_axes_scale_r_pop,'Callback',@this.GUI_mainAxesScalePop_Callback,'Enable','off','Value',1,'TooltipString','Select linear or log10 scaling of the FLIM parameter on the right side'); 
+            set(this.visHandles.slider_l_zoom,'Callback',@this.GUI_mainAxesZoom_Callback,'TooltipString','Zoom left side'); 
+            set(this.visHandles.slider_r_zoom,'Callback',@this.GUI_mainAxesZoom_Callback,'TooltipString','Zoom right side'); 
             %supp axes
             set(this.visHandles.supp_axes_l_pop,'Callback',@this.GUI_suppAxesPop_Callback,'TooltipString','Show histogram or cross-section for current subject','Value',2); 
             set(this.visHandles.supp_axes_r_pop,'Callback',@this.GUI_suppAxesPop_Callback,'TooltipString','Show histogram or cross-section for current subject','Value',2); 

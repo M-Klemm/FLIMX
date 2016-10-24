@@ -72,7 +72,8 @@ classdef FScreenshot < FDisplay
                     this.myHMainAxes = hAx;
                     this.UpdateMinMaxLbl();
                     this.makeMainPlot();
-                    this.makeMainXYLabels(); 
+                    this.makeZoom();
+                    %this.makeMainXYLabels(); 
                     colormap(hAx,this.dynVisParams.cm);
 %                     this.h_m_ax = hOld;
                     %[y x] = size(this.mainExportGfx);
