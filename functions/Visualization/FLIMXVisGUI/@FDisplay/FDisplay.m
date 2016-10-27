@@ -49,6 +49,7 @@ classdef FDisplay < handle
         h_Polygon = [];
         pixelResolution = 0;
         measurementPosition = 'OS';
+        zoomAnchor = [1; 1];
         zoomFactor = 1;
     end
     properties(GetAccess = public, SetAccess = protected)
@@ -127,6 +128,7 @@ classdef FDisplay < handle
             else
                 this.myhfdMain = {val};
             end
+            this.setZoomAnchor([]);
         end
         
         function sethfdSupp(this,val)
@@ -145,35 +147,40 @@ classdef FDisplay < handle
         
         function cp = getMyCP(this)
             %get the current point of my main axes            
-            hfd = this.gethfd();
-            if(isempty(hfd{1}) || length(hfd) > 1 || this.mDispDim > 2)                
-                cp = [];
-                return
-            end 
-            hfd = hfd{1};
-            cp = get(this.h_m_ax,'CurrentPoint');
+%             hfd = this.gethfd();
+%             if(isempty(hfd{1}) || length(hfd) > 1 || this.mDispDim > 2)                
+%                 cp = [];
+%                 return
+%             end 
+%             hfd = hfd{1};
+            hAx = this.h_m_ax;
+            cp = get(hAx,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
             if(any(cp(:) < 0))
                 %we are outside axes - nothing to do
                 cp = [];
                 return;
             end
-            cp=fix(cp+0.52);
-            if(this.mDispDim == 1)
-                xMax = hfd.rawImgXSz(2);
-                yMax = hfd.rawImgYSz(2);
-            else
-                rc = this.ROICoordinates;
-                rt = this.ROIType;
-                rs = this.ROISubType;
-                ri = this.ROIInvertFlag;
-                xMax = hfd.getCIxSz(rc,rt,rs,ri);
-                yMax = hfd.getCIySz(rc,rt,rs,ri);
-            end
-            if(cp(1) >= 1 && cp(1) <= xMax && cp(2) >= 1 && cp(2) <= yMax)
-            else
+            %cp=fix(cp+0.52);
+            cp = round(cp);
+            if(cp(1) < hAx.XLim(1) || cp(1) > hAx.XLim(2) || cp(2) < hAx.YLim(1) || cp(2) > hAx.YLim(2))
                 cp = [];
-            end            
+            end
+%             if(this.mDispDim == 1)
+%                 xMax = hfd.rawImgXSz(2);
+%                 yMax = hfd.rawImgYSz(2);
+%             else
+%                 rc = this.ROICoordinates;
+%                 rt = this.ROIType;
+%                 rs = this.ROISubType;
+%                 ri = this.ROIInvertFlag;
+%                 xMax = hfd.getCIxSz(rc,rt,rs,ri);
+%                 yMax = hfd.getCIySz(rc,rt,rs,ri);
+%             end
+%             if(cp(1) >= 1 && cp(1) <= xMax && cp(2) >= 1 && cp(2) <= yMax)
+%             else
+%                 cp = [];
+%             end            
         end
         
         function drawCP(this,cp)
@@ -933,6 +940,31 @@ classdef FDisplay < handle
             end           
         end %makeMainPlot
         
+        function setZoomAnchor(this,anchor)
+            %set center for zoom
+            if(isempty(anchor) || length(anchor) ~= 2)
+                hfd = this.gethfd();
+                if(isempty(hfd{1}))
+                    return
+                end
+                hfd = hfd{1};
+                rc = this.ROICoordinates;
+                rt = this.ROIType;
+                rs = this.ROISubType;
+                ri = this.ROIInvertFlag;
+                if(this.mDispDim == 1)
+                    xFullRange = hfd.rawImgXSz(end);
+                    yFullRange = hfd.rawImgYSz(end);
+                else
+                    xFullRange = hfd.getCIxSz(rc,rt,rs,ri);
+                    yFullRange = hfd.getCIySz(rc,rt,rs,ri);
+                end
+                this.zoomAnchor = [max(1,floor(xFullRange./2));max(1,floor(yFullRange./2))];
+            else
+                this.zoomAnchor = anchor(:);
+            end
+        end
+        
         function makeZoom(this)
             %apply zoom to main and supplemental plots; does NOT set labels correctly!
             hfd = this.gethfd();
@@ -957,10 +989,15 @@ classdef FDisplay < handle
             zoom = get(this.h_zoom_slider,'Value');
             %main plot
             hAxMain = this.h_m_ax;
-            xNewRange = xFullRange./zoom;
-            hAxMain.XLim = [max(1,floor(xFullRange./2) - floor(xNewRange./2)) min(xFullRange,floor(xFullRange./2) + ceil(xNewRange./2))];
-            yNewRange = yFullRange./zoom;
-            hAxMain.YLim = [max(1,floor(yFullRange./2) - floor(yNewRange./2)) min(yFullRange,floor(yFullRange./2) + ceil(yNewRange./2))];
+            if((zoom-1) < eps)
+                hAxMain.XLim = [1 xFullRange];
+                hAxMain.YLim = [1 yFullRange];
+            else
+                xNewRange = xFullRange./zoom;
+                yNewRange = yFullRange./zoom;
+                hAxMain.XLim = [max(1,this.zoomAnchor(1) - floor(xNewRange./2)) min(xFullRange,this.zoomAnchor(1) + ceil(xNewRange./2))];                
+                hAxMain.YLim = [max(1,this.zoomAnchor(2) - floor(yNewRange./2)) min(yFullRange,this.zoomAnchor(2) + ceil(yNewRange./2))];
+            end
             this.makeMainXYLabels();
             %supplemental plot
             if(this.sDispMode == 4 && hfd.getCutX() && hfd.getCutXVal(true,true,rc,rt,rs,ri) ~= 0 )
