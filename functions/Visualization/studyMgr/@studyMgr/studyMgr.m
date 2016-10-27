@@ -297,9 +297,9 @@ classdef studyMgr < handle
                 end
                 %remove any '\' a might have entered
                 sn = char(sn{1,1});
-                idx = strfind(sn,filesep);
-                if(~isempty(idx))
-                    sn(idx) = '';
+                sn = studyMgr.checkFolderName(sn);
+                if(isempty(sn))
+                    continue
                 end
                 %check if study name is available
                 if(any(strcmp(sn,this.fdt.getStudyNames())))
@@ -973,33 +973,12 @@ classdef studyMgr < handle
         
         function menuNewSubject_Callback(this,hObject,eventdata)
             %add a new subject to current study manually
-            options.Resize='on';
-            options.WindowStyle='modal';
-            options.Interpreter='none';
-            while(true)
-                subName = inputdlg('Enter unique name for the new subject:',...
-                    'New Subject',1,{this.lastAddedSubject},options);
-                if(isempty(subName))
-                    return
-                end
-                subName = char(subName{1,1});
-                if(~isempty(this.fdt.getSubjectNr(this.curStudyName,subName)))
-                    choice = questdlg(sprintf('The description "%s" is already a name for a subject in study ''%s''!',...
-                        subName,this.curStudyName),'Subject Name Error','Choose new Name','Cancel','Choose new Name');
-                    % Handle response
-                    switch choice
-                        case 'Cancel'
-                            return
-                    end
-                    continue;
-                else
-                    %we have a unique name
-                    break;
-                end
+            subName = this.getUniqueSubjectName(this.curStudyName,this.lastAddedSubject);
+            if(~isempty(subName))
+                this.fdt.addSubject(this.curStudyName,subName);
+                this.lastAddedSubject = subName;
+                this.updateGUI();
             end
-            this.fdt.addSubject(this.curStudyName,subName);
-            this.lastAddedSubject = subName;
-            this.updateGUI();
         end
         
         function menuDeleteSubject_Callback(this,hObject,eventdata)
@@ -1218,6 +1197,10 @@ classdef studyMgr < handle
                     return
                 end
                 newName = char(newName{1,1});
+                newName = studyMgr.checkFolderName(newName);
+                if(isempty(newName))
+                    continue
+                end
                 if(~isempty(this.fdt.getSubjectNr(study,newName)))
                     choice = questdlg(sprintf('The description "%s" is already a name for a subject in study ''%s''!',...
                         newName,study),'Subject Name Error','Choose new Name','Cancel','Choose new Name');
@@ -1406,4 +1389,14 @@ classdef studyMgr < handle
         end
         
     end %methods
+    
+     methods(Static)
+         function name = checkFolderName(name)
+             %check folder / file name for valid characters
+             name = regexprep(name,'[/*:?"<>|]','');
+             name = regexprep(name,'\','');
+             name = strtrim(name); %remove leading and trailing whitespace
+             name = regexprep(name,'[.]*$', ''); %remove trailing dots
+         end         
+     end %methods(Static)
 end %classdef

@@ -49,6 +49,7 @@ classdef FDisplay < handle
         h_Polygon = [];
         pixelResolution = 0;
         measurementPosition = 'OS';
+        zoomFactor = 1;
     end
     properties(GetAccess = public, SetAccess = protected)
         myhfdMain = {[]};
@@ -97,6 +98,7 @@ classdef FDisplay < handle
         h_io_edit = [];
         h_CPPosTxt = [];
         h_CPValTxt = [];
+        h_zoom_slider = [];
         %visualization parameters
         dynVisParams = [];
         staticVisParams = [];
@@ -549,9 +551,10 @@ classdef FDisplay < handle
             %update main and cuts axes
             %tic;                                    
             this.UpdateMinMaxLbl();
-            this.makeMainPlot();
-            this.makeMainXYLabels();
+            this.makeMainPlot();            
             this.makeSuppPlot();
+            this.makeZoom(); 
+            %this.makeMainXYLabels();
             this.makeDSTable();
             this.updateColorBarLbls();
             %toc
@@ -927,8 +930,55 @@ classdef FDisplay < handle
                 else
                     setAllowAxesRotate(this.visObj.visHandles.hrotate3d,this.h_m_ax,false);
                 end
-            end
+            end           
         end %makeMainPlot
+        
+        function makeZoom(this)
+            %apply zoom to main and supplemental plots; does NOT set labels correctly!
+            hfd = this.gethfd();
+            if(isempty(hfd{1}))
+                return
+            end
+            hfd = hfd{1};
+            rc = this.ROICoordinates;
+            rt = this.ROIType;
+            rs = this.ROISubType;
+            ri = this.ROIInvertFlag;
+            if(this.mDispDim == 1)
+                xFullRange = hfd.rawImgXSz(end);
+                yFullRange = hfd.rawImgYSz(end);
+            else
+                xFullRange = hfd.getCIxSz(rc,rt,rs,ri);
+                yFullRange = hfd.getCIySz(rc,rt,rs,ri);
+            end
+            if(isempty(xFullRange))
+                return
+            end
+            zoom = get(this.h_zoom_slider,'Value');
+            %main plot
+            hAxMain = this.h_m_ax;
+            xNewRange = xFullRange./zoom;
+            hAxMain.XLim = [max(1,floor(xFullRange./2) - floor(xNewRange./2)) min(xFullRange,floor(xFullRange./2) + ceil(xNewRange./2))];
+            yNewRange = yFullRange./zoom;
+            hAxMain.YLim = [max(1,floor(yFullRange./2) - floor(yNewRange./2)) min(yFullRange,floor(yFullRange./2) + ceil(yNewRange./2))];
+            this.makeMainXYLabels();
+            %supplemental plot
+            if(this.sDispMode == 4 && hfd.getCutX() && hfd.getCutXVal(true,true,rc,rt,rs,ri) ~= 0 )
+                this.h_s_ax.XLim = hAxMain.YLim;
+                xlbl = hfd.getCIYLbl(rc,rt,rs,ri);
+            elseif(this.sDispMode == 3 && hfd.getCutY() && hfd.getCutYVal(true,true,rc,rt,rs,ri) ~= 0 )
+                this.h_s_ax.XLim = hAxMain.XLim;
+                xlbl = hfd.getCIXLbl(rc,rt,rs,ri);
+            else
+                return
+            end
+            xtick = get(this.h_s_ax,'XTick');
+            idx = abs(fix(xtick)-xtick)<eps;
+            pos = xtick(idx);
+            xCell = cell(length(xtick),1);
+            xCell(idx) = num2cell(xlbl(pos));
+            this.h_s_ax.XTickLabel = xCell;
+        end
           
         function makeMainXYLabels(this)
             %axis labes
@@ -1083,8 +1133,7 @@ classdef FDisplay < handle
                                     zMin(i) = zData(2);
                                     zMax(i) = zData(3);
                                 end
-                            end
-                            
+                            end                            
                             if(this.staticVisParams.offset_m3d && nrFD > 1)
                                 %get offset
                                 pos = get(this.h_s_ax,'Position');
@@ -1114,8 +1163,7 @@ classdef FDisplay < handle
                                     end
                                     current_img = current_img + offset;
                                 end
-                            end
-                            
+                            end                            
                             plot(this.h_s_ax,current_img,'Color',this.staticVisParams.supp_plot_color,'LineWidth',this.staticVisParams.supp_plot_linewidth);
                             if(nrFD > 1)
                                 hold(this.h_s_ax,'on');
@@ -1224,6 +1272,9 @@ classdef FDisplay < handle
                 hold(this.h_s_ax,'off');
             end
             if(~this.screenshot)
+                if(strcmp(this.mySide,'l'))
+                    this.h_s_ax.YAxisLocation = 'right';
+                end
                 setAllowAxesRotate(this.visObj.visHandles.hrotate3d,this.h_s_ax,false);
             end
         end %makeSuppPlot
@@ -1515,6 +1566,12 @@ classdef FDisplay < handle
             %
             out = this.visObj.visHandles.(sprintf('cp_%s_val_text',this.mySide));
         end
+        
+        function out = get.h_zoom_slider(this)
+            %
+            out = this.visObj.visHandles.(sprintf('slider_%s_zoom',this.mySide));
+        end
+        
         %visualization parameters
         function out = get.dynVisParams(this)
             %
@@ -1560,41 +1617,6 @@ classdef FDisplay < handle
     
     methods(Access = protected)
         %internal methods
-        function setUIHandles(this)
-            %builds the uicontrol handles for the FDisplay object
-%             s = this.mySide;
-            %axes
-%             this.h_m_ax = this.visObj.visHandles.(sprintf('main_%s_axes',s));
-%             this.h_s_ax = this.visObj.visHandles.(sprintf('supp_%s_axes',s));
-            %controls
-%             this.h_pd = this.visObj.visHandles.(sprintf('dataset_%s_pop',s));
-            %main axes
-%             this.h_m_p = this.visObj.visHandles.(sprintf('main_axes_%s_pop',s));
-%             this.h_m_pvar = this.visObj.visHandles.(sprintf('main_axes_var_%s_pop',s));
-%             this.h_m_pdim = this.visObj.visHandles.(sprintf('main_axes_pdim_%s_pop',s));
-%             this.h_m_pch = this.visObj.visHandles.(sprintf('main_axes_chan_%s_pop',s));
-%             this.h_m_psc = this.visObj.visHandles.(sprintf('main_axes_scale_%s_pop',s));
-            %supp axes
-%             this.h_s_p = this.visObj.visHandles.(sprintf('supp_axes_%s_pop',s));
-%             this.h_s_hist = this.visObj.visHandles.(sprintf('supp_axes_hist_%s_pop',s));
-%             this.h_s_psc = this.visObj.visHandles.(sprintf('supp_axes_scale_%s_pop',s));
-            %descripte statistics table
-%             this.h_ds_t = this.visObj.visHandles.(sprintf('descStats_%s_table',s));
-            %intensity overlay
-%             this.h_io_check = this.visObj.visHandles.(sprintf('IO_%s_check',s));
-%             this.h_io_edit = this.visObj.visHandles.(sprintf('IO_%s_edit',s));
-            
-            %colorbar text
-%             this.h_t1 = this.visObj.visHandles.(sprintf('cm_1_%s_text',s));
-%             this.h_t2 = this.visObj.visHandles.(sprintf('cm_2_%s_text',s));
-%             this.h_t3 = this.visObj.visHandles.(sprintf('cm_3_%s_text',s));
-%             this.h_t4 = this.visObj.visHandles.(sprintf('cm_4_%s_text',s));
-%             this.h_t5 = this.visObj.visHandles.(sprintf('cm_5_%s_text',s));
-            
-            %current point text
-%             this.h_CPPosTxt = this.visObj.visHandles.(sprintf('cp_%s_pos_text',s));
-%             this.h_CPValTxt = this.visObj.visHandles.(sprintf('cp_%s_val_text',s));
-        end
     end %methods protected
     
     methods(Static)
