@@ -18,6 +18,7 @@ if(ispc())
 end
 if(~isdeployed())
     addpath(genpath([cd filesep 'functions']));
+    rmpath(genpath([cd filesep 'functions' filesep 'codegen']));
 end
 %start flimx
 if(exist('FLIMXObj','var'))
