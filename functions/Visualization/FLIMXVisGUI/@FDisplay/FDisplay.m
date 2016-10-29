@@ -649,8 +649,8 @@ classdef FDisplay < handle
                     zMax(i) = zData(3);
                     if(dispDim == 1)
                         %do z scaling here
-                        current_img(current_img < zMin(i)) = zMin(i);
-                        current_img(current_img > zMax(i)) = zMax(i);
+                        current_img(current_img < zMin(i)) = NaN;%zMin(i);
+                        current_img(current_img > zMax(i)) = NaN;%zMax(i);
                     end
                 else
                     if(dispDim == 1)
