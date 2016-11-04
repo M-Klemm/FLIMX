@@ -953,6 +953,28 @@ classdef FLIMXVisGUI < handle
             this.objHandles.rdo.updatePlots();            
         end
         
+        function GUI_mouseScrollWheel_Callback(this,hObject,eventdata)
+            %executes on mouse scroll wheel move in window 
+            cp = this.objHandles.ldo.getMyCP();
+            s = 'l'; %this side
+            if(isempty(cp))
+                cp = this.objHandles.rdo.getMyCP();
+                if(isempty(cp))
+                    return;
+                end
+                s = 'r';
+            end
+            hSlider = this.visHandles.(sprintf('slider_%s_zoom',s));
+            this.objHandles.(sprintf('%sdo',s)).setZoomAnchor(cp);
+            hSlider.Value = max(hSlider.Min,min(hSlider.Max,hSlider.Value+hSlider.SliderStep(1)*eventdata.VerticalScrollCount));
+            if(hSlider.Value == 1)
+                %reset zoom anchor if zoom level = 1
+                this.objHandles.(sprintf('%sdo',s)).setZoomAnchor([]);
+            end
+            this.objHandles.(sprintf('%sdo',s)).makeZoom();
+            GUI_mouseMotion_Callback(this,hObject,[]);
+        end
+        
         function GUI_mouseMotion_Callback(this,hObject,eventdata)
             %executes on mouse move in window 
             oneSec = 1/24/60/60;
@@ -1220,8 +1242,12 @@ classdef FLIMXVisGUI < handle
         function GUI_mainAxesZoom_Callback(this,hObject,eventdata)
             %zoom
             s = 'r';
-            if(strcmp(get(hObject,'Tag'),'slider_l_zoom'))
+            if(strcmp(hObject.Tag,'slider_l_zoom'))
                 s = 'l';
+            end
+            if(hObject.Value == 1)
+                %reset zoom anchor if zoom level = 1
+                this.objHandles.(sprintf('%sdo',s)).setZoomAnchor([]);
             end
             this.objHandles.(sprintf('%sdo',s)).makeZoom();
         end
@@ -1608,6 +1634,7 @@ classdef FLIMXVisGUI < handle
             end
             set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonDownFcn',{@FLIMXVisGUI.rotate_mouseButtonDownWrapper,this});
             set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonUpFcn',{@FLIMXVisGUI.rotate_mouseButtonUpWrapper,this});
+            set(this.visHandles.FLIMXVisGUIFigure,'WindowScrollWheelFcn',@this.GUI_mouseScrollWheel_Callback);           
         end   
     end %methods protected   
     
