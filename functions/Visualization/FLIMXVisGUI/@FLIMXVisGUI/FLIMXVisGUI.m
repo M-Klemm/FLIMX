@@ -512,22 +512,110 @@ classdef FLIMXVisGUI < handle
                         return
                     end
                     pause(1);
-                    [files, path, filterindex] = uigetfile( ...
-                        {'*.asc','ASCII files [SPCImage >= 3.97] (*.asc)';
-                        '*.dat;*.txt','Text files [SPCImage < 3.97] (*.dat,*.txt)';
-                        '*.mat','FLIMFit result files (*.mat)'}, ...
-                        sprintf('Select fitting results for subject %s channel %d...',subjectName,ch), ...
-                        'MultiSelect', 'on',this.dynParams.lastPath);
-                    if(~path)
-                        %lastPath = '';
-                        return
-                    end
+pathname = uigetdir('', 'Verzeichnis wählen');
+if pathname == 0
+  return % kein Ordner ausgewählt
+end;
+
+%% Alle Dateien auslesen
+files = dir(pathname); % Alle Endungen sollen eingelesen werden
+dateien = {files.name};
+if size(files,1) == 0 % Falls leerer Ordner ausgewählt
+    return 
+end;
+
+%% Alle Daten geordnet eintragen
+% Leer generieren
+names_asc = {}; %Hier geordnet die Datei Namen ch1, ch2, ch3
+names_bmp = {};
+names_tif = {};
+maxKanaele = 16;
+Spalte_asc = zeros(maxKanaele,1); % vordefinition Spaltenzähler (wie viele Einträge in jedem Channel) für max. 16 Channel
+Spalte_bmp = zeros(maxKanaele,1);
+Spalte_tif = zeros(maxKanaele,1);
+
+subjectstamm = ''; % vorher Benutzer fragen, falls mehrere Subjects in Ordner?
+
+% Prüfung gültiges Dateiformat, Gewinnung Wortstamm von asc
+i = 1;
+found = false;
+% Ich laufe das erste mal das Namesfeld durch, um eine geeignete asc Datei
+% zu finden. Von ihr klaue ich den Wortstamm (Teil vor Kanal+Nr)
+while(~found && i <= length(files)) % Prüfung ob Wortstamm gefunden und Länge des Ordners
+    [p,filename,ext] = fileparts(files(i).name);
+    if(strcmp(ext,'.asc'))
+        idx_= strfind(filename,'_');
+        idx2 = strfind(filename,'-');
+        if length(strfind(filename,'-'))<2 || idx_(end)~=1+idx2(end) %Kontrolle, dass mind. 2 '-' vorhanden und '-_' vorhanden
+            return % ungültige Dateibezeichnung
+        end;
+        subjectstamm = filename(1:idx2(end-1)-1);
+        found = true;
+    end;
+    i = i+1;
+end;
+
+if i > length(files) % keine .asc Datei in Ordner
+    return
+end;
+
+% Durchlaufe regulaer alle Dateien in Ordner und sortiere passende Dateien
+% gleichzeitig ein
+for i=1:length(files)
+    if files(i).isdir == false % Element ist kein Ordner
+        fullfilename = dateien{i}; % Namensgewinnung
+        [p,filename,ext] = fileparts(fullfilename); % Extrahierung Dateiname u. -endung
+        aktstamm = filename(1:idx2(end-1)-1);
+        if aktstamm == subjectstamm % wenn Subjektstamm mit Aktuellen Stamm übereinstimmt (Datei gehört zu aktuellem Subjekt)
+            switch ext
+                case {'.asc', '.bmp', '.tif'} % zugelassene Datei-Formate .sdt auslassen! Da keine ChanNr
+                    % Erweiterung um sdt möglich --> Vergleich mit
+                    % Subjectstamm
+                    ChanNr = str2double(filename(idx2(end-1)+3:idx2(end)-1)); %ermittelt die Channel Nummer 
+                    if isempty(ChanNr)
+                        % Fehlerfall 1: Ungültige Zahl
+                        return % besser: einfach übergehen
+                    elseif isnan(ChanNr)
+                        % Fehlerfall 2: NaN eingegeben
+                        return % besser: einfach übergehen
+                    end;
+                    switch ext 
+                        case '.asc' % wenn es eine asc Datei ist
+                            Spalte_asc(ChanNr)=Spalte_asc(ChanNr)+1; % ein Element mehr in diesem Channel
+                            names_asc{Spalte_asc(ChanNr),ChanNr}=filename;
+                        case '.bmp'
+                            Spalte_bmp(ChanNr)=Spalte_bmp(ChanNr)+1; % ein Element mehr in diesem Channel
+                            names_bmp{Spalte_bmp(ChanNr),ChanNr}=filename;
+                        otherwise % '.tif'
+                            Spalte_tif(ChanNr)=Spalte_tif(ChanNr)+1; % ein Element mehr in diesem Channel
+                            names_tif{Spalte_tif(ChanNr),ChanNr}=filename;
+                    end;
+                otherwise % andere Dateieindung als oben: nichts
+            end;
+        end;
+    end; 
+end;
+
+% Daten einpflegen
+path = pathname;
+[a b] = size(names_asc);
+filterindex = 1; % ????
                     lastPath = path;
                     idx = strfind(lastPath,filesep);
                     if(length(idx) > 1)
                         lastPath = lastPath(1:idx(end-1));
-                    end                    
-                    is.importResult(fullfile(path,files),filterindex,opt.ch,opt.position,opt.pixelResolution)
+                    end  
+for i=1:b
+    files = {names_asc{:,i}};
+    opt.ch = i;
+    
+    for i2=1:length(files)
+        files{i2} = strcat(files{i2}, '.asc');
+    end;
+    is.importResult(fullfile(path,files),filterindex,opt.ch,opt.position,opt.pixelResolution)
+end;
+                  
+                    
                     this.dynParams.lastPath = lastPath;
                 else
                     %update subject name
