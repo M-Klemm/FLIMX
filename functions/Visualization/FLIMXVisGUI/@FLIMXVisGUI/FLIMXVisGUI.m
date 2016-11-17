@@ -573,10 +573,10 @@ subjectstamm = ''; % vorher Benutzer fragen, falls mehrere Subjects in Ordner?
 
 % Prüfung gültiges Dateiformat, Gewinnung Wortstamm von asc
 i = 1;
-found = false;
+stamm = [];
 % Ich laufe das erste mal das Namesfeld durch, um eine geeignete asc Datei
 % zu finden. Von ihr klaue ich den Wortstamm (Teil vor Kanal+Nr)
-while(~found && i <= length(files)) % Prüfung ob Wortstamm gefunden und Länge des Ordners
+while(i <= length(files)) % Prüfung ob Wortstamm gefunden und Länge des Ordners
     [~,filename,ext] = fileparts(files(i).name);
     if(strcmp(ext,'.asc'))
         idx_= strfind(filename,'_');
@@ -584,11 +584,12 @@ while(~found && i <= length(files)) % Prüfung ob Wortstamm gefunden und Länge de
         if length(strfind(filename,'-'))<2 || idx_(end)~=1+idx2(end) %Kontrolle, dass mind. 2 '-' vorhanden und '-_' vorhanden
             return % ungültige Dateibezeichnung
         end;
-        subjectstamm = filename(1:idx2(end-1)-1);
-        found = true;
+        stamm(length(stamm)+1) = filename(1:idx2(end-1)-1);
+        
     end;
     i = i+1;
 end;
+subjectstamm = mode(stamm); % das meiste Element
 
 if i > length(files) % keine .asc Datei in Ordner
     return
