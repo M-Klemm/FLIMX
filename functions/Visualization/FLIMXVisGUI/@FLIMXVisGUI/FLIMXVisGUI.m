@@ -483,7 +483,7 @@ classdef FLIMXVisGUI < handle
                 opt.position = fi.position;
                 opt.pixelResolution = fi.pixelResolution;
             end       
-            while(true)  
+
                 success = false;
                 %open GUI dialog to select study for new result
                 opt.ch = ch;
@@ -501,7 +501,7 @@ classdef FLIMXVisGUI < handle
                         choice = questdlg('Channel number exceeds number of IRF channels! Select another channel?','Error importing channel','Yes','No','Yes');
                         switch choice
                             case 'Yes'
-                                continue
+%                                continue
                             case 'No'
                                 return
                         end
@@ -519,7 +519,6 @@ end;
 
 %% Alle Dateien auslesen
 files = dir(pathname); % Alle Endungen sollen eingelesen werden
-dateien = {files.name};
 if size(files,1) == 0 % Falls leerer Ordner ausgewählt
     return 
 end;
@@ -542,7 +541,7 @@ found = false;
 % Ich laufe das erste mal das Namesfeld durch, um eine geeignete asc Datei
 % zu finden. Von ihr klaue ich den Wortstamm (Teil vor Kanal+Nr)
 while(~found && i <= length(files)) % Prüfung ob Wortstamm gefunden und Länge des Ordners
-    [p,filename,ext] = fileparts(files(i).name);
+    [~,filename,ext] = fileparts(files(i).name);
     if(strcmp(ext,'.asc'))
         idx_= strfind(filename,'_');
         idx2 = strfind(filename,'-');
@@ -559,12 +558,14 @@ if i > length(files) % keine .asc Datei in Ordner
     return
 end;
 
+files = files(strncmp({files.name},subjectstamm,length(subjectstamm))); 
+
 % Durchlaufe regulaer alle Dateien in Ordner und sortiere passende Dateien
 % gleichzeitig ein
 for i=1:length(files)
     if files(i).isdir == false % Element ist kein Ordner
-        fullfilename = dateien{i}; % Namensgewinnung
-        [p,filename,ext] = fileparts(fullfilename); % Extrahierung Dateiname u. -endung
+        fullfilename = files(i).name; % Namensgewinnung
+        [~,filename,ext] = fileparts(fullfilename); % Extrahierung Dateiname u. -endung
         aktstamm = filename(1:idx2(end-1)-1);
         if aktstamm == subjectstamm % wenn Subjektstamm mit Aktuellen Stamm übereinstimmt (Datei gehört zu aktuellem Subjekt)
             switch ext
@@ -598,7 +599,7 @@ end;
 
 % Daten einpflegen
 path = pathname;
-[a b] = size(names_asc);
+[~,b] = size(names_asc);
 filterindex = 1; % ????
                     lastPath = path;
                     idx = strfind(lastPath,filesep);
@@ -652,18 +653,7 @@ end;
                 %update GUI
                 this.setupGUI();
                 this.updateGUI([]);
-                success = true;
-                if(fileImport)
-                    choice = questdlg(sprintf('Import another channel to subject ''%s''?',subjectName),'Import next channel?','Yes','No','Yes');
-                else
-                    break
-                end
-                switch choice
-                    case 'No'
-                        break
-                end
-                ch = ch+1;
-            end 
+                success = true;            
         end 
         
         %colorbar
