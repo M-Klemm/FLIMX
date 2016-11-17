@@ -511,6 +511,42 @@ classdef FLIMXVisGUI < handle
                     if(isempty(is))
                         return
                     end
+                    
+                    
+                    
+                    switch opt.mode
+                    case 0
+                        %skip subject
+                        return
+                    case 1
+                        %add new channel
+                    case 2
+                        %overwrite selected channel
+                        %opt.ch = opt.chList{opt.ch};
+                        choice = questdlg(sprintf('This will delete channel %d for subject ''%s''! \n\nContinue?',opt.ch,subjectName),'Overwrite channel?','Yes','No','Yes');
+                        switch choice
+                            case 'Yes'
+                                this.fdt.removeChannel(studyName,subjectName,opt.ch);
+                            case 'No'
+                                return
+                        end
+                    case 3
+                        %clear data and add new channel
+                        choice = questdlg(sprintf('This will delete all existing channels for subject ''%s''! \n\nContinue?',subjectName),'Clear subject files?','Yes','No','Yes');
+                        switch choice
+                            case 'Yes'
+                                this.fdt.removeChannel(studyName,subjectName,[]);
+                                this.fdt.clearSubjectFiles(studyName,subjectName);
+                            case 'No'
+                                return
+                        end
+                        opt.mode = 1;
+                end
+                %update GUI
+                this.setupGUI();
+                this.updateGUI([]);
+                    
+                    
                     pause(1);
 pathname = uigetdir('', 'Verzeichnis wählen');
 if pathname == 0
@@ -622,37 +658,7 @@ end;
                     %update subject name
                     rs.name = subjectName;
                 end
-                switch opt.mode
-                    case 0
-                        %skip subject
-                        return
-                    case 1
-                        %add new channel
-                    case 2
-                        %overwrite selected channel
-                        %opt.ch = opt.chList{opt.ch};
-                        choice = questdlg(sprintf('This will delete channel %d for subject ''%s''! \n\nContinue?',opt.ch,subjectName),'Overwrite channel?','Yes','No','Yes');
-                        switch choice
-                            case 'Yes'
-                                this.fdt.removeChannel(studyName,subjectName,opt.ch);
-                            case 'No'
-                                return
-                        end
-                    case 3
-                        %clear data and add new channel
-                        choice = questdlg(sprintf('This will delete all existing channels for subject ''%s''! \n\nContinue?',subjectName),'Clear subject files?','Yes','No','Yes');
-                        switch choice
-                            case 'Yes'
-                                this.fdt.removeChannel(studyName,subjectName,[]);
-                                this.fdt.clearSubjectFiles(studyName,subjectName);
-                            case 'No'
-                                return
-                        end
-                        opt.mode = 1;
-                end
-                %update GUI
-                this.setupGUI();
-                this.updateGUI([]);
+                
                 success = true;            
         end 
         
