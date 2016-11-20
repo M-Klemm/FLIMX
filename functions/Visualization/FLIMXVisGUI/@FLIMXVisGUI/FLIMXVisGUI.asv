@@ -643,11 +643,13 @@ classdef FLIMXVisGUI < handle
                         end;
                         is.importResult(fullfile(path,files),filterindex,opt.ch,opt.position,opt.pixelResolution)
                     end;
+
                     this.dynParams.lastPath = lastPath;
                 else
                     %update subject name
                     rs.name = subjectName;
                 end
+                
                 success = true;
         end
         
