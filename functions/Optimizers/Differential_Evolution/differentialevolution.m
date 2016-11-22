@@ -717,7 +717,7 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
         reInitCnt = reInitCnt + 1;
         if(isNoWorker)
             % re-initialization
-            disp(sprintf('Re-initialition #%d of population in iteration %d.', reInitCnt-1, iterationNr));
+            fprintf('Re-initialition #%d of population in iteration %d.\n', reInitCnt-1, iterationNr);
             %             if valstddev < DEParams.minvalstddev
             %                 disp(sprintf('Evaluation value std. dev. below threshold (%g < %g).', ...
             %                     valstddev, DEParams.minvalstddev));
@@ -746,7 +746,7 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
             % add some variation to the best 20 percent (except for the best solution)
             pop = computerandominitialization__(1, pop, istart:istart+NPAdd-1, paramDefCell, ...
                 objFctSettings, parameterDimVector, XVmax, XVmin, validChkHandle);
-            istart   = istart+NPAdd;
+            istart   = istart+NPAdd-1;
         end
         % initialize other 80% randomly
         pop = computerandominitialization__(2, pop, istart:NP, paramDefCell, ...
