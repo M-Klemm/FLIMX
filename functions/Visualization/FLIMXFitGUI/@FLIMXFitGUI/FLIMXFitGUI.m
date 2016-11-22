@@ -59,6 +59,7 @@ classdef FLIMXFitGUI < handle
         maxX = 1;
         maxY = 1;
         axesSuppData = [];
+        axesSuppDataMask = [];
         currentStudy = '';
         currentSubject = '';
         currentCondition = '';
@@ -341,7 +342,15 @@ classdef FLIMXFitGUI < handle
                     end
                 end
                 this.axesRawMgr.setMainData(this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel));
-                this.axesROIMgr.setMainData(this.axesSuppData);
+                data = this.axesSuppData;
+                if(~strcmp(str,'Intensity') && ~all(this.axesSuppDataMask(:)))
+                    tmp = data(data ~= 0 | this.axesSuppDataMask);
+                    lb = min(tmp(:));
+                    ub = max(tmp(:));
+                    this.axesROIMgr.setMainData(data,lb,ub);
+                else
+                    this.axesROIMgr.setMainData(data);
+                end
             end
             %s = axesWithROI(this.visHandles.axesRaw,this.visHandles.axesCbRaw,this.visHandles.textCbRawBottom,this.visHandles.textCbRawTop,this.visHandles.editCP,this.dynVisParams.cm);
 %             s.setMainData(this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel));
@@ -398,10 +407,10 @@ classdef FLIMXFitGUI < handle
             end
         end
         
-        function value = get.axesSuppData(this)
+        function data = get.axesSuppData(this)
             %get data for supplemental axes
             if(~this.isOpenVisWnd())
-                value = [];
+                data = [];
                 return;
             end
             pstr = char(get(this.visHandles.popupROI,'String'));
@@ -409,17 +418,32 @@ classdef FLIMXFitGUI < handle
             pstr = strtrim(pstr(pos,:));
             if(this.showInitialization)
                 if(strcmp('Intensity',pstr))
-                    value = double(sum(this.FLIMXObj.curSubject.getInitData(this.currentChannel,[]),3));
+                    data = double(sum(this.FLIMXObj.curSubject.getInitData(this.currentChannel,[]),3));
                 else
-                    value = double(this.FLIMXObj.curSubject.getInitFLIMItem(this.currentChannel,pstr));
+                    data = double(this.FLIMXObj.curSubject.getInitFLIMItem(this.currentChannel,pstr));
                 end
             else
                 if(strcmp('Intensity',pstr))
-                    value = double(this.FLIMXObj.curSubject.getROIDataFlat(this.currentChannel,false));
+                    data = double(this.FLIMXObj.curSubject.getROIDataFlat(this.currentChannel,false));
                 else
-                    value = double(this.FLIMXObj.curSubject.getPixelFLIMItem(this.currentChannel,pstr));
+                    data = double(this.FLIMXObj.curSubject.getPixelFLIMItem(this.currentChannel,pstr));
                 end
             end
+        end
+        
+        function mask = get.axesSuppDataMask(this)
+            %get mask for data of supplemental axes where data is non-zero
+            if(~this.isOpenVisWnd())
+                mask = [];
+                return;
+            end
+            %we assume that each result must have a tau1 and that tau1 is never zero
+            if(this.showInitialization)
+                mask = double(this.FLIMXObj.curSubject.getInitFLIMItem(this.currentChannel,'Tau1'));
+            else
+                mask = double(this.FLIMXObj.curSubject.getPixelFLIMItem(this.currentChannel,'Tau1'));
+            end
+            mask = mask ~= 0;
         end
         
         function data = get.currentDecayData(this)
@@ -1540,10 +1564,12 @@ classdef FLIMXFitGUI < handle
             inSuppAx = false;
             inMainAx = false;
             %check support axes
-            cp = get(this.visHandles.axesCurSupp,'CurrentPoint');
+            hAxSupp = this.visHandles.axesCurSupp;
+            cp = get(hAxSupp,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
-            cp=fix(cp+0.52);
-            if(cp(1) >= 1 && cp(1) <= this.maxX && cp(2) >= 1 && cp(2) <= this.maxY)
+            %cp=fix(cp+0.52);            
+            cp = round(cp);
+            if(cp(1) >= hAxSupp.XLim(1) && cp(1) <= hAxSupp.XLim(2) && cp(2) >= hAxSupp.YLim(1) && cp(2) <= hAxSupp.YLim(2))
                 %inside support axes
                 inSuppAx = true;
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
@@ -1558,8 +1584,8 @@ classdef FLIMXFitGUI < handle
             %check main axes
             cp = get(this.visHandles.axesCurMain,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));            
-            xl = xlim(this.visHandles.axesCurMain);
-            yl = ylim(this.visHandles.axesCurMain);
+            xl = this.visHandles.axesCurMain.XLim;
+            yl = this.visHandles.axesCurMain.YLim;
             if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2) && ~isempty(this.currentDecayData) && this.visualizationParams.plotCurLinesAndText)
                 %inside main axes
                 inMainAx = true;
