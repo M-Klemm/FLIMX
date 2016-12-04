@@ -750,9 +750,9 @@ classdef importWizard < handle
         
         function GUI_mouseMotion_Callback(this, hObject, eventdata)
             %executes on mouse move in window
-            if(this.roiMode ~= 3)
-                return;
-            end
+%             if(this.roiMode ~= 3)
+%                 return;
+%             end
             cp = get(this.visHandles.axesROI,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
             if(any(cp(:) < 0))

@@ -113,7 +113,7 @@ classdef importFolderGUI < handle
                     end
                 end
             end
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTRee.defaultConditionName());
+            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName());
             for i = 1:size(out,1)
                 %check if we have this name in the list already
                 if(i > 1 && any(strcmp(out{i,2},out(1:i-1,2))))
@@ -201,6 +201,10 @@ classdef importFolderGUI < handle
         
         function GUI_buttonOK_Callback(this,hObject, eventdata)
             %import selected files and close window
+            try
+                set(hObject,'String',sprintf('<html><img src="file:/%s"/> OK</html>',FLIMX.getAnimationPath()));
+                drawnow;
+            end
             this.plotProgressbar(0.001,[],'Preparing Import of Files...');
             mask = get(this.visHandles.tableSubjects,'Data');
             if(~isempty(mask))
@@ -228,6 +232,7 @@ classdef importFolderGUI < handle
                     this.FLIMXObj.studyMgrGUI.checkVisWnd();
                 end
             end
+            set(hObject,'String','OK');
             this.plotProgressbar(0,'','');
             this.closeCallback();
         end
@@ -240,7 +245,7 @@ classdef importFolderGUI < handle
             data = get(hObject,'Data');
             newName = importFolderGUI.getNewSubjectName(eventdata.NewData,data(setdiff(1:size(data,1),eventdata.Indices(1,1)),2));            
             %we got a unique name for the current list
-            if(any(strcmp(newName,this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTRee.defaultConditionName()))))
+            if(any(strcmp(newName,this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName()))))
                 data{eventdata.Indices(1,1),3} = true;
                 data{eventdata.Indices(1,1),4} = false;
             else
