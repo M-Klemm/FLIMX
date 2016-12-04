@@ -483,7 +483,6 @@ classdef FLIMXVisGUI < handle
                 opt.position = fi.position;
                 opt.pixelResolution = fi.pixelResolution;
             end       
-
                 success = false;
                 %open GUI dialog to select study for new result
                 opt.ch = ch;
@@ -510,10 +509,7 @@ classdef FLIMXVisGUI < handle
                     is = this.fdt.getSubject4Import(studyName,subjectName);
                     if(isempty(is))
                         return
-                    end
-                    
-                    
-                    
+                    end          
                     switch opt.mode
                     case 0
                         %skip subject
@@ -558,38 +554,37 @@ classdef FLIMXVisGUI < handle
                     names_asc = {}; 
                     names_bmp = {};
                     names_tif = {};
-                    maxKanaele = 16;
-                    Spalte_asc = zeros(maxKanaele,1);
-                    Spalte_bmp = zeros(maxKanaele,1);
-                    Spalte_tif = zeros(maxKanaele,1);
-                    subjectstamm = ''; 
+                    maxChan = 16;
+                    column_asc = zeros(maxChan,1);
+                    column_bmp = zeros(maxChan,1);
+                    column_tif = zeros(maxChan,1);
                     i = 1;
-                    stamm = {};
+                    stem = {};
                     while(i <= length(files)) 
                         [~,filename,ext] = fileparts(files(i).name);
                         if(strcmp(ext,'.asc'))
                             idx_= strfind(filename,'_');
-                            idx2 = strfind(filename,'-');
+                            idxminus = strfind(filename,'-');
                             % Check: 2*'-' and '-_'
-                            if length(strfind(filename,'-'))<2 || idx_(end)~=1+idx2(end) 
+                            if length(strfind(filename,'-'))<2 || idx_(end)~=1+idxminus(end) 
                                 return % invalid filename 
                             end;
-                            stamm{length(stamm)+1} = (filename(1:idx2(end-1)-1));
+                            stem{length(stem)+1} = (filename(1:idxminus(end-1)-1));
                         end;
                         i = i+1;
                     end;
                     % find most available word stem
-                    einzelstamm = unique(stamm);
-                    counter = zeros(length(einzelstamm));
-                    for i=1:length(einzelstamm)
-                        for j=1:length(stamm)
-                            if strcmp(einzelstamm(i),stamm(j))
+                    singlestem = unique(stem);
+                    counter = zeros(length(singlestem));
+                    for i=1:length(singlestem)
+                        for j=1:length(stem)
+                            if strcmp(singlestem(i),stem(j))
                                 counter(i)=counter(i)+1;
                             end;
                         end;
                     end;
-                    [~,I] = max(counter);
-                    subjectstamm = einzelstamm{I(1)};
+                    [~,place] = max(counter);
+                    subjectstamm = singlestem{place(1)};
                     % delete other word stems
                     files = files(strncmp({files.name},subjectstamm,length(subjectstamm)));
                     % sort every file
@@ -612,14 +607,14 @@ classdef FLIMXVisGUI < handle
                                         end;
                                         switch ext
                                             case '.asc' 
-                                                Spalte_asc(ChanNr)=Spalte_asc(ChanNr)+1; 
-                                                names_asc{Spalte_asc(ChanNr),ChanNr}=filename;
+                                                column_asc(ChanNr)=column_asc(ChanNr)+1; 
+                                                names_asc{column_asc(ChanNr),ChanNr}=filename;
                                             case '.bmp'
-                                                Spalte_bmp(ChanNr)=Spalte_bmp(ChanNr)+1; 
-                                                names_bmp{Spalte_bmp(ChanNr),ChanNr}=filename;
+                                                column_bmp(ChanNr)=column_bmp(ChanNr)+1; 
+                                                names_bmp{column_bmp(ChanNr),ChanNr}=filename;
                                             otherwise % '.tif'
-                                                Spalte_tif(ChanNr)=Spalte_tif(ChanNr)+1; 
-                                                names_tif{Spalte_tif(ChanNr),ChanNr}=filename;
+                                                column_tif(ChanNr)=column_tif(ChanNr)+1; 
+                                                names_tif{column_tif(ChanNr),ChanNr}=filename;
                                         end;
                                     otherwise
                                 end;
@@ -628,15 +623,16 @@ classdef FLIMXVisGUI < handle
                     end;
                     % import data
                     path = pathname;
-                    [~,b] = size(names_asc);
+                    [~,dim] = size(names_asc);
                     filterindex = 1; 
                     lastPath = path;
                     idx = strfind(lastPath,filesep);
                     if(length(idx) > 1)
                         lastPath = lastPath(1:idx(end-1));
                     end
-                    for i=1:b
-                        files = {names_asc{:,i}};
+                    for i=1:dim
+                        files = names_asc(:,i);
+                        files = files(~cellfun(@isempty,names_asc(:,i)));
                         opt.ch = i;
                         for i2=1:length(files)
                             files{i2} = strcat(files{i2}, '.asc');
