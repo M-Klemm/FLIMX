@@ -1592,7 +1592,8 @@ classdef FLIMXFitGUI < handle
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
                 %Xval = Mousecoordinates transformed to dimension of YData
                 Yval = this.currentDecayData;
-                Xval = int16(round(cp(1) ./ this.FLIMXObj.curSubject.timeChannelWidth*1000));
+                tVec = abs(this.FLIMXObj.curSubject.timeVector - cp(1));
+                [~,Xval] = min(tVec(:));
                 %vertical cursorline, goes green while setting the scale
                 %per mouseclick
                 if(~ishandle(this.visHandles.cursorLineMainVertical))
