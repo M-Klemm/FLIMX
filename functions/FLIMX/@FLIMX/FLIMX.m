@@ -48,7 +48,8 @@ classdef FLIMX < handle
         studyMgrGUIObj = [];%manager for subject studies
         irfMgrGUIObj = [];  %GUI to handle IRF access
         batchJobMgrGUIObj = [];%batch job manager GUI
-        importGUIObj = [];  %import wizard
+        importMeasurementGUIObj = [];  %measurement import wizard
+        importResultGUIObj = [];  %result import wizard
         matlabPoolTimer = [];
         splashScreenGUIObj = [];
     end
@@ -66,6 +67,7 @@ classdef FLIMX < handle
         irfMgrGUI = [];  %GUI to handle IRF access
         batchJobMgrGUI = [];%batch job manager GUI
         importGUI = [];  %import wizard
+        importResultGUI = [];  %result import wizard
         splashScreenGUI = []; %splash screen
     end
     
@@ -308,10 +310,18 @@ classdef FLIMX < handle
         
         function out = get.importGUI(this)
             %get importGUI object
-            if(isempty(this.importGUIObj))
-                this.importGUIObj = importWizard(this);
+            if(isempty(this.importMeasurementGUIObj))
+                this.importMeasurementGUIObj = importWizard(this);
             end
-            out = this.importGUIObj;
+            out = this.importMeasurementGUIObj;
+        end
+        
+        function out = get.importResultGUI(this)
+            %get importResultGUI object
+            if(isempty(this.importResultGUIObj))
+                this.importResultGUIObj = FLIMXFitResultImport(this);
+            end
+            out = this.importResultGUIObj;
         end
         
         function saveCurResultInFDT(this)

@@ -550,6 +550,8 @@ classdef FLIMXVisGUI < handle
                     if size(files,1) == 0 
                         return
                     end;
+                    this.FLIMXObj.importResultGUI.checkVisWnd();
+                    %call folder selection
                     % for each file extension
                     names_asc = {}; 
                     names_bmp = {};
