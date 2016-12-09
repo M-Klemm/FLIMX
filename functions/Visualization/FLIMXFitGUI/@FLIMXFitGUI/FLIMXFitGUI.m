@@ -105,6 +105,8 @@ classdef FLIMXFitGUI < handle
             this.dynVisParams.timeScalingAuto = 1; %1-auto, 0-manual
             this.dynVisParams.timeScalingStart = 1; %only if timeScalingAuto = 0
             this.dynVisParams.timeScalingEnd = 1024; %only if timeScalingAuto = 0
+            this.dynVisParams.timeScalingStartOld = 1; %only if timeScalingAuto = 0
+            this.dynVisParams.timeScalingEndOld = 1024; %only if timeScalingAuto = 0
             this.dynVisParams.countsScalingAuto = 1; %1-auto, 0-manual
             this.dynVisParams.countsScalingStart = 0.1; %only if countsScalingAuto = 0
             this.dynVisParams.countsScalingEnd = 10000; %only if countsScalingAuto = 0
@@ -1694,22 +1696,31 @@ classdef FLIMXFitGUI < handle
                     yl= ylim(this.visHandles.axesCurMain);
                     if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
                         this.visHandles.editTimeScalEnd.String =  num2str(cp(1)*1000);
-                        this.dynVisParams.timeScalingEnd = int64(round(cp(1) ./ this.FLIMXObj.curSubject.timeChannelWidth*1000));
-                        if ( this.dynVisParams.timeScalingEnd < this.dynVisParams.timeScalingStart )
-                            tmp = this.visHandles.editTimeScalEnd.String;
-                            this.visHandles.editTimeScalEnd.String = this.visHandles.editTimeScalStart.String;
-                            this.visHandles.editTimeScalStart.String = tmp;
-                            tmp = this.dynVisParams.timeScalingEnd;
-                            this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingStart;
-                            this.dynVisParams.timeScalingStart = tmp;
-                        end
-                        if(this.dynVisParams.timeScalingEnd ~= this.dynVisParams.timeScalingStart)
+                        val = int64(round(cp(1) ./ this.FLIMXObj.curSubject.timeChannelWidth*1000));
+                        if(abs(val - this.dynVisParams.timeScalingStart) >= 10)
+                            %at least 10 time channels difference
+                            this.dynVisParams.timeScalingEnd = val;
+                            if(val < this.dynVisParams.timeScalingStart)
+                                this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingStart;
+                                this.dynVisParams.timeScalingStart = val;
+                            else
+                                this.dynVisParams.timeScalingEnd = val;
+                            end
+                            this.visHandles.editTimeScalStart.String = num2str(this.dynVisParams.timeScalingStart .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
+                            this.visHandles.editTimeScalEnd.String = num2str(this.dynVisParams.timeScalingEnd .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
+                            this.dynVisParams.timeScalingStartOld = this.dynVisParams.timeScalingStart;
+                            this.dynVisParams.timeScalingEndOld = this.dynVisParams.timeScalingEnd;
                             set(this.visHandles.radioTimeScalManual,'Value', 1);
                             set(this.visHandles.radioTimeScalAuto,'Value', 0);
                             this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalManual);
+                        else
+                            this.dynVisParams.timeScalingStart = this.dynVisParams.timeScalingStartOld;
+                            this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingEndOld;
+                            this.visHandles.editTimeScalStart.String = num2str(this.dynVisParams.timeScalingStartOld .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
+                            this.visHandles.editTimeScalEnd.String = num2str(this.dynVisParams.timeScalingEndOld .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
                         end
-                    end                    
-            end            
+                    end
+            end
         end
         
         function GUI_mouseButtonDown_Callback(this,hObject,eventdata)
@@ -1729,7 +1740,7 @@ classdef FLIMXFitGUI < handle
                         end
                         this.visHandles.isSettingScale = 1;
                         this.visHandles.setScaleStartLine = line([cp(1) cp(1)], ylim(this.visHandles.axesCurMain),'Color' , [0 0.75 0], 'Parent', this.visHandles.axesCurMain);
-                        this.visHandles.editTimeScalStart.String =  num2str(cp(1)*1000);
+                        this.visHandles.editTimeScalStart.String =  num2str(cp(1)./ this.FLIMXObj.curSubject.timeChannelWidth*1000);
                         this.dynVisParams.timeScalingStart = int64(cp(1)*100*0.82);
                     end
                 case 'alt'
