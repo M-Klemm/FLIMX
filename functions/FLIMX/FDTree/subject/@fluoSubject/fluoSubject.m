@@ -644,6 +644,26 @@ classdef fluoSubject < handle
         function out = getInitFLIMItem(this,ch,pStr)
             %return specific init result, e.g. tau 1
             out = this.myResult.getInitFLIMItem(ch,pStr);
+            if(strncmp(pStr,'AnisotropyQuick',15) && ~isempty(out) && sum(out(:)) == 0 && this.basicParams.approximationTarget == 2)
+                %build AnisotropyQuick
+                i1 = this.myMeasurement.getInitData(1);
+                [~,m1] = max(i1,[],3);
+                i4 = this.myMeasurement.getInitData(4);
+                if(isempty(i4))
+                    return
+                end
+                siz = size(m1);
+                out = zeros(siz);
+                tMax = size(i4,3);
+                for i = 1:numel(m1)
+                    [i1,i2] = ind2sub(siz,i);
+                    out(i1,i2) = mean(i4(i1,i2,max(1,m1(i1,i2)):min(tMax,m1(i1,i2)+2)));
+                end
+                rs.AnisotropyQuick = out;
+                idx = zeros(this.initFitParams.gridSize.^2,2);
+                [idx(:,1), idx(:,2)] = ind2sub([this.initFitParams.gridSize this.initFitParams.gridSize],this.initFitParams.gridSize.^2);                
+                this.myResult.addInitResult(ch,idx,rs);
+            end
         end
         
         function out = getPixelFLIMItem(this,ch,pStr,y,x)
@@ -700,6 +720,11 @@ classdef fluoSubject < handle
             %set optimizerInitStrategy for init fits to 1 (use guess values)
             params.basicFit.optimizerInitStrategy = 1;
             ad = this.myResult.getAuxiliaryData(ch);
+            
+            if(params.pixelFit.gridSize > 1)
+                idx = strcmpi('offset',params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)));
+                params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(idx) = [];
+            end
             %fix certain parameters to values from initialization
             %             if(~isempty(params.basicFit.fix2InitTargets))
             %                 %sStr = params.basicFit.(sprintf('constMaskSaveStrCh%d',ch));
