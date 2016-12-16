@@ -55,7 +55,9 @@ classdef FLIMXFitResultImport < handle
             row = eventdata.Indices(1);
             Data=get(this.visHandles.tableASC, 'Data');
             file=Data(row,1);
-            %    M = dlmread(file);
+            image = dlmread(file{1});
+            axes(this.visHandles.axesROI);
+            imshow(image);
             a = 22;
         end
         function GUI_tableImages_CellSelectionCallback(this,hObject, eventdata)
@@ -63,9 +65,9 @@ classdef FLIMXFitResultImport < handle
             Data=get(this.visHandles.tableImages, 'Data');
             file=Data(row,1);
             a= 22;
-            bild = imread(file{1});
+            image = imread(file{1});
             axes(this.visHandles.axesROI);
-            imshow(bild);
+            imshow(image);
             b = 23;
             
         end
