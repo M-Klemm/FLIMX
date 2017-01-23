@@ -46,6 +46,7 @@ else
     tmp = zeros(1,1,'like',t);
     tmp(:) = [];
 end
+% tResFactorInterp = 100; nTSample = length(t); tmp2 = tmp; ao2 = ao;
 % if(strcmp(interpMethod,'linear'))
 %     linInterpFlag = true;
 % end
@@ -78,7 +79,17 @@ for j = 1:size(expModels,3)
                 expModels(:,tciFlags(i),j) = qinterp1(t,expModels(:,tciFlags(i),j),t + (tciHShiftFine(tciFlags(i),j)).*t(2,1),optimize4CodegenFlag);
             end
         end
-    end
+    end    
+%     for i = 1:size(tcis,1)    
+%         if(isempty(tciFlags))
+%             aI = interp1(1:nTSample,inputSave(:,i,j),linspace(1,nTSample,(nTSample-1)*tResFactorInterp+1));
+%             %aI = qinterp1(1:nTSample,expModels(:,i,j),linspace(1,nTSample,(nTSample-1)*tResFactorInterp+1),optimize4CodegenFlag);
+%             s2 = round((hShift(j) + tcis(i,j) - tciHShiftFine(1,j))*tResFactorInterp);
+%             aI = circshift(aI,s2);
+%             inputSave(:,i,j) = single(aI(1:tResFactorInterp:(nTSample-1)*tResFactorInterp+1));            
+%         else         
+%         end    
+%     end
     %determine amplitudes
     if(linOptFlag)        
         if(fitOsetFlag) %fit offset

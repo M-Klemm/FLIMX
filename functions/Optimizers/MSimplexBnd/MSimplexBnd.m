@@ -200,7 +200,7 @@ end
                 if(any(idx))
                     %increase lower shift value                    
                     xLow = xLow + shift; %max(quant(i),abs(ub(i)-lb(i))/100);
-                    xvec(idx) = xvec(idx) + shift;
+                    xvec(idx) = xvec(idx) + (0.5+0.5*rand(1,sum(idx(:)))).*shift;
                     if(idx(1))
                         changeFlag = true;
                     end
@@ -209,7 +209,7 @@ end
                 if(any(idx))
                     %decrease upper shift value
                     xHigh = xHigh - shift; %max(quant(i),abs(ub(i)-lb(i))/100);
-                    xvec(idx) = xvec(idx) - shift;
+                    xvec(idx) = xvec(idx) - (0.5+0.5*rand(1,sum(idx(:)))).*shift;
                     if(idx(2))
                         changeFlag = true;
                     end
