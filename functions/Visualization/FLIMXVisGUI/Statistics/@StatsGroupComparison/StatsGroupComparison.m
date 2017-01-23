@@ -798,7 +798,7 @@ classdef StatsGroupComparison < handle
             if(isempty(this.pIdx) || isempty(this.histograms))
                 this.rocData = [];
             else
-                histClass = this.pIdx(get(this.visHandles.popupExtAnalysis,'Value'));
+                histClass = this.pIdx(min(length(this.pIdx),get(this.visHandles.popupExtAnalysis,'Value')));
                 patients = this.histograms{1};
                 healthy = this.histograms{2};
                 rocdata = zeros(size(patients,1)+size(healthy,1),2);
