@@ -53,7 +53,7 @@ end
 % end
 if(e > 1)
     idx2 = repmat(idx,[1,1,e]);
-    vec = zeros(1,1,e,'int32');
+    vec = zeros(1,1,e-1,'int32');
     vec(1,1,:) = (1:1:e-1)*r*c;
     idx2(:,:,2:e) = bsxfun(@plus,idx2(:,:,2:e),vec);
     data = data(idx2);
