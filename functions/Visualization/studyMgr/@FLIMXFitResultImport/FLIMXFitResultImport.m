@@ -9,6 +9,8 @@ classdef FLIMXFitResultImport < handle
         files_images = {};
         folderpath = '';
         maxCh = [];
+        curName = '';
+        curFile = '';
     end
     
     properties (Dependent = true)
@@ -21,7 +23,7 @@ classdef FLIMXFitResultImport < handle
             if(~this.isOpenVisWnd())
                 return
             end
-            out = str2double(get(this.visHandles.popupChannel,'Value'));
+            out = get(this.visHandles.popupChannel,'Value');
         end
         
         function set.selectedCh(this,val)
@@ -61,6 +63,7 @@ classdef FLIMXFitResultImport < handle
         end
         
         %% Callbacks
+        % Tables
         function GUI_tableASC_CellSelectionCallback(this,hObject,eventdata)
             if isempty(eventdata.Indices)
                 row = 1;
@@ -69,25 +72,62 @@ classdef FLIMXFitResultImport < handle
             end
             Data=get(this.visHandles.tableASC, 'Data');
             file=Data(row,1);
+            this.curName = file;
+            this.curFile = 'asc';
             image = dlmread(fullfile(this.folderpath,file{1}));
             axes(this.visHandles.axesROI);
             imshow(image);
-            a = 22;
         end
+        
+        function GUI_tableSelected_CellSelectionCallback(this,hObject,eventdata)
+            if isempty(eventdata.Indices)
+                row = 1;
+            else
+                row = eventdata.Indices(1);
+            end
+            Data=get(this.visHandles.tableSelected, 'Data');
+            file=Data(row,1);
+            % check ob asc oder image wenn image, dann imread
+            image = dlmread(fullfile(this.folderpath,file{1}));
+            axes(this.visHandles.axesROI);
+            imshow(image);
+        end
+        
         function GUI_tableImages_CellSelectionCallback(this,hObject, eventdata)
             row = eventdata.Indices(1);
             Data=get(this.visHandles.tableImages, 'Data');
             file=Data(row,1);
+            this.curName = file;
+            this.curFile = 'bmp';
             image = imread(fullfile(this.folderpath,file{1}));
             axes(this.visHandles.axesROI);
             imshow(image);
             b = 23;
-            
         end
+        
+        % Popup
         function GUI_popupChannel_Callback(this,hObject, eventdata)
             this.selectedCh=get(this.visHandles.popupChannel,'Value');
         end
+        
+        % Pushbutton
         function GUI_pushDraw_Callback(this,hObject, eventdata)
+            
+        end
+        function GUI_pushSelection_Callback(this,hObject, eventdata)
+            % check ob schon drin
+            file = get(this.visHandles.tableSelected,'Data');
+            f1 = file(:,1);
+            f2 = file(:,2);
+            f3 = file(:,3);
+            f1 = f1(~cellfun(@isempty,f1));
+            f2 = f2(~cellfun(@isempty,f2));
+            f3 = f3(~cellfun(@isempty,f3));
+           
+            file = [f1, f2, f3 ];
+            file(end+1,1:3) = [this.curName, this.curFile, this.selectedCh];
+            
+            set(this.visHandles.tableSelected,'Data',file);
             
         end
         %% Ask User
@@ -174,7 +214,7 @@ classdef FLIMXFitResultImport < handle
             end;
             path = pathname;
             this.folderpath = path;
-           % FLIMXFitResultImport.files_asc = names_asc;
+            % FLIMXFitResultImport.files_asc = names_asc;
             [~,dim] = size(names_asc);
             this.maxCh = dim;
             filterindex = 1;
@@ -193,7 +233,7 @@ classdef FLIMXFitResultImport < handle
                 
                 this.files_asc{i} = files;
             end;
-
+            
             a = 2;
             % Set table bmp
             [~,dim] = size(names_bmp);
@@ -211,7 +251,7 @@ classdef FLIMXFitResultImport < handle
                 for i2=1:length(files)
                     files{i2} = strcat(files{i2}, '.bmp');
                 end;
-              this.files_images{i} = files;
+                this.files_images{i} = files;
             end;
             a = 2;
             %  this.dynParams.lastPath = lastPath;
@@ -240,7 +280,9 @@ classdef FLIMXFitResultImport < handle
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select channel.','String',string_list);
             set(this.visHandles.tableASC,'CellSelectionCallback',@this.GUI_tableASC_CellSelectionCallback);
             set(this.visHandles.tableImages,'CellSelectionCallback',@this.GUI_tableImages_CellSelectionCallback);
-            set(this.visHandles.pushDraw,'Callback',@this.GUI_pushDraw_Callback,'TooltipString','Draw selected ASC.');
+            set(this.visHandles.tableSelected,'CellSelectionCallback',@this.GUI_tableSelected_CellSelectionCallback);
+            %   set(this.visHandles.pushDraw,'Callback',@this.GUI_pushDraw_Callback,'TooltipString','Draw selected ASC.');
+            set(this.visHandles.pushSelection,'Callback',@this.GUI_pushSelection_Callback,'TooltipString','Select files.');
             % initialisierung
             this.selectedCh = 1;
             a = 2;
