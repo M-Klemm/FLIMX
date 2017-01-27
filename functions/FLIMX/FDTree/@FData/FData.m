@@ -745,26 +745,7 @@ classdef FData < handle
 %             end
             ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
             [histogram, histCenters] = this.makeHist(ci,strictFlag);
-            [~, pos] = max(histogram);
-            stats = zeros(10,1);
-            if(isempty(histCenters))
-                stats(1) = NaN;
-            else
-                stats(1) = histCenters(min(pos,length(histCenters)));
-            end
-            stats(2) = median(ci);
-            stats(3) = mean(ci);
-            stats(4) = var(ci);            
-            stats(5) = std(ci);
-            stats(6) = 100*stats(5)./stats(3);
-            stats(7) = skewness(ci);
-            stats(8) = kurtosis(ci);
-            px = numel(ci);
-            t = icdf('t',1-(1-0.95)/2,px-1); %confidence level 95%
-            stats(9) = stats(3) - t*stats(5)/sqrt(px);
-            stats(10) = stats(3) + t*stats(5)/sqrt(px);
-            stats(11) = sum(ci(:));
-            stats(12) = numel(ci);            
+            stats = FData.computeDescriptiveStatistics(ci,histogram,histCenters);            
         end
         
         function updateCIStats(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
@@ -1079,6 +1060,30 @@ classdef FData < handle
                 %all data is was zero
                 out = 0;
             end
+        end
+        
+        function stats = computeDescriptiveStatistics(imageData,imageHistogram,imageHistogramCenters)
+            %compute descriptive statistics using imageData and imageHistogram and return it in a cell array; gete description from getDescriptiveStatisticsDescription()
+            [~, pos] = max(imageHistogram);
+            stats = zeros(10,1);
+            if(isempty(imageHistogramCenters))
+                stats(1) = NaN;
+            else
+                stats(1) = imageHistogramCenters(min(pos,length(imageHistogramCenters)));
+            end
+            stats(2) = median(imageData);
+            stats(3) = mean(imageData);
+            stats(4) = var(imageData);
+            stats(5) = std(imageData);
+            stats(6) = 100*stats(5)./stats(3);
+            stats(7) = skewness(imageData);
+            stats(8) = kurtosis(imageData);
+            px = numel(imageData);
+            t = icdf('t',1-(1-0.95)/2,px-1); %confidence level 95%
+            stats(9) = stats(3) - t*stats(5)/sqrt(px);
+            stats(10) = stats(3) + t*stats(5)/sqrt(px);
+            stats(11) = sum(imageData(:));
+            stats(12) = numel(imageData);
         end
         
         function out = getDescriptiveStatisticsDescription()
