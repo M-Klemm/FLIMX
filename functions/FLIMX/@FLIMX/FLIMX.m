@@ -93,12 +93,12 @@ classdef FLIMX < handle
             this.fdt.setDataSmoothFilter(alg,params);
             %load a subject
             this.updateSplashScreenProgressLong(0.5,'Loading first subject...');
-            subs = this.fdt.getSubjectsNames('Default','-');
+            subs = this.fdt.getSubjectsNames('Default',FDTree.defaultConditionName());
             if(isempty(subs))
                 %todo: generate a dummy subject with simulated data
-                this.setCurrentSubject('Default','-','');
+                this.setCurrentSubject('Default',FDTree.defaultConditionName(),'');
             else
-                this.setCurrentSubject('Default','-',subs{1});
+                this.setCurrentSubject('Default',FDTree.defaultConditionName(),subs{1});
             end
             this.updateSplashScreenProgressLong(0.7,'Opening MATLAB pool...');
             this.openMatlabPool();
@@ -445,9 +445,9 @@ classdef FLIMX < handle
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
-            out.config_revision = 259;
-            out.client_revision = 359;
-            out.core_revision = 360;
+            out.config_revision = 260;
+            out.client_revision = 364;
+            out.core_revision = 361;
             out.results_revision = 256;
             out.measurement_revision = 204;
         end

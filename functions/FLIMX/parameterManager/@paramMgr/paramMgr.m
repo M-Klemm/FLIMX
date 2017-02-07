@@ -475,6 +475,8 @@ classdef paramMgr < handle
             def.flimvis_gui.cutXColor           	=	[0.34921     0.34921     0.34921];
             def.flimvis_gui.cutYColor           	=	[0.30159     0.30159     0.30159];
             def.flimvis_gui.ROIColor                =	[1     1     1];
+            def.flimvis_gui.ROILinestyle            =	'-';
+            def.flimvis_gui.ROILinewidth            =	2;            
             def.flimvis_gui.ROI_fill_enable         =   1;
             def.flimvis_gui.fontsize            	=	10;
             def.flimvis_gui.grid                	=	1;

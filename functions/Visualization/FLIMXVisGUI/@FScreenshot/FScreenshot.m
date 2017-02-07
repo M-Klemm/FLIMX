@@ -45,6 +45,19 @@ classdef FScreenshot < FDisplay
             this.gethfd();
             %set inital values
             this.myDynVisParams = FDisplayObj.dynVisParams;
+            this.myDynVisParams.mainAxesUnits = FDisplayObj.h_m_ax.Units;
+            this.myDynVisParams.mainAxesPosition = FDisplayObj.h_m_ax.Position;            
+            switch lower(this.visObj.exportParams.colorbarLocation)
+                case 'westoutside'
+                    this.myDynVisParams.mainAxesPosition(1,1) = 200;
+                    this.myDynVisParams.mainAxesPosition(1,2) = 50;
+                case 'southoutside'
+                    this.myDynVisParams.mainAxesPosition(1,1) = 100;
+                    this.myDynVisParams.mainAxesPosition(1,2) = 150;
+                otherwise
+                    this.myDynVisParams.mainAxesPosition(1,1) = 100;
+                    this.myDynVisParams.mainAxesPosition(1,2) = 50;                    
+            end
             this.myStaticVisParams = FDisplayObj.staticVisParams;
             this.disp_view = FDisplayObj.disp_view;
         end
@@ -62,8 +75,21 @@ classdef FScreenshot < FDisplay
         function hAx = makeScreenshotPlot(this,hFig,type)
             %make a plot for a screenshot
             this.screenshot = true;
-            figure(hFig);
-            hAx = axes();
+            hFig.Units = this.myDynVisParams.mainAxesUnits;
+            if(this.visObj.exportParams.plotColorbar)
+                switch lower(this.visObj.exportParams.colorbarLocation)
+                    case {'eastoutside','westoutside'}
+                        hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 250 75];
+                    case {'northoutside' ,'southoutside'}             
+                        hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 150 175];
+                    otherwise
+                        hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 150 75];
+                end
+            else
+                hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 150 75];
+            end
+            figure(hFig);            
+            hAx = axes('Units',this.myDynVisParams.mainAxesUnits,'Position',this.myDynVisParams.mainAxesPosition);
             axis(hAx,'off');
             set(hAx,'FontSize',this.visObj.exportParams.labelFontSize);
             switch type
@@ -72,7 +98,8 @@ classdef FScreenshot < FDisplay
                     this.myHMainAxes = hAx;
                     this.UpdateMinMaxLbl();
                     this.makeMainPlot();
-                    this.makeMainXYLabels(); 
+                    this.makeZoom();
+                    %this.makeMainXYLabels(); 
                     colormap(hAx,this.dynVisParams.cm);
 %                     this.h_m_ax = hOld;
                     %[y x] = size(this.mainExportGfx);
@@ -108,7 +135,7 @@ classdef FScreenshot < FDisplay
                             set(cb,'YTick',idx,'YTickLabel',cbLabels);
                             ylabel(cb,dType);
                         end
-                        %                         end
+                        set(hAx,'Units',this.myDynVisParams.mainAxesUnits,'Position',this.myDynVisParams.mainAxesPosition);                        
                     end                    
                     
                 case 'supp'

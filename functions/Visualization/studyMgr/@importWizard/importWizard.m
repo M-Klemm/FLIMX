@@ -311,7 +311,7 @@ classdef importWizard < handle
             %set name of current subject
             valOrg = val;
             i = 1;
-            while(any(strcmp(val,this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,'-'))))
+            while(any(strcmp(val,this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName()))))
                 val = sprintf('%s%02d',valOrg,i);
                 i=i+1;
             end
@@ -415,11 +415,11 @@ classdef importWizard < handle
             end
             %try to find subject in study
             %if(strcmp(subject,this.FLIMXObj.FLIMFitGUI.currentSubject))
-            if(any(strcmp(subject,this.FLIMXObj.fdt.getSubjectsNames(study,'-'))))
+            if(any(strcmp(subject,this.FLIMXObj.fdt.getSubjectsNames(study,FDTree.defaultConditionName()))))
                 %this is not a new file, we repick e.g. the ROI
                 set(this.visHandles.radioExistingSubject,'Value',1);
                 set(this.visHandles.editSubjectName,'String',this.FLIMXObj.curSubject.getDatasetName());
-                subjects = this.FLIMXObj.fdt.getSubjectsNames(study,'-');
+                subjects = this.FLIMXObj.fdt.getSubjectsNames(study,FDTree.defaultConditionName());
                 idx = find(strcmp(subject,subjects));
                 if(~isempty(idx))
                     set(this.visHandles.popupSubjectSel,'String',subjects,'Value',idx);
@@ -469,7 +469,7 @@ classdef importWizard < handle
                 end
             end
             %subject selection
-            str = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,'-');
+            str = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName());
             if(isempty(str))
                 set(this.visHandles.radioExistingSubject,'Value',0,'Enable','off');
                 set(this.visHandles.radioNewSubject,'Value',1);
@@ -589,8 +589,8 @@ classdef importWizard < handle
                 end
             end
             if(strcmp(this.currentStudy,this.FLIMXObj.FLIMFitGUI.currentStudy) && strcmp(this.currentSubject,this.FLIMXObj.FLIMFitGUI.currentSubject))
-                this.FLIMXObj.setCurrentSubject(this.currentStudy,'-','');
-                this.FLIMXObj.setCurrentSubject(this.currentStudy,'-',this.currentSubject);
+                this.FLIMXObj.setCurrentSubject(this.currentStudy,FDTree.defaultConditionName(),'');
+                this.FLIMXObj.setCurrentSubject(this.currentStudy,FDTree.defaultConditionName(),this.currentSubject);
                 this.FLIMXObj.FLIMFitGUI.currentChannel = this.currentChannel;
                 this.FLIMXObj.FLIMVisGUI.updateGUI('');
             end
@@ -750,9 +750,9 @@ classdef importWizard < handle
         
         function GUI_mouseMotion_Callback(this, hObject, eventdata)
             %executes on mouse move in window
-            if(this.roiMode ~= 3)
-                return;
-            end
+%             if(this.roiMode ~= 3)
+%                 return;
+%             end
             cp = get(this.visHandles.axesROI,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
             if(any(cp(:) < 0))

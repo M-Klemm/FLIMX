@@ -82,10 +82,14 @@ classdef axesWithROI < handle
             this.drawMain();
         end
         
-        function setMainData(this,data)
+        function setMainData(this,data,lb,ub)
             %set the data for the main plot
             this.myData = data;
-            this.drawMain();
+            if(nargin == 4 && ~isempty(lb) && ~isempty(ub))
+                this.drawMain(lb,ub);
+            else
+                this.drawMain();
+            end
         end
         
         function setColorMap(this,data)
@@ -97,14 +101,21 @@ classdef axesWithROI < handle
         end
         
         %% drawing methods
-        function drawMain(this)
+        function drawMain(this,lb,ub)
             %draw main axes, delete ROI box and current point
             cla(this.myMainAxes);
             if(isempty(this.myData))
                 return
             end
-            lb = prctile(this.myData(:),0.1);
-            ub = prctile(this.myData(:),99.9);
+            if(nargin ~= 3)
+                lb = prctile(this.myData(:),0.1);
+                ub = prctile(this.myData(:),99.9);
+                cBLb = min(this.myData(:));
+                cBUb = max(this.myData(:));
+            else
+                cBLb = lb;
+                cBUb = ub;
+            end
             img = image2ColorMap(this.myData,this.myCM,lb,ub);
             %if(lb == ub || isnan(lb) || isnan(ub))
             image(img,'Parent',this.myMainAxes);
@@ -144,19 +155,17 @@ classdef axesWithROI < handle
             this.CPYLine = -1; 
             
             %update colorbar labels
-            if(ishandle(this.myCBLblLow))
-                data = min(this.myData(:));
+            if(ishandle(this.myCBLblLow))                
                 if(this.shortNumbers)
-                    data = FLIMXFitGUI.num4disp(data);
+                    cBLb = FLIMXFitGUI.num4disp(cBLb);
                 end                    
-                set(this.myCBLblLow,'String',data);
+                set(this.myCBLblLow,'String',cBLb);
             end
             if(ishandle(this.myCBLblHigh))
-                data = max(this.myData(:));
                 if(this.shortNumbers)
-                    data = FLIMXFitGUI.num4disp(data);
+                    cBUb = FLIMXFitGUI.num4disp(cBUb);
                 end  
-                set(this.myCBLblHigh,'String',data);
+                set(this.myCBLblHigh,'String',cBUb);
             end
         end
         

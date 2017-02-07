@@ -944,10 +944,10 @@ classdef fluoPixelModel < matlab.mixin.Copyable
         function checkMexFiles(this)
             %check if mex files are available
             if(exist('shiftAndLinearOpt_mex','file'))
-                [this.useMex, msg] = this.testShiftLinOpt1024();
-                if(~isempty(msg))
-                    warning('FLIMX:fluoPixelModel',msg);
-                end
+                [this.useMex, msg] = fluoPixelModel.testShiftLinOpt1024(true,false);
+%                 if(~isempty(msg))
+%                     warning('FLIMX:fluoPixelModel',msg);
+%                 end
             else
                 this.useMex = false;
             end
@@ -1284,16 +1284,79 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             end            
         end
         
-        function [out, msg] = testShiftLinOpt1024()
+        function [decision, message] = testShiftLinOpt1024(runBenchmarkFlag, forceTestFlag)
             %returns true is a mex file can be used for shift and linear optimization computation with up to 1024 time channels
+            persistent out msg
+            if(~isempty(out) && ~forceTestFlag)
+                %we got the test result from a previous test
+                decision = out;
+                message = msg;
+                return
+            end
             try
-                z = zeros(1,1,'single');
-                shiftAndLinearOpt_mex(zeros(1024,0,0,'single'),ones(1024,1,'single'),single([]),false,z,z,z,z,z,z,true,true); %test computation
-                out = true;
-                msg = '';
+                zm = false(1024,1);
+                zm(50:950,1) = true;
+                t = single(0:1023)';
+                nVectors = 1;
+                expData = repmat(exp(-bsxfun(@times, t, 1./[50 500 5000])),[1 1 nVectors]);
+                expData = circShiftArrayNoLUT(expData,[10 10 10]);
+                measData = bsxfun(@times,expData(:,:,1),single(rand([1,3])));
+                measData = sum(measData,2);
+                shift = 10*ones(1,nVectors,'single');
+                tcis = zeros(3,nVectors,'single');
+                tciFine = 0.4*ones(3,nVectors,'single');
+                oset = 0.1*ones(1,nVectors,'single');
+                b = ones(4,1,'single');
+                if(~runBenchmarkFlag)
+                    shiftAndLinearOpt(expData,t,measData,zm,shift,tcis,tciFine,oset,b-1,10*b,true,false); %test computation
+                    out = true;
+                    msg = '';
+                else
+                    p = gcp('nocreate');
+                    %profile mex file
+                    tic
+                    if(~isempty(p))
+                        parfor j = 1:8
+                            for i = 1:1000
+                                o1{j} = shiftAndLinearOpt_mex(expData,t,measData,zm,shift,tcis,tciFine,oset,b-1,10*b,true,false);
+                            end
+                        end
+                    else
+                        for i = 1:1000
+                            o1 = shiftAndLinearOpt_mex(expData,t,measData,zm,shift,tcis,tciFine,oset,b-1,10*b,true,false);
+                        end
+                    end
+                    tMex = toc;
+                    %profile matlab code
+                    tic
+                    if(~isempty(p))
+                        parfor j = 1:8
+                            for i = 1:1000
+                                o2{j} = shiftAndLinearOpt(expData,t,measData,zm,shift,tcis,tciFine,oset,b-1,10*b,true,false);
+                            end
+                        end
+                    else
+                        for i = 1:1000
+                            o2 = shiftAndLinearOpt(expData,t,measData,zm,shift,tcis,tciFine,oset,b-1,10*b,true,false);
+                        end
+                    end
+                    tMatlab = toc;
+                    if(tMex < tMatlab)
+                        out = true;
+                        msg = sprintf('Mex file works and is %d percent faster than pure Matlab code.',round(100*(tMatlab/tMex-1)));
+                    else
+                        out = false;
+                        msg = sprintf('Mex file works but is %d percent slower than pure Matlab code. Thus, mex file is not used.',round(100*(tMex/tMatlab-1)));
+                    end
+                end
             catch ME
                 msg = sprintf('Using shiftAndLinearOpt_mex failed. Mex file was found but failed to run: %s',ME.message);
                 out = false;
+            end
+            decision = out;
+            message = msg;
+            if(~isempty(msg))
+                warning('FLIMX:fluoPixelModel',msg);
             end
         end
         

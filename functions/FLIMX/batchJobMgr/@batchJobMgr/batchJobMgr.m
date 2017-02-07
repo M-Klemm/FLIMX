@@ -298,7 +298,7 @@ classdef batchJobMgr < handle
             %delete old fit results
             this.FLIMXObj.fdt.removeSubjectResult(job.getStudy(),job.getSubject())
             %now load new subject and batch job parameters
-            if(this.FLIMXObj.setCurrentSubject(job.getStudy(),'-',job.getSubject()))
+            if(this.FLIMXObj.setCurrentSubject(job.getStudy(),FDTree.defaultConditionName(),job.getSubject()))
                 this.FLIMXObj.curSubject.loadParameters('batchJob',params);
                 this.FLIMXObj.FLIMFitGUI.currentChannel = job.myChannel(1);
                 this.FLIMXObj.FLIMFitGUI.setupGUI();

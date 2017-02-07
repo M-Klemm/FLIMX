@@ -217,44 +217,8 @@ end
 %window size
 set(handles.popupWindowSize,'Value',data.general.windowSize);
 
-function out = id2LineStyle(id)
-%convert descriptive string to linestyle string
-switch id
-    case {'No line',1}
-        out = 'none';
-    case {'Solid line',2}
-        out = '-';
-    case {'Dashed line',3}
-        out = '--';
-    case {'Dotted line',4}
-        out = ':';
-    case {'Dash-dot line',5}
-        out = '-.';
-    otherwise
-        out = id;
-end
-
-function out = lineStyle2id(str)
-%convert descriptive string or linestyle string to running number
-if(isnumeric(str))
-    out = str;
-    return
-end
-switch str
-    case {'No line','none'}
-        out = 1;
-    case {'Solid line','-'}
-        out = 2;
-    case {'Dashed line','--'}
-        out = 3;
-    case {'Dotted line',':'}
-        out = 4;
-    case {'Dash-dot line','-.'}
-        out = 5;
-end
-
 function out = id2MarkerStyle(str)
-%
+%convert descriptive string or running number to markerstyle string
 switch str
     case {'No marker',1}
         out = 'none';
@@ -289,7 +253,7 @@ switch str
 end
 
 function out = markerStyle2id(str)
-%
+%convert descriptive string or markerstyle string to running number
 if(isnumeric(str))
     out = str;
     return

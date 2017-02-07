@@ -62,7 +62,7 @@ classdef studyIS < handle
             %             this.subjectFilesHeaders = [{'Subject'} {'Channels'}];
             this.infoHeaders(1,1) = {'column 1'};
             this.subjectInfoCombi(1,1) = {[]};
-            this.viewColors(1,1) = {'-'};
+            this.viewColors(1,1) = {FDTree.defaultConditionName()};
             this.viewColors(2,1) = {studyIS.makeRndColor()};
         end
         
@@ -109,10 +109,10 @@ classdef studyIS < handle
                 this.infoHeaders = infoHeaders;
             else
                 %set a single subjectInfoHeader
-                oldName = this.infoHeaders{idx};
+                oldName = this.infoHeaders{idx,1};
                 %check if renamed colum is a reference for a combination
                 for i=1:length(this.infoHeaders)
-                    ref = this.subjectInfoCombi{i};
+                    ref = this.subjectInfoCombi{i,1};
                     if(isempty(ref))
                         %column is not a combination
                         continue
@@ -120,16 +120,16 @@ classdef studyIS < handle
                     if(strcmp(ref.colA,oldName))
                         %reference found
                         ref.colA = infoHeaders;
-                        this.subjectInfoCombi{i} = ref;
+                        this.subjectInfoCombi{i,1} = ref;
                     end
                     if(strcmp(ref.colB,oldName))
                         %reference found
                         ref.colB = infoHeaders;
-                        this.subjectInfoCombi{i} = ref;
+                        this.subjectInfoCombi{i,1} = ref;
                     end
                 end
                 %set new header
-                this.infoHeaders{idx} = infoHeaders;
+                this.infoHeaders{idx,1} = infoHeaders;
                 this.setDirty(true);
             end
         end
@@ -413,7 +413,7 @@ classdef studyIS < handle
                 ref.valB = opt.valB;                %relation value of colB
             end
             %save new reference for condition / combination
-            this.subjectInfoCombi{n} = ref;
+            this.subjectInfoCombi{n,1} = ref;
             
             %update conditions / combinations
             this.checkConditionRef([]);
@@ -486,17 +486,17 @@ classdef studyIS < handle
         
         function addSubjectInfoHeader(this,name)
             %add subjectInfoHeader at the end of the table
-            this.infoHeaders(1,size(this.infoHeaders,2)+1) = {name};
+            this.infoHeaders(size(this.infoHeaders,2)+1,1) = {name};
             this.subjectInfo(:,size(this.infoHeaders,2)) = cell(size(this.subjectInfo,1),1);
-            this.subjectInfoCombi(1,size(this.infoHeaders,2)) = cell(1,1);
+            this.subjectInfoCombi(size(this.infoHeaders,2),1) = cell(1,1);
             this.setDirty(true);
         end
         
         function addColumn(this,name)
             %insert new column at the end of the table            
-            this.infoHeaders(end+1)= {name};
+            this.infoHeaders(end+1,1)= {name};
             this.subjectInfo(:,end+1)= cell(max(1,size(this.subjectInfo,1)),1);
-            this.subjectInfoCombi(1,end+1) = cell(1,1);
+            this.subjectInfoCombi(end+1,1) = cell(1,1);
             this.setDirty(true);
         end
         
@@ -505,14 +505,14 @@ classdef studyIS < handle
             ref.colA = opt.list{opt.colA};      %column A
             ref.colB = opt.list{opt.colB};      %column B
             ref.logOp = opt.ops{opt.logOp};     %logical operator
-            ref.relA = opt.ops{opt.relA + 5};   %relational operator of colA
-            ref.relB = opt.ops{opt.relB + 5};   %relational operator of colB
+            ref.relA = opt.ops{opt.relA + 6};   %relational operator of colA
+            ref.relB = opt.ops{opt.relB + 6};   %relational operator of colB
             ref.valA = opt.valA;                %relation value of colA
             ref.valB = opt.valB;                %relation value of colB            
             this.addColumn(opt.name);
             %save reference for condition / combination
             n = this.infoHeaderName2idx(opt.name);
-            this.subjectInfoCombi{n} = ref;
+            this.subjectInfoCombi{n,1} = ref;
             this.setViewColor(opt.name,[]);
             %update conditions / combinations
             this.checkConditionRef(n);
@@ -529,7 +529,7 @@ classdef studyIS < handle
             
             %fill subject info fields with data
             for i = 1:length(data.infoHeaders)
-                str = data.infoHeaders{i};
+                str = data.infoHeaders{i,1};
                 [~, idx] = ismember(str,this.infoHeaders);
                 this.subjectInfo(subjectPos,idx) = data.subjectInfo(1,i);
             end
@@ -573,12 +573,12 @@ classdef studyIS < handle
                     newHeads = setdiff(xlsHeads,this.infoHeaders);
                     diff = length(newHeads);
                     if(diff > 0) %add new info columns
-                        this.infoHeaders(end+1:end+diff) = cell(diff,1);
+                        this.infoHeaders(end+1:end+diff,1) = cell(diff,1);
                         this.subjectInfo(:,end+1:end+diff) = cell(size(this.subjectInfo,1),diff);
-                        this.subjectInfoCombi(end+1:end+diff) = cell(diff,1);
+                        this.subjectInfoCombi(end+1:end+diff,1) = cell(diff,1);
                     end
                     %add new info headers
-                    this.infoHeaders(end+1-diff:end) = newHeads;
+                    this.infoHeaders(end+1-diff:end,1) = newHeads;
                     %                     this.subjectFilesHeaders = [xlsFile {'Channels'}];
             end
             
@@ -611,7 +611,7 @@ classdef studyIS < handle
             if(isempty(val) || length(val) ~= 3)
                 val = studyIS.makeRndColor();
             end
-            if(strcmp(vName,'-'))
+            if(strcmp(vName,FDTree.defaultConditionName()))
                 this.viewColors(2,1) = {val};
             else
                 idx = find(strcmp(vName,this.viewColors(1,:)), 1);
@@ -705,7 +705,7 @@ classdef studyIS < handle
         function out = getColReference(this,n)
             %return reference of a conditional column
             if(~isempty(this.infoHeaders) && length(this.subjectInfoCombi) >= n)
-                out = this.subjectInfoCombi{n};
+                out = this.subjectInfoCombi{n,1};
             else
                 out = [];
             end
@@ -722,7 +722,7 @@ classdef studyIS < handle
                         continue
                     end
                     a = this.infoHeaderName2idx(ref.colA);
-                    if(strcmp(ref.logOp,'-'))
+                    if(strcmp(ref.logOp,FDTree.defaultConditionName()))
                         %second reference is inactive
                         b = 0;
                     else
@@ -730,7 +730,7 @@ classdef studyIS < handle
                     end
                     if((a == n) || (b == n))
                         %column n is a reference column
-                        out(end+1) = this.infoHeaders(i);
+                        out(end+1) = this.infoHeaders(i,1);
                     end
                 end
             end
@@ -1066,9 +1066,9 @@ classdef studyIS < handle
             views = cell(0,0);
             ref = this.getSubjectInfoCombi();
             idx = ~(cellfun('isempty',ref));
-            views(end+1) = {'-'};   %define default 'no view'
-            if(~isempty(this.infoHeaders(idx)))
-                views(end+1:end+(sum(idx))) = this.infoHeaders(idx);
+            views(end+1,1) = {FDTree.defaultConditionName()};   %define default 'no view'
+            if(~isempty(this.infoHeaders(idx,1)))
+                views(end+1:end+(sum(idx(:))),1) = this.infoHeaders(idx,1);
             end
         end
         
@@ -1129,11 +1129,11 @@ classdef studyIS < handle
             if(isempty(this.subjectInfo))
                 %special case: first header has to be deleted when
                 %importing study
-                this.infoHeaders(col) = [];
+                this.infoHeaders(col,:) = [];
             else
-                this.infoHeaders(col) = [];
+                this.infoHeaders(col,:) = [];
                 this.subjectInfo(:,col) = [];
-                this.subjectInfoCombi(col) = [];
+                this.subjectInfoCombi(col,:) = [];
                 idx = find(strcmp(colName,this.viewColors(1,:)), 1);
                 if(~isempty(idx))
                     this.viewColors(:,idx) = [];
@@ -1143,7 +1143,7 @@ classdef studyIS < handle
         end
         
         function removeCluster(this,clusterID)
-            %
+            %remove MVGroup
             clusterNr = this.clusterName2idx(clusterID);
             this.studyClusters(:,clusterNr) = [];
             this.setDirty(true);
@@ -1157,16 +1157,16 @@ classdef studyIS < handle
                 return
             end
             %swap InfoHeaders
-            temp = this.infoHeaders(col);
-            this.infoHeaders(col) = this.infoHeaders(col+n);
-            this.infoHeaders(col+n) = temp;
+            temp = this.infoHeaders(col,1);
+            this.infoHeaders(col,1) = this.infoHeaders(col+n,1);
+            this.infoHeaders(col+n,1) = temp;
             %swap Data
             temp = this.subjectInfo(:,col);
             this.subjectInfo(:,col) = this.subjectInfo(:,col+n);
             this.subjectInfo(:,col+n) = temp;
-            temp = this.subjectInfoCombi(col);
-            this.subjectInfoCombi(col) = this.subjectInfoCombi(col+n);
-            this.subjectInfoCombi(col+n) = temp;
+            temp = this.subjectInfoCombi(col,1);
+            this.subjectInfoCombi(col,1) = this.subjectInfoCombi(col+n,1);
+            this.subjectInfoCombi(col+n,1) = temp;
             this.setDirty(true);
         end
         
@@ -1228,8 +1228,7 @@ classdef studyIS < handle
                         %reference is a non-updated condition column
                         this.checkConditionRef(b);
                     end
-                    colB = this.subjectInfo(:,b);
-                    
+                    colB = this.subjectInfo(:,b);                    
                     for j=1:size(colB,1)
                         if(isempty(colB{j,1}) || isnan(colB{j,1}))
                             if(isempty(this.getColReference(b)))
@@ -1314,8 +1313,7 @@ classdef studyIS < handle
             if(isempty(this.subjects))
                 out = [];
                 return
-            end
-            
+            end            
             if(isempty(varargin))
                 %sort subjects of current study
                 [this.subjects, idx] = sort(this.subjects);
@@ -1432,7 +1430,7 @@ classdef studyIS < handle
                 end
                 %save color not per study but per view now
                 oldStudy.viewColors = cell(2,1);
-                oldStudy.viewColors(1,1) = {'-'};
+                oldStudy.viewColors(1,1) = {FDTree.defaultConditionName()};
                 oldStudy.viewColors(2,1) = {old};
             end
             
@@ -1601,6 +1599,13 @@ classdef studyIS < handle
                     end
                 end
             end
+            
+            if(oldStudy.revision < 23)
+                %change name of default column
+                if(isfield(oldStudy,'viewColors') && size(oldStudy.viewColors,1) > 1 && size(oldStudy.viewColors,2) > 1 && strcmp(oldStudy.viewColors(1,1),'-'))
+                    oldStudy.viewColors(1,1) = {FDTree.defaultConditionName()};
+                end                
+            end
             this.setDirty(true);
         end
         
@@ -1690,7 +1695,7 @@ classdef studyIS < handle
             end
             tmpLen = length(testStudy.infoHeaders);
             if(tmpLen < nrInfoCols)
-                testStudy.infoHeaders(end+1:end+nrInfoCols-tmpLen) = cell(nrInfoCols-tmpLen,1);
+                testStudy.infoHeaders(end+1:end+nrInfoCols-tmpLen,1) = cell(nrInfoCols-tmpLen,1);
                 dirty = true;
             elseif(tmpLen > nrInfoCols)
                 testStudy.infoHeaders = testStudy.infoHeaders(1:nrInfoCols);
@@ -1703,7 +1708,7 @@ classdef studyIS < handle
             end
             tmpLen = length(testStudy.subjectInfoCombi);
             if(tmpLen < nrInfoCols)
-                testStudy.subjectInfoCombi(end+1:end+nrInfoCols-tmpLen) = cell(nrInfoCols-tmpLen,1);
+                testStudy.subjectInfoCombi(end+1:end+nrInfoCols-tmpLen,1) = cell(nrInfoCols-tmpLen,1);
                 dirty = true;
             elseif(tmpLen > nrInfoCols)
                 testStudy.subjectInfoCombi = testStudy.subjectInfoCombi(1:nrInfoCols);
@@ -1774,15 +1779,15 @@ classdef studyIS < handle
             else
                 %column header exist -> check names
                 for i = 1:length(testStudy.infoHeaders)
-                    if(isempty(testStudy.infoHeaders{i}))
+                    if(isempty(testStudy.infoHeaders{i,1}))
                         %there is no validate name
                         colname = sprintf('column %d',i);
-                        testStudy.infoHeaders(i)= {colname};
+                        testStudy.infoHeaders(i,1)= {colname};
                         dirty = true;
                     end
                     %check if we have a corresponding field in subjectInfoCombi
                     if(length(testStudy.subjectInfoCombi) < i)
-                        testStudy.subjectInfoCombi(i) = cell(1,1);
+                        testStudy.subjectInfoCombi(i,1) = cell(1,1);
                         dirty = true;
                     end
                 end
@@ -1851,17 +1856,17 @@ classdef studyIS < handle
             %view colors
             if(isempty(testStudy.viewColors))
                 %set color for "default" view
-                testStudy.viewColors(1,1) = {'-'};
+                testStudy.viewColors(1,1) = {FDTree.defaultConditionName()};
                 testStudy.viewColors(2,1) = {studyIS.makeRndColor()};
                 dirty = true;
             end
-            newColors = setdiff(testStudy.infoHeaders(~viewCol),testStudy.viewColors(1,:));
+            newColors = setdiff(testStudy.infoHeaders(~viewCol,1),testStudy.viewColors(1,:));
             for i = 1:length(newColors)
                 testStudy.viewColors(1,end+1) = newColors(i);
                 testStudy.viewColors(2,end) = {studyIS.makeRndColor()};
             end
-            delColors = setdiff(testStudy.viewColors(1,:),testStudy.infoHeaders(~viewCol));
-            delColors = delColors(~strcmp(delColors,'-'));
+            delColors = setdiff(testStudy.viewColors(1,:),testStudy.infoHeaders(~viewCol,1));
+            delColors = delColors(~strcmp(delColors,FDTree.defaultConditionName()));
             for i = 1:length(delColors)
                 idx = find(strcmp(delColors{i},testStudy.viewColors(1,:)), 1);
                 if(isempty(idx))
@@ -1900,7 +1905,7 @@ classdef studyIS < handle
             %convert a (descriptive) string to a logical operand
             neg = '';
             switch str
-                case '-' %no combination
+                case {'-no op-','-'} %no combination
                     op = '';
                 case 'AND'
                     op = '&';

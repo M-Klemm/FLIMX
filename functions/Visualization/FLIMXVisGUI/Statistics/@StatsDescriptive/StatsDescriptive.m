@@ -33,8 +33,8 @@ classdef StatsDescriptive < handle
     %
     properties(GetAccess = public, SetAccess = protected)
         visHandles = []; %structure to handles in GUI
-        visObj = []; %handle to FLIMVis
-        stats = cell(0,0);
+        visObj = []; %handle to FLIMXVis
+        subjectStats = cell(0,0);        
         statsDesc = cell(0,0);
         subjectDesc = cell(0,0);
         statHist = [];
@@ -51,6 +51,7 @@ classdef StatsDescriptive < handle
         statType = '';
         statPos = 1;
         totalStatTypes = 0;
+        groupStats = cell(0,0);
         id = 0;
         classWidth = 1;
         exportModeFLIM = 1;
@@ -59,6 +60,7 @@ classdef StatsDescriptive < handle
         exportModeCh = 1;
         exportModeCondition = 1;
         exportNormDistTests = 0;
+        exportSubjectRawData = 0;
         currentSheetName = '';
         ROIType = 1;
         ROISubType = 1;
@@ -98,9 +100,18 @@ classdef StatsDescriptive < handle
             set(this.visHandles.buttonUpdateGUI,'Callback',@this.GUI_buttonUpdateGUI_Callback);
             %table main
             axis(this.visHandles.axesBar,'off');
+            axis(this.visHandles.axesBoxplot,'off');
             set(this.visHandles.popupSelStatParam,'String',FData.getDescriptiveStatisticsDescription(),'Value',3);
             %normal distribution tests
             set(this.visHandles.editAlpha,'Callback',@this.GUI_editAlpha_Callback);
+            %progress bar
+            xpatch = [0 0 0 0];
+            ypatch = [0 0 1 1];
+            axis(this.visHandles.axesProgress ,'off');            
+            xlim(this.visHandles.axesProgress,[0 100]);
+            ylim(this.visHandles.axesProgress,[0 1]);
+            this.visHandles.patchProgress = patch(xpatch,ypatch,'r','EdgeColor','r','Parent',this.visHandles.axesProgress);
+            this.visHandles.textProgress = text(1,1,'','Parent',this.visHandles.axesProgress,'Fontsize',8);%,'HorizontalAlignment','right','Units','pixels');
         end
         
         function out = isOpenVisWnd(this)
@@ -254,9 +265,9 @@ classdef StatsDescriptive < handle
             fn = fullfile(path,file);
             switch this.exportModeFLIM
                 case 1 %single (current) result
-                    if(isempty(this.stats))
+                    if(isempty(this.subjectStats))
                         this.makeStats();
-                        if(isempty(this.stats))
+                        if(isempty(this.subjectStats))
                             this.clearPlots();
                         end
                     end
@@ -292,6 +303,8 @@ classdef StatsDescriptive < handle
                     this.clearResults();
             end
             %loop over all export paramters
+            totalIter = length(condIds)*length(FLIMIds)*length(ROIIds)*length(chIds);
+            curIter = 0;
             for v = 1:length(condIds)
                 if(length(condIds) > 1)
                     set(this.visHandles.popupSelCondition,'Value',v);
@@ -325,13 +338,13 @@ classdef StatsDescriptive < handle
                                 this.GUI_SelChPop_Callback(this.visHandles.popupSelCh,[]);
                             end
                             this.updateGUI();
-                            if(isempty(this.stats))
+                            if(isempty(this.subjectStats))
                                 this.makeStats();
-                                if(isempty(this.stats))
+                                if(isempty(this.subjectStats))
                                     continue;
                                 end
                             end
-                            exportExcel(fn,this.stats,this.statsDesc,this.subjectDesc,this.currentSheetName,sprintf('%s%d',this.dType,this.id));
+                            exportExcel(fn,this.subjectStats,this.statsDesc,this.subjectDesc,this.currentSheetName,sprintf('%s%d',this.dType,this.id));
                             if(this.exportModeStat)
                                 data = cell(0,0);
                                 str = get(this.visHandles.popupSelStatParam,'String');
@@ -352,16 +365,35 @@ classdef StatsDescriptive < handle
                                 data(:,3) = num2cell(logical(this.normDistTests(:,2)));
                                 exportExcel(fn,data,{'Test','p','Significance'},'',[this.statType '-' this.currentSheetName],'');
                             end
+                            if(this.exportSubjectRawData)
+                                subjects = this.visObj.fdt.getSubjectsNames(this.study,this.condition);
+                                for s = 1:length(subjects)
+                                    fdt = this.visObj.fdt.getFDataObj(this.study,subjects{s},this.ch,this.dType,this.id,1);
+                                    rc = fdt.getROICoordinates(this.ROIType);
+                                    data = fdt.getROIImage(rc,this.ROIType,this.ROISubType,this.ROIInvertFlag);
+                                    if(this.ROIType == 1)
+                                        txt = {'C','IS','IN','II','IT','OS','ON','OI','OT','IR','OR','FC'}';
+                                        rStr = txt{this.ROISubType};
+                                    else
+                                        txt = {'Rect1','Rect2','Circ1','Circ2','Poly1','Poly2'};
+                                        rStr = txt{this.ROIType-1};
+                                    end                                        
+                                    exportExcel(fn,data,{''},'',sprintf('%s_%s_%d_%s%d',subjects{s},rStr,this.ch,this.dType,this.id),'');
+                                end
+                            end
+                            curIter = curIter+1;
+                            this.updateProgressbar(curIter/totalIter,sprintf('%d%%',round(curIter/totalIter*100)));
                         end
                     end
                 end
             end
             set(hObject,'String','Go');
+            this.updateProgressbar(0,'');
         end
         
         function clearResults(this)
             %clear all current results
-            this.stats = cell(0,0);
+            this.subjectStats = cell(0,0);
             this.statsDesc = cell(0,0);
             this.subjectDesc = cell(0,0);
             this.statHist = [];
@@ -374,7 +406,8 @@ classdef StatsDescriptive < handle
             %clear 3D plot and table
             if(~this.isOpenVisWnd())
                 cla(this.visHandles.axesBar);
-                set(this.visHandles.tableMain,'ColumnName','','RowName','','Data',[],'ColumnEditable',[]);
+                cla(this.visHandles.axesBoxplot);
+                set(this.visHandles.tableSubjectStats,'ColumnName','','RowName','','Data',[],'ColumnEditable',[]);
                 set(this.visHandles.tableNormalTests,'Data',[]);
             end
         end
@@ -431,25 +464,18 @@ classdef StatsDescriptive < handle
         
         function updateGUI(this)
             %update tables and axes
-            if(isempty(this.stats))
+            if(isempty(this.subjectStats))
                 this.makeStats();
-                if(isempty(this.stats))
+                if(isempty(this.subjectStats))
                     this.clearPlots();
                 end
             end
-            set(this.visHandles.tableMain,'ColumnName',this.statsDesc,'RowName',this.subjectDesc,'Data',FLIMXFitGUI.num4disp(this.stats));
-            %set(this.visHandles.tableNormalTests,'Data',[]);
+            set(this.visHandles.tableSubjectStats,'ColumnName',this.statsDesc,'RowName',this.subjectDesc,'Data',FLIMXFitGUI.num4disp(this.subjectStats));
+            set(this.visHandles.tableGroupStats,'ColumnName',this.statsDesc,'RowName','','Data',FLIMXFitGUI.num4disp(this.groupStats));
             %axes
             if(~isempty(this.statHist))
                 bar(this.visHandles.axesBar,this.statCenters,this.statHist);
-                %                 xlim(this.visHandles.axesBar,[1 size(this.statHist,2)]);
-                %                 xlim(this.visHandles.axesBar,[1 size(this.statHist,1)]);
-                %                 ticklbl = this.subjectDesc;
-                %                 set(this.visHandles.axesBar,'YTickLabel',ticklbl(get(this.visHandles.axesBar,'YTick')));
-                %                 ticklbl = this.statsDesc;
-                %                 set(this.visHandles.axesBar,'XTickLabel',ticklbl(get(this.visHandles.axesBar,'XTick')));
-                %                 view(this.visHandles.axesBar,this.dispView);
-                %                 setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.axesBar,true);
+                boxplot(this.visHandles.axesBoxplot,this.subjectStats(:,this.statPos),'labels',this.statsDesc(this.statPos));
                 if(~isempty(this.normDistTests))
                     tmp = this.normDistTestsLegend;
                     tmp(:,2) = sprintfc('%1.4f',this.normDistTests(:,1));
@@ -458,10 +484,22 @@ classdef StatsDescriptive < handle
                 end
             end
         end
+        
+        function updateProgressbar(this,x,text)
+            %update progress bar; inputs: progress x: 0..1, text on progressbar
+            if(this.isOpenVisWnd())
+                x = max(0,min(100*x,100));
+                xpatch = [0 x x 0];
+                set(this.visHandles.patchProgress,'XData',xpatch,'Parent',this.visHandles.axesProgress)
+                yl = ylim(this.visHandles.axesProgress);
+                set(this.visHandles.textProgress,'Position',[1,yl(2)/2,0],'String',text,'Parent',this.visHandles.axesProgress);
+                drawnow;
+            end
+        end
                 
         function makeStats(this)
             %collect stats info from FDTree
-            [this.stats, this.statsDesc, this.subjectDesc] = this.visObj.fdt.getStudyStatistics(this.study,this.condition,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,true);
+            [this.subjectStats, this.statsDesc, this.subjectDesc] = this.visObj.fdt.getStudyStatistics(this.study,this.condition,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,true);
             [this.statHist, this.statCenters] = this.makeHistogram(this.statPos);
             [this.normDistTests, this.normDistTestsLegend]= this.makeNormalDistributionTests(this.statPos);
         end
@@ -469,11 +507,11 @@ classdef StatsDescriptive < handle
         function [result, legend] = makeNormalDistributionTests(this,statsID)
             %test statsID for normal distribution
             result = []; legend = cell(0,0);
-            if(isempty(this.stats) || statsID > length(this.stats))
+            if(isempty(this.subjectStats) || statsID > length(this.subjectStats))
                 return
             end
             legend = {'Lilliefors';'Shapiro-Wilk';'Kolmogorov-Smirnov'};
-            ci = this.stats(:,statsID);
+            ci = this.subjectStats(:,statsID);
             if(~any(ci(:)))
                 return
             end
@@ -485,10 +523,10 @@ classdef StatsDescriptive < handle
         function [statHist, statCenters] = makeHistogram(this,statsID)
             %make histogram for statsID
             statHist = []; statCenters = [];
-            if(isempty(this.stats) || statsID > length(this.stats))
+            if(isempty(this.subjectStats) || statsID > length(this.subjectStats))
                 return
             end
-            ci = this.stats(:,statsID);
+            ci = this.subjectStats(:,statsID);
             cw = this.classWidth;
             c_min = round((min(ci(:)))/cw)*cw;%min(ci(:));
             c_max = round((max(ci(:)))/cw)*cw;%max(ci(:));
@@ -584,6 +622,15 @@ classdef StatsDescriptive < handle
             end
         end
         
+        function out = get.groupStats(this)
+            %return group mean of subject statistics (average of each parameter)
+            if(isempty(this.subjectStats))
+                out = [];
+            else
+                out = mean(this.subjectStats,1);
+            end
+        end
+        
         function out = get.statPos(this)
             out = get(this.visHandles.popupSelStatParam,'Value');
         end
@@ -596,7 +643,7 @@ classdef StatsDescriptive < handle
             dTypeNr = [];
             out = get(this.visHandles.popupSelFLIMParam,'String');
             if(~ischar(out))
-                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelFLIMParam,'Value')});
+                [~, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelFLIMParam,'Value')});
                 dTypeNr = dTypeNr(1);
             end 
         end
@@ -611,7 +658,11 @@ classdef StatsDescriptive < handle
         
         function out = get.exportNormDistTests(this)
             out = get(this.visHandles.checkExportNormalTests,'Value');
-        end 
+        end
+        
+        function out = get.exportSubjectRawData(this)
+            out = get(this.visHandles.checkExportSubjectData,'Value');
+        end
         
         function out = get.exportModeROI(this)
             out = get(this.visHandles.popupSelExportROI,'Value');
@@ -630,7 +681,7 @@ classdef StatsDescriptive < handle
             out = '';      
             if(get(this.visHandles.checkSNCondition,'Value'))
                 out = this.condition;
-                if(strcmp(out,'-'))
+                if(strcmp(out,FDTree.defaultConditionName()))
                     out = '';
                 else
                     out = [out '_'];
@@ -683,7 +734,7 @@ classdef StatsDescriptive < handle
             h = []; p = [];
             data = data(~isnan(data));
             data = data(~isinf(data));
-            if(~any(data(:)))
+            if(~any(data(:)) || length(data) < 4)
                 return
             end
             switch test
@@ -691,11 +742,19 @@ classdef StatsDescriptive < handle
                     [h,p] = lillietest(data,'Alpha',alpha);
                 case 'ks' %kolmogorov smirnov test
                     %center data for ks test
-                    tmp = data(:);
-                    tmp = (tmp-mean(tmp(:)))/std(tmp);
-                    [h,p] = kstest(tmp,'Alpha',alpha);
+                    if(var(data(:)) < eps)
+                        h = 1; p = 0;
+                    else
+                        tmp = data(:);
+                        tmp = (tmp-mean(tmp(:)))/std(tmp);
+                        [h,p] = kstest(tmp,'Alpha',alpha);
+                    end
                 case 'sw' %shapiro-wilk test
-                    [h,p] = swtest(data,alpha);
+                    if(var(data(:)) < eps)
+                        h = 1; p = 0;
+                    else
+                        [h,p] = swtest(data,alpha);
+                    end
             end
         end
         

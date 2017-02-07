@@ -33,7 +33,7 @@ function varargout = GUI_conditionalCol(varargin)
 %
 % GUI_CONDITIONALCOL M-file for GUI_conditionalCol.fig
 
-% Last Modified by GUIDE v2.5 16-Mar-2011 12:29:02
+% Last Modified by GUIDE v2.5 20-Oct-2016 15:14:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -66,7 +66,6 @@ function GUI_conditionalCol_OpeningFcn(hObject, eventdata, handles, varargin)
 opt = varargin{1};
 
 %init GUI:
-
 if(isempty(opt.name))
     %new (conditional) column
     i=1;
@@ -83,7 +82,7 @@ if(isempty(opt.name))
 else
     %edit exisiting column, adapt GUI
     set(handles.lblHeading,'String','Edit Column');
-    set(handles.figure1,'Name','Edit Column');
+    set(handles.FLIMXStudyMgrColumnCreationFigure,'Name','Edit Column');
     if(~opt.cond)
         %edit regular column
         set(handles.rbNormalCol,'Value',1);
@@ -92,15 +91,13 @@ else
         set(handles.rbConditionCol,'Value',1);
     end        
 end
-
 if(length(opt.list) == 1)
     %only one column in table
     set(handles.popupColB,'Enable','Off');
     set(handles.popupLogOp,'Enable','Off');
     opt.colB = 1;
 end
-
-set(handles.figure1,'userdata',opt);
+set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
 set(handles.editColName,'String',opt.name);
 if(isempty(opt.list))
     set(handles.popupColA,'String','-');
@@ -110,9 +107,9 @@ else
     set(handles.popupColA,'String',opt.list);
     set(handles.popupColB,'String',opt.list);
 end
-set(handles.popupLogOp,'String',opt.ops(1:5));
-set(handles.popupRelA,'String',opt.ops(6:end));
-set(handles.popupRelB,'String',opt.ops(6:end));
+set(handles.popupLogOp,'String',opt.ops(1:6),'Value',1);
+set(handles.popupRelA,'String',opt.ops(7:end),'Value',5);
+set(handles.popupRelB,'String',opt.ops(7:end),'Value',5);
 
 updateGUI(handles);
 
@@ -123,35 +120,29 @@ updateGUI(handles);
 %guidata(hObject, handles);
 
 % UIWAIT makes GUI_conditionalCol wait for user response (see UIRESUME)
-uiwait(handles.figure1);
+uiwait(handles.FLIMXStudyMgrColumnCreationFigure);
 
 % --- Outputs from this function are returned to the command line.
 function varargout = GUI_conditionalCol_OutputFcn(hObject, eventdata, handles) 
-
 if isempty(handles)
     handles.output='';
     varargout{1} = '';
 else
-    out = get(handles.figure1,'userdata');          
+    out = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');          
     
     varargout{1} = out;
-    delete(handles.figure1);
+    delete(handles.FLIMXStudyMgrColumnCreationFigure);
 end
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Other functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 function updateGUI(handles)
 %update GUI
-
 %set values
-opt = get(handles.figure1,'userdata');
+opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 set(handles.editColName,'String',opt.name);
-
 %enable/disable GUI controls
-
 if(opt.cond)
     %conditinal column - set related GUI controls
     set(handles.editValA,'Enable','On');
@@ -161,7 +152,6 @@ if(opt.cond)
         set(handles.popupLogOp,'Enable','On');
     end
     set(handles.editValA,'String',num2str(opt.valA));
-
     set(handles.popupColA,'Value',opt.colA);
     set(handles.popupRelA,'Value',opt.relA);    
     set(handles.popupLogOp,'Value',opt.logOp);    
@@ -195,37 +185,28 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Push Buttons
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 function btExecute_Callback(hObject, eventdata, handles)
-uiresume(handles.figure1);
+uiresume(handles.FLIMXStudyMgrColumnCreationFigure);
 
 function btCancel_Callback(hObject, eventdata, handles)
 % Cancel
-uiresume(handles.figure1);
-delete(handles.figure1);
+uiresume(handles.FLIMXStudyMgrColumnCreationFigure);
+delete(handles.FLIMXStudyMgrColumnCreationFigure);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Popups
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 function popupLogOp_Callback(hObject, eventdata, handles)
 % update selected logical / relational operator
-opt = get(handles.figure1,'userdata');
+opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 opt.logOp = get(hObject,'Value');
-set(handles.figure1,'userdata',opt);
+set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
 updateGUI(handles);
-
-function popupLogOp_CreateFcn(hObject, eventdata, handles)
-
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 function popupColA_Callback(hObject, eventdata, handles)
 %selected Column A
-opt = get(handles.figure1,'userdata');
+opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 colA = get(hObject,'Value');
 
 if(colA == opt.colB)
@@ -234,22 +215,12 @@ if(colA == opt.colB)
 end
 
 opt.colA = colA;
-set(handles.figure1,'userdata',opt);
+set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
 updateGUI(handles);
-
-% Hints: contents = cellstr(get(hObject,'String')) returns popupColA contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupColA
-
-function popupColA_CreateFcn(hObject, eventdata, handles)
-
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 function popupColB_Callback(hObject, eventdata, handles)
 %selected Column B
-opt = get(handles.figure1,'userdata');
+opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 colB = get(hObject,'Value');
 
 % if(colB == opt.colA)
@@ -258,50 +229,30 @@ colB = get(hObject,'Value');
 %                     'Error selecting Columns');
 % else
     opt.colB = colB;
-    set(handles.figure1,'userdata',opt);
+    set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
 % end
 updateGUI(handles);
 
-
-function popupColB_CreateFcn(hObject, eventdata, handles)
-
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 function popupRelA_Callback(hObject, eventdata, handles)
 % Popup for relational operator of column A
-opt = get(handles.figure1,'userdata');
+opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 opt.relA = get(hObject,'Value');
-set(handles.figure1,'userdata',opt);
-    
-function popupRelA_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
 
 function popupRelB_Callback(hObject, eventdata, handles)
 % Popup for relational operator of column B
-opt = get(handles.figure1,'userdata');
+opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 opt.relB = get(hObject,'Value');
-set(handles.figure1,'userdata',opt);
-    
-function popupRelB_CreateFcn(hObject, eventdata, handles)
-
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Edit boxes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 function editColName_Callback(hObject, eventdata, handles)
 %get unique column name
 name = get(hObject,'String');
-opt = get(handles.figure1,'userdata');
-
+opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 if(~isempty(name))    
     check = intersect(name,opt.list);
     if(~isempty(check))
@@ -311,23 +262,15 @@ if(~isempty(name))
     else
         %save new name
         opt.name = name;
-        set(handles.figure1,'userdata',opt);
+        set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
     end
 end
 set(hObject,'String',opt.name);
 
-
-function editColName_CreateFcn(hObject, eventdata, handles)
-
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 function editValA_Callback(hObject, eventdata, handles)
 % value for relational condition of column A
 val = str2double(get(hObject,'String'));
-opt = get(handles.figure1,'userdata');
-
+opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 if(~isempty(val))    
     if(isnan(val))
         %input is not valid
@@ -336,23 +279,15 @@ if(~isempty(val))
     else
         %save new value
         opt.valA = val;
-        set(handles.figure1,'userdata',opt);
+        set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
     end
 end
 set(hObject,'String',opt.valA);
 
-function editValA_CreateFcn(hObject, eventdata, handles)
-
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 function editValB_Callback(hObject, eventdata, handles)
 % value for relational condition of column B
 val = str2double(get(hObject,'String'));
-opt = get(handles.figure1,'userdata');
-
+opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 if(~isempty(val))    
     if(isnan(val))
         %input is not valid
@@ -361,26 +296,19 @@ if(~isempty(val))
     else
         %save new value
         opt.valB = val;
-        set(handles.figure1,'userdata',opt);
+        set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
     end
 end
 set(hObject,'String',opt.valB);    
-    
-function editValB_CreateFcn(hObject, eventdata, handles)
 
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Group Buttons
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 % --- Executes when selected object is changed in panelColType.
 function panelColType_SelectionChangeFcn(hObject, eventdata, handles)
-opt = get(handles.figure1,'userdata');
-if(length(opt.list) < 1)
+opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
+if(length(opt.list) < 2)
     %at least one column necessary
     errordlg('There must be at least one existing Colum in order to create a Condition!',...
         'Error creating Conditional Column');
@@ -392,5 +320,45 @@ switch get(eventdata.NewValue,'Tag')
     case 'rbConditionCol'        
         opt.cond = true;        
 end
-set(handles.figure1,'userdata',opt);
+set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
 updateGUI(handles);
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Create functions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function popupColB_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end    
+function popupRelA_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end   
+function popupRelB_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function editColName_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function editValB_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function editValA_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function popupLogOp_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function popupColA_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

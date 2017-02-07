@@ -447,16 +447,20 @@ classdef StatsGroupComparison < handle
             end
             set(this.visHandles.popupSelROISubType,'Visible',flag);
             %params
-            oldPStr = get(this.visHandles.popupSelParam,'String');
-            if(iscell(oldPStr) && ~isempty(oldPStr))
-                oldPStr = oldPStr(get(this.visHandles.popupSelParam,'Value'));
+            if(isempty(coStr))
+                set(this.visHandles.popupSelParam,'String','FLIM param','Value',1);
+            else
+                oldPStr = get(this.visHandles.popupSelParam,'String');
+                if(iscell(oldPStr) && ~isempty(oldPStr))
+                    oldPStr = oldPStr(get(this.visHandles.popupSelParam,'Value'));
+                end
+                %try to find oldPStr in new pstr
+                idx = find(strcmp(oldPStr,coStr),1);
+                if(isempty(idx))
+                    idx = min(get(this.visHandles.popupSelParam,'Value'),length(coStr));
+                end
+                set(this.visHandles.popupSelParam,'String',coStr,'Value',idx);
             end
-            %try to find oldPStr in new pstr
-            idx = find(strcmp(oldPStr,coStr),1);
-            if(isempty(idx))
-                idx = min(get(this.visHandles.popupSelParam,'Value'),length(coStr));
-            end
-            set(this.visHandles.popupSelParam,'String',coStr,'Value',idx);
             set(this.visHandles.buttonStudyPColor,'Backgroundcolor',this.settings.colorPath);
             set(this.visHandles.buttonStudyCColor,'Backgroundcolor',this.settings.colorControls);
             set(this.visHandles.buttonSigClassColor,'Backgroundcolor',this.settings.colorSigClass);
@@ -653,6 +657,15 @@ classdef StatsGroupComparison < handle
                         tmp{end,2} = num2str(stats.(fn{i}));
                     end
                     tmp(end+1,1) = cell(1,1);
+                    %some descriptive statistics
+                    vals = FLIMXFitGUI.num4disp([mean(this.grpData{1}),std(this.grpData{1}),mean(this.grpData{2}),std(this.grpData{2})]);
+                    if(length(vals) == 4)
+                        tmp{end+1,1} = 'Mean PATHOLOGIC';
+                        tmp{end,2} = sprintf('%s %s %s',vals{1},char(177),vals{2});
+                        tmp{end+1,1} = 'Mean CONTROLS';
+                        tmp{end,2} = sprintf('%s %s %s',vals{3},char(177),vals{4});
+                        tmp(end+1,1) = cell(1,1);
+                    end
                     %test for normal distribution
                     %Lilliefors test
                     tmp2 = cell(7,2);
@@ -794,7 +807,7 @@ classdef StatsGroupComparison < handle
             if(isempty(this.pIdx) || isempty(this.histograms))
                 this.rocData = [];
             else
-                histClass = this.pIdx(get(this.visHandles.popupExtAnalysis,'Value'));
+                histClass = this.pIdx(min(length(this.pIdx),get(this.visHandles.popupExtAnalysis,'Value')));
                 patients = this.histograms{1};
                 healthy = this.histograms{2};
                 rocdata = zeros(size(patients,1)+size(healthy,1),2);

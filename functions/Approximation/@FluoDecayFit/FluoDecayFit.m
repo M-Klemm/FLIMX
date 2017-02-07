@@ -402,10 +402,10 @@ classdef FluoDecayFit < handle
                 end
                 this.FLIMXObj.fdt.saveStudy(studyName);
                 [hours, minutes, secs] = secs2hms(t);
-                disp(sprintf('Fitting process finished after %02.0fh %02.0fmin %02.0fsec!',hours, minutes, round(secs)));
+                fprintf('Fitting process finished after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
             else
                 [hours, minutes, secs] = secs2hms(t);
-                disp(sprintf('Fitting process aborted after %02.0fh %02.0fmin %02.0fsec!',hours, minutes, round(secs)));
+                fprintf('Fitting process aborted after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
             end
         end
         

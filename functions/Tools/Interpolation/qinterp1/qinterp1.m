@@ -1,4 +1,4 @@
-function Y = qinterp1(x,Y,xi,optimize4Codegen)
+function out = qinterp1(x,Y,xi,optimize4Codegen)
 % Performs fast interpolation compared to interp1
 %
 % qinterp1 provides a speedup over interp1 but requires an evenly spaced
@@ -78,8 +78,8 @@ xi = xi - x(1);      % subtract minimum of x
 % if length(s)>2
 %     error('Y may only be one- or two-dimensional');
 % end
-%Y = NaN(length(xi),1);
-
+out = NaN(length(xi),size(Y,2));
+out(end,:) = Y(end,:);
 % switch method
 %     case 0 %nearest-neighbor method
 %         rxi = round(xi*ndx)+1;        % indices of nearest-neighbors
@@ -95,14 +95,14 @@ xi = xi - x(1);      % subtract minimum of x
         if(optimize4Codegen)
             %% use this for codegen!
             for i = 1:size(Y,2)
-                Y(flag,i) = (fxi(flag)-xi(flag)*ndx).*Y(fxi(flag),i) + (1-fxi(flag)+xi(flag)*ndx).*Y(fxi(flag)+1,i);
+                out(flag,i) = (fxi(flag)-xi(flag)*ndx).*Y(fxi(flag),i) + (1-fxi(flag)+xi(flag)*ndx).*Y(fxi(flag)+1,i);
             end
         else
             %% use this for matlab execution
             if(size(Y,2) == 1)
-                Y(flag) = (fxi(flag)-xi(flag)*ndx).*Y(fxi(flag)) + (1-fxi(flag)+xi(flag)*ndx).*Y(fxi(flag)+1);
+                out(flag) = (fxi(flag)-xi(flag)*ndx).*Y(fxi(flag)) + (1-fxi(flag)+xi(flag)*ndx).*Y(fxi(flag)+1);
             else
-                Y(flag,:) = bsxfun(@times,Y(fxi(flag),:),fxi(flag)-xi(flag)*ndx) + bsxfun(@times,Y(fxi(flag)+1,:),1-fxi(flag)+xi(flag)*ndx);
+                out(flag,:) = bsxfun(@times,Y(fxi(flag),:),fxi(flag)-xi(flag)*ndx) + bsxfun(@times,Y(fxi(flag)+1,:),1-fxi(flag)+xi(flag)*ndx);
             end
         end
 end

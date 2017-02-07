@@ -59,6 +59,7 @@ classdef FLIMXFitGUI < handle
         maxX = 1;
         maxY = 1;
         axesSuppData = [];
+        axesSuppDataMask = [];
         currentStudy = '';
         currentSubject = '';
         currentCondition = '';
@@ -104,6 +105,8 @@ classdef FLIMXFitGUI < handle
             this.dynVisParams.timeScalingAuto = 1; %1-auto, 0-manual
             this.dynVisParams.timeScalingStart = 1; %only if timeScalingAuto = 0
             this.dynVisParams.timeScalingEnd = 1024; %only if timeScalingAuto = 0
+            this.dynVisParams.timeScalingStartOld = 1; %only if timeScalingAuto = 0
+            this.dynVisParams.timeScalingEndOld = 1024; %only if timeScalingAuto = 0
             this.dynVisParams.countsScalingAuto = 1; %1-auto, 0-manual
             this.dynVisParams.countsScalingStart = 0.1; %only if countsScalingAuto = 0
             this.dynVisParams.countsScalingEnd = 10000; %only if countsScalingAuto = 0
@@ -189,7 +192,7 @@ classdef FLIMXFitGUI < handle
             %try to find oldPStr in new pstr
             idx = find(strcmp(oldVStr,views),1);
             if(isempty(idx) || isempty(this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,views{idx})))
-                idx = 1;%choose '-' view
+                idx = 1;%choose FDTree.defaultConditionName() view
             end
             set(this.visHandles.popupCondition,'String',views,'Value',idx);
             %update subject controls
@@ -341,7 +344,15 @@ classdef FLIMXFitGUI < handle
                     end
                 end
                 this.axesRawMgr.setMainData(this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel));
-                this.axesROIMgr.setMainData(this.axesSuppData);
+                data = this.axesSuppData;
+                if(~strcmp(str,'Intensity') && ~all(this.axesSuppDataMask(:)))
+                    tmp = data(data ~= 0 | this.axesSuppDataMask);
+                    lb = min(tmp(:));
+                    ub = max(tmp(:));
+                    this.axesROIMgr.setMainData(data,lb,ub);
+                else
+                    this.axesROIMgr.setMainData(data);
+                end
             end
             %s = axesWithROI(this.visHandles.axesRaw,this.visHandles.axesCbRaw,this.visHandles.textCbRawBottom,this.visHandles.textCbRawTop,this.visHandles.editCP,this.dynVisParams.cm);
 %             s.setMainData(this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel));
@@ -398,10 +409,10 @@ classdef FLIMXFitGUI < handle
             end
         end
         
-        function value = get.axesSuppData(this)
+        function data = get.axesSuppData(this)
             %get data for supplemental axes
             if(~this.isOpenVisWnd())
-                value = [];
+                data = [];
                 return;
             end
             pstr = char(get(this.visHandles.popupROI,'String'));
@@ -409,17 +420,32 @@ classdef FLIMXFitGUI < handle
             pstr = strtrim(pstr(pos,:));
             if(this.showInitialization)
                 if(strcmp('Intensity',pstr))
-                    value = double(sum(this.FLIMXObj.curSubject.getInitData(this.currentChannel,[]),3));
+                    data = double(sum(this.FLIMXObj.curSubject.getInitData(this.currentChannel,[]),3));
                 else
-                    value = double(this.FLIMXObj.curSubject.getInitFLIMItem(this.currentChannel,pstr));
+                    data = double(this.FLIMXObj.curSubject.getInitFLIMItem(this.currentChannel,pstr));
                 end
             else
                 if(strcmp('Intensity',pstr))
-                    value = double(this.FLIMXObj.curSubject.getROIDataFlat(this.currentChannel,false));
+                    data = double(this.FLIMXObj.curSubject.getROIDataFlat(this.currentChannel,false));
                 else
-                    value = double(this.FLIMXObj.curSubject.getPixelFLIMItem(this.currentChannel,pstr));
+                    data = double(this.FLIMXObj.curSubject.getPixelFLIMItem(this.currentChannel,pstr));
                 end
             end
+        end
+        
+        function mask = get.axesSuppDataMask(this)
+            %get mask for data of supplemental axes where data is non-zero
+            if(~this.isOpenVisWnd())
+                mask = [];
+                return;
+            end
+            %we assume that each result must have a tau1 and that tau1 is never zero
+            if(this.showInitialization)
+                mask = double(this.FLIMXObj.curSubject.getInitFLIMItem(this.currentChannel,'Tau1'));
+            else
+                mask = double(this.FLIMXObj.curSubject.getPixelFLIMItem(this.currentChannel,'Tau1'));
+            end
+            mask = mask ~= 0;
         end
         
         function data = get.currentDecayData(this)
@@ -449,7 +475,7 @@ classdef FLIMXFitGUI < handle
         
         function out = get.currentCondition(this)
             %get current view name from GUI
-            out = '-';
+            out = FDTree.defaultConditionName();
             if(~this.isOpenVisWnd())
                 return;
             end
@@ -1198,11 +1224,11 @@ classdef FLIMXFitGUI < handle
                 set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/></html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,'-');
+            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName());
             if(~isempty(subjects) && iscell(subjects))
                 cs = subjects{min(get(this.visHandles.popupSubject,'Value'),length(subjects))};
                 set(this.visHandles.popupCondition,'Value',1);
-                this.FLIMXObj.setCurrentSubject(this.currentStudy,'-',cs);
+                this.FLIMXObj.setCurrentSubject(this.currentStudy,FDTree.defaultConditionName(),cs);
                 %             else
                 %                 this.FLIMXObj.newSDTFile('');
                 %                 this.setupGUI();
@@ -1540,10 +1566,12 @@ classdef FLIMXFitGUI < handle
             inSuppAx = false;
             inMainAx = false;
             %check support axes
-            cp = get(this.visHandles.axesCurSupp,'CurrentPoint');
+            hAxSupp = this.visHandles.axesCurSupp;
+            cp = get(hAxSupp,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
-            cp=fix(cp+0.52);
-            if(cp(1) >= 1 && cp(1) <= this.maxX && cp(2) >= 1 && cp(2) <= this.maxY)
+            %cp=fix(cp+0.52);            
+            cp = round(cp);
+            if(cp(1) >= hAxSupp.XLim(1) && cp(1) <= hAxSupp.XLim(2) && cp(2) >= hAxSupp.YLim(1) && cp(2) <= hAxSupp.YLim(2))
                 %inside support axes
                 inSuppAx = true;
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
@@ -1558,17 +1586,17 @@ classdef FLIMXFitGUI < handle
             %check main axes
             cp = get(this.visHandles.axesCurMain,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));            
-            xl = xlim(this.visHandles.axesCurMain);
-            yl = ylim(this.visHandles.axesCurMain);
+            xl = this.visHandles.axesCurMain.XLim;
+            yl = this.visHandles.axesCurMain.YLim;
             if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2) && ~isempty(this.currentDecayData) && this.visualizationParams.plotCurLinesAndText)
                 %inside main axes
                 inMainAx = true;
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
                 %Xval = Mousecoordinates transformed to dimension of YData
                 Yval = this.currentDecayData;
-                Xval = int16(round((cp(1)+0.009)./ this.FLIMXObj.curSubject.timeChannelWidth*1000)) ;
-
-                
+                tVec = abs(this.FLIMXObj.curSubject.timeVector - cp(1));
+                [~,Xval] = min(tVec(:));
+                %vertical cursorline, goes green while setting the scale
                 %per mouseclick
                 if(~ishandle(this.visHandles.cursorLineMainVertical))
                     this.visHandles.cursorLineMainVertical = line([NaN NaN], ylim(this.visHandles.axesCurMain),'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesCurMain, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth );
@@ -1653,8 +1681,6 @@ classdef FLIMXFitGUI < handle
             %executes on clickrelease in window            
             switch get(hObject,'SelectionType')
                 case 'normal'
-                    cp = get(this.visHandles.axesCurSupp,'CurrentPoint');
-                    cp = cp(logical([1 1 0; 0 0 0]));
                     this.currentX = max(min(round(abs(str2double(get(this.visHandles.editX,'String')))),this.maxX),1);
                     this.currentY = max(min(round(abs(str2double(get(this.visHandles.editY,'String')))),this.maxY),1);
                     if(get(this.visHandles.checkAutoFitPixel,'Value') && ~this.FLIMXObj.curSubject.isPixelResult(this.currentChannel,this.currentY,this.currentX,this.showInitialization))
@@ -1670,22 +1696,31 @@ classdef FLIMXFitGUI < handle
                     yl= ylim(this.visHandles.axesCurMain);
                     if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
                         this.visHandles.editTimeScalEnd.String =  num2str(cp(1)*1000);
-                        this.dynVisParams.timeScalingEnd = int64(round(cp(1) ./ this.FLIMXObj.curSubject.timeChannelWidth*1000));
-                        if ( this.dynVisParams.timeScalingEnd < this.dynVisParams.timeScalingStart )
-                            tmp = this.visHandles.editTimeScalEnd.String;
-                            this.visHandles.editTimeScalEnd.String = this.visHandles.editTimeScalStart.String;
-                            this.visHandles.editTimeScalStart.String = tmp;
-                            tmp = this.dynVisParams.timeScalingEnd;
-                            this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingStart;
-                            this.dynVisParams.timeScalingStart = tmp;
-                        end
-                        if(this.dynVisParams.timeScalingEnd ~= this.dynVisParams.timeScalingStart)
+                        val = int64(round(cp(1) ./ this.FLIMXObj.curSubject.timeChannelWidth*1000));
+                        if(abs(val - this.dynVisParams.timeScalingStart) >= 10)
+                            %at least 10 time channels difference
+                            this.dynVisParams.timeScalingEnd = val;
+                            if(val < this.dynVisParams.timeScalingStart)
+                                this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingStart;
+                                this.dynVisParams.timeScalingStart = val;
+                            else
+                                this.dynVisParams.timeScalingEnd = val;
+                            end
+                            this.visHandles.editTimeScalStart.String = num2str(this.dynVisParams.timeScalingStart .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
+                            this.visHandles.editTimeScalEnd.String = num2str(this.dynVisParams.timeScalingEnd .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
+                            this.dynVisParams.timeScalingStartOld = this.dynVisParams.timeScalingStart;
+                            this.dynVisParams.timeScalingEndOld = this.dynVisParams.timeScalingEnd;
                             set(this.visHandles.radioTimeScalManual,'Value', 1);
                             set(this.visHandles.radioTimeScalAuto,'Value', 0);
                             this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalManual);
+                        else
+                            this.dynVisParams.timeScalingStart = this.dynVisParams.timeScalingStartOld;
+                            this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingEndOld;
+                            this.visHandles.editTimeScalStart.String = num2str(this.dynVisParams.timeScalingStartOld .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
+                            this.visHandles.editTimeScalEnd.String = num2str(this.dynVisParams.timeScalingEndOld .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
                         end
-                    end                    
-            end            
+                    end
+            end
         end
         
         function GUI_mouseButtonDown_Callback(this,hObject,eventdata)
@@ -1705,7 +1740,7 @@ classdef FLIMXFitGUI < handle
                         end
                         this.visHandles.isSettingScale = 1;
                         this.visHandles.setScaleStartLine = line([cp(1) cp(1)], ylim(this.visHandles.axesCurMain),'Color' , [0 0.75 0], 'Parent', this.visHandles.axesCurMain);
-                        this.visHandles.editTimeScalStart.String =  num2str(cp(1)*1000);
+                        this.visHandles.editTimeScalStart.String =  num2str(cp(1)./ this.FLIMXObj.curSubject.timeChannelWidth*1000);
                         this.dynVisParams.timeScalingStart = int64(cp(1)*100*0.82);
                     end
                 case 'alt'

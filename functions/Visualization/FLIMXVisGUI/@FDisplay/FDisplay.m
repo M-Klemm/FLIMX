@@ -49,6 +49,8 @@ classdef FDisplay < handle
         h_Polygon = [];
         pixelResolution = 0;
         measurementPosition = 'OS';
+        zoomAnchor = [1; 1];
+        zoomFactor = 1;
     end
     properties(GetAccess = public, SetAccess = protected)
         myhfdMain = {[]};
@@ -97,6 +99,7 @@ classdef FDisplay < handle
         h_io_edit = [];
         h_CPPosTxt = [];
         h_CPValTxt = [];
+        h_zoom_slider = [];
         %visualization parameters
         dynVisParams = [];
         staticVisParams = [];
@@ -125,6 +128,7 @@ classdef FDisplay < handle
             else
                 this.myhfdMain = {val};
             end
+            this.setZoomAnchor([]);
         end
         
         function sethfdSupp(this,val)
@@ -143,35 +147,40 @@ classdef FDisplay < handle
         
         function cp = getMyCP(this)
             %get the current point of my main axes            
-            hfd = this.gethfd();
-            if(isempty(hfd{1}) || length(hfd) > 1 || this.mDispDim > 2)                
-                cp = [];
-                return
-            end 
-            hfd = hfd{1};
-            cp = get(this.h_m_ax,'CurrentPoint');
+%             hfd = this.gethfd();
+%             if(isempty(hfd{1}) || length(hfd) > 1 || this.mDispDim > 2)                
+%                 cp = [];
+%                 return
+%             end 
+%             hfd = hfd{1};
+            hAx = this.h_m_ax;
+            cp = get(hAx,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
             if(any(cp(:) < 0))
                 %we are outside axes - nothing to do
                 cp = [];
                 return;
             end
-            cp=fix(cp+0.52);
-            if(this.mDispDim == 1)
-                xMax = hfd.rawImgXSz(2);
-                yMax = hfd.rawImgYSz(2);
-            else
-                rc = this.ROICoordinates;
-                rt = this.ROIType;
-                rs = this.ROISubType;
-                ri = this.ROIInvertFlag;
-                xMax = hfd.getCIxSz(rc,rt,rs,ri);
-                yMax = hfd.getCIySz(rc,rt,rs,ri);
-            end
-            if(cp(1) >= 1 && cp(1) <= xMax && cp(2) >= 1 && cp(2) <= yMax)
-            else
+            %cp=fix(cp+0.52);
+            cp = round(cp);
+            if(cp(1) < hAx.XLim(1) || cp(1) > hAx.XLim(2) || cp(2) < hAx.YLim(1) || cp(2) > hAx.YLim(2))
                 cp = [];
-            end            
+            end
+%             if(this.mDispDim == 1)
+%                 xMax = hfd.rawImgXSz(2);
+%                 yMax = hfd.rawImgYSz(2);
+%             else
+%                 rc = this.ROICoordinates;
+%                 rt = this.ROIType;
+%                 rs = this.ROISubType;
+%                 ri = this.ROIInvertFlag;
+%                 xMax = hfd.getCIxSz(rc,rt,rs,ri);
+%                 yMax = hfd.getCIySz(rc,rt,rs,ri);
+%             end
+%             if(cp(1) >= 1 && cp(1) <= xMax && cp(2) >= 1 && cp(2) <= yMax)
+%             else
+%                 cp = [];
+%             end            
         end
         
         function drawCP(this,cp)
@@ -290,22 +299,23 @@ classdef FDisplay < handle
                 return
             end
             gc = this.staticVisParams.ROIColor;
-            lw = 2;
+            lw = this.staticVisParams.ROILinewidth;
+            ls = this.staticVisParams.ROILinestyle;
             idx = widths < 0;
             cp(idx) = cp(idx) + widths(idx);
             widths = abs(widths);
             isHG = ishghandle(this.h_Rectangle);
             if(~isempty(isHG) && isHG)
-                set(this.h_Rectangle,'Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw);
+                set(this.h_Rectangle,'Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls);
             else
                 try
                     delete(this.h_Rectangle);
                 end
                 if(this.staticVisParams.ROI_fill_enable)
                     fc = [gc this.staticVisParams.ETDRS_subfield_bg_color(end)];
-                    this.h_Rectangle = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
+                    this.h_Rectangle = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
                 else
-                    this.h_Rectangle = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    this.h_Rectangle = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                 end
             end
             %             if(MSX)
@@ -325,19 +335,20 @@ classdef FDisplay < handle
                 return
             end
             gc = this.staticVisParams.ROIColor;
-            lw = 2;
+            lw = this.staticVisParams.ROILinewidth;
+            ls = this.staticVisParams.ROILinestyle;
             isHG = ishghandle(this.h_Circle);
             if(~isempty(isHG) && isHG)
-                set(this.h_Circle,'Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'LineWidth',lw);
+                set(this.h_Circle,'Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'LineWidth',lw,'LineStyle',ls);
             else
                 try
                     delete(this.h_Circle);
                 end
                 if(this.staticVisParams.ROI_fill_enable)
                     fc = [gc this.staticVisParams.ETDRS_subfield_bg_color(end)];
-                    this.h_Circle = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
+                    this.h_Circle = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
                 else
-                    this.h_Circle = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    this.h_Circle = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                 end
             end
         end
@@ -345,18 +356,19 @@ classdef FDisplay < handle
         function drawPolygon(this,points,drawTextFlag)
             %draw polygon into 2D plot
             gc = this.staticVisParams.ROIColor;
-            lw = 2;
+            lw = this.staticVisParams.ROILinewidth;
+            ls = this.staticVisParams.ROILinestyle;
             isHG = ishghandle(this.h_Polygon);
             if(~isempty(isHG) && isHG)
-                set(this.h_Polygon,'Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw);
+                set(this.h_Polygon,'Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls);
             else
                 try
                     delete(this.h_Polygon);
                 end
                 if(this.staticVisParams.ROI_fill_enable)
-                    this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'EdgeColor',gc,'FaceColor',gc,'FaceAlpha',this.staticVisParams.ETDRS_subfield_bg_color(end),'Parent',this.h_m_ax);
+                    this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls,'EdgeColor',gc,'FaceColor',gc,'FaceAlpha',this.staticVisParams.ETDRS_subfield_bg_color(end),'Parent',this.h_m_ax);
                 else
-                    this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'EdgeColor',gc,'FaceAlpha',0,'Parent',this.h_m_ax);
+                    this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls,'EdgeColor',gc,'FaceAlpha',0,'Parent',this.h_m_ax);
                 end
             end
         end
@@ -372,43 +384,56 @@ classdef FDisplay < handle
                 return
             end
             res = this.pixelResolution;
-            gc = this.staticVisParams.ROIColor;%[1 1 1];
+            gc = this.staticVisParams.ROIColor;
             if(res > 0)
                 %radius ring1 = 500 µm
                 d1 = 1000/res;
                 d2 = 3000/res;
                 d3 = 6000/res;                
-                lw = 2;
+                lw = this.staticVisParams.ROILinewidth;
+                ls = this.staticVisParams.ROILinestyle;
                 fs = this.staticVisParams.fontsize;
-                if(~isempty(idxG) && all(idxG(:)))
+                if(~isempty(idxG) && all(idxG(:)) && ~this.staticVisParams.ROI_fill_enable)
                     %circles
-                    set(this.h_ETDRSGrid(1),'Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'LineWidth',lw);
-                    set(this.h_ETDRSGrid(2),'Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'LineWidth',lw);
-                    set(this.h_ETDRSGrid(3),'Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'LineWidth',lw);
+                    set(this.h_ETDRSGrid(1),'Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(2),'Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(3),'Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'LineWidth',lw,'LineStyle',ls);
                     %lines
-                    set(this.h_ETDRSGrid(4),'XData',[cp(2)+cos(pi/4)*d1/2  cp(2)+cos(pi/4)*d3/2],'YData',[cp(1)+sin(pi/4)*d1/2 cp(1)+sin(pi/4)*d3/2],'LineWidth',lw);
-                    set(this.h_ETDRSGrid(5),'XData',[cp(2)+cos(3*pi/4)*d1/2  cp(2)+cos(3*pi/4)*d3/2],'YData',[cp(1)+sin(3*pi/4)*d1/2 cp(1)+sin(3*pi/4)*d3/2],'LineWidth',lw);
-                    set(this.h_ETDRSGrid(6),'XData',[cp(2)+cos(-pi/4)*d1/2  cp(2)+cos(-pi/4)*d3/2],'YData',[cp(1)+sin(-pi/4)*d1/2 cp(1)+sin(-pi/4)*d3/2],'LineWidth',lw);
-                    set(this.h_ETDRSGrid(7),'XData',[cp(2)+cos(-3*pi/4)*d1/2  cp(2)+cos(-3*pi/4)*d3/2],'YData',[cp(1)+sin(-3*pi/4)*d1/2 cp(1)+sin(-3*pi/4)*d3/2],'LineWidth',lw);
+                    set(this.h_ETDRSGrid(4),'XData',[cp(2)+cos(pi/4)*d1/2  cp(2)+cos(pi/4)*d3/2],'YData',[cp(1)+sin(pi/4)*d1/2 cp(1)+sin(pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(5),'XData',[cp(2)+cos(3*pi/4)*d1/2  cp(2)+cos(3*pi/4)*d3/2],'YData',[cp(1)+sin(3*pi/4)*d1/2 cp(1)+sin(3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(6),'XData',[cp(2)+cos(-pi/4)*d1/2  cp(2)+cos(-pi/4)*d3/2],'YData',[cp(1)+sin(-pi/4)*d1/2 cp(1)+sin(-pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(7),'XData',[cp(2)+cos(-3*pi/4)*d1/2  cp(2)+cos(-3*pi/4)*d3/2],'YData',[cp(1)+sin(-3*pi/4)*d1/2 cp(1)+sin(-3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
                 else
                     try
                         delete(this.h_ETDRSGrid(idxG));
                     end
-                    h = zeros(7,1);
-                    
-                    h(1) = rectangle('Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc);
-                    h(2) = rectangle('Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    h = zeros(8,1); 
                     if(this.staticVisParams.ROI_fill_enable)
-                        fc = [gc this.staticVisParams.ETDRS_subfield_bg_color(end)];
-                        h(3) = rectangle('Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
-                    else
-                        h(3) = rectangle('Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'Curvature',[1 1],'LineWidth',lw,'Parent',this.h_m_ax,'EdgeColor',gc);
+                        %draw filled segment below the grid
+                        fileInfo.pixelResolution = res;
+                        fileInfo.position = this.measurementPosition;
+                        mask = zeros(size(this.mainExportXls),'single');
+                        [~,idx] = FData.getImgSeg(zeros(size(this.mainExportXls)),this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag,fileInfo);
+                        if(~isempty(idx))
+                            mask(idx) = 1;
+                            mask = repmat(mask,1,1,4);
+                            mask(:,:,1) = mask(:,:,1) .* gc(1);
+                            mask(:,:,2) = mask(:,:,2) .* gc(2);
+                            mask(:,:,3) = mask(:,:,3) .* gc(3);
+                            mask(:,:,4) = mask(:,:,4) .* this.staticVisParams.ETDRS_subfield_bg_color(end);
+                            hold(this.h_m_ax,'on');
+                            h(8) = image(this.h_m_ax,mask(:,:,1:3),'AlphaData',mask(:,:,4));
+                            hold(this.h_m_ax,'off');
+                        end
                     end
+                    h(1) = rectangle('Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    h(2) = rectangle('Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    h(3) = rectangle('Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                     %lines
-                    h(4) = line('XData',[cp(2)+cos(pi/4)*d1/2  cp(2)+cos(pi/4)*d3/2],'YData',[cp(1)+sin(pi/4)*d1/2 cp(1)+sin(pi/4)*d3/2],'LineWidth',lw,'Parent',this.h_m_ax,'Color',gc);
-                    h(5) = line('XData',[cp(2)+cos(3*pi/4)*d1/2  cp(2)+cos(3*pi/4)*d3/2],'YData',[cp(1)+sin(3*pi/4)*d1/2 cp(1)+sin(3*pi/4)*d3/2],'LineWidth',lw,'Parent',this.h_m_ax,'Color',gc);
-                    h(6) = line('XData',[cp(2)+cos(-pi/4)*d1/2  cp(2)+cos(-pi/4)*d3/2],'YData',[cp(1)+sin(-pi/4)*d1/2 cp(1)+sin(-pi/4)*d3/2],'LineWidth',lw,'Parent',this.h_m_ax,'Color',gc);
-                    h(7) = line('XData',[cp(2)+cos(-3*pi/4)*d1/2  cp(2)+cos(-3*pi/4)*d3/2],'YData',[cp(1)+sin(-3*pi/4)*d1/2 cp(1)+sin(-3*pi/4)*d3/2],'LineWidth',lw,'Parent',this.h_m_ax,'Color',gc);
+                    h(4) = line('XData',[cp(2)+cos(pi/4)*d1/2  cp(2)+cos(pi/4)*d3/2],'YData',[cp(1)+sin(pi/4)*d1/2 cp(1)+sin(pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);
+                    h(5) = line('XData',[cp(2)+cos(3*pi/4)*d1/2  cp(2)+cos(3*pi/4)*d3/2],'YData',[cp(1)+sin(3*pi/4)*d1/2 cp(1)+sin(3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);
+                    h(6) = line('XData',[cp(2)+cos(-pi/4)*d1/2  cp(2)+cos(-pi/4)*d3/2],'YData',[cp(1)+sin(-pi/4)*d1/2 cp(1)+sin(-pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);
+                    h(7) = line('XData',[cp(2)+cos(-3*pi/4)*d1/2  cp(2)+cos(-3*pi/4)*d3/2],'YData',[cp(1)+sin(-3*pi/4)*d1/2 cp(1)+sin(-3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);
                     this.h_ETDRSGrid = h;
                 end
                 %text in subfields
@@ -427,8 +452,7 @@ classdef FDisplay < handle
                     if(strcmp(this.staticVisParams.ETDRS_subfield_values,'field name'))
                         txt = {'C','IS','IN','II','IT','OS','ON','OI','OT'}';
                     else
-                        tmp = hfd.getROISubfieldStatistics(cp,1,this.staticVisParams.ETDRS_subfield_values);                        
-                        %txt = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%FLIMXFitGUI.num4disp(tmp(i));
+                        tmp = hfd.getROISubfieldStatistics(cp,1,this.staticVisParams.ETDRS_subfield_values);
                         txt = FLIMXFitGUI.num4disp(tmp);
                     end
                     if(this.staticVisParams.ETDRS_subfield_bg_enable)
@@ -534,9 +558,10 @@ classdef FDisplay < handle
             %update main and cuts axes
             %tic;                                    
             this.UpdateMinMaxLbl();
-            this.makeMainPlot();
-            this.makeMainXYLabels();
+            this.makeMainPlot();            
             this.makeSuppPlot();
+            this.makeZoom(); 
+            %this.makeMainXYLabels();
             this.makeDSTable();
             this.updateColorBarLbls();
             %toc
@@ -639,7 +664,8 @@ classdef FDisplay < handle
                 if((zMax - zMin) < 0.1)
                     zMax = zMax + 0.1;
                 end
-                %color mapping                
+                %color mapping
+                %zMin = 500; zMax = 3500;
                 if(dispDim == 1 || isempty(hfd{i}.getCIColor(rc,rt,rs,ri)))
                     colors = current_img - zMin(i);
                     colors(isinf(colors)) = NaN;
@@ -650,8 +676,8 @@ classdef FDisplay < handle
                     end
                     colors = colors/(zMax(i)-zMin(i))*(size(cm,1)-1)+1; %mapping for colorbar
                     colors(isnan(colors)) = 1;
-                    colors(colors > size(cm,1)) = size(cm,1); 
-                    colors(colors < 1) = 1;
+                    colors = max(colors,1);
+                    colors = min(colors,256);
                     if(strncmp(hfd{i}.dType,'MVGroup',7)  || strncmp(hfd{i}.dType,'ConditionMVGroup',16))
                         cm = repmat([0:1/(size(cm,1)-1):1]',1,3);
                         color = this.visObj.fdt.getViewColor(this.visObj.getStudy(this.mySide),this.visObj.getView(this.mySide));
@@ -723,11 +749,7 @@ classdef FDisplay < handle
                             rt = this.ROIType;
                             if(rt >= 1)
                                 ROICoord = this.ROICoordinates;
-%                                 if(rt >= 1 && rt < 6)
                                 this.drawROI(rt,ROICoord(:,1),ROICoord(:,2:end),true);
-%                                 else
-%                                     this.drawROI(rt,[],ROICoord,true);
-%                                 end
                             end
                         end
                         %save for export
@@ -915,8 +937,85 @@ classdef FDisplay < handle
                 else
                     setAllowAxesRotate(this.visObj.visHandles.hrotate3d,this.h_m_ax,false);
                 end
-            end
+            end           
         end %makeMainPlot
+        
+        function setZoomAnchor(this,anchor)
+            %set center for zoom
+            if(isempty(anchor) || length(anchor) ~= 2)
+                hfd = this.gethfd();
+                if(isempty(hfd{1}))
+                    return
+                end
+                hfd = hfd{1};
+                rc = this.ROICoordinates;
+                rt = this.ROIType;
+                rs = this.ROISubType;
+                ri = this.ROIInvertFlag;
+                if(this.mDispDim == 1)
+                    xFullRange = hfd.rawImgXSz(end);
+                    yFullRange = hfd.rawImgYSz(end);
+                else
+                    xFullRange = hfd.getCIxSz(rc,rt,rs,ri);
+                    yFullRange = hfd.getCIySz(rc,rt,rs,ri);
+                end
+                this.zoomAnchor = [max(1,floor(xFullRange./2));max(1,floor(yFullRange./2))];
+            else
+                this.zoomAnchor = anchor(:);
+            end
+        end
+        
+        function makeZoom(this)
+            %apply zoom to main and supplemental plots; does NOT set labels correctly!
+            hfd = this.gethfd();
+            if(isempty(hfd{1}))
+                return
+            end
+            hfd = hfd{1};
+            rc = this.ROICoordinates;
+            rt = this.ROIType;
+            rs = this.ROISubType;
+            ri = this.ROIInvertFlag;
+            if(this.mDispDim == 1)
+                xFullRange = hfd.rawImgXSz(end);
+                yFullRange = hfd.rawImgYSz(end);
+            else
+                xFullRange = hfd.getCIxSz(rc,rt,rs,ri);
+                yFullRange = hfd.getCIySz(rc,rt,rs,ri);
+            end
+            if(isempty(xFullRange))
+                return
+            end
+            zoom = get(this.h_zoom_slider,'Value');
+            %main plot
+            hAxMain = this.h_m_ax;
+            if((zoom-1) < eps)
+                hAxMain.XLim = [1 xFullRange];
+                hAxMain.YLim = [1 yFullRange];
+            else
+                xNewRange = xFullRange./zoom;
+                yNewRange = yFullRange./zoom;
+                hAxMain.XLim = [max(1,this.zoomAnchor(1) - floor(xNewRange./2)) min(xFullRange,this.zoomAnchor(1) + ceil(xNewRange./2))];                
+                hAxMain.YLim = [max(1,this.zoomAnchor(2) - floor(yNewRange./2)) min(yFullRange,this.zoomAnchor(2) + ceil(yNewRange./2))];
+            end
+            this.makeMainXYLabels();
+            %supplemental plot
+            if(this.sDispMode == 4 && hfd.getCutX() && hfd.getCutXVal(true,true,rc,rt,rs,ri) ~= 0 )
+                this.h_s_ax.XLim = hAxMain.YLim;
+                xlbl = hfd.getCIYLbl(rc,rt,rs,ri);
+            elseif(this.sDispMode == 3 && hfd.getCutY() && hfd.getCutYVal(true,true,rc,rt,rs,ri) ~= 0 )
+                this.h_s_ax.XLim = hAxMain.XLim;
+                xlbl = hfd.getCIXLbl(rc,rt,rs,ri);
+            else
+                return
+            end
+            xtick = get(this.h_s_ax,'XTick');
+            idx = abs(fix(xtick)-xtick)<eps;
+            pos = xtick(idx);
+            xCell = cell(length(xtick),1);
+            xCell(idx) = num2cell(xlbl(pos));
+            this.h_s_ax.XTickLabel = xCell;
+        end
           
         function makeMainXYLabels(this)
             %axis labes
@@ -1110,8 +1209,7 @@ classdef FDisplay < handle
                                     zMin(i) = zData(2);
                                     zMax(i) = zData(3);
                                 end
-                            end
-                            
+                            end                            
                             if(this.staticVisParams.offset_m3d && nrFD > 1)
                                 %get offset
                                 pos = get(this.h_s_ax,'Position');
@@ -1141,8 +1239,7 @@ classdef FDisplay < handle
                                     end
                                     current_img = current_img + offset;
                                 end
-                            end
-                            
+                            end                            
                             plot(this.h_s_ax,current_img,'Color',this.staticVisParams.supp_plot_color,'LineWidth',this.staticVisParams.supp_plot_linewidth);
                             if(nrFD > 1)
                                 hold(this.h_s_ax,'on');
@@ -1251,6 +1348,9 @@ classdef FDisplay < handle
                 hold(this.h_s_ax,'off');
             end
             if(~this.screenshot)
+                if(strcmp(this.mySide,'l'))
+                    this.h_s_ax.YAxisLocation = 'right';
+                end
                 setAllowAxesRotate(this.visObj.visHandles.hrotate3d,this.h_s_ax,false);
             end
         end %makeSuppPlot
@@ -1323,7 +1423,8 @@ classdef FDisplay < handle
             if(size(intImg,1) == size(colorImg,1) && size(intImg,2) == size(colorImg,2))
                 brightness = this.intOverBright;
                 %contrast = 1;
-                intImg = histeq(intImg./max(intImg(:)));
+                intImg = intImg - min(intImg(:));
+                %intImg = histeq(intImg./max(intImg(:)));
                 intImg = intImg/max(intImg(:));  %*(size(this.dynVisParams.cm,1)-1)+1; %mapping for colorbar
                 intImg(isnan(intImg)) = 0;
                 %adapt brightness and contrast of intensity image
@@ -1541,6 +1642,12 @@ classdef FDisplay < handle
             %
             out = this.visObj.visHandles.(sprintf('cp_%s_val_text',this.mySide));
         end
+        
+        function out = get.h_zoom_slider(this)
+            %
+            out = this.visObj.visHandles.(sprintf('slider_%s_zoom',this.mySide));
+        end
+        
         %visualization parameters
         function out = get.dynVisParams(this)
             %
@@ -1586,41 +1693,6 @@ classdef FDisplay < handle
     
     methods(Access = protected)
         %internal methods
-        function setUIHandles(this)
-            %builds the uicontrol handles for the FDisplay object
-%             s = this.mySide;
-            %axes
-%             this.h_m_ax = this.visObj.visHandles.(sprintf('main_%s_axes',s));
-%             this.h_s_ax = this.visObj.visHandles.(sprintf('supp_%s_axes',s));
-            %controls
-%             this.h_pd = this.visObj.visHandles.(sprintf('dataset_%s_pop',s));
-            %main axes
-%             this.h_m_p = this.visObj.visHandles.(sprintf('main_axes_%s_pop',s));
-%             this.h_m_pvar = this.visObj.visHandles.(sprintf('main_axes_var_%s_pop',s));
-%             this.h_m_pdim = this.visObj.visHandles.(sprintf('main_axes_pdim_%s_pop',s));
-%             this.h_m_pch = this.visObj.visHandles.(sprintf('main_axes_chan_%s_pop',s));
-%             this.h_m_psc = this.visObj.visHandles.(sprintf('main_axes_scale_%s_pop',s));
-            %supp axes
-%             this.h_s_p = this.visObj.visHandles.(sprintf('supp_axes_%s_pop',s));
-%             this.h_s_hist = this.visObj.visHandles.(sprintf('supp_axes_hist_%s_pop',s));
-%             this.h_s_psc = this.visObj.visHandles.(sprintf('supp_axes_scale_%s_pop',s));
-            %descripte statistics table
-%             this.h_ds_t = this.visObj.visHandles.(sprintf('descStats_%s_table',s));
-            %intensity overlay
-%             this.h_io_check = this.visObj.visHandles.(sprintf('IO_%s_check',s));
-%             this.h_io_edit = this.visObj.visHandles.(sprintf('IO_%s_edit',s));
-            
-            %colorbar text
-%             this.h_t1 = this.visObj.visHandles.(sprintf('cm_1_%s_text',s));
-%             this.h_t2 = this.visObj.visHandles.(sprintf('cm_2_%s_text',s));
-%             this.h_t3 = this.visObj.visHandles.(sprintf('cm_3_%s_text',s));
-%             this.h_t4 = this.visObj.visHandles.(sprintf('cm_4_%s_text',s));
-%             this.h_t5 = this.visObj.visHandles.(sprintf('cm_5_%s_text',s));
-            
-            %current point text
-%             this.h_CPPosTxt = this.visObj.visHandles.(sprintf('cp_%s_pos_text',s));
-%             this.h_CPValTxt = this.visObj.visHandles.(sprintf('cp_%s_val_text',s));
-        end
     end %methods protected
     
     methods(Static)
