@@ -1099,38 +1099,38 @@ classdef FLIMXVisGUI < handle
                 end
             end
             
-            %stuff for the colorbar in histogram
-            cp = get(this.visHandles.supp_l_axes,'CurrentPoint');
-            cp = cp(logical([1 1 0; 0 0 0]));
-            xl = xlim(this.visHandles.supp_l_axes);
-            yl = ylim(this.visHandles.supp_l_axes);
-            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
-                switch get(hObject,'SelectionType')
-                    case 'normal'
-                        this.visHandles.ColorStartingPoint_L = cp(1);
-                        if(ishandle(this.visHandles.lineStart))
-                            delete(this.visHandles.lineStart)
-                        end
-                        this.visHandles.lineStart = line([cp(1) cp(1)], ylim(this.visHandles.supp_l_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_l_axes);
-                    case 'alt'
-                end
-            else
-                cp = get(this.visHandles.supp_r_axes,'CurrentPoint');
-                cp = cp(logical([1 1 0; 0 0 0]));
-                xl = xlim(this.visHandles.supp_r_axes);
-                yl = ylim(this.visHandles.supp_r_axes);
-                if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
-                    switch get(hObject,'SelectionType')
-                        case 'normal'
-                            this.visHandles.ColorStartingPoint_R = cp(1);
-                            if(ishandle(this.visHandles.lineStart))
-                                delete(this.visHandles.lineStart)
-                            end
-                            this.visHandles.lineStart = line([cp(1) cp(1)], ylim(this.visHandles.supp_r_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_r_axes);
-                        case 'alt'
-                    end
-                end
-            end
+%             %stuff for the colorbar in histogram
+%             cp = get(this.visHandles.supp_l_axes,'CurrentPoint');
+%             cp = cp(logical([1 1 0; 0 0 0]));
+%             xl = xlim(this.visHandles.supp_l_axes);
+%             yl = ylim(this.visHandles.supp_l_axes);
+%             if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
+%                 switch get(hObject,'SelectionType')
+%                     case 'normal'
+%                         this.visHandles.ColorStartingPoint_L = cp(1);
+%                         if(ishandle(this.visHandles.lineStart))
+%                             delete(this.visHandles.lineStart)
+%                         end
+%                         this.visHandles.lineStart = line([cp(1) cp(1)], ylim(this.visHandles.supp_l_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_l_axes);
+%                     case 'alt'
+%                 end
+%             else
+%                 cp = get(this.visHandles.supp_r_axes,'CurrentPoint');
+%                 cp = cp(logical([1 1 0; 0 0 0]));
+%                 xl = xlim(this.visHandles.supp_r_axes);
+%                 yl = ylim(this.visHandles.supp_r_axes);
+%                 if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
+%                     switch get(hObject,'SelectionType')
+%                         case 'normal'
+%                             this.visHandles.ColorStartingPoint_R = cp(1);
+%                             if(ishandle(this.visHandles.lineStart))
+%                                 delete(this.visHandles.lineStart)
+%                             end
+%                             this.visHandles.lineStart = line([cp(1) cp(1)], ylim(this.visHandles.supp_r_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_r_axes);
+%                         case 'alt'
+%                     end
+%                 end
+%             end
         end
 
         
@@ -1174,40 +1174,40 @@ classdef FLIMXVisGUI < handle
                 this.dynParams.mouseButtonDownCoord = [];
             end
                         
-            %stuff for the colorbar in histogram
-            cp = get(this.visHandles.supp_l_axes,'CurrentPoint');
-            cp = cp(logical([1 1 0; 0 0 0]));
-            xl = xlim(this.visHandles.supp_l_axes);
-            yl = ylim(this.visHandles.supp_l_axes);
-            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
-                %                 if(ishandle(this.visHandles.lineFin))
-                %                     delete(this.visHandles.lineFin)
-                %                 end
-                %                 this.visHandles.lineFin = line([cp(1) cp(1)], ylim(this.visHandles.supp_l_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_l_axes);
-                switch get(hObject,'SelectionType')
-                    case 'normal'                        
-                        this.visHandles.ColorFinishPoint_L = cp(1);
-                        addColorBar = true;
-                        this.objHandles.(sprintf('%sdo','l')).makeSuppPlot(addColorBar, this.visHandles.ColorStartingPoint_L , this.visHandles.ColorFinishPoint_L);                        
-                    case 'alt'
-                        this.objHandles.(sprintf('%sdo','l')).makeSuppPlot();                        
-                end                
-            else
-                cp = get(this.visHandles.supp_r_axes,'CurrentPoint');
-                cp = cp(logical([1 1 0; 0 0 0]));
-                xl = xlim(this.visHandles.supp_r_axes);
-                yl = ylim(this.visHandles.supp_r_axes);
-                if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))                    
-                    switch get(hObject,'SelectionType')
-                        case 'normal'
-                            this.visHandles.ColorFinishPoint_R = cp(1);
-                            addColorBar = true;
-                            this.objHandles.(sprintf('%sdo','r')).makeSuppPlot(addColorBar, this.visHandles.ColorStartingPoint_R , this.visHandles.ColorFinishPoint_R);
-                        case 'alt'
-                            this.objHandles.(sprintf('%sdo','r')).makeSuppPlot();                            
-                    end                    
-                end
-            end
+%             %stuff for the colorbar in histogram
+%             cp = get(this.visHandles.supp_l_axes,'CurrentPoint');
+%             cp = cp(logical([1 1 0; 0 0 0]));
+%             xl = xlim(this.visHandles.supp_l_axes);
+%             yl = ylim(this.visHandles.supp_l_axes);
+%             if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
+%                 %                 if(ishandle(this.visHandles.lineFin))
+%                 %                     delete(this.visHandles.lineFin)
+%                 %                 end
+%                 %                 this.visHandles.lineFin = line([cp(1) cp(1)], ylim(this.visHandles.supp_l_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_l_axes);
+%                 switch get(hObject,'SelectionType')
+%                     case 'normal'                        
+%                         this.visHandles.ColorFinishPoint_L = cp(1);
+%                         addColorBar = true;
+%                         this.objHandles.(sprintf('%sdo','l')).makeSuppPlot(addColorBar, this.visHandles.ColorStartingPoint_L , this.visHandles.ColorFinishPoint_L);                        
+%                     case 'alt'
+%                         this.objHandles.(sprintf('%sdo','l')).makeSuppPlot();                        
+%                 end                
+%             else
+%                 cp = get(this.visHandles.supp_r_axes,'CurrentPoint');
+%                 cp = cp(logical([1 1 0; 0 0 0]));
+%                 xl = xlim(this.visHandles.supp_r_axes);
+%                 yl = ylim(this.visHandles.supp_r_axes);
+%                 if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))                    
+%                     switch get(hObject,'SelectionType')
+%                         case 'normal'
+%                             this.visHandles.ColorFinishPoint_R = cp(1);
+%                             addColorBar = true;
+%                             this.objHandles.(sprintf('%sdo','r')).makeSuppPlot(addColorBar, this.visHandles.ColorStartingPoint_R , this.visHandles.ColorFinishPoint_R);
+%                         case 'alt'
+%                             this.objHandles.(sprintf('%sdo','r')).makeSuppPlot();                            
+%                     end                    
+%                 end
+%             end
         end
         
         function GUI_studySet_Callback(this,hObject,eventdata)
@@ -1563,15 +1563,15 @@ classdef FLIMXVisGUI < handle
                     this.visHandles = FLIMXVisGUIFigureLarge();
             end
             figure(this.visHandles.FLIMXVisGUIFigure);            
-            %set stuff for Histogram-Colorbars
-            this.visHandles.lineStart = -1; %cursorline in Suppaxe - Start
-            this.visHandles.lineFin = -1; %cursorline in Suppaxe- Finish
-            this.visHandles.ColorStartingPoint_L = -1; %Coordinates of left End of Colorbar in the Left Suppaxe
-            this.visHandles.ColorStartingPoint_R = -1; %Coordinates of left End of Colorbar in the Left Suppaxe
-            this.visHandles.ColorFinishPoint_L = -1; %Coordinates of right End of Colorbar in the Right Suppaxe
-            this.visHandles.ColorFinishPoint_R = -1; %Coordinates of right End of Colorbar in the Right Suppaxe
-            this.visHandles.makeCallbackException = 0;
-            this.visHandles.asdf4 = -1;
+%             %set stuff for Histogram-Colorbars
+%             this.visHandles.lineStart = -1; %cursorline in Suppaxe - Start
+%             this.visHandles.lineFin = -1; %cursorline in Suppaxe- Finish
+%             this.visHandles.ColorStartingPoint_L = -1; %Coordinates of left End of Colorbar in the Left Suppaxe
+%             this.visHandles.ColorStartingPoint_R = -1; %Coordinates of left End of Colorbar in the Left Suppaxe
+%             this.visHandles.ColorFinishPoint_L = -1; %Coordinates of right End of Colorbar in the Right Suppaxe
+%             this.visHandles.ColorFinishPoint_R = -1; %Coordinates of right End of Colorbar in the Right Suppaxe
+%             this.visHandles.makeCallbackException = 0;
+%             this.visHandles.asdf4 = -1;
             %set callbacks
             set(this.visHandles.FLIMXVisGUIFigure,'Units','Pixels');
             %popups
