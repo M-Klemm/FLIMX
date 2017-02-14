@@ -995,36 +995,34 @@ classdef FLIMXVisGUI < handle
                 return;
             end
             lastUpdate = tNow;
-            
-            
-                        cp = get(this.visHandles.supp_l_axes,'CurrentPoint');
-            cp = cp(logical([1 1 0; 0 0 0]));
-            xl = xlim(this.visHandles.supp_l_axes);
-            yl = ylim(this.visHandles.supp_l_axes);
-            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
-                 if ( ishandle(this.visHandles.lineStart))   
-                if(~ishandle(this.visHandles.lineFin))
-                        this.visHandles.lineFin = line([cp(1) cp(1)], ylim(this.visHandles.supp_l_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_l_axes);
-                     end
-            this.visHandles.lineFin.XData = [cp(1) cp(1)];
-                 end
-%                     if (this.visHandles.makeCallbackException == 0 && this.visHandles.enableMouse_check.Value== 0)
-%                         this.visHandles.makeCallbackException = 1;
-%                         this.visHandles.enableMouse_check.Value= 1;
+%             cp = get(this.visHandles.supp_l_axes,'CurrentPoint');
+%             cp = cp(logical([1 1 0; 0 0 0]));
+%             xl = xlim(this.visHandles.supp_l_axes);
+%             yl = ylim(this.visHandles.supp_l_axes);
+%             if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
+%                 if(ishandle(this.visHandles.lineStart))
+%                     if(~ishandle(this.visHandles.lineFin))
+%                         this.visHandles.lineFin = line([cp(1) cp(1)], ylim(this.visHandles.supp_l_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_l_axes);
 %                     end
-              else
-                cp = get(this.visHandles.supp_r_axes,'CurrentPoint');
-                cp = cp(logical([1 1 0; 0 0 0]));
-                xl = xlim(this.visHandles.supp_r_axes);
-                yl = ylim(this.visHandles.supp_r_axes);
-            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2) && ishandle(this.visHandles.lineStart))
-                  if(~ishandle(this.visHandles.lineFin))
-                        this.visHandles.lineFin = line([cp(1) cp(1)], ylim(this.visHandles.supp_r_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_r_axes);
-                     end
-            this.visHandles.lineFin.XData = [cp(1) cp(1)];
-            
-            end
-            end
+%                     this.visHandles.lineFin.XData = [cp(1) cp(1)];
+%                 end
+%                 %                     if (this.visHandles.makeCallbackException == 0 && this.visHandles.enableMouse_check.Value== 0)
+%                 %                         this.visHandles.makeCallbackException = 1;
+%                 %                         this.visHandles.enableMouse_check.Value= 1;
+%                 %                     end
+%             else
+%                 cp = get(this.visHandles.supp_r_axes,'CurrentPoint');
+%                 cp = cp(logical([1 1 0; 0 0 0]));
+%                 xl = xlim(this.visHandles.supp_r_axes);
+%                 yl = ylim(this.visHandles.supp_r_axes);
+%                 if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2) && ishandle(this.visHandles.lineStart))
+%                     if(~ishandle(this.visHandles.lineFin))
+%                         this.visHandles.lineFin = line([cp(1) cp(1)], ylim(this.visHandles.supp_r_axes),'Color' , [0 0.75 0], 'Parent', this.visHandles.supp_r_axes);
+%                     end
+%                     this.visHandles.lineFin.XData = [cp(1) cp(1)];
+%                     
+%                 end
+%             end
             cp = this.objHandles.ldo.getMyCP();
             thisSide = 'l'; %this side
             otherSide = 'r'; %other side
