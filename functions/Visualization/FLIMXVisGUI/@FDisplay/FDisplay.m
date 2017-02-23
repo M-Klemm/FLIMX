@@ -677,7 +677,7 @@ classdef FDisplay < handle
                     colors = colors/(zMax(i)-zMin(i))*(size(cm,1)-1)+1; %mapping for colorbar
                     colors(isnan(colors)) = 1;
                     colors = max(colors,1);
-                    colors = min(colors,256);                    
+                    colors = min(colors,256);
                     if(strncmp(hfd{i}.dType,'MVGroup',7)  || strncmp(hfd{i}.dType,'ConditionMVGroup',16))
                         cm = repmat([0:1/(size(cm,1)-1):1]',1,3);
                         color = this.visObj.fdt.getViewColor(this.visObj.getStudy(this.mySide),this.visObj.getView(this.mySide));
@@ -1064,7 +1064,13 @@ classdef FDisplay < handle
             set(this.h_m_ax,'XTickLabel',xCell,'YTickLabel',yCell);
         end
           
-        function makeSuppPlot(this)
+        function makeSuppPlot(this, addColorBar, ColorBarStart, ColorBarFinish)            
+            %manage input variables            
+            if(nargin < 2)
+                addColorBar = false;
+                ColorBarStart = -1;
+                ColorBarFinish = -1;
+            end
             %make current supplemental plot                        
             hfd = this.myhfdSupp;
             if(isempty(hfd{1}))
@@ -1113,7 +1119,7 @@ classdef FDisplay < handle
                             return
                         end
                         this.suppExport = [centers' histo'];
-                        bar(this.h_s_ax,histo,'hist');
+                        bar(this.h_s_ax,histo,'hist', 'Color', 'b', 'Parent', this.h_s_ax);
                         if(this.staticVisParams.grid)
                             grid(this.h_s_ax,'on');
                         else
@@ -1127,11 +1133,31 @@ classdef FDisplay < handle
                             xtick = xtick+1;
                         end
                         set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',FLIMXFitGUI.num4disp(centers(xtick)'));
+                        
+                        if(addColorBar)
+                            %add colorbar either in Full Axe or Specified part, put it behind the bar
+                            if(ColorBarFinish == -1)
+                                xtemp = this.h_s_ax.XLim;
+                            else
+                                xtemp = [ColorBarStart ColorBarFinish];
+                            end
+                            ytemp = this.h_s_ax.YLim;
+                            bartype = this.visObj.visHandles.main_axes_l_pop.String{1, 1};
+                            if(strcmp(bartype,'Intensity'))
+                                temp = zeros(1,length(this.dynVisParams.cmIntensity), 3);
+                                temp(1,:,:) = this.dynVisParams.cmIntensity;
+                            else
+                                temp = zeros(1,length(this.dynVisParams.cm), 3);
+                                temp(1,:,:) = this.dynVisParams.cm;
+                            end
+                            cbImage = imagesc('XData',xtemp,'YData',ytemp,'CData',temp,'Parent',this.h_s_ax);
+                            this.h_s_ax.YLim = ytemp;
+                            uistack(cbImage,'bottom');
+                        end
                     else %nothing to do
                         cla(this.h_s_ax);
                         axis(this.h_s_ax,'off');
-                    end
-                    
+                    end                    
                 case {3, 4} %3:horizontal cut, 4: vertical cut
                     if( (this.sDispMode == 4 && hfd{1}.getCutX() && hfd{1}.getCutXVal(true,true,rc,rt,rs,ri) ~= 0 ) ||...
                             (this.sDispMode == 3 && hfd{1}.getCutY() && hfd{1}.getCutYVal(true,true,rc,rt,rs,ri) ~= 0 ))

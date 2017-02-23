@@ -284,7 +284,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 this.myStartPos = max(1,this.dMaxPos-this.basicParams.tailFitPreMaxSteps-1);
             end
             this.dMaxVal = double(maxVal);
-            this.dFWHMPos = find(bsxfun(@lt,pixelData(1:this.dMaxPos),maxVal/2),1,'last');
+            this.dFWHMPos = find(bsxfun(@lt,pixelData(1:this.dMaxPos),maxVal*0.8),1,'last');
             this.chi_weights = ones(1,size(pixelData,2));
             %                 if(~isempty(neighborData))
             %                     this.chi_weights(1,2:end) = double(fitParams.neighbor_weight/(size(neighborData,1)));
@@ -478,9 +478,9 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             %% reconvolute
             if(bp.reconvoluteWithIRF)
                 %determine reconv model length
-                [~, p] = log2(size(exponentialsLong,1)-1); %+ this.iLen -1
+                [~, p] = log2(size(exponentialsLong,1)-1);
                 len_model_2 = pow2(p);    % smallest power of 2 > len_model
-%                 if(this.useGPU && nVecs > 1) %uses matlab gpu support, on a gtx295 by a factor of ~2 slower than core i7 @ 3,9 GHz
+%                 if(this.useGPU && nVecs > 1) %uses matlab gpu support
 %                     if(isempty(this.irfFFTGPU) || length(this.irfFFTGPU) ~= len_model_2)
 %                         this.irfFFTGPU = fft(gpuArray(this.getIRF()),len_model_2);
 %                     end

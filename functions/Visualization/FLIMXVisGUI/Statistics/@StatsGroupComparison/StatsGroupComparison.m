@@ -657,6 +657,15 @@ classdef StatsGroupComparison < handle
                         tmp{end,2} = num2str(stats.(fn{i}));
                     end
                     tmp(end+1,1) = cell(1,1);
+                    %some descriptive statistics
+                    vals = FLIMXFitGUI.num4disp([mean(this.grpData{1}),std(this.grpData{1}),mean(this.grpData{2}),std(this.grpData{2})]);
+                    if(length(vals) == 4)
+                        tmp{end+1,1} = 'Mean PATHOLOGIC';
+                        tmp{end,2} = sprintf('%s %s %s',vals{1},char(177),vals{2});
+                        tmp{end+1,1} = 'Mean CONTROLS';
+                        tmp{end,2} = sprintf('%s %s %s',vals{3},char(177),vals{4});
+                        tmp(end+1,1) = cell(1,1);
+                    end
                     %test for normal distribution
                     %Lilliefors test
                     tmp2 = cell(7,2);
@@ -798,7 +807,7 @@ classdef StatsGroupComparison < handle
             if(isempty(this.pIdx) || isempty(this.histograms))
                 this.rocData = [];
             else
-                histClass = this.pIdx(get(this.visHandles.popupExtAnalysis,'Value'));
+                histClass = this.pIdx(min(length(this.pIdx),get(this.visHandles.popupExtAnalysis,'Value')));
                 patients = this.histograms{1};
                 healthy = this.histograms{2};
                 rocdata = zeros(size(patients,1)+size(healthy,1),2);
