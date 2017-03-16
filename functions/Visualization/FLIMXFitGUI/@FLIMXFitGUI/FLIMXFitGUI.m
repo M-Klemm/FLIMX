@@ -756,7 +756,7 @@ classdef FLIMXFitGUI < handle
                 yLbl = 'Anisotropy';                
             else
                 %fluorescence lifetime
-                dMin = max(1e-2,min(data(data>0)));
+                dMin = min(oset,max(1e-2,min(data(data>0))));
                 if(isempty(dMin))
                     dMin = 1e-2;
                 end
@@ -1776,13 +1776,18 @@ classdef FLIMXFitGUI < handle
             %save fit
             [xAxis, data, irf, model, exponentials, residuum, residuumHist] = this.visCurFit(this.currentChannel,this.currentY,this.currentX);
             exponentials = exponentials(:,1:end-1);
-            tmp = num2cell([xAxis,data,irf,model,residuum,exponentials]);
-            tmp(1:length(residuumHist),end+1) = num2cell(residuumHist);
-            colHead = {'t','Measured','IRF','Model','Residuum'};
-            for i = 1:size(exponentials,2)
-                colHead(end+1) = {sprintf('Exp. %d',i)};
+            if(isempty(model))
+                tmp = num2cell([xAxis,data,irf]);
+                colHead = {'t','Measured','IRF'};
+            else
+                tmp = num2cell([xAxis,data,irf,model,residuum,exponentials]);
+                tmp(1:length(residuumHist),end+1) = num2cell(residuumHist);
+                colHead = {'t','Measured','IRF','Model','Residuum'};
+                for i = 1:size(exponentials,2)
+                    colHead(end+1) = {sprintf('Exp. %d',i)};
+                end
+                colHead(end+1) = {'Residuum Histogram'};
             end
-            colHead(end+1) = {'Residuum Histogram'};
             exportExcel(fn,tmp,colHead,'',sprintf('Data %s ch%d (y%d,x%d)',this.FLIMXObj.curSubject.getDatasetName(),this.currentChannel,this.currentY,this.currentX),'');
             %save table info
             [apObj, ~, ~, ~, ~, ~, ~, ~, ~, ~, tableInfo] = this.getVisParams(this.currentChannel,this.currentY,this.currentX,true);
