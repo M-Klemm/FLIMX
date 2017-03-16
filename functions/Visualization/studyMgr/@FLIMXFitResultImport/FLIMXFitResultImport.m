@@ -5,6 +5,7 @@ classdef FLIMXFitResultImport < handle
     properties(GetAccess = public, SetAccess = private)
         FLIMXObj = [];
         visHandles = [];
+        allFiles = struct;
         % read
         files_asc = {};
         files_images = {};
@@ -52,9 +53,9 @@ classdef FLIMXFitResultImport < handle
             end
             val(val>this.maxCh)=this.maxCh;
             set(this.visHandles.popupChannel,'Value',val);
-            set(this.visHandles.tableASC,'Data',this.files_asc{val});
+%             set(this.visHandles.tableASC,'Data',this.files_asc{val});
             val(val>size(this.files_images,2))=size(this.files_images,2);
-            set(this.visHandles.tableImages,'Data',this.files_images{val});
+%             set(this.visHandles.tableImages,'Data',this.files_images{val});
         end
         
         function out = get.roiMode(this)
@@ -148,25 +149,49 @@ classdef FLIMXFitResultImport < handle
                 this.createVisWnd();
             end
             this.setupGUI();
-            this.updateGUI();
+            % this.updateGUI();
             figure(this.visHandles.FLIMXFitResultImportFigure);
         end
         
         function setupGUI(this)
+            % popup
+            string_list = {};
+            for i=1:this.maxCh
+                string_list{i}=num2str(i);
+            end
+            set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select channel.','String',string_list);
+            % Study / Subject
+            set(this.visHandles.popupStudy,'String',this.FLIMXObj.curSubject.myParent.name);
+            set(this.visHandles.popupSubject,'String',this.FLIMXObj.curSubject.name);
+            set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
+            % show some pictures
+            this.selectedCh = 1;
+            this.updateColorbar();
+            % creaete axes obj
+            cm = this.FLIMXObj.FLIMFitGUI.dynVisParams.cmIntensity;
+            if(isempty(cm))
+                cm = gray(256);
+            end
+            this.axesMgr = axesWithROI(this.visHandles.axesROI,this.visHandles.axesCb,this.visHandles.textCbBottom,this.visHandles.textCbTop,this.visHandles.editCP,cm);
+            a = 2;
         end
+        
         function updateGUI(this)
             % check ob asc oder image wenn image, dann imread
-            cfile = this.curFile;
-            switch cfile
-                case 'asc'
-                    image = dlmread(fullfile(this.folderpath,this.curName{1}));
-                case 'bmp'
-                    image = imread(fullfile(this.folderpath,this.curName{1}));
-            end
-            
-            axes(this.visHandles.axesROI);
-            imshow(image);
-            set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
+%             cfile = this.curFile;
+%             switch cfile
+%                 case 'asc'
+%                     image = dlmread(fullfile(this.folderpath,this.curName{1}));
+%                     
+%                 case 'bmp'
+%                     image = imread(fullfile(this.folderpath,this.curName{1}));
+%                     
+%             end
+%             axes(this.visHandles.axesROI);
+%             imagesc(image);
+%             set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
+a= 2;
+
         end
         
         
@@ -175,35 +200,29 @@ classdef FLIMXFitResultImport < handle
             pathname = uigetdir('', 'Choose folder');
             if pathname == 0
                 return
-            end;
+            end
             files = dir(pathname);
             if size(files,1) == 0
                 return
-            end;
+            end
             % call folder selection
             % for each file extension
-            names_asc = {};
-            names_bmp = {};
-            names_tif = {};
             maxChan = 16;
-            column_asc = zeros(maxChan,1);
-            column_bmp = zeros(maxChan,1);
-            column_tif = zeros(maxChan,1);
             i = 1;
             stem = {};
             while(i <= length(files))
-                [~,filename,ext] = fileparts(files(i).name);
-                if(strcmp(ext,'.asc'))
+                [~,filename,curExt] = fileparts(files(i).name);
+                if(strcmp(curExt,'.asc'))
                     idx_= strfind(filename,'_');
                     idxminus = strfind(filename,'-');
                     % Check: 2*'-' and '-_'
                     if length(strfind(filename,'-'))<2 || idx_(end)~=1+idxminus(end)
                         return % invalid filename
-                    end;
+                    end
                     stem{length(stem)+1} = (filename(1:idxminus(end-1)-1));
-                end;
+                end
                 i = i+1;
-            end;
+            end
             % find most available word stem
             singlestem = unique(stem);
             counter = zeros(length(singlestem));
@@ -211,51 +230,49 @@ classdef FLIMXFitResultImport < handle
                 for j=1:length(stem)
                     if strcmp(singlestem(i),stem(j))
                         counter(i)=counter(i)+1;
-                    end;
-                end;
-            end;
+                    end
+                end
+            end
             [~,place] = max(counter);
-            subjectstamm = singlestem{place(1)};
+            subjectstem = singlestem{place(1)};
             % delete other word stems
-            files = files(strncmp({files.name},subjectstamm,length(subjectstamm)));
-            % sort every file
+            files = files(strncmp({files.name},subjectstem,length(subjectstem)));
+            % sort in struct
+            fullname = {};
+            ext = {};
+            channel = {};
+            name = {};
             for i=1:length(files)
-                if files(i).isdir == false
-                    fullfilename = files(i).name;
-                    [~,filename,ext] = fileparts(fullfilename);
-                    aktstamm = filename(1:length(subjectstamm));
-                    if aktstamm == subjectstamm
-                        switch ext
-                            case {'.asc', '.bmp', '.tif'}
-                                % two digits
-                                ChanNr = str2double(filename(length(subjectstamm)+4:length(subjectstamm)+5));
-                                if isempty(ChanNr) || isnan(ChanNr)
-                                    % one digit
-                                    ChanNr = str2double(filename(length(subjectstamm)+4:length(subjectstamm)+4));
-                                    if isempty(ChanNr) || isnan(ChanNr)
-                                        return
-                                    end;
-                                end;
-                                switch ext
-                                    case '.asc'
-                                        column_asc(ChanNr)=column_asc(ChanNr)+1;
-                                        names_asc{column_asc(ChanNr),ChanNr}=filename;
-                                    case '.bmp'
-                                        column_bmp(ChanNr)=column_bmp(ChanNr)+1;
-                                        names_bmp{column_bmp(ChanNr),ChanNr}=filename;
-                                    otherwise % '.tif'
-                                        column_tif(ChanNr)=column_tif(ChanNr)+1;
-                                        names_tif{column_tif(ChanNr),ChanNr}=filename;
-                                end;
-                            otherwise
-                        end;
-                    end;
-                end;
-            end;
-            path = pathname;
-            this.folderpath = path;
-            % FLIMXFitResultImport.files_asc = names_asc;
-            [~,dim] = size(names_asc);
+                [~,filename,curExt] = fileparts(files(i).name);
+                ChanNr = [];
+                switch curExt
+                    case {'.asc', '.bmp', '.tif'}
+                        % two digits
+                        ChanNr = str2double(filename(length(subjectstem)+4:length(subjectstem)+5));
+                        curName = filename(length(subjectstem)+8:length(filename));
+                        if isempty(ChanNr) || isnan(ChanNr)
+                            % one digit
+                            ChanNr = str2double(filename(length(subjectstem)+4:length(subjectstem)+4));
+                            curName = filename(length(subjectstem)+7:length(filename));
+                            if isempty(ChanNr) || isnan(ChanNr)
+                                return
+                            end
+                        end
+                end
+                channel{i} = ChanNr;
+                ext{i} = curExt;
+                fullname{i} = filename;
+                name{i} = curName;
+            end
+            ext = ext(~cellfun(@isempty,channel(:)));
+            fullname = fullname(~cellfun(@isempty,channel(:)));
+            name = name(~cellfun(@isempty,channel(:)));
+            channel = channel(~cellfun(@isempty,channel(:)));
+            emptyArray = cell(size(ext,2),1);
+            allFiles = struct('fullname',fullname','ext',ext','channel',channel','name',name','image',emptyArray,'import',emptyArray);
+            %
+            this.folderpath = pathname;
+            [~,dim] = size(fullname);
             this.maxCh = dim;
             filterindex = 1;
             lastPath = path;
@@ -263,39 +280,39 @@ classdef FLIMXFitResultImport < handle
             if(length(idx) > 1)
                 lastPath = lastPath(1:idx(end-1));
             end
-            for i=1:dim
-                files = names_asc(:,i);
-                files = files(~cellfun(@isempty,names_asc(:,i)));
-                opt.ch = i;
-                for i2=1:length(files)
-                    files{i2} = strcat(files{i2}, '.asc');
-                end;
-                
-                this.files_asc{i} = files;
-            end;
-            
-            a = 2;
-            % Set table bmp
-            [~,dim] = size(names_bmp);
-            filterindex = 1;
-            lastPath = path;
-            idx = strfind(lastPath,filesep);
-            if(length(idx) > 1)
-                lastPath = lastPath(1:idx(end-1));
-            end
-            clear files
-            for i=1:dim
-                files = names_bmp(:,i);
-                files = files(~cellfun(@isempty,names_bmp(:,i)));
-                opt.ch = i;
-                for i2=1:length(files)
-                    files{i2} = strcat(files{i2}, '.bmp');
-                end;
-                this.files_images{i} = files;
-            end;
+            this.allFiles = allFiles;
+%             for i=1:dim
+%                 files = names_asc(:,i);
+%                 files = files(~cellfun(@isempty,names_asc(:,i)));
+%                 opt.ch = i;
+%                 for i2=1:length(files)
+%                     files{i2} = strcat(files{i2}, '.asc');
+%                 end
+%                 
+%                 this.files_asc{i} = files;
+%             end
+%             
+%             a = 2;
+%             % Set table bmp
+%             [~,dim] = size(names_bmp);
+%             filterindex = 1;
+%             lastPath = path;
+%             idx = strfind(lastPath,filesep);
+%             if(length(idx) > 1)
+%                 lastPath = lastPath(1:idx(end-1));
+%             end
+%             clear files
+%             for i=1:dim
+%                 files = names_bmp(:,i);
+%                 files = files(~cellfun(@isempty,names_bmp(:,i)));
+%                 opt.ch = i;
+%                 for i2=1:length(files)
+%                     files{i2} = strcat(files{i2}, '.bmp');
+%                 end
+%                 this.files_images{i} = files;
+%             end
             
             %  this.dynParams.lastPath = lastPath;
-            
         end
         
         
@@ -331,29 +348,26 @@ classdef FLIMXFitResultImport < handle
     methods(Access = protected)
         %internal methods
         function createVisWnd(this)
-            %make a window for visualization of current fit
+            % make a window for visualization of current fit
             this.visHandles = FLIMXFitResultImportFigure();
             figure(this.visHandles.FLIMXFitResultImportFigure);
             % get user information
             this.getfilesfromfolder();
             %set callbacks
-            string_list = {};
-            for i=1:this.maxCh
-                string_list{i}=num2str(i);
-            end
             % popup
-            set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select channel.','String',string_list);
+            set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select channel.');
             % table
-            set(this.visHandles.tableASC,'CellSelectionCallback',@this.GUI_tableASC_CellSelectionCallback);
-            set(this.visHandles.tableImages,'CellSelectionCallback',@this.GUI_tableImages_CellSelectionCallback);
-            set(this.visHandles.tableSelected,'CellSelectionCallback',@this.GUI_tableSelected_CellSelectionCallback);
-            %   set(this.visHandles.pushDraw,'Callback',@this.GUI_pushDraw_Callback,'TooltipString','Draw selected ASC.');
+%             set(this.visHandles.tableASC,'CellSelectionCallback',@this.GUI_tableASC_CellSelectionCallback);
+%             set(this.visHandles.tableImages,'CellSelectionCallback',@this.GUI_tableImages_CellSelectionCallback);
+%             set(this.visHandles.tableSelected,'CellSelectionCallback',@this.GUI_tableSelected_CellSelectionCallback);
+%             set(this.visHandles.pushDraw,'Callback',@this.GUI_pushDraw_Callback,'TooltipString','Draw selected ASC.');
+            set(this.visHandles.tableFiles,'CellSelectionCallback',@this.GUI_tableFiles_CellSelectionCallback);
             % radiobutton
             set(this.visHandles.radioDefault,'Callback',@this.GUI_radioROI_Callback);
             set(this.visHandles.radioAuto,'Callback',@this.GUI_radioROI_Callback);
             set(this.visHandles.radioCustom,'Callback',@this.GUI_radioROI_Callback);
             % push button
-            set(this.visHandles.pushSelection,'Callback',@this.GUI_pushSelection_Callback,'TooltipString','Select files.');
+%             set(this.visHandles.pushSelection,'Callback',@this.GUI_pushSelection_Callback,'TooltipString','Select files.');
             set(this.visHandles.pushBrowse,'Callback',@this.GUI_pushBrowse_Callback,'TooltipString','Browse folder.');
             % edit fields
             set(this.visHandles.textXL,'Callback',@this.GUI_editROI_Callback);
@@ -361,23 +375,11 @@ classdef FLIMXFitResultImport < handle
             set(this.visHandles.textYL,'Callback',@this.GUI_editROI_Callback);
             set(this.visHandles.textYH,'Callback',@this.GUI_editROI_Callback);
             % mouse
-            set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonDownFcn',@this.GUI_mouseButtonDown_Callback);
-            set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
-            set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
-            % initialisierung
-            set(this.visHandles.popupStudy,'String',this.FLIMXObj.curSubject.myParent.name);
-            set(this.visHandles.popupSubject,'String',this.FLIMXObj.curSubject.name);
-            set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
+%             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonDownFcn',@this.GUI_mouseButtonDown_Callback);
+%             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
+%             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
             
-            this.selectedCh = 1;
-            this.updateColorbar();
-            % creaete axes obj
-            cm = this.FLIMXObj.FLIMFitGUI.dynVisParams.cmIntensity;
-            if(isempty(cm))
-                cm = gray(256);
-            end
-            this.axesMgr = axesWithROI(this.visHandles.axesROI,this.visHandles.axesCb,this.visHandles.textCbBottom,this.visHandles.textCbTop,this.visHandles.editCP,cm);
-            a = 2;
+            this.setupGUI();
         end
         
         function updateROIControls(this,roi)
@@ -403,19 +405,6 @@ classdef FLIMXFitResultImport < handle
         end
         %% GUI Callbacks
         % Tables
-        function GUI_tableASC_CellSelectionCallback(this,hObject,eventdata)
-            if isempty(eventdata.Indices)
-                row = 1;
-            else
-                row = eventdata.Indices(1);
-            end
-            Data=get(this.visHandles.tableASC, 'Data');
-            file=Data(row,1);
-            this.curName = file;
-            this.curFile = 'asc';
-            this.updateGUI();
-        end
-        
         function GUI_tableSelected_CellSelectionCallback(this,hObject,eventdata)
             if isempty(eventdata.Indices)
                 row = 1;
@@ -429,16 +418,13 @@ classdef FLIMXFitResultImport < handle
             this.updateGUI();
         end
         
-        function GUI_tableImages_CellSelectionCallback(this,hObject, eventdata)
+        function GUI_tableFiles_CellSelectionCallback(this,hObject, eventdata)
             if isempty(eventdata.Indices)
                 row = 1;
             else
                 row = eventdata.Indices(1);
             end
-            Data=get(this.visHandles.tableImages, 'Data');
-            file=Data(row,1);
-            this.curName = file;
-            this.curFile = 'bmp';
+            this.curFile = row;
             this.updateGUI();
         end
         
@@ -453,6 +439,7 @@ classdef FLIMXFitResultImport < handle
         end
         function GUI_pushBrowse_Callback(this,hObject, eventdata)
             this.getfilesfromfolder();
+            this.setupGUI();
         end
         function GUI_pushSelection_Callback(this,hObject, eventdata)
             file = get(this.visHandles.tableSelected,'Data');
