@@ -7,12 +7,9 @@ classdef FLIMXFitResultImport < handle
         visHandles = [];
         allFiles = struct;
         % read
-        files_asc = {};
-        files_images = {};
         folderpath = '';
         maxCh = [];
-        curName = '';
-        curFile = '';
+        curRow = '';
         % Roi
         axesMgr = [];
         measurementObj = [];
@@ -53,9 +50,11 @@ classdef FLIMXFitResultImport < handle
             end
             val(val>this.maxCh)=this.maxCh;
             set(this.visHandles.popupChannel,'Value',val);
-%             set(this.visHandles.tableASC,'Data',this.files_asc{val});
-            val(val>size(this.files_images,2))=size(this.files_images,2);
-%             set(this.visHandles.tableImages,'Data',this.files_images{val});
+%             transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}'];
+%             transfer = transfer(cell2mat(transfer(:,3))== this.selectedCh,:);
+%             set(this.visHandles.tableFiles,'Data',transfer);
+this.curRow = 1;
+this.updateGUI();
         end
         
         function out = get.roiMode(this)
@@ -177,21 +176,25 @@ classdef FLIMXFitResultImport < handle
         end
         
         function updateGUI(this)
-            % check ob asc oder image wenn image, dann imread
-%             cfile = this.curFile;
-%             switch cfile
-%                 case 'asc'
-%                     image = dlmread(fullfile(this.folderpath,this.curName{1}));
-%                     
-%                 case 'bmp'
-%                     image = imread(fullfile(this.folderpath,this.curName{1}));
-%                     
-%             end
-%             axes(this.visHandles.axesROI);
-%             imagesc(image);
-%             set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
-a= 2;
-
+            % selected channel in uitable
+            transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}'];
+            transfer = transfer(cell2mat(transfer(:,3))== this.selectedCh,:);
+            set(this.visHandles.tableFiles,'Data',transfer(:,1:4));
+            
+            % show selected image
+            ext = transfer{this.curRow,2};
+            file = fullfile(this.folderpath,[transfer{this.curRow,5},ext]);
+            switch ext
+                case '.asc'
+                    image = dlmread(file);
+                case '.bmp'
+                    image = imread(file);
+                case '.tif'
+                    image = imread(file);
+            end
+             axes(this.visHandles.axesROI);
+             imagesc(image);
+%              set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
         end
         
         
@@ -269,18 +272,17 @@ a= 2;
             name = name(~cellfun(@isempty,channel(:)));
             channel = channel(~cellfun(@isempty,channel(:)));
             emptyArray = cell(size(ext,2),1);
-            allFiles = struct('fullname',fullname','ext',ext','channel',channel','name',name','image',emptyArray,'import',emptyArray);
+            falseArray(1:size(ext,2)) = {0};
+            this.allFiles = struct('fullname',fullname','ext',ext','channel',channel','name',name','image',emptyArray,'import',falseArray');
             %
             this.folderpath = pathname;
-            [~,dim] = size(fullname);
-            this.maxCh = dim;
+            this.maxCh = max(cell2mat(channel));
             filterindex = 1;
             lastPath = path;
             idx = strfind(lastPath,filesep);
             if(length(idx) > 1)
                 lastPath = lastPath(1:idx(end-1));
             end
-            this.allFiles = allFiles;
 %             for i=1:dim
 %                 files = names_asc(:,i);
 %                 files = files(~cellfun(@isempty,names_asc(:,i)));
@@ -413,8 +415,7 @@ a= 2;
             end
             Data=get(this.visHandles.tableSelected, 'Data');
             file=Data(row,1);
-            this.curName = file;
-            this.curFile = Data{row,2};
+            this.curRow = Data{row,2};
             this.updateGUI();
         end
         
@@ -424,7 +425,7 @@ a= 2;
             else
                 row = eventdata.Indices(1);
             end
-            this.curFile = row;
+            this.curRow = row;
             this.updateGUI();
         end
         
@@ -452,7 +453,7 @@ a= 2;
             
             file = [f1, f2, f3 ];
             if isempty(find(ismember(f1,this.curName{1})))
-                file(end+1,1:3) = [this.curName, this.curFile, this.selectedCh];
+                file(end+1,1:3) = [this.curName, this.curRow, this.selectedCh];
             else
                 msgbox('File is already selected.', 'Already selected');
             end
