@@ -177,21 +177,18 @@ classdef FLIMXFitResultImport < handle
         
         function updateGUI(this)
             % selected channel in uitable
-            transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}'];
+            transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}',{this.allFiles.image}'];
             transfer = transfer(cell2mat(transfer(:,3))== this.selectedCh,:);
             set(this.visHandles.tableFiles,'Data',transfer(:,1:4));
             
+           
+            
             % show selected image
-            ext = transfer{this.curRow,2};
-            file = fullfile(this.folderpath,[transfer{this.curRow,5},ext]);
-            switch ext
-                case '.asc'
-                    image = dlmread(file);
-                case '.bmp'
-                    image = imread(file);
-                case '.tif'
-                    image = imread(file);
+            if isempty(transfer{this.curRow,6})
+                this.loadImage()
             end
+            image = transfer{this.curRow,6};
+            
             axes(this.visHandles.axesROI);
             imagesc(image);
             %              set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
@@ -199,11 +196,16 @@ classdef FLIMXFitResultImport < handle
         
         
         %% Ask User
-        function getfilesfromfolder(this)
-            pathname = uigetdir('', 'Choose folder');
-            if pathname == 0
+        function openFolderByGUI(this)
+            %open a new folder using a GUI
+            path = uigetdir(this.FLIMXObj.importGUI.lastImportPath,'Select Folder to import data.');
+            if(isempty(path))
                 return
             end
+            this.getfilesfromfolder(path);
+        end
+        
+        function getfilesfromfolder(this, pathname)
             files = dir(pathname);
             if size(files,1) == 0
                 return
@@ -317,6 +319,32 @@ classdef FLIMXFitResultImport < handle
             %  this.dynParams.lastPath = lastPath;
         end
         
+        function loadImage(this)
+            data = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}',{this.allFiles.image}'];
+            data = data(cell2mat(data(:,3))== this.selectedCh,:);
+            
+            % show selected image
+            for i=1:size(data,1)
+            ext = data{i,2};
+            file = fullfile(this.folderpath,[data{i,5},ext]);
+            switch ext
+                case '.asc'
+                    image = dlmread(file);
+                case '.bmp'
+                    image = imread(file);
+                case '.tif'
+                    image = imread(file);
+            end
+            data{i,6} = image;
+            end
+            
+            transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}'];
+            transfer(cell2mat(transfer(:,3))== this.selectedCh,6) = data(:,6);
+            for i=1:size(transfer,1)
+                this.allFiles(i).image = transfer{i,6};
+            end
+            
+        end
         
         
         function importall(this)
@@ -354,7 +382,7 @@ classdef FLIMXFitResultImport < handle
             this.visHandles = FLIMXFitResultImportFigure();
             figure(this.visHandles.FLIMXFitResultImportFigure);
             % get user information
-            this.getfilesfromfolder();
+            this.openFolderByGUI();
             %set callbacks
             % popup
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select channel.');
@@ -436,7 +464,6 @@ classdef FLIMXFitResultImport < handle
             for i=1:size(transfer,1)
                 this.allFiles(i).import = logical(transfer{i,4});
             end
-            data = get(this.visHandles.tableFiles,'Data');
             set(this.visHandles.tableFiles,'Data',data);
             % update GUI
             this.updateGUI();
@@ -452,7 +479,7 @@ classdef FLIMXFitResultImport < handle
             
         end
         function GUI_pushBrowse_Callback(this,hObject, eventdata)
-            this.getfilesfromfolder();
+            this.openFolderByGUI();
             this.setupGUI();
         end
         function GUI_pushSelection_Callback(this,hObject, eventdata)
@@ -476,7 +503,28 @@ classdef FLIMXFitResultImport < handle
         
         % checkbox
         function GUI_checkSelection_Callback(this,hObject, eventdata)
+            transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}'];
+            data = get(this.visHandles.tableFiles,'Data');
+            data = data(:,4);
             
+            % switch checkbox and select all/deselect all
+            val = get(this.visHandles.checkSelection,'Value');
+            if val
+                data(1:end) = {true};
+                set(this.visHandles.checkSelection,'String','Deselect all.','TooltipString','Click to deselect all files.');
+            else
+                data(1:end) = {false};
+                set(this.visHandles.checkSelection,'String','Select all.','TooltipString','Click to select all files.');
+            end
+                
+            % show 
+            transfer(cell2mat(transfer(:,3))== this.selectedCh,4) = data(:,1);
+            for i=1:size(transfer,1)
+                this.allFiles(i).import = logical(transfer{i,4});
+            end
+            data = get(this.visHandles.tableFiles,'Data');
+            set(this.visHandles.tableFiles,'Data',data);
+            this.updateGUI();
         end
         
         %radio button
