@@ -149,10 +149,21 @@ classdef SDTIO < handle
                     if(readCount ~= targetCount)
                         error('Failed to read %d characters from data block %d - got %d (file: %s).',targetCount,iDataBlock,readCount,obj.FileInformation.Name);
                     end
-                    if no_of_curves == width*height
+                    if(no_of_curves == width*height)
                         raw = reshape(raw, resolution, width, height);
                     else
-                        raw = reshape(raw, resolution, no_of_curves);
+                        %try to find next power of 2 of width and height
+                        widthNew = 2^ceil(log2(width));
+                        heightNew = 2^ceil(log2(height));
+                        if(no_of_curves == widthNew*heightNew)
+                            raw = reshape(raw, resolution, widthNew, heightNew);
+                            %assume that remaining pixels are padded with zero
+                            raw = raw(:,1:width,1:height);
+                        else
+                            %that didn't work
+                            error('Spatial resolution is supposed to be %d x %d  pixels (width x height) - don''t know how to fit that into %d number of curves.',width,height,no_of_curves);
+                            %raw = reshape(raw, resolution, no_of_curves);
+                        end
                     end
                 case 32 %FCS_BLOCK
                 case 48 %FIDA_BLOCK
