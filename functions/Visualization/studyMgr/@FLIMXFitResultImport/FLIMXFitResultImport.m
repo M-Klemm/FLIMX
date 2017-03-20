@@ -50,11 +50,11 @@ classdef FLIMXFitResultImport < handle
             end
             val(val>this.maxCh)=this.maxCh;
             set(this.visHandles.popupChannel,'Value',val);
-%             transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}'];
-%             transfer = transfer(cell2mat(transfer(:,3))== this.selectedCh,:);
-%             set(this.visHandles.tableFiles,'Data',transfer);
-this.curRow = 1;
-this.updateGUI();
+            %             transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}'];
+            %             transfer = transfer(cell2mat(transfer(:,3))== this.selectedCh,:);
+            %             set(this.visHandles.tableFiles,'Data',transfer);
+            this.curRow = 1;
+            this.updateGUI();
         end
         
         function out = get.roiMode(this)
@@ -192,9 +192,9 @@ this.updateGUI();
                 case '.tif'
                     image = imread(file);
             end
-             axes(this.visHandles.axesROI);
-             imagesc(image);
-%              set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
+            axes(this.visHandles.axesROI);
+            imagesc(image);
+            %              set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
         end
         
         
@@ -272,7 +272,7 @@ this.updateGUI();
             name = name(~cellfun(@isempty,channel(:)));
             channel = channel(~cellfun(@isempty,channel(:)));
             emptyArray = cell(size(ext,2),1);
-            falseArray(1:size(ext,2)) = {0};
+            falseArray(1:size(ext,2)) = {false};
             this.allFiles = struct('fullname',fullname','ext',ext','channel',channel','name',name','image',emptyArray,'import',falseArray');
             %
             this.folderpath = pathname;
@@ -283,36 +283,36 @@ this.updateGUI();
             if(length(idx) > 1)
                 lastPath = lastPath(1:idx(end-1));
             end
-%             for i=1:dim
-%                 files = names_asc(:,i);
-%                 files = files(~cellfun(@isempty,names_asc(:,i)));
-%                 opt.ch = i;
-%                 for i2=1:length(files)
-%                     files{i2} = strcat(files{i2}, '.asc');
-%                 end
-%                 
-%                 this.files_asc{i} = files;
-%             end
-%             
-%             a = 2;
-%             % Set table bmp
-%             [~,dim] = size(names_bmp);
-%             filterindex = 1;
-%             lastPath = path;
-%             idx = strfind(lastPath,filesep);
-%             if(length(idx) > 1)
-%                 lastPath = lastPath(1:idx(end-1));
-%             end
-%             clear files
-%             for i=1:dim
-%                 files = names_bmp(:,i);
-%                 files = files(~cellfun(@isempty,names_bmp(:,i)));
-%                 opt.ch = i;
-%                 for i2=1:length(files)
-%                     files{i2} = strcat(files{i2}, '.bmp');
-%                 end
-%                 this.files_images{i} = files;
-%             end
+            %             for i=1:dim
+            %                 files = names_asc(:,i);
+            %                 files = files(~cellfun(@isempty,names_asc(:,i)));
+            %                 opt.ch = i;
+            %                 for i2=1:length(files)
+            %                     files{i2} = strcat(files{i2}, '.asc');
+            %                 end
+            %
+            %                 this.files_asc{i} = files;
+            %             end
+            %
+            %             a = 2;
+            %             % Set table bmp
+            %             [~,dim] = size(names_bmp);
+            %             filterindex = 1;
+            %             lastPath = path;
+            %             idx = strfind(lastPath,filesep);
+            %             if(length(idx) > 1)
+            %                 lastPath = lastPath(1:idx(end-1));
+            %             end
+            %             clear files
+            %             for i=1:dim
+            %                 files = names_bmp(:,i);
+            %                 files = files(~cellfun(@isempty,names_bmp(:,i)));
+            %                 opt.ch = i;
+            %                 for i2=1:length(files)
+            %                     files{i2} = strcat(files{i2}, '.bmp');
+            %                 end
+            %                 this.files_images{i} = files;
+            %             end
             
             %  this.dynParams.lastPath = lastPath;
         end
@@ -359,27 +359,29 @@ this.updateGUI();
             % popup
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select channel.');
             % table
-%             set(this.visHandles.tableASC,'CellSelectionCallback',@this.GUI_tableASC_CellSelectionCallback);
-%             set(this.visHandles.tableImages,'CellSelectionCallback',@this.GUI_tableImages_CellSelectionCallback);
-%             set(this.visHandles.tableSelected,'CellSelectionCallback',@this.GUI_tableSelected_CellSelectionCallback);
-%             set(this.visHandles.pushDraw,'Callback',@this.GUI_pushDraw_Callback,'TooltipString','Draw selected ASC.');
+            %             set(this.visHandles.tableASC,'CellSelectionCallback',@this.GUI_tableASC_CellSelectionCallback);
+            %             set(this.visHandles.tableImages,'CellSelectionCallback',@this.GUI_tableImages_CellSelectionCallback);
+            %             set(this.visHandles.tableSelected,'CellSelectionCallback',@this.GUI_tableSelected_CellSelectionCallback);
+            %             set(this.visHandles.pushDraw,'Callback',@this.GUI_pushDraw_Callback,'TooltipString','Draw selected ASC.');
             set(this.visHandles.tableFiles,'CellSelectionCallback',@this.GUI_tableFiles_CellSelectionCallback);
             % radiobutton
             set(this.visHandles.radioDefault,'Callback',@this.GUI_radioROI_Callback);
             set(this.visHandles.radioAuto,'Callback',@this.GUI_radioROI_Callback);
             set(this.visHandles.radioCustom,'Callback',@this.GUI_radioROI_Callback);
             % push button
-%             set(this.visHandles.pushSelection,'Callback',@this.GUI_pushSelection_Callback,'TooltipString','Select files.');
+            %             set(this.visHandles.pushSelection,'Callback',@this.GUI_pushSelection_Callback,'TooltipString','Select files.');
             set(this.visHandles.pushBrowse,'Callback',@this.GUI_pushBrowse_Callback,'TooltipString','Browse folder.');
+            % checkbox
+            set(this.visHandles.checkSelection,'Callback',@this.GUI_checkSelection_Callback,'TooltipString','Select all files for import.');
             % edit fields
             set(this.visHandles.textXL,'Callback',@this.GUI_editROI_Callback);
             set(this.visHandles.textXH,'Callback',@this.GUI_editROI_Callback);
             set(this.visHandles.textYL,'Callback',@this.GUI_editROI_Callback);
             set(this.visHandles.textYH,'Callback',@this.GUI_editROI_Callback);
             % mouse
-%             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonDownFcn',@this.GUI_mouseButtonDown_Callback);
-%             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
-%             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
+            %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonDownFcn',@this.GUI_mouseButtonDown_Callback);
+            %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
+            %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
             
             this.setupGUI();
         end
@@ -420,12 +422,23 @@ this.updateGUI();
         end
         
         function GUI_tableFiles_CellSelectionCallback(this,hObject, eventdata)
+            % which file is selected
             if isempty(eventdata.Indices)
                 row = 1;
             else
                 row = eventdata.Indices(1);
             end
             this.curRow = row;
+            % get marked for importing files
+            transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}'];
+            data = get(this.visHandles.tableFiles,'Data'); 
+            transfer(cell2mat(transfer(:,3))== this.selectedCh,4) = data(:,4);
+            for i=1:size(transfer,1)
+                this.allFiles(i).import = logical(transfer{i,4});
+            end
+            data = get(this.visHandles.tableFiles,'Data');
+            set(this.visHandles.tableFiles,'Data',data);
+            % update GUI
             this.updateGUI();
         end
         
@@ -458,6 +471,11 @@ this.updateGUI();
                 msgbox('File is already selected.', 'Already selected');
             end
             set(this.visHandles.tableSelected,'Data',file);
+            
+        end
+        
+        % checkbox
+        function GUI_checkSelection_Callback(this,hObject, eventdata)
             
         end
         
