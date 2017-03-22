@@ -419,11 +419,15 @@ classdef FLIMX < handle
             persistent cmNames cmPaths
             if(isempty(cmPaths))
                 %thanks to Yair Altman
-                iPath = [docroot, filesep 'matlab' filesep 'ref'];
+                if(isdeployed())
+                    iPath = [ctfroot, filesep 'help' filesep 'matlab' filesep 'ref'];
+                else
+                    iPath = [docroot, filesep 'matlab' filesep 'ref'];
+                end
                 icons = dir([iPath filesep 'colormap_*.png']);
                 cmNames = regexprep({icons.name}, '.*_(.*).png', '$1');
                 if(isempty(cmNames))
-                    mapNames = {'Autumn','Bone','Colorcube','Cool','Copper','Flag','Gray','Hot','Hsv','Jet','Lines','Pink','Prism','Spring','Summer','White','Winter'};
+                    mapNames = {'Autumn','Bone','Colorcube','Cool','Copper','Flag','Gray','Hot','Hsv','Jet','Lines','Parula','Pink','Prism','Spring','Summer','White','Winter'};
                     iconPaths = [];
                     return
                 end
@@ -446,7 +450,7 @@ classdef FLIMX < handle
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 260;
-            out.client_revision = 364;
+            out.client_revision = 365;
             out.core_revision = 361;
             out.results_revision = 256;
             out.measurement_revision = 204;

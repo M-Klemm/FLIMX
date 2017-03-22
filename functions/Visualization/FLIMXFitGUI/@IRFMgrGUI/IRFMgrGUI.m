@@ -241,14 +241,19 @@ classdef IRFMgrGUI < handle
             irf = this.IRFMgrObj.getIRF(this.currentTimePoints,this.currentIRF,this.currentTacRange,this.currentSpectralCh);
             tVec = linspace(0,this.currentTacRange,this.currentTimePoints);
             set(this.visHandles.editFWHM,'String',sprintf('%3.1f ps',1000*IRFMgrGUI.compFWHM(tVec,irf)));
-            %fill tables
-            set(this.visHandles.tableIRFData,'Data',num2cell([tVec',irf]));
-            %plot current IRF
-            if(get(this.visHandles.checkNormalize,'Value'))
-                irf = irf./max(irf(:));
+            if(isempty(irf))
+                set(this.visHandles.tableIRFData,'Data',cell(0,0));
+                cla(this.visHandles.axesIRFView);
+            else
+                %fill tables
+                set(this.visHandles.tableIRFData,'Data',num2cell([tVec',irf]));
+                %plot current IRF
+                if(get(this.visHandles.checkNormalize,'Value'))
+                    irf = irf./max(irf(:));
+                end
+                semilogy(this.visHandles.axesIRFView,tVec,irf,'Color',[0 0 0]);
+                xlim(this.visHandles.axesIRFView,[tVec(1) tVec(end)]);
             end
-            semilogy(this.visHandles.axesIRFView,tVec,irf,'Color',[0 0 0]);
-            xlim(this.visHandles.axesIRFView,[tVec(1) tVec(end)]);
             xlabel(this.visHandles.axesIRFView,'Time in ps');
             %grid(this.visHandles.axesIRFView,'on');
             set(this.visHandles.axesIRFView,'color',[1 0.95 0.9]);
@@ -330,6 +335,10 @@ classdef IRFMgrGUI < handle
     methods(Static)
         function fwhm = compFWHM(t_vec,data)
             %computes the FWHM (full width (at) half maximum) for the vector data
+            if(isempty(data))
+                fwhm = 0;
+                return
+            end
             %hm = data(data > max(data(:))/2);
             hm = max(data(:))/2;
             idx = find(data > hm);

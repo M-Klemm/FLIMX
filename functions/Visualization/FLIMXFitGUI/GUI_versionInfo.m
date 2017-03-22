@@ -159,7 +159,7 @@ end
 if(measurementFile.testAdaptiveBinMex())
     data{2,2} = true;
 end
-if(fluoPixelModel.testShiftLinOpt1024())
+if(fluoPixelModel.testShiftLinOpt1024(false,true))
     data{3,2} = true;
 end
 set(handles.tableMexSupport,'Data',data);
