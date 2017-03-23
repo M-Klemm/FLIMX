@@ -174,11 +174,11 @@ classdef paramMgr < handle
             def.pre_processing.roiAdaptiveBinMax        =   10;
                         
             def.computation.useDistComp         =	0; %0: run only local, 1: multicore, 2: TU Ilmenau LSF
-            def.computation.useMatlabDistComp   =   1; %0: don't use Matlabs distrubuted computing engine, 1: use Matlabs distrubuted computing engine
-            def.computation.mcTargetNrWUs       =   48;
-            def.computation.mcTargetPixelPerWU  =   24;
+            def.computation.useMatlabDistComp   =   0; %0: don't use Matlabs distrubuted computing engine, 1: use Matlabs distrubuted computing engine
+            def.computation.mcTargetNrWUs       =   100;
+            def.computation.mcTargetPixelPerWU  =   84;
             def.computation.mcShare             =   'W:';
-            def.computation.mcWorkLocal         =	1;
+            def.computation.mcWorkLocal         =	0;
             def.computation.useGPU              =	0; %use matlab gpu accelaration
             
             def.basic_fit.approximationTarget   =   1; %1: lifetime; 2: anisotropy
@@ -190,7 +190,7 @@ classdef paramMgr < handle
             def.basic_fit.reconvoluteWithIRF    =   1; %switch reconvolution of model with IRF on (1) or off (0)
             def.basic_fit.amplitudeOrder        =   1; %force higher exponentials to have lower amplitudes; 0: disabled, 1: amp1 > amp2, 2: amp1 > amp2 > amp3 > ...
             def.basic_fit.tcOrder               =   1; %force time shifts (tc) of shifted exponentials to be ordered: e.g. tc3 > tc2
-            def.basic_fit.lifetimeGap           =   1.3; %minimal gap/distance between lifetimes (relative factor, e.g. tau2 >= tau1 * factor)
+            def.basic_fit.lifetimeGap           =   2; %minimal gap/distance between lifetimes (relative factor, e.g. tau2 >= tau1 * factor)
             def.basic_fit.resultValidyCheckCnt  =   1; %retries for optimizer to get valid result (all amps & offset ~= zero)
             def.basic_fit.fitModel              =   1; %0: tail fit, 1: tci fit
             def.basic_fit.tailFitPreMaxSteps    =   10; %number of time points prior to the maximum which are used additionally in case of tail fits
@@ -274,7 +274,7 @@ classdef paramMgr < handle
             def.fluo_decay_fit_gui.plotDataLinestyle      =	'none';
             def.fluo_decay_fit_gui.plotDataColor          =	[0 0 1];
             def.fluo_decay_fit_gui.plotDataMarkerstyle    = '.';
-            def.fluo_decay_fit_gui.plotDataMarkersize     = 6;
+            def.fluo_decay_fit_gui.plotDataMarkersize     = 15;
             
             def.fluo_decay_fit_gui.plotExp                =	1;
             def.fluo_decay_fit_gui.plotExpLinewidth       =	1;
@@ -514,19 +514,19 @@ classdef paramMgr < handle
             def.statistics.ampPer1_lb        	=	[1 1];
             def.statistics.ampPer1_lim       	=	[0 0];
             def.statistics.ampPer1_ub        	=	[1000 1000];
-            def.statistics.ampPer1_classwidth	=	[10 10];
+            def.statistics.ampPer1_classwidth	=	[1 1];
             def.statistics.ampPer2_lb        	=	[1 1];
             def.statistics.ampPer2_lim       	=	[0 0];
             def.statistics.ampPer2_ub        	=	[1000 1000];
-            def.statistics.ampPer2_classwidth	=	[10 10];
+            def.statistics.ampPer2_classwidth	=	[1 1];
             def.statistics.ampPer3_lb        	=	[1 1];
             def.statistics.ampPer3_lim       	=	[0 0];
             def.statistics.ampPer3_ub        	=	[1000 1000];
-            def.statistics.ampPer3_classwidth	=	[10 10];
+            def.statistics.ampPer3_classwidth	=	[1 1];
             def.statistics.ampPerN_lb        	=	[1 1];
             def.statistics.ampPerN_lim       	=	[0 0];
             def.statistics.ampPerN_ub        	=	[1000 1000];
-            def.statistics.ampPerN_classwidth	=	[10 10];
+            def.statistics.ampPerN_classwidth	=	[1 1];
             
             def.statistics.tau1_lb        	=	[1 1];
             def.statistics.tau1_lim       	=	[0 0];
@@ -590,7 +590,7 @@ classdef paramMgr < handle
             def.filtering.ifilter_type	=	2;
             
             def.general.openFitGUIonStartup = 1;
-            def.general.openVisGUIonStartup = 0;
+            def.general.openVisGUIonStartup = 1;
             def.general.windowSize          = 1; %1: medium, 2: small, 3: large (fullHD)
             def.general.cmIntensityType     = 'gray|';
             def.general.cmIntensityInvert   = 0;

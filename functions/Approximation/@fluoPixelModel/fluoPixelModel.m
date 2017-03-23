@@ -974,7 +974,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             pos = 2*bp.nExp;
             if(nargout > 9)
                 nVecs = size(xVec,2);
-                varargout{9} = round(xVec(end-1,:)./this.fileInfo(ch).timeChannelWidth); %hShift
+                varargout{9} = floor(xVec(end-1,:)./this.fileInfo(ch).timeChannelWidth); %hShift
                 %% take care of tci
                 varargout{3} = zeros(bp.nExp+(bp.scatterEnable && bp.scatterIRF),nVecs); %tcis 
                 %combine hShift and tci
@@ -983,7 +983,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 tci_tmp(tciMask,:) = tci_tmp(tciMask,:)+xVec(pos+1 : pos+nTci,:)./this.fileInfo(ch).timeChannelWidth; %hShift and tci
                 tci_tmp = bsxfun(@minus,tci_tmp,varargout{9}); %substract rounded shift -> fine shift (and tcis) remain
                 varargout{3}(tciMask,:) = round(tci_tmp(tciMask,:)); %rounded tcis
-                varargout{11} = -(tci_tmp - round(tci_tmp));%tcisFine + shift fine
+                varargout{11} = -tci_tmp; %(tci_tmp - round(tci_tmp));%tcisFine + shift fine
                 pos = pos + nTci;
                 %% stretched exponentials / beta
                 varargout{4} = ones(bp.nExp,nVecs); %betas
