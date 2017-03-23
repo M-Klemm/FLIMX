@@ -418,20 +418,23 @@ classdef FLIMX < handle
             %get names and path to images of color maps            
             persistent cmNames cmPaths
             if(isempty(cmPaths))
-                %thanks to Yair Altman
-                if(isdeployed())
-                    iPath = [ctfroot, filesep 'help' filesep 'matlab' filesep 'ref'];
-                else
-                    iPath = [docroot, filesep 'matlab' filesep 'ref'];
+                cmNames = {'Autumn','Bone','Colorcube','Cool','Copper','Flag','Gray','Hot','Hsv','Inferno','Jet','Lines','Magma','Parula','Pink','Plasma','Prism','Spring','Summer','Viridis','White','Winter'};                
+                cmPaths = strcat([FLIMX.getWorkingDir() filesep 'data' filesep 'colormap_'], cmNames', '.png');
+                for i = length(cmPaths):-1:1
+                    if(~exist(cmPaths{i},'file'))
+                        %no color map icon found -> generate it
+                        map = zeros(1,256,3);
+                        eval(sprintf('map(1,:,:) = %s(256);',lower(cmNames{i})));
+                        if(any(map(:)))
+                            map = repmat(map,7,1,1);
+                            imwrite(map,cmPaths{i});
+                        else
+                            %color map generation did not work -> remove it from list
+                            cmNames = cmNames(1:i-1);
+                            cmPaths = cmPaths(1:i-1);                            
+                        end
+                    end                    
                 end
-                icons = dir([iPath filesep 'colormap_*.png']);
-                cmNames = regexprep({icons.name}, '.*_(.*).png', '$1');
-                if(isempty(cmNames))
-                    mapNames = {'Autumn','Bone','Colorcube','Cool','Copper','Flag','Gray','Hot','Hsv','Jet','Lines','Parula','Pink','Prism','Spring','Summer','White','Winter'};
-                    iconPaths = [];
-                    return
-                end
-                cmPaths = strcat([iPath, filesep 'colormap_'], cmNames', '.png');
             end
             mapNames = cmNames;
             iconPaths = cmPaths;
@@ -450,7 +453,7 @@ classdef FLIMX < handle
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 260;
-            out.client_revision = 366;
+            out.client_revision = 367;
             out.core_revision = 362;
             out.results_revision = 256;
             out.measurement_revision = 204;
@@ -844,6 +847,19 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)'
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE'
                 'POSSIBILITY OF SUCH DAMAGE.'
+                
+                char(10);
+                'This software uses the color maps ''Magma'', ''Inferno'', ''Plasma'', ''Virirdis'' by Nathaniel Smith & Stefan van der Walt from https://bids.github.io/colormap, which is covered by the following license:';
+                'CC0 1.0 Universal'
+                'No Copyright'
+                char(13);                
+                'mpl-colormaps by Nathaniel Smith & Stefan van der Walt'                
+                'To the extent possible under law, the persons who associated CC0 with'
+                'mpl-colormaps have waived all copyright and related or neighboring rights'
+                'to mpl-colormaps.'                
+                'You should have received a copy of the CC0 legalcode along with this'
+                'work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.'
+                
                 };
         end
         
