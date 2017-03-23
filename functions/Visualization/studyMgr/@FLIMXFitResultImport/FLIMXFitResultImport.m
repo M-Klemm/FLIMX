@@ -10,6 +10,7 @@ classdef FLIMXFitResultImport < handle
         folderpath = '';
         maxCh = [];
         curRow = '';
+        curCol = '';
         % Roi
         axesMgr = [];
         measurementObj = [];
@@ -180,9 +181,6 @@ classdef FLIMXFitResultImport < handle
             transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}',{this.allFiles.image}'];
             transfer = transfer(cell2mat(transfer(:,3))== this.selectedCh,:);
             set(this.visHandles.tableFiles,'Data',transfer(:,1:4));
-            
-           
-            
             % show selected image
             if isempty(transfer{this.curRow,6})
                 this.loadImage()
@@ -191,7 +189,7 @@ classdef FLIMXFitResultImport < handle
             
             axes(this.visHandles.axesROI);
             imagesc(image);
-            %              set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
+            %  set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
         end
         
         
@@ -321,9 +319,8 @@ classdef FLIMXFitResultImport < handle
         
         function loadImage(this)
             data = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}',{this.allFiles.image}'];
-            data = data(cell2mat(data(:,3))== this.selectedCh,:);
-            
-            % show selected image
+            data = data(cell2mat(data(:,3))== this.selectedCh,:);  
+            % save all images from selected channel
             for i=1:size(data,1)
             ext = data{i,2};
             file = fullfile(this.folderpath,[data{i,5},ext]);
@@ -337,14 +334,13 @@ classdef FLIMXFitResultImport < handle
             end
             data{i,6} = image;
             end
-            
+            % rewrite image-data 
             transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}'];
             transfer(cell2mat(transfer(:,3))== this.selectedCh,6) = data(:,6);
             for i=1:size(transfer,1)
                 this.allFiles(i).image = transfer{i,6};
-            end
-            
-        end
+            end   
+        end        
         
         
         function importall(this)
@@ -453,19 +449,29 @@ classdef FLIMXFitResultImport < handle
             % which file is selected
             if isempty(eventdata.Indices)
                 row = 1;
+                if this.curCol == 4
+                    % in case of re-call through updateGUI, because of
+                    % refreshing files in table, row from "previous"
+                    % selection is remembered
+                    row = this.curRow;
+                end
+                col = 1;
             else
                 row = eventdata.Indices(1);
+                col = eventdata.Indices(2);
             end
             this.curRow = row;
-            % get marked for importing files
+            this.curCol = col;
+            % update GUI
             transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}'];
-            data = get(this.visHandles.tableFiles,'Data'); 
+            data = get(this.visHandles.tableFiles,'Data');
+            if col == 4 % mark selected
+                data(row,4) = {~logical(cell2mat(data(row,4)))};
+            end
             transfer(cell2mat(transfer(:,3))== this.selectedCh,4) = data(:,4);
             for i=1:size(transfer,1)
                 this.allFiles(i).import = logical(transfer{i,4});
             end
-            set(this.visHandles.tableFiles,'Data',data);
-            % update GUI
             this.updateGUI();
         end
         
