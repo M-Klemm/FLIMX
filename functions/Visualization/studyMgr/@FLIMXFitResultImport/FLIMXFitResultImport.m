@@ -163,7 +163,7 @@ classdef FLIMXFitResultImport < handle
             % Study / Subject
             set(this.visHandles.popupStudy,'String',this.FLIMXObj.curSubject.myParent.name);
             set(this.visHandles.popupSubject,'String',this.FLIMXObj.curSubject.name);
-            set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
+            set(this.visHandles.editPath,'String',this.folderpath,'Enable','on');
             % show some pictures
             this.selectedCh = 1;
             this.updateColorbar();
@@ -182,7 +182,7 @@ classdef FLIMXFitResultImport < handle
             transfer = transfer(cell2mat(transfer(:,3))== this.selectedCh,:);
             set(this.visHandles.tableFiles,'Data',transfer(:,1:4));
             % show selected image
-            if isempty(transfer{this.curRow,6})
+            if (isempty(transfer{this.curRow,6}))
                 this.loadImage()
             end
             image = transfer{this.curRow,6};
@@ -197,7 +197,7 @@ classdef FLIMXFitResultImport < handle
         function openFolderByGUI(this)
             %open a new folder using a GUI
             path = uigetdir(this.FLIMXObj.importGUI.lastImportPath,'Select Folder to import data.');
-            if(isempty(path))
+            if(isempty(path) || isequal(path,'0'))
                 return
             end
             set(this.visHandles.popupStem,'String','');
@@ -206,9 +206,9 @@ classdef FLIMXFitResultImport < handle
         
         function subjectstem = getSubjectStem(this, pathname)
             stems = get(this.visHandles.popupStem,'String');
-            if isempty(stems)
+            if (isempty(stems))
                 files = dir(pathname);
-                if size(files,1) == 0
+                if (size(files,1) == 0)
                     return
                 end
                 % call folder selection
@@ -222,26 +222,31 @@ classdef FLIMXFitResultImport < handle
                         idx_= strfind(filename,'_');
                         idxminus = strfind(filename,'-');
                         % Check: 2*'-' and '-_'
-                        if length(strfind(filename,'-'))<2 || idx_(end)~=1+idxminus(end)
+                        if (length(strfind(filename,'-'))<2 || idx_(end)~=1+idxminus(end))
                             return % invalid filename
                         end
                         stem{length(stem)+1} = (filename(1:idxminus(end-1)-1));
                     end
                     i = i+1;
                 end
-                % find most available word stem
-                singlestem = unique(stem);
-                counter = zeros(length(singlestem));
-                for i=1:length(singlestem)
-                    for j=1:length(stem)
-                        if strcmp(singlestem(i),stem(j))
-                            counter(i)=counter(i)+1;
+                if (~isempty(stem))
+                    % find most available word stem
+                    singlestem = unique(stem);
+                    counter = zeros(length(singlestem));
+                    for i=1:length(singlestem)
+                        for j=1:length(stem)
+                            if (strcmp(singlestem(i),stem(j)))
+                                counter(i)=counter(i)+1;
+                            end
                         end
                     end
+                    [~,place] = max(counter);
+                    set(this.visHandles.popupStem,'String',singlestem);
+                    subjectstem = singlestem{place(1)};
+                else
+                    errordlg('Folder doesn''t contain any .asc files. Please choose correct folder.');
+                    subjectstem = '';
                 end
-                [~,place] = max(counter);
-                set(this.visHandles.popupStem,'String',singlestem);
-                subjectstem = singlestem{place(1)};
             else
                 subjectstem = stems{get(this.visHandles.popupStem,'Value')};
             end
@@ -249,10 +254,13 @@ classdef FLIMXFitResultImport < handle
         
         function getfilesfromfolder(this, pathname)
             files = dir(pathname);
-            if size(files,1) == 0
+            if (size(files,1) == 0)
                 return
             end
             subjectstem = getSubjectStem(this, pathname);
+            if (isempty(subjectstem))
+                return
+            end
             % delete other word stems
             files = files(strncmp({files.name},subjectstem,length(subjectstem)));
             % sort in struct
@@ -268,11 +276,11 @@ classdef FLIMXFitResultImport < handle
                         % two digits
                         ChanNr = str2double(filename(length(subjectstem)+4:length(subjectstem)+5));
                         curName = filename(length(subjectstem)+8:length(filename));
-                        if isempty(ChanNr) || isnan(ChanNr)
+                        if (isempty(ChanNr) || isnan(ChanNr))
                             % one digit
                             ChanNr = str2double(filename(length(subjectstem)+4:length(subjectstem)+4));
                             curName = filename(length(subjectstem)+7:length(filename));
-                            if isempty(ChanNr) || isnan(ChanNr)
+                            if (isempty(ChanNr) || isnan(ChanNr))
                                 return
                             end
                         end
@@ -419,6 +427,7 @@ classdef FLIMXFitResultImport < handle
             set(this.visHandles.textXH,'Callback',@this.GUI_editROI_Callback);
             set(this.visHandles.textYL,'Callback',@this.GUI_editROI_Callback);
             set(this.visHandles.textYH,'Callback',@this.GUI_editROI_Callback);
+            set(this.visHandles.editPath,'Callback',@this.GUI_editPath_Callback,'TooltipString','Write filepath.');
             % mouse
             %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonDownFcn',@this.GUI_mouseButtonDown_Callback);
             %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
@@ -451,7 +460,7 @@ classdef FLIMXFitResultImport < handle
         %% GUI Callbacks
         % Tables
         function GUI_tableSelected_CellSelectionCallback(this,hObject,eventdata)
-            if isempty(eventdata.Indices)
+            if (isempty(eventdata.Indices))
                 row = 1;
             else
                 row = eventdata.Indices(1);
@@ -464,9 +473,9 @@ classdef FLIMXFitResultImport < handle
         
         function GUI_tableFiles_CellSelectionCallback(this,hObject, eventdata)
             % which file is selected
-            if isempty(eventdata.Indices)
+            if (isempty(eventdata.Indices))
                 row = 1;
-                if this.curCol == 4
+                if (this.curCol == 4)
                     % in case of re-call through updateGUI, because of
                     % refreshing files in table, row from "previous"
                     % selection is remembered
@@ -482,7 +491,7 @@ classdef FLIMXFitResultImport < handle
             % update GUI
             transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}'];
             data = get(this.visHandles.tableFiles,'Data');
-            if col == 4 % mark selected
+            if (col == 4) % mark selected
                 data(row,4) = {~logical(cell2mat(data(row,4)))};
             end
             transfer(cell2mat(transfer(:,3))== this.selectedCh,4) = data(:,4);
@@ -491,7 +500,22 @@ classdef FLIMXFitResultImport < handle
             end
             this.updateGUI();
         end
+        % edit
+        function GUI_editPath_Callback(this,hObject,eventdata)
+            path = get(this.visHandles.editPath,'String');
+            if(isempty(path))
+                path = uigetdir(this.FLIMXObj.importGUI.lastImportPath,'Select Folder to import data.');
+            end
+            set(this.visHandles.popupStem,'String','');
+            this.getfilesfromfolder(path);
+        end
         
+        function GUI_editROI_Callback(this,hObject, eventdata)
+            %
+            this.isDirty(1) = true; %flags which part was changed, 1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo
+            this.finalROIVec = this.editFieldROIVec;
+            this.updateROIControls([]);
+        end
         % Popup
         function GUI_popupChannel_Callback(this,hObject, eventdata)
             this.selectedCh=get(this.visHandles.popupChannel,'Value');
@@ -521,7 +545,7 @@ classdef FLIMXFitResultImport < handle
             f3 = f3(~cellfun(@isempty,f3));
             
             file = [f1, f2, f3 ];
-            if isempty(find(ismember(f1,this.curName{1})))
+            if (isempty(find(ismember(f1,this.curName{1}))))
                 file(end+1,1:3) = [this.curName, this.curRow, this.selectedCh];
             else
                 msgbox('File is already selected.', 'Already selected');
@@ -538,7 +562,7 @@ classdef FLIMXFitResultImport < handle
             
             % switch checkbox and select all/deselect all
             val = get(this.visHandles.checkSelection,'Value');
-            if val
+            if (val)
                 data(1:end) = {true};
                 set(this.visHandles.checkSelection,'String','Deselect all.','TooltipString','Click to deselect all files.');
             else
@@ -575,12 +599,7 @@ classdef FLIMXFitResultImport < handle
             this.finalROIVec = roi;
             this.updateGUI();
         end
-        function GUI_editROI_Callback(this,hObject, eventdata)
-            %
-            this.isDirty(1) = true; %flags which part was changed, 1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo
-            this.finalROIVec = this.editFieldROIVec;
-            this.updateROIControls([]);
-        end
+
         
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
