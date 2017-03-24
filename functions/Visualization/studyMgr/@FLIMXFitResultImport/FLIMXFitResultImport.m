@@ -200,7 +200,51 @@ classdef FLIMXFitResultImport < handle
             if(isempty(path))
                 return
             end
+            set(this.visHandles.popupStem,'String','');
             this.getfilesfromfolder(path);
+        end
+        
+        function subjectstem = getSubjectStem(this, pathname)
+            stems = get(this.visHandles.popupStem,'String');
+            if isempty(stems)
+                files = dir(pathname);
+                if size(files,1) == 0
+                    return
+                end
+                % call folder selection
+                % for each file extension
+                maxChan = 16;
+                i = 1;
+                stem = {};
+                while(i <= length(files))
+                    [~,filename,curExt] = fileparts(files(i).name);
+                    if(strcmp(curExt,'.asc'))
+                        idx_= strfind(filename,'_');
+                        idxminus = strfind(filename,'-');
+                        % Check: 2*'-' and '-_'
+                        if length(strfind(filename,'-'))<2 || idx_(end)~=1+idxminus(end)
+                            return % invalid filename
+                        end
+                        stem{length(stem)+1} = (filename(1:idxminus(end-1)-1));
+                    end
+                    i = i+1;
+                end
+                % find most available word stem
+                singlestem = unique(stem);
+                counter = zeros(length(singlestem));
+                for i=1:length(singlestem)
+                    for j=1:length(stem)
+                        if strcmp(singlestem(i),stem(j))
+                            counter(i)=counter(i)+1;
+                        end
+                    end
+                end
+                [~,place] = max(counter);
+                set(this.visHandles.popupStem,'String',singlestem);
+                subjectstem = singlestem{place(1)};
+            else
+                subjectstem = stems{get(this.visHandles.popupStem,'Value')};
+            end
         end
         
         function getfilesfromfolder(this, pathname)
@@ -208,36 +252,7 @@ classdef FLIMXFitResultImport < handle
             if size(files,1) == 0
                 return
             end
-            % call folder selection
-            % for each file extension
-            maxChan = 16;
-            i = 1;
-            stem = {};
-            while(i <= length(files))
-                [~,filename,curExt] = fileparts(files(i).name);
-                if(strcmp(curExt,'.asc'))
-                    idx_= strfind(filename,'_');
-                    idxminus = strfind(filename,'-');
-                    % Check: 2*'-' and '-_'
-                    if length(strfind(filename,'-'))<2 || idx_(end)~=1+idxminus(end)
-                        return % invalid filename
-                    end
-                    stem{length(stem)+1} = (filename(1:idxminus(end-1)-1));
-                end
-                i = i+1;
-            end
-            % find most available word stem
-            singlestem = unique(stem);
-            counter = zeros(length(singlestem));
-            for i=1:length(singlestem)
-                for j=1:length(stem)
-                    if strcmp(singlestem(i),stem(j))
-                        counter(i)=counter(i)+1;
-                    end
-                end
-            end
-            [~,place] = max(counter);
-            subjectstem = singlestem{place(1)};
+            subjectstem = getSubjectStem(this, pathname);
             % delete other word stems
             files = files(strncmp({files.name},subjectstem,length(subjectstem)));
             % sort in struct
@@ -283,6 +298,7 @@ classdef FLIMXFitResultImport < handle
             if(length(idx) > 1)
                 lastPath = lastPath(1:idx(end-1));
             end
+            this.setupGUI();
             %             for i=1:dim
             %                 files = names_asc(:,i);
             %                 files = files(~cellfun(@isempty,names_asc(:,i)));
@@ -382,6 +398,7 @@ classdef FLIMXFitResultImport < handle
             %set callbacks
             % popup
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select channel.');
+            set(this.visHandles.popupStem,'Callback',@this.GUI_popupStem_Callback,'TooltipString','Select stem. You will loose your current choice!');
             % table
             %             set(this.visHandles.tableASC,'CellSelectionCallback',@this.GUI_tableASC_CellSelectionCallback);
             %             set(this.visHandles.tableImages,'CellSelectionCallback',@this.GUI_tableImages_CellSelectionCallback);
@@ -480,6 +497,12 @@ classdef FLIMXFitResultImport < handle
             this.selectedCh=get(this.visHandles.popupChannel,'Value');
         end
         
+        function GUI_popupStem_Callback(this,hObject, eventdata)
+            this.curRow = 1;
+            this.curCol = 1;
+            this.selectedCh = 1;
+            this.getfilesfromfolder(this.folderpath);
+        end
         % Pushbutton
         function GUI_pushDraw_Callback(this,hObject, eventdata)
             
