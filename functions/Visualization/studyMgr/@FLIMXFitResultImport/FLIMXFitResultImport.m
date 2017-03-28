@@ -346,30 +346,61 @@ classdef FLIMXFitResultImport < handle
             data = data(cell2mat(data(:,3))== this.selectedCh,:);  
             % save all images from selected channel
             for i=1:size(data,1)
-            ext = data{i,2};
-            file = fullfile(this.folderpath,[data{i,5},ext]);
-            switch ext
-                case '.asc'
-                    image = dlmread(file);
-                case '.bmp'
-                    image = imread(file);
-                case '.tif'
-                    image = imread(file);
+                ext = data{i,2};
+                file = fullfile(this.folderpath,[data{i,5},ext]);
+                switch ext
+                    case '.asc'
+                        image = dlmread(file);
+                    case '.bmp'
+                        image = imread(file);
+                    case '.tif'
+                        image = imread(file);
+                end
+                data{i,6} = image;
             end
-            data{i,6} = image;
-            end
-            % rewrite image-data 
+            % rewrite image-data
             transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}'];
             transfer(cell2mat(transfer(:,3))== this.selectedCh,6) = data(:,6);
+            tStart = clock;
             for i=1:size(transfer,1)
-                this.allFiles(i).image = transfer{i,6};
-            end   
+                if (isempty(this.allFiles(i).image))
+                    this.allFiles(i).image = transfer{i,6};
+                end
+                %update progress bar
+                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(size(transfer,1)-i)); %mean cputime for finished runs * cycles left
+                this.plotProgressbar(i/(size(transfer,1)),[],...
+                    sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec - Loading images',...
+                    100*i/size(transfer,1),hours,minutes,secs));
+                 %   100*i/size(transfer,1),hours,minutes,secs,import.study.name));
+            end            
+            this.plotProgressbar(0,'','');   
         end        
         
         
         function importall(this)
             
         end
+        
+        
+        
+        
+        function plotProgressbar(this,x,varargin)
+            %update progress bar, progress x: 0..1, varargin{1}: title (currently unused), varargin{2}: text on progressbar
+            x = max(0,min(100*x,100));
+%             if(~ishandle(this.visHandles.studyMgrFigure))
+%                 return;
+%             end
+            xpatch = [0 x x 0];
+            set(this.visHandles.patchProgress,'XData',xpatch,'Parent',this.visHandles.axesProgress)
+            if nargin>0,
+                % update waitbar
+                yl = ylim(this.visHandles.axesProgress);
+                set(this.visHandles.textProgress,'Position',[1,yl(2)/2,0],'String',varargin{2},'Parent',this.visHandles.axesProgress);
+            end
+            drawnow;
+        end
+        
+        
         
         %colorbar
         function updateColorbar(this)
@@ -401,8 +432,6 @@ classdef FLIMXFitResultImport < handle
             % make a window for visualization of current fit
             this.visHandles = FLIMXFitResultImportFigure();
             figure(this.visHandles.FLIMXFitResultImportFigure);
-            % get user information
-            this.openFolderByGUI();
             %set callbacks
             % popup
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select channel.');
@@ -413,6 +442,23 @@ classdef FLIMXFitResultImport < handle
             %             set(this.visHandles.tableSelected,'CellSelectionCallback',@this.GUI_tableSelected_CellSelectionCallback);
             %             set(this.visHandles.pushDraw,'Callback',@this.GUI_pushDraw_Callback,'TooltipString','Draw selected ASC.');
             set(this.visHandles.tableFiles,'CellSelectionCallback',@this.GUI_tableFiles_CellSelectionCallback);
+            % axes
+            set(this.visHandles.axesProgress,'XLim',[0 100],...
+                'YLim',[0 1],...
+                'Box','on', ...
+                'FontSize', get(0,'FactoryAxesFontSize'),...
+                'XTickMode','manual',...
+                'YTickMode','manual',...
+                'XTick',[],...
+                'YTick',[],...
+                'XTickLabelMode','manual',...
+                'XTickLabel',[],...
+                'YTickLabelMode','manual',...
+                'YTickLabel',[]);
+            xpatch = [0 0 0 0];
+            ypatch = [0 0 1 1];
+            this.visHandles.patchProgress = patch(xpatch,ypatch,'r','EdgeColor','r','Parent',this.visHandles.axesProgress);%,'EraseMode','normal'
+            this.visHandles.textProgress = text(1,0,'','Parent',this.visHandles.axesProgress);
             % radiobutton
             set(this.visHandles.radioDefault,'Callback',@this.GUI_radioROI_Callback);
             set(this.visHandles.radioAuto,'Callback',@this.GUI_radioROI_Callback);
@@ -432,7 +478,8 @@ classdef FLIMXFitResultImport < handle
             %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonDownFcn',@this.GUI_mouseButtonDown_Callback);
             %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
             %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
-            
+            % get user information
+            this.openFolderByGUI();
             this.setupGUI();
         end
         
