@@ -149,7 +149,7 @@ classdef FLIMXFitResultImport < handle
                 this.createVisWnd();
             end
             this.setupGUI();
-            % this.updateGUI();
+            this.updateGUI();
             figure(this.visHandles.FLIMXFitResultImportFigure);
         end
         
@@ -189,6 +189,7 @@ classdef FLIMXFitResultImport < handle
             
             axes(this.visHandles.axesROI);
             imagesc(image);
+            this.updateColorbar();
             %  set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
         end
         
@@ -285,10 +286,12 @@ classdef FLIMXFitResultImport < handle
                             end
                         end
                 end
-                channel{i} = ChanNr;
-                ext{i} = curExt;
-                fullname{i} = filename;
-                name{i} = curName;
+                if (~contains(curName,'[%]'))
+                    channel{i} = ChanNr;
+                    ext{i} = curExt;
+                    fullname{i} = filename;
+                    name{i} = curName;
+                end
             end
             ext = ext(~cellfun(@isempty,channel(:)));
             fullname = fullname(~cellfun(@isempty,channel(:)));
@@ -342,39 +345,27 @@ classdef FLIMXFitResultImport < handle
         end
         
         function loadImage(this)
-            data = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}',{this.allFiles.image}'];
-            data = data(cell2mat(data(:,3))== this.selectedCh,:);  
-            % save all images from selected channel
-            for i=1:size(data,1)
-                ext = data{i,2};
-                file = fullfile(this.folderpath,[data{i,5},ext]);
-                switch ext
-                    case '.asc'
-                        image = dlmread(file);
-                    case '.bmp'
-                        image = imread(file);
-                    case '.tif'
-                        image = imread(file);
-                end
-                data{i,6} = image;
-            end
-            % rewrite image-data
-            transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}'];
-            transfer(cell2mat(transfer(:,3))== this.selectedCh,6) = data(:,6);
             tStart = clock;
-            for i=1:size(transfer,1)
-                if (isempty(this.allFiles(i).image))
-                    this.allFiles(i).image = transfer{i,6};
+            for i=1:size(this.allFiles,1)
+                if (isempty(this.allFiles(i).image) && this.allFiles(i).channel == this.selectedCh)
+                    file = fullfile(this.folderpath,[this.allFiles(i).fullname,this.allFiles(i).ext]);
+                    switch this.allFiles(i).ext
+                        case '.asc'
+                            image = dlmread(file);
+                        case '.bmp'
+                            image = imread(file);
+                        case '.tif'
+                            image = imread(file);
+                    end
+                    this.allFiles(i).image = image;
                 end
-                %update progress bar
-                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(size(transfer,1)-i)); %mean cputime for finished runs * cycles left
-                this.plotProgressbar(i/(size(transfer,1)),[],...
+                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(size(this.allFiles,1)-i)); %mean cputime for finished runs * cycles left
+                this.plotProgressbar(i/(size(this.allFiles,1)),[],...
                     sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec - Loading images',...
-                    100*i/size(transfer,1),hours,minutes,secs));
-                 %   100*i/size(transfer,1),hours,minutes,secs,import.study.name));
-            end            
-            this.plotProgressbar(0,'','');   
-        end        
+                    100*i/size(this.allFiles,1),hours,minutes,secs));
+            end
+            this.plotProgressbar(0,'','');
+        end
         
         
         function importall(this)
@@ -387,9 +378,9 @@ classdef FLIMXFitResultImport < handle
         function plotProgressbar(this,x,varargin)
             %update progress bar, progress x: 0..1, varargin{1}: title (currently unused), varargin{2}: text on progressbar
             x = max(0,min(100*x,100));
-%             if(~ishandle(this.visHandles.studyMgrFigure))
-%                 return;
-%             end
+            %             if(~ishandle(this.visHandles.studyMgrFigure))
+            %                 return;
+            %             end
             xpatch = [0 x x 0];
             set(this.visHandles.patchProgress,'XData',xpatch,'Parent',this.visHandles.axesProgress)
             if nargin>0,
@@ -616,8 +607,8 @@ classdef FLIMXFitResultImport < handle
                 data(1:end) = {false};
                 set(this.visHandles.checkSelection,'String','Select all.','TooltipString','Click to select all files.');
             end
-                
-            % show 
+            
+            % show
             transfer(cell2mat(transfer(:,3))== this.selectedCh,4) = data(:,1);
             for i=1:size(transfer,1)
                 this.allFiles(i).import = logical(transfer{i,4});
@@ -646,7 +637,7 @@ classdef FLIMXFitResultImport < handle
             this.finalROIVec = roi;
             this.updateGUI();
         end
-
+        
         
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -669,9 +660,6 @@ classdef FLIMXFitResultImport < handle
         
         function GUI_mouseMotion_Callback(this, hObject, eventdata)
             %executes on mouse move in window
-            %             if(this.roiMode ~= 3)
-            %                 return;
-            %             end
             cp = get(this.visHandles.axesROI,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
             if(any(cp(:) < 0))
