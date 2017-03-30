@@ -269,6 +269,7 @@ classdef FLIMXFitResultImport < handle
             ext = {};
             channel = {};
             name = {};
+            tStart = clock;
             for i=1:length(files)
                 [~,filename,curExt] = fileparts(files(i).name);
                 ChanNr = [];
@@ -292,7 +293,12 @@ classdef FLIMXFitResultImport < handle
                     fullname{i} = filename;
                     name{i} = curName;
                 end
+                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(files)-i)); %mean cputime for finished runs * cycles left
+                this.plotProgressbar(i/(length(files)),[],...
+                    sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec - Reading from files from folder',...
+                    100*i/length(files),hours,minutes,secs));
             end
+            this.plotProgressbar(0,'','');
             ext = ext(~cellfun(@isempty,channel(:)));
             fullname = fullname(~cellfun(@isempty,channel(:)));
             name = name(~cellfun(@isempty,channel(:)));
@@ -368,7 +374,7 @@ classdef FLIMXFitResultImport < handle
         end
         
         
-        function importall(this)
+        function importAll(this)
             
         end
         
@@ -428,10 +434,6 @@ classdef FLIMXFitResultImport < handle
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select channel.');
             set(this.visHandles.popupStem,'Callback',@this.GUI_popupStem_Callback,'TooltipString','Select stem. You will loose your current choice!');
             % table
-            %             set(this.visHandles.tableASC,'CellSelectionCallback',@this.GUI_tableASC_CellSelectionCallback);
-            %             set(this.visHandles.tableImages,'CellSelectionCallback',@this.GUI_tableImages_CellSelectionCallback);
-            %             set(this.visHandles.tableSelected,'CellSelectionCallback',@this.GUI_tableSelected_CellSelectionCallback);
-            %             set(this.visHandles.pushDraw,'Callback',@this.GUI_pushDraw_Callback,'TooltipString','Draw selected ASC.');
             set(this.visHandles.tableFiles,'CellSelectionCallback',@this.GUI_tableFiles_CellSelectionCallback);
             % axes
             set(this.visHandles.axesProgress,'XLim',[0 100],...
@@ -455,8 +457,8 @@ classdef FLIMXFitResultImport < handle
             set(this.visHandles.radioAuto,'Callback',@this.GUI_radioROI_Callback);
             set(this.visHandles.radioCustom,'Callback',@this.GUI_radioROI_Callback);
             % push button
-            %             set(this.visHandles.pushSelection,'Callback',@this.GUI_pushSelection_Callback,'TooltipString','Select files.');
             set(this.visHandles.pushBrowse,'Callback',@this.GUI_pushBrowse_Callback,'TooltipString','Browse folder.');
+            set(this.visHandles.pushImport,'Callback',@this.GUI_pushImport_Callback,'TooltipString','If you are ready, click here to import all selected files from all channels for the selected stem.');
             % checkbox
             set(this.visHandles.checkSelection,'Callback',@this.GUI_checkSelection_Callback,'TooltipString','Select all files for import.');
             % edit fields
@@ -469,7 +471,7 @@ classdef FLIMXFitResultImport < handle
             %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonDownFcn',@this.GUI_mouseButtonDown_Callback);
             %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
             %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
-            % get user information
+            % start task
             this.openFolderByGUI();
             this.setupGUI();
         end
@@ -497,19 +499,8 @@ classdef FLIMXFitResultImport < handle
         end
         %% GUI Callbacks
         % Tables
-        function GUI_tableSelected_CellSelectionCallback(this,hObject,eventdata)
-            if (isempty(eventdata.Indices))
-                row = 1;
-            else
-                row = eventdata.Indices(1);
-            end
-            Data=get(this.visHandles.tableSelected, 'Data');
-            file=Data(row,1);
-            this.curRow = Data{row,2};
-            this.updateGUI();
-        end
-        
         function GUI_tableFiles_CellSelectionCallback(this,hObject, eventdata)
+            % TODO: Better with eventdata: data (actual)
             % which file is selected
             if (isempty(eventdata.Indices))
                 row = 1;
@@ -538,6 +529,7 @@ classdef FLIMXFitResultImport < handle
             end
             this.updateGUI();
         end
+        
         % edit
         function GUI_editPath_Callback(this,hObject,eventdata)
             path = get(this.visHandles.editPath,'String');
@@ -554,9 +546,10 @@ classdef FLIMXFitResultImport < handle
             this.finalROIVec = this.editFieldROIVec;
             this.updateROIControls([]);
         end
+        
         % Popup
         function GUI_popupChannel_Callback(this,hObject, eventdata)
-            this.selectedCh=get(this.visHandles.popupChannel,'Value');
+            this.selectedCh = get(this.visHandles.popupChannel,'Value');
         end
         
         function GUI_popupStem_Callback(this,hObject, eventdata)
@@ -565,31 +558,20 @@ classdef FLIMXFitResultImport < handle
             this.selectedCh = 1;
             this.getfilesfromfolder(this.folderpath);
         end
+        
         % Pushbutton
-        function GUI_pushDraw_Callback(this,hObject, eventdata)
-            
-        end
         function GUI_pushBrowse_Callback(this,hObject, eventdata)
             this.openFolderByGUI();
             this.setupGUI();
         end
-        function GUI_pushSelection_Callback(this,hObject, eventdata)
-            file = get(this.visHandles.tableSelected,'Data');
-            f1 = file(:,1);
-            f2 = file(:,2);
-            f3 = file(:,3);
-            f1 = f1(~cellfun(@isempty,f1));
-            f2 = f2(~cellfun(@isempty,f2));
-            f3 = f3(~cellfun(@isempty,f3));
-            
-            file = [f1, f2, f3 ];
-            if (isempty(find(ismember(f1,this.curName{1}))))
-                file(end+1,1:3) = [this.curName, this.curRow, this.selectedCh];
-            else
-                msgbox('File is already selected.', 'Already selected');
+        
+        function GUI_pushImport_Callback(this,hObject, eventdata)
+            answer = questdlg('Do you want to import all selected files?','Continue?','Yes','No','No');
+            switch answer
+                case 'Yes'
+                    this.importAll();
+                otherwise
             end
-            set(this.visHandles.tableSelected,'Data',file);
-            
         end
         
         % checkbox
@@ -597,7 +579,6 @@ classdef FLIMXFitResultImport < handle
             transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}'];
             data = get(this.visHandles.tableFiles,'Data');
             data = data(:,4);
-            
             % switch checkbox and select all/deselect all
             val = get(this.visHandles.checkSelection,'Value');
             if (val)
@@ -607,7 +588,6 @@ classdef FLIMXFitResultImport < handle
                 data(1:end) = {false};
                 set(this.visHandles.checkSelection,'String','Select all.','TooltipString','Click to select all files.');
             end
-            
             % show
             transfer(cell2mat(transfer(:,3))== this.selectedCh,4) = data(:,1);
             for i=1:size(transfer,1)
