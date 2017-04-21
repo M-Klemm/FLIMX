@@ -11,6 +11,8 @@ classdef FLIMXFitResultImport < handle
         maxCh = [];
         curRow = '';
         curCol = '';
+        % Bin
+        binFact = 1;
         % Roi
         axesMgr = [];
         measurementObj = [];
@@ -191,7 +193,13 @@ classdef FLIMXFitResultImport < handle
             imagesc(image);
             if (~this.FLIMXObj.FLIMVisGUI.generalParams.reverseYDir)
                 this.visHandles.axesROI.YDir = 'normal';
+            else
+                this.visHandles.axesROI.YDir = 'reverse';
             end
+           
+            
+            
+            
             this.updateColorbar();
             %  set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
         end
@@ -366,6 +374,15 @@ classdef FLIMXFitResultImport < handle
                         case '.tif'
                             image = imread(file);
                     end
+                    [y,x] = size(this.FLIMXObj.curSubject.myResult.results.pixel{1, 1}.Amplitude1);
+                    [ym,xm,~] = size(image);
+                    if(ym == y && xm == x)
+                        %nothing to do
+                    elseif(y/ym - x/xm < eps)
+                        %resize image
+                        image = imresize(image,[y,x]);
+                    else
+                    end
                     this.allFiles(i).image = image;
                 end
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(size(this.allFiles,1)-i)); %mean cputime for finished runs * cycles left
@@ -378,9 +395,28 @@ classdef FLIMXFitResultImport < handle
         
         
         function importAll(this)
-            
+            this.createBinFiles();
+            this.updateGUI();
         end
         
+        function createBinFiles(this)
+            N = length(this.allFiles);
+            for i=1:N
+                if (~isequal(this.allFiles(i).ext,'.asc') && this.allFiles(i).bin && this.allFiles(i).import)
+                    this.allFiles(end+1) = this.allFiles(i);
+                    this.allFiles(end).fullname = [this.allFiles(i).fullname, '_BIN'];
+                    this.allFiles(end).name = [this.allFiles(i).name, '_BIN'];
+                    
+                    image = this.allFiles(i).image;
+                    %add a second version of the image/mask with binning n
+                    image(:,:) = imdilate(image(:,:),true(2*this.binFact+1));
+                    this.allFiles(end).image = image;
+                    
+                    
+                    
+                end
+            end
+        end
         
         
         
@@ -532,6 +568,7 @@ classdef FLIMXFitResultImport < handle
             if (col == 4) % mark selected BIN
                 data(row,4) = {~logical(cell2mat(data(row,4)))};
             end
+          %  data = eventdata.Source.Data;
             transfer(cell2mat(transfer(:,3))== this.selectedCh,5) = data(:,5);
             transferBIN(cell2mat(transfer(:,3))== this.selectedCh,4) = data(:,4);
             for i=1:size(transfer,1)
@@ -560,6 +597,7 @@ classdef FLIMXFitResultImport < handle
             binFactor(binFactor > 9) = 9;
             binFactor = round(binFactor,0);
             set(this.visHandles.editBin,'String',binFactor);
+            this.binFact = binFactor;
         end
         
         function GUI_editROI_Callback(this,hObject, eventdata)
