@@ -6,11 +6,11 @@ classdef FLIMXFitResultImport < handle
         FLIMXObj = [];
         visHandles = [];
         allFiles = struct;
+        headnames = {'fullname','ext','channel','name','image','bin','import'};
         % read
         folderpath = '';
         maxCh = [];
         curRow = '';
-        curCol = '';
         % Bin
         binFact = 1;
         % Roi
@@ -53,9 +53,9 @@ classdef FLIMXFitResultImport < handle
             end
             val(val>this.maxCh)=this.maxCh;
             set(this.visHandles.popupChannel,'Value',val);
-            %             transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}'];
-            %             transfer = transfer(cell2mat(transfer(:,3))== this.selectedCh,:);
-            %             set(this.visHandles.tableFiles,'Data',transfer);
+%                          transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}'];
+%                          transfer = transfer(cell2mat(transfer(:,3))== this.selectedCh,:);
+%                          set(this.visHandles.tableFiles,'Data',transfer);
             this.curRow = 1;
             this.updateGUI();
         end
@@ -179,6 +179,8 @@ classdef FLIMXFitResultImport < handle
         end
         
         function updateGUI(this)
+            % TODO: struct2cell statt transfer
+            
             % selected channel in uitable
             transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.bin}',{this.allFiles.import}',{this.allFiles.fullname}',{this.allFiles.image}'];
             transfer = transfer(cell2mat(transfer(:,3))== this.selectedCh,:);
@@ -188,20 +190,14 @@ classdef FLIMXFitResultImport < handle
                 this.loadImage()
             end
             image = transfer{this.curRow,7};
-          %  image = imresize(image, [256 256]);
             axes(this.visHandles.axesROI);
             imagesc(image);
             if (~this.FLIMXObj.FLIMVisGUI.generalParams.reverseYDir)
                 this.visHandles.axesROI.YDir = 'normal';
             else
                 this.visHandles.axesROI.YDir = 'reverse';
-            end
-           
-            
-            
-            
+            end 
             this.updateColorbar();
-            %  set(this.visHandles.editPath,'String',this.folderpath,'Enable','off');
         end
         
         
@@ -395,10 +391,16 @@ classdef FLIMXFitResultImport < handle
         
         
         function importAll(this)
+% flag = this.checkSubjectID(1)
             this.createBinFiles();
             this.updateGUI();
         end
-        
+        function flag = checkSubjectID(this, Ch)
+            %check if channel ch of subject is already in tree
+            [~, results] = opt.fdt.getSubjectFilesStatus(this.FLIMXObj.curSubject.myParent.name,this.FLIMXObj.curSubject.name);
+
+            flag = any(results == Ch);
+        end
         function createBinFiles(this)
             N = length(this.allFiles);
             for i=1:N
@@ -406,14 +408,10 @@ classdef FLIMXFitResultImport < handle
                     this.allFiles(end+1) = this.allFiles(i);
                     this.allFiles(end).fullname = [this.allFiles(i).fullname, '_BIN'];
                     this.allFiles(end).name = [this.allFiles(i).name, '_BIN'];
-                    
                     image = this.allFiles(i).image;
                     %add a second version of the image/mask with binning n
                     image(:,:) = imdilate(image(:,:),true(2*this.binFact+1));
                     this.allFiles(end).image = image;
-                    
-                    
-                    
                 end
             end
         end
@@ -457,7 +455,6 @@ classdef FLIMXFitResultImport < handle
             ytick(1) = 1;
             set(this.visHandles.cm_axes,'YDir','normal','YTick',ytick,'YTickLabel','','YAxisLocation','right','XTick',[],'XTickLabel','');
             ylim(this.visHandles.cm_axes,[1 size(this.FLIMXObj.FLIMVisGUI.dynParams.cm,1)]);
-            %??????  setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.cm_axes,false);
         end
     end
     
@@ -474,6 +471,7 @@ classdef FLIMXFitResultImport < handle
             set(this.visHandles.popupStem,'Callback',@this.GUI_popupStem_Callback,'TooltipString','Select stem. You will loose your current choice!');
             % table
             set(this.visHandles.tableFiles,'CellSelectionCallback',@this.GUI_tableFiles_CellSelectionCallback);
+            set(this.visHandles.tableFiles,'CellEditCallback',@this.GUI_tableFiles_CellEditCallback);
             % axes
             set(this.visHandles.axesProgress,'XLim',[0 100],...
                 'YLim',[0 1],...
@@ -507,11 +505,11 @@ classdef FLIMXFitResultImport < handle
             set(this.visHandles.textYL,'Callback',@this.GUI_editROI_Callback);
             set(this.visHandles.textYH,'Callback',@this.GUI_editROI_Callback);
             set(this.visHandles.editPath,'Callback',@this.GUI_editPath_Callback,'TooltipString','Write filepath.');
-            set(this.visHandles.editBin,'Callback',@this.GUI_editBin_Callback,'TooltipString','Write filepath.');
+            set(this.visHandles.editBin,'Callback',@this.GUI_editBin_Callback,'TooltipString','Binfactor must be real number greater 1.','String','1');
             % mouse
-            %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonDownFcn',@this.GUI_mouseButtonDown_Callback);
-            %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
-            %             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
+                         set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonDownFcn',@this.GUI_mouseButtonDown_Callback);
+                         set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
+                         set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
             % start task
             this.openFolderByGUI();
             this.setupGUI();
@@ -541,43 +539,29 @@ classdef FLIMXFitResultImport < handle
         %% GUI Callbacks
         % Tables
         function GUI_tableFiles_CellSelectionCallback(this,hObject, eventdata)
-            % TODO: Better with eventdata: data (actual)
+            if (isempty(eventdata.Indices))
+                row = 1;
+            else
+                row = eventdata.Indices(1);
+            end
+            this.curRow = row;
+            this.updateGUI();
+        end
+        function GUI_tableFiles_CellEditCallback(this,hObject, eventdata)
             % which file is selected
             if (isempty(eventdata.Indices))
                 row = 1;
-                if (this.curCol == 5 || this.curCol == 4)
-                    % in case of re-call through updateGUI, because of
-                    % refreshing files in table, row from "previous"
-                    % selection is remembered
-                    row = this.curRow;
-                end
-                col = 1;
             else
                 row = eventdata.Indices(1);
-                col = eventdata.Indices(2);
             end
             this.curRow = row;
-            this.curCol = col;
             % update GUI
-            transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.bin}',{this.allFiles.import}',{this.allFiles.fullname}'];
-            transferBIN = transfer;
-            data = get(this.visHandles.tableFiles,'Data');
-            if (col == 5) % mark selected IMPORT
-                data(row,5) = {~logical(cell2mat(data(row,5)))};
-            end
-            if (col == 4) % mark selected BIN
-                data(row,4) = {~logical(cell2mat(data(row,4)))};
-            end
-          %  data = eventdata.Source.Data;
-            transfer(cell2mat(transfer(:,3))== this.selectedCh,5) = data(:,5);
-            transferBIN(cell2mat(transfer(:,3))== this.selectedCh,4) = data(:,4);
-            for i=1:size(transfer,1)
-                this.allFiles(i).import = logical(transfer{i,5});
-                this.allFiles(i).bin = logical(transferBIN{i,4});
-            end
+            transfer = struct2cell(this.allFiles);
+            data = eventdata.Source.Data;
+            transfer(6:7,cell2mat(transfer(3,:))== this.selectedCh) = data(:,4:5)';
+            this.allFiles = cell2struct(transfer,this.headnames,1);
             this.updateGUI();
         end
-        
         % edit
         function GUI_editPath_Callback(this,hObject,eventdata)
             path = get(this.visHandles.editPath,'String');
@@ -614,7 +598,6 @@ classdef FLIMXFitResultImport < handle
         
         function GUI_popupStem_Callback(this,hObject, eventdata)
             this.curRow = 1;
-            this.curCol = 1;
             this.selectedCh = 1;
             this.getfilesfromfolder(this.folderpath);
         end
@@ -636,25 +619,19 @@ classdef FLIMXFitResultImport < handle
         
         % checkbox
         function GUI_checkSelection_Callback(this,hObject, eventdata)
-            transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.import}',{this.allFiles.fullname}'];
-            data = get(this.visHandles.tableFiles,'Data');
-            data = data(:,5);
+            transfer = struct2cell(this.allFiles);
             % switch checkbox and select all/deselect all
             val = get(this.visHandles.checkSelection,'Value');
             if (val)
-                data(1:end) = {true};
+                data(1:length(get(this.visHandles.tableFiles,'Data'))) = {true};
                 set(this.visHandles.checkSelection,'String','Deselect all.','TooltipString','Click to deselect all files.');
             else
-                data(1:end) = {false};
+                data(1:length(get(this.visHandles.tableFiles,'Data'))) = {false};
                 set(this.visHandles.checkSelection,'String','Select all.','TooltipString','Click to select all files.');
             end
             % show
-            transfer(cell2mat(transfer(:,3))== this.selectedCh,4) = data(:,1);
-            for i=1:size(transfer,1)
-                this.allFiles(i).import = logical(transfer{i,4});
-            end
-            data = get(this.visHandles.tableFiles,'Data');
-            set(this.visHandles.tableFiles,'Data',data);
+            transfer(7,cell2mat(transfer(3,:))== this.selectedCh) = data;
+            this.allFiles = cell2struct(transfer,this.headnames,1);
             this.updateGUI();
         end
         
