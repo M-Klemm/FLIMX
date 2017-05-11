@@ -366,12 +366,28 @@ classdef FLIMXFitResultImport < handle
         end
         
         function matchingImportsInitialize(this)
-%             transfer = struct2cell(this.allFiles);
-%             for i=1:this.maxCh
-%                 pos = strcmp(data(:,1),'t1');
-%                 transfer_ch = transfer(:,cell2mat(transfer(3,:))== i);
-%             transfer(6:7,cell2mat(transfer(3,:))== i) = transfer_ch(:,6:7);
-%             end
+            transfer_all = struct2cell(this.allFiles);
+            for i=1:this.maxCh
+                transfer = transfer_all(:,cell2mat(transfer_all(3,:))== i);
+                pos_t1 = strcmp(transfer(4,:),'t1');
+                pos_a1 = strcmp(transfer(4,:),'a1');
+                pos_t2 = strcmp(transfer(4,:),'t2');
+                pos_a2 = strcmp(transfer(4,:),'a2');
+                if (~any(pos_a1))
+                    transfer(7,pos_t1) = {0};
+                end
+                if (~any(pos_t1))
+                    transfer(7,pos_a1) = {0};
+                end
+                if (~any(pos_a2))
+                    transfer(7,pos_t2) = {0};
+                end
+                if (~any(pos_t2))
+                    transfer(7,pos_a2) = {0};
+                end
+                transfer_all(:,cell2mat(transfer_all(3,:))== i) = transfer;
+            end
+            this.allFiles = cell2struct(transfer_all,this.headnames,1);
         end
         
         function matchingImports(this)
@@ -397,14 +413,16 @@ classdef FLIMXFitResultImport < handle
             end
             if (isequal(pos,zeros(7,1)))
                 % not matching amplitude and tau
-                msgbox({'Number of Amplitudes and Taus does not match!','Your last choice has been reset.'},'Error','error');
+                
+                % msgbox({'Number of Amplitudes and Taus does not match!','Your last choice has been reset.'},'Error','error');
+                % errordlg('Number of Amplitudes and Taus does not match! Your last choice has been reset.','Error');
+                notImportantVariable = questdlg('Number of Amplitudes and Taus does not match! Your last choice has been reset.','Error','Okay.','Okay.');
                 pos(this.curRow) = 1;
+                importFlag = {0};
             end
             data(find(pos),5) = importFlag;           
             transfer(6:7,cell2mat(transfer(3,:))== this.selectedCh) = data(:,4:5)';
             this.allFiles = cell2struct(transfer,this.headnames,1);
-            
-            
         end
         
         function plotProgressbar(this,x,varargin)
@@ -509,7 +527,7 @@ classdef FLIMXFitResultImport < handle
         % Tables
         function GUI_tableFiles_CellSelectionCallback(this,hObject, eventdata)
             if (isempty(eventdata.Indices))
-                row = 1;
+                return
             else
                 row = eventdata.Indices(1);
             end
