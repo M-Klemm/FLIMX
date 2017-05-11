@@ -59,81 +59,6 @@ classdef FLIMXFitResultImport < handle
             this.curRow = 1;
             this.updateGUI();
         end
-        
-        function out = get.roiMode(this)
-            %return number of selected roi mode (1: whole dataset, 2: auto, 3: custom)
-            if(get(this.visHandles.radioAuto,'Value'))
-                out = 2;
-            elseif(get(this.visHandles.radioCustom,'Value'))
-                out = 3;
-            else
-                out = 1;
-            end
-        end
-        
-        function set.roiMode(this,val)
-            %set number of selected roi mode (1: whole dataset, 2: auto, 3: custom)
-            switch val
-                case 2
-                    set(this.visHandles.radioDefault,'Value',0);
-                    set(this.visHandles.radioAuto,'Value',1);
-                    set(this.visHandles.radioCustom,'Value',0);
-                    flag = 'off';
-                case 3
-                    set(this.visHandles.radioDefault,'Value',0);
-                    set(this.visHandles.radioAuto,'Value',0);
-                    set(this.visHandles.radioCustom,'Value',1);
-                    flag = 'on';
-                otherwise
-                    set(this.visHandles.radioDefault,'Value',1);
-                    set(this.visHandles.radioAuto,'Value',0);
-                    set(this.visHandles.radioCustom,'Value',0);
-                    flag = 'off';
-            end
-            set(this.visHandles.textXL,'Enable',flag);
-            set(this.visHandles.textXH,'Enable',flag);
-            set(this.visHandles.textYL,'Enable',flag);
-            set(this.visHandles.textYH,'Enable',flag);
-        end
-        
-        function out = get.editFieldROIVec(this)
-            %make roi vector from
-            x = this.myMeasurement.getRawXSz();
-            y = this.myMeasurement.getRawYSz();
-            cXl = max(1,str2double(get(this.visHandles.textXL,'String')));
-            cXu = min(x,str2double(get(this.visHandles.textXH,'String')));
-            cXl = max(1,min(cXl,cXu-1));
-            cXu = min(x,max(cXu,cXl+1));
-            cYl = max(1,str2double(get(this.visHandles.textYL,'String')));
-            cYu = min(y,str2double(get(this.visHandles.textYH,'String')));
-            cYl = max(1,min(cYl,cYu-1));
-            cYu = min(y,max(cYu,cYl+1));
-            out = [cXl, cXu, cYl, cYu];
-            %             out = [str2double(get(this.visHandles.textXL,'String')) str2double(get(this.visHandles.textXH,'String')), ...
-            %             str2double(get(this.visHandles.textYL,'String')), str2double(get(this.visHandles.textYH,'String'))];
-        end
-        
-        function set.editFieldROIVec(this,val)
-            %set roi points in GUI from roi vec (apply limits)
-            if(length(val) == 4)
-                set(this.visHandles.textXL,'String',max(1,val(1)))
-                set(this.visHandles.textXH,'String',min(this.myMeasurement.getRawXSz(),val(2)));
-                set(this.visHandles.textYL,'String', max(1,val(3)))
-                set(this.visHandles.textYH,'String',min(this.myMeasurement.getRawYSz(),val(4)));
-            end
-        end
-        
-        function out = get.currentROIVec(this)
-            %make ROI vector based on current GUI settings
-            switch this.roiMode
-                case 1
-                    out = [1 this.myMeasurement.getRawXSz() 1 this.myMeasurement.getRawYSz()];
-                case 2
-                    out = importWizard.getAutoROI(this.myMeasurement.getRawDataFlat(this.selectedCh),2);
-                case 3
-                    out = this.editFieldROIVec;
-            end
-        end
         %% Rest
         function this = FLIMXFitResultImport(hFLIMX)
             this.FLIMXObj = hFLIMX;
@@ -154,6 +79,13 @@ classdef FLIMXFitResultImport < handle
             this.updateGUI();
             figure(this.visHandles.FLIMXFitResultImportFigure);
         end
+        
+       function closeVisWnd(this)
+            %try to close windows if it still exists
+            try
+                close(this.visHandles.FLIMXFitResultImportFigure);
+            end
+        end %closeVisWnd
         
         function setupGUI(this)
             % popup
@@ -189,9 +121,9 @@ classdef FLIMXFitResultImport < handle
             if (isempty(transfer{this.curRow,7}))
                 this.loadImage()
             end
-            image = transfer{this.curRow,7};
+            img = transfer{this.curRow,7};
             axes(this.visHandles.axesROI);
-            imagesc(image);
+            imagesc(img);
             if (~this.FLIMXObj.FLIMVisGUI.generalParams.reverseYDir)
                 this.visHandles.axesROI.YDir = 'normal';
             else
@@ -205,7 +137,8 @@ classdef FLIMXFitResultImport < handle
         function openFolderByGUI(this)
             %open a new folder using a GUI
             path = uigetdir(this.FLIMXObj.importGUI.lastImportPath,'Select Folder to import data.');
-            if(isempty(path) || isequal(path,'0'))
+            if(isempty(path) || isequal(path,0))
+                msgbox({'No path was chosen!'},'Error','error');
                 return
             end
             set(this.visHandles.popupStem,'String','');
@@ -217,6 +150,7 @@ classdef FLIMXFitResultImport < handle
             if (isempty(stems))
                 files = dir(pathname);
                 if (size(files,1) == 0)
+                    msgbox({'Path does not contain any files!'},'Error','error');
                     return
                 end
                 % call folder selection
@@ -232,6 +166,7 @@ classdef FLIMXFitResultImport < handle
                         % Check: 2*'-' and '-_'
                         if (length(strfind(filename,'-'))<2 || idx_(end)~=1+idxminus(end))
                             return % invalid filename
+                            msgbox({'Invalid filename found in folder!'},'Error','error');
                         end
                         stem{length(stem)+1} = (filename(1:idxminus(end-1)-1));
                     end
@@ -263,6 +198,7 @@ classdef FLIMXFitResultImport < handle
         function getfilesfromfolder(this, pathname)
             files = dir(pathname);
             if (size(files,1) == 0)
+                msgbox({'Folder does not contain any files!'},'Error','error');
                 return
             end
             subjectstem = getSubjectStem(this, pathname);
@@ -312,10 +248,12 @@ classdef FLIMXFitResultImport < handle
             channel = channel(~cellfun(@isempty,channel(:)));
             emptyArray = cell(size(ext,2),1);
             falseArray(1:size(ext,2)) = {false};
-            this.allFiles = struct('fullname',fullname','ext',ext','channel',channel','name',name','image',emptyArray,'bin',falseArray','import',falseArray');
-            %
+            trueArray(1:size(ext,2)) = {true};
+            this.allFiles = struct('fullname',fullname','ext',ext','channel',channel','name',name','image',emptyArray,'bin',falseArray','import',trueArray');
             this.folderpath = pathname;
             this.maxCh = max(cell2mat(channel));
+            this.matchingImportsInitialize();
+            %
             filterindex = 1;
             lastPath = path;
             idx = strfind(lastPath,filesep);
@@ -394,12 +332,13 @@ classdef FLIMXFitResultImport < handle
 % flag = this.checkSubjectID(1)
             this.createBinFiles();
             this.updateGUI();
+            importResult();
         end
         function flag = checkSubjectID(this, Ch)
             %check if channel ch of subject is already in tree
-            [~, results] = opt.fdt.getSubjectFilesStatus(this.FLIMXObj.curSubject.myParent.name,this.FLIMXObj.curSubject.name);
+            [~, resultChs] = this.FLIMXObj.fdt.getSubjectFilesStatus(this.FLIMXObj.curSubject.myParent.name,this.FLIMXObj.curSubject.name);
 
-            flag = any(results == Ch);
+            flag = any(resultChs == Ch);
         end
         function createBinFiles(this)
             N = length(this.allFiles);
@@ -416,7 +355,57 @@ classdef FLIMXFitResultImport < handle
             end
         end
         
+        function lookingForBin(this)
+            % enables editBin
+            transfer = struct2cell(this.allFiles);
+            if (any(cell2mat(transfer(6,:))))
+                set(this.visHandles.editBin,'Enable','on');
+            else
+                set(this.visHandles.editBin,'Enable','off');
+            end       
+        end
         
+        function matchingImportsInitialize(this)
+%             transfer = struct2cell(this.allFiles);
+%             for i=1:this.maxCh
+%                 pos = strcmp(data(:,1),'t1');
+%                 transfer_ch = transfer(:,cell2mat(transfer(3,:))== i);
+%             transfer(6:7,cell2mat(transfer(3,:))== i) = transfer_ch(:,6:7);
+%             end
+        end
+        
+        function matchingImports(this)
+            transfer = struct2cell(this.allFiles);
+            data = get(this.visHandles.tableFiles,'Data');
+            name = data(this.curRow,1);
+            importFlag = data(this.curRow,5);
+            switch name{1}
+                case 'a1'
+                    % change t1
+                    pos = strcmp(data(:,1),'t1');                    
+                case 'a2'
+                    % change t2
+                    pos = strcmp(data(:,1),'t2'); 
+                case 't1'
+                    % change a1
+                    pos = strcmp(data(:,1),'a1'); 
+                case 't2'
+                    % change a2
+                    pos = strcmp(data(:,1),'a2');
+                otherwise
+                    pos = strcmp(data(:,1),name{1});
+            end
+            if (isequal(pos,zeros(7,1)))
+                % not matching amplitude and tau
+                msgbox({'Number of Amplitudes and Taus does not match!','Your last choice has been reset.'},'Error','error');
+                pos(this.curRow) = 1;
+            end
+            data(find(pos),5) = importFlag;           
+            transfer(6:7,cell2mat(transfer(3,:))== this.selectedCh) = data(:,4:5)';
+            this.allFiles = cell2struct(transfer,this.headnames,1);
+            
+            
+        end
         
         function plotProgressbar(this,x,varargin)
             %update progress bar, progress x: 0..1, varargin{1}: title (currently unused), varargin{2}: text on progressbar
@@ -426,7 +415,7 @@ classdef FLIMXFitResultImport < handle
             %             end
             xpatch = [0 x x 0];
             set(this.visHandles.patchProgress,'XData',xpatch,'Parent',this.visHandles.axesProgress)
-            if nargin>0,
+            if (nargin>0)
                 % update waitbar
                 yl = ylim(this.visHandles.axesProgress);
                 set(this.visHandles.textProgress,'Position',[1,yl(2)/2,0],'String',varargin{2},'Parent',this.visHandles.axesProgress);
@@ -490,12 +479,13 @@ classdef FLIMXFitResultImport < handle
             this.visHandles.patchProgress = patch(xpatch,ypatch,'r','EdgeColor','r','Parent',this.visHandles.axesProgress);%,'EraseMode','normal'
             this.visHandles.textProgress = text(1,0,'','Parent',this.visHandles.axesProgress);
             % radiobutton
-            set(this.visHandles.radioDefault,'Callback',@this.GUI_radioROI_Callback);
-            set(this.visHandles.radioAuto,'Callback',@this.GUI_radioROI_Callback);
-            set(this.visHandles.radioCustom,'Callback',@this.GUI_radioROI_Callback);
+%             set(this.visHandles.radioDefault,'Callback',@this.GUI_radioROI_Callback);
+%             set(this.visHandles.radioAuto,'Callback',@this.GUI_radioROI_Callback);
+%             set(this.visHandles.radioCustom,'Callback',@this.GUI_radioROI_Callback);
             % push button
             set(this.visHandles.pushBrowse,'Callback',@this.GUI_pushBrowse_Callback,'TooltipString','Browse folder.');
             set(this.visHandles.pushImport,'Callback',@this.GUI_pushImport_Callback,'TooltipString','If you are ready, click here to import all selected files from all channels for the selected stem.');
+            set(this.visHandles.pushCancel,'Callback',@this.GUI_pushCancel_Callback,'TooltipString','Click here for cancel importing resultfiles.');
             % checkbox
             set(this.visHandles.checkSelection,'Callback',@this.GUI_checkSelection_Callback,'TooltipString','Select all files for import.');
             set(this.visHandles.checkBin,'Callback',@this.GUI_checkBin_Callback,'TooltipString','Activate/Deactivate bin factor.');
@@ -505,37 +495,16 @@ classdef FLIMXFitResultImport < handle
             set(this.visHandles.textYL,'Callback',@this.GUI_editROI_Callback);
             set(this.visHandles.textYH,'Callback',@this.GUI_editROI_Callback);
             set(this.visHandles.editPath,'Callback',@this.GUI_editPath_Callback,'TooltipString','Write filepath.');
-            set(this.visHandles.editBin,'Callback',@this.GUI_editBin_Callback,'TooltipString','Binfactor must be real number greater 1.','String','1');
+            set(this.visHandles.editBin,'Callback',@this.GUI_editBin_Callback,'TooltipString','Binfactor must be real number greater 1.','String','1','Enable','off');
             % mouse
-                         set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonDownFcn',@this.GUI_mouseButtonDown_Callback);
-                         set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
-                         set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
+%                          set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonDownFcn',@this.GUI_mouseButtonDown_Callback);
+%                          set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
+%                          set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
             % start task
             this.openFolderByGUI();
             this.setupGUI();
         end
         
-        function updateROIControls(this,roi)
-            %apply limits to roi points and update roi display in GUI
-            if(isempty(roi))
-                roi = this.editFieldROIVec;
-            end
-            if(roi(4) <= this.myMeasurement.getRawYSz() && roi(2) <= this.myMeasurement.getRawXSz())
-                data = this.myMeasurement.getRawDataFlat(this.selectedCh);
-                if(~isempty(data))
-                    data = data(roi(3):roi(4),roi(1):roi(2));
-                end
-            else
-                data = [];
-            end
-            total = sum(data(:));
-            set(this.visHandles.editTotalPh,'String',sprintf('%.2f million',total/1000000));
-            set(this.visHandles.editAvgPh,'String',num2str(total/numel(data),'%.2f'));
-            %this.FLIMXObj.FLIMFitGUI.plotRawDataROI(this.visHandles.axesROI,
-            this.axesMgr.drawROIBox(roi);
-            set(this.visHandles.textXWidth,'String',num2str(1+abs(roi(1)-roi(2))));
-            set(this.visHandles.textYWidth,'String',num2str(1+abs(roi(3)-roi(4))));
-        end
         %% GUI Callbacks
         % Tables
         function GUI_tableFiles_CellSelectionCallback(this,hObject, eventdata)
@@ -560,6 +529,14 @@ classdef FLIMXFitResultImport < handle
             data = eventdata.Source.Data;
             transfer(6:7,cell2mat(transfer(3,:))== this.selectedCh) = data(:,4:5)';
             this.allFiles = cell2struct(transfer,this.headnames,1);
+            % bin enable
+            if (isequal(4,eventdata.Indices(2)))
+                this.lookingForBin();
+            end
+            % select/deselect matching files
+            if (isequal(5,eventdata.Indices(2)))
+                this.matchingImports();
+            end
             this.updateGUI();
         end
         % edit
@@ -607,7 +584,9 @@ classdef FLIMXFitResultImport < handle
             this.openFolderByGUI();
             this.setupGUI();
         end
-
+        function GUI_pushCancel_Callback(this,hObject, eventdata)
+            this.closeVisWnd();
+        end
         function GUI_pushImport_Callback(this,hObject, eventdata)
             answer = questdlg('Do you want to import all selected files?','Continue?','Yes','No','No');
             switch answer
@@ -734,33 +713,6 @@ classdef FLIMXFitResultImport < handle
             this.finalROIVec = this.editFieldROIVec;
             this.isDirty(1) = true; %flags which part was changed, 1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo
             this.updateROIControls([]);
-        end
-    end
-    methods(Static)
-        function roi = getAutoROI(imgFlat,roiBinning)
-            %try to determine a reasonable ROI
-            if(isempty(imgFlat))
-                roi = [];
-                return
-            end
-            th = sum(imgFlat(:) / numel(imgFlat));
-            bin = imgFlat >= th*0.5; %fitParams.roi_autoThreshold;
-            bin =  imerode(bin,strel('square', max(1,roiBinning)));
-            xl = find(any(bin,1),1,'first');
-            xh = find(any(bin,1),1,'last');
-            yl = find(any(bin,2),1,'first');
-            yh = find(any(bin,2),1,'last');
-            bin = bin(yl:yh,xl:xh);
-            %finetune a bit
-            rows = sum(bin,2) > size(bin,1)/10;
-            cols = sum(bin,1) > size(bin,2)/10;
-            xl_old = xl;
-            yl_old = yl;
-            xl = xl_old-1+find(cols,1,'first');
-            xh = xl_old-1+find(cols,1,'last');
-            yl = yl_old-1+find(rows,1,'first');
-            yh = yl_old-1+find(rows,1,'last');
-            roi = [xl xh yl yh];
         end
     end
 end
