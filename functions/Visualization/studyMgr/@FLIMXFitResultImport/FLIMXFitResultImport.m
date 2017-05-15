@@ -115,7 +115,11 @@ classdef FLIMXFitResultImport < handle
             
             % selected channel in uitable
             transfer = [{this.allFiles.name}',{this.allFiles.ext}',{this.allFiles.channel}',{this.allFiles.bin}',{this.allFiles.import}',{this.allFiles.fullname}',{this.allFiles.image}'];
+            sumImports(1,1) = sum([transfer{:,5}]);
+            sumImports(2,1) = size(transfer,1);
             transfer = transfer(cell2mat(transfer(:,3))== this.selectedCh,:);
+            sumImports(1,2) = sum([transfer{:,5}]);
+            sumImports(2,2) = size(transfer,1);
             set(this.visHandles.tableFiles,'Data',transfer(:,1:5));
             % show selected image
             if (isempty(transfer{this.curRow,7}))
@@ -129,7 +133,15 @@ classdef FLIMXFitResultImport < handle
             else
                 this.visHandles.axesROI.YDir = 'reverse';
             end 
+            % colorbar
             this.updateColorbar();
+            % text
+            set(this.visHandles.textNumberImports,'String',...
+                ['Number of Imports in total: ',num2str(sumImports(1,1)), ...
+                '/', num2str(sumImports(2,1))]);
+            set(this.visHandles.textNumberImportsChannel,'String',...
+                ['Number of Imports for this channel: ',num2str(sumImports(1,2)), ...
+                '/', num2str(sumImports(2,2))]);    
         end
         
         
@@ -503,7 +515,6 @@ classdef FLIMXFitResultImport < handle
             set(this.visHandles.pushCancel,'Callback',@this.GUI_pushCancel_Callback,'TooltipString','Click here for cancel importing resultfiles.');
             % checkbox
             set(this.visHandles.checkSelection,'Callback',@this.GUI_checkSelection_Callback,'TooltipString','Select all files for import.');
-            set(this.visHandles.checkBin,'Callback',@this.GUI_checkBin_Callback,'TooltipString','Activate/Deactivate bin factor.');
             % edit fields
             set(this.visHandles.textXL,'Callback',@this.GUI_editROI_Callback);
             set(this.visHandles.textXH,'Callback',@this.GUI_editROI_Callback);
