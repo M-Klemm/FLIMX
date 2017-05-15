@@ -252,7 +252,9 @@ classdef FLIMXFitResultImport < handle
             this.allFiles = struct('fullname',fullname','ext',ext','channel',channel','name',name','image',emptyArray,'bin',falseArray','import',trueArray');
             this.folderpath = pathname;
             this.maxCh = max(cell2mat(channel));
-            this.matchingImportsInitialize();
+            for i=1:this.maxCh
+                this.matchingImportsInitialize(i);
+            end
             %
             filterindex = 1;
             lastPath = path;
@@ -365,28 +367,26 @@ classdef FLIMXFitResultImport < handle
             end       
         end
         
-        function matchingImportsInitialize(this)
+        function matchingImportsInitialize(this, Channel)
             transfer_all = struct2cell(this.allFiles);
-            for i=1:this.maxCh
-                transfer = transfer_all(:,cell2mat(transfer_all(3,:))== i);
-                pos_t1 = strcmp(transfer(4,:),'t1');
-                pos_a1 = strcmp(transfer(4,:),'a1');
-                pos_t2 = strcmp(transfer(4,:),'t2');
-                pos_a2 = strcmp(transfer(4,:),'a2');
-                if (~any(pos_a1))
-                    transfer(7,pos_t1) = {0};
-                end
-                if (~any(pos_t1))
-                    transfer(7,pos_a1) = {0};
-                end
-                if (~any(pos_a2))
-                    transfer(7,pos_t2) = {0};
-                end
-                if (~any(pos_t2))
-                    transfer(7,pos_a2) = {0};
-                end
-                transfer_all(:,cell2mat(transfer_all(3,:))== i) = transfer;
+            transfer = transfer_all(:,cell2mat(transfer_all(3,:))== Channel);
+            pos_t1 = strcmp(transfer(4,:),'t1');
+            pos_a1 = strcmp(transfer(4,:),'a1');
+            pos_t2 = strcmp(transfer(4,:),'t2');
+            pos_a2 = strcmp(transfer(4,:),'a2');
+            if (~any(pos_a1))
+                transfer(7,pos_t1) = {0};
             end
+            if (~any(pos_t1))
+                transfer(7,pos_a1) = {0};
+            end
+            if (~any(pos_a2))
+                transfer(7,pos_t2) = {0};
+            end
+            if (~any(pos_t2))
+                transfer(7,pos_a2) = {0};
+            end
+            transfer_all(:,cell2mat(transfer_all(3,:))== Channel) = transfer;
             this.allFiles = cell2struct(transfer_all,this.headnames,1);
         end
         
@@ -411,16 +411,13 @@ classdef FLIMXFitResultImport < handle
                 otherwise
                     pos = strcmp(data(:,1),name{1});
             end
-            if (isequal(pos,zeros(7,1)))
+            if (isequal(pos,zeros(size(data,1),1)))
                 % not matching amplitude and tau
-                
-                % msgbox({'Number of Amplitudes and Taus does not match!','Your last choice has been reset.'},'Error','error');
-                % errordlg('Number of Amplitudes and Taus does not match! Your last choice has been reset.','Error');
-                notImportantVariable = questdlg('Number of Amplitudes and Taus does not match! Your last choice has been reset.','Error','Okay.','Okay.');
+                uiwait(errordlg('Number of Amplitudes and Taus does not match! Your last choice has been reset.','Error'));
                 pos(this.curRow) = 1;
                 importFlag = {0};
             end
-            data(find(pos),5) = importFlag;           
+            data(pos,5) = importFlag;           
             transfer(6:7,cell2mat(transfer(3,:))== this.selectedCh) = data(:,4:5)';
             this.allFiles = cell2struct(transfer,this.headnames,1);
         end
@@ -621,14 +618,17 @@ classdef FLIMXFitResultImport < handle
             val = get(this.visHandles.checkSelection,'Value');
             if (val)
                 data(1:length(get(this.visHandles.tableFiles,'Data'))) = {true};
+                transfer(7,cell2mat(transfer(3,:))== this.selectedCh) = data;
+                this.allFiles = cell2struct(transfer,this.headnames,1);
+                this.matchingImportsInitialize(this.selectedCh);
                 set(this.visHandles.checkSelection,'String','Deselect all.','TooltipString','Click to deselect all files.');
             else
                 data(1:length(get(this.visHandles.tableFiles,'Data'))) = {false};
-                set(this.visHandles.checkSelection,'String','Select all.','TooltipString','Click to select all files.');
+                set(this.visHandles.checkSelection,'String','Select all.','TooltipString','Click to select all files.');    
+                % show
+                transfer(7,cell2mat(transfer(3,:))== this.selectedCh) = data;
+                this.allFiles = cell2struct(transfer,this.headnames,1);
             end
-            % show
-            transfer(7,cell2mat(transfer(3,:))== this.selectedCh) = data;
-            this.allFiles = cell2struct(transfer,this.headnames,1);
             this.updateGUI();
         end
         
