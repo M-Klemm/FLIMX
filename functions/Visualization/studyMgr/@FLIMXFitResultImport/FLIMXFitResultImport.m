@@ -95,8 +95,8 @@ classdef FLIMXFitResultImport < handle
             end
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select channel.','String',string_list);
             % Study / Subject
-            set(this.visHandles.popupStudy,'String',this.FLIMXObj.curSubject.myParent.name);
-            set(this.visHandles.popupSubject,'String',this.FLIMXObj.curSubject.name);
+            set(this.visHandles.popupStudy,'String',this.FLIMXObj.studyMgrGUI.visHandles.popupStudySelection.String,'Value',this.FLIMXObj.studyMgrGUI.visHandles.popupStudySelection.Value);
+            set(this.visHandles.popupSubject,'String',this.FLIMXObj.studyMgrGUI.visHandles.popupSubjectSelection.String,'Value',this.FLIMXObj.studyMgrGUI.visHandles.popupSubjectSelection.Value);
             set(this.visHandles.editPath,'String',this.folderpath,'Enable','on');
             % show some pictures
             this.selectedCh = 1;
@@ -614,7 +614,12 @@ classdef FLIMXFitResultImport < handle
             this.closeVisWnd();
         end
         function GUI_pushImport_Callback(this,hObject, eventdata)
-            answer = questdlg('Do you want to import all selected files?','Continue?','Yes','No','No');
+            studyNames = get(this.visHandles.popupStudy,'String');
+            subjectNames = get(this.visHandles.popupSubject,'String');
+            answer = questdlg(['Do you want to import all selected files for Subject ''', ...
+                subjectNames{get(this.visHandles.popupSubject,'Value')}, ...
+                ''' in Study ''',studyNames{get(this.visHandles.popupStudy,'Value')},'''?'],...
+                'Continue?','Yes','No','No');
             switch answer
                 case 'Yes'
                     this.importAll();
