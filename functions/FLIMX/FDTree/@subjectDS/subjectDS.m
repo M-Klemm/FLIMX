@@ -556,6 +556,11 @@ classdef subjectDS < handle
             out = this.myParent.getResultZScaling(this.name,ch,dType,dTypeNr);
         end
         
+        function out = getColorScaling(this,ch,dType,dTypeNr)
+            %get color scaling
+            out = this.myParent.getResultColorScaling(this.name,ch,dType,dTypeNr);
+        end
+        
         function out = channelMesurementIsLoaded(this,chan)
             %
             hfd = this.getFDataObj(chan,'Intensity',0,1); %check only linear data

@@ -31,9 +31,12 @@ classdef FDisplay < handle
     %
     % @brief    A class to paint axes with FLIM data
     %
+    properties(GetAccess = public, SetAccess = protected)
+        myColorScaleObj = [];
+    end
     properties(GetAccess = protected, SetAccess = protected)
         visObj = [];
-        mySide = '';          
+        mySide = '';        
         screenshot = false; %flag
         disp_view = [];
         current_img_min = [];
@@ -47,6 +50,7 @@ classdef FDisplay < handle
         h_ETDRSGrid = [];
         h_ETDRSGridText = [];
         h_Polygon = [];
+        h_cmImage = [];
         pixelResolution = 0;
         measurementPosition = 'OS';
         zoomAnchor = [1; 1];
@@ -100,6 +104,8 @@ classdef FDisplay < handle
         h_CPPosTxt = [];
         h_CPValTxt = [];
         h_zoom_slider = [];
+        h_s_colormapLowEdit = [];
+        h_s_colormapHighEdit = [];
         %visualization parameters
         dynVisParams = [];
         staticVisParams = [];
@@ -110,6 +116,7 @@ classdef FDisplay < handle
             %Constructs a FDisplay object.
             this.visObj = visObj;
             this.mySide = side;
+            this.myColorScaleObj = ColorCtrl(visObj,side,this);            
 %             this.setUIHandles();
             this.disp_view = [-40 30];
         end %FDisplay
@@ -138,22 +145,60 @@ classdef FDisplay < handle
             else
                 this.myhfdSupp = {val};
             end
-        end        
+        end
+        
+        function zoomSuppXScale(this,target)
+            %set x scaling for supp axes            
+            if(~(this.sDispMode == 2 && this.sDispHistMode == 1))
+                return
+            end            
+            hfd = this.myhfdSupp;
+            if(isempty(hfd{1}))
+                return
+            end
+            rc = this.ROICoordinates;
+            rt = this.ROIType;
+            rs = this.ROISubType;
+            ri = this.ROIInvertFlag;
+            [~, histCenters] = hfd{1}.getCIHist(rc,rt,rs,ri);
+            cs = this.myColorScaleObj.getCurCSInfo();
+            [~,curStartClass] = min(abs(histCenters-cs(2)));
+            [~,curEndClass] = min(abs(histCenters-cs(3)));
+            curXlim = xlim(this.h_s_ax);
+            curHistRange = curXlim(2) - curXlim(1) +1;
+            curColorRange = (curEndClass-curStartClass)/2;
+            curColorCenter = curStartClass + curColorRange;
+            if(strcmpi(target,'in'))
+                range = curHistRange*0.5;
+            else
+                range = curHistRange*2;
+            end
+            lb = max(1,min(curStartClass,floor(curColorCenter-range/2)));
+            ub = min(length(histCenters),max(curEndClass,round(curColorCenter+range/2)));
+            xlim(this.h_s_ax,[lb ub]);
+            xtick = get(this.h_s_ax,'XTick');
+            if(xtick(1) == 0)
+                xtick = xtick+1;
+            end
+            set(this.h_s_ax,'XTickLabel',FLIMXFitGUI.num4disp(histCenters(xtick)'));
+        end
         
         function out = getDispView(this)
             %get current display view
             out = this.disp_view;
         end
         
-        function cp = getMyCP(this)
-            %get the current point of my main axes            
-%             hfd = this.gethfd();
-%             if(isempty(hfd{1}) || length(hfd) > 1 || this.mDispDim > 2)                
-%                 cp = [];
-%                 return
-%             end 
-%             hfd = hfd{1};
-            hAx = this.h_m_ax;
+        function cp = getMyCP(this,axesFlag)
+            %get the current point of my main (axesFlag = 1) axes or supplemental axes (axesFlag = 2)
+            switch axesFlag
+                case 1
+                    hAx = this.h_m_ax;
+                case 2
+                    hAx = this.h_s_ax;
+                otherwise
+                    cp = [];
+                    return;
+            end
             cp = get(hAx,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
             if(any(cp(:) < 0))
@@ -161,26 +206,10 @@ classdef FDisplay < handle
                 cp = [];
                 return;
             end
-            %cp=fix(cp+0.52);
             cp = round(cp);
             if(cp(1) < hAx.XLim(1) || cp(1) > hAx.XLim(2) || cp(2) < hAx.YLim(1) || cp(2) > hAx.YLim(2))
                 cp = [];
             end
-%             if(this.mDispDim == 1)
-%                 xMax = hfd.rawImgXSz(2);
-%                 yMax = hfd.rawImgYSz(2);
-%             else
-%                 rc = this.ROICoordinates;
-%                 rt = this.ROIType;
-%                 rs = this.ROISubType;
-%                 ri = this.ROIInvertFlag;
-%                 xMax = hfd.getCIxSz(rc,rt,rs,ri);
-%                 yMax = hfd.getCIySz(rc,rt,rs,ri);
-%             end
-%             if(cp(1) >= 1 && cp(1) <= xMax && cp(2) >= 1 && cp(2) <= yMax)
-%             else
-%                 cp = [];
-%             end            
         end
         
         function drawCP(this,cp)
@@ -318,15 +347,6 @@ classdef FDisplay < handle
                     this.h_Rectangle = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                 end
             end
-            %             if(MSX)
-            %                 line('XData',[MSXMin MSXMin],'YData',[MSYMin MSYMax],'Color',sVisParam.ROIColor,'LineWidth',2,'LineStyle','-','Parent',hAx);
-            %
-            %                 line('XData',[MSXMax MSXMax],'YData',[MSYMin MSYMax],'Color',sVisParam.ROIColor,'LineWidth',2,'LineStyle','-','Parent',hAx);
-            %             end
-            %             if(MSY)
-            %                 line('XData',[MSXMin MSXMax],'YData',[MSYMin MSYMin],'Color',sVisParam.ROIColor,'LineWidth',2,'LineStyle','-','Parent',hAx);
-            %                 line('XData',[MSXMin MSXMax],'YData',[MSYMax MSYMax],'Color',sVisParam.ROIColor,'LineWidth',2,'LineStyle','-','Parent',hAx);
-            %             end
         end
         
         function drawCircle(this,cp,radius,drawTextFlag)
@@ -490,7 +510,7 @@ classdef FDisplay < handle
         end
                 
         function [hfd, hfdInt, hfdSupp] = gethfd(this)
-            %
+            %get handle(s) to current FData object(s)
             hfd = this.myhfdMain;           
             hfdInt = this.myhfdInt;
             hfdSupp = this.myhfdSupp;
@@ -499,7 +519,6 @@ classdef FDisplay < handle
             end
             %get handle to intensity image
             hfdInt = this.visObj.fdt.getFDataObj(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),this.visObj.getChannel(this.mySide),'Intensity',0,1);
-            %hfd = {[]};
             %no old FData handle, read GUI settings and get new one
             scale = get(this.h_m_psc,'Value');
             %get 'variation mode': 1:uini 2: multi 3: cluster
@@ -558,6 +577,7 @@ classdef FDisplay < handle
             %update main and cuts axes
             %tic;                                    
             this.UpdateMinMaxLbl();
+            this.myColorScaleObj.updateGUI([]);
             this.makeMainPlot();            
             this.makeSuppPlot();
             this.makeZoom(); 
@@ -665,23 +685,32 @@ classdef FDisplay < handle
                     zMax = zMax + 0.1;
                 end
                 %color mapping
-                %zMin = 500; zMax = 3500;
                 if(dispDim == 1 || isempty(hfd{i}.getCIColor(rc,rt,rs,ri)))
-                    colors = current_img - zMin(i);
+                    %cTmp = hfd{i}.getColorScaling();
+                    cTmp = single(this.myColorScaleObj.getCurCSInfo());
+                    if(isempty(cTmp) || length(cTmp) ~= 3)
+                        %auto color scaling
+                        cMin = zMin(i);
+                        cMax = zMax(i);
+                    else
+                        cMin = cTmp(2);
+                        cMax = cTmp(3);
+                    end
+                    colors = current_img - cMin;
                     colors(isinf(colors)) = NaN;
                     if(strcmp(hfd{i}.dType,'Intensity'))
                         cm = this.dynVisParams.cmIntensity;
                     else
                         cm = this.dynVisParams.cm;
                     end
-                    colors = colors/(zMax(i)-zMin(i))*(size(cm,1)-1)+1; %mapping for colorbar
+                    colors = colors/(cMax-cMin)*(size(cm,1)-1)+1; %mapping for colorbar
                     colors(isnan(colors)) = 1;
                     colors = max(colors,1);
                     colors = min(colors,256);
                     if(strncmp(hfd{i}.dType,'MVGroup',7)  || strncmp(hfd{i}.dType,'ConditionMVGroup',16))
                         cm = repmat([0:1/(size(cm,1)-1):1]',1,3);
-                        color = this.visObj.fdt.getViewColor(this.visObj.getStudy(this.mySide),this.visObj.getView(this.mySide));
-                        cm = [cm(:,1).*color(1) cm(:,2).*color(2) cm(:,3).*color(3)];
+                        conditionColor = this.visObj.fdt.getViewColor(this.visObj.getStudy(this.mySide),this.visObj.getView(this.mySide));
+                        cm = [cm(:,1).*conditionColor(1) cm(:,2).*conditionColor(2) cm(:,3).*conditionColor(3)];
                         colors = cm(round(reshape(colors,[],1)),:);
                         alphaData = ceil(sum(colors,2));
                         colors = reshape(colors,[size(current_img) 3]);
@@ -1063,28 +1092,72 @@ classdef FDisplay < handle
             yCell(idx) = num2cell(ylbl(pos));
             set(this.h_m_ax,'XTickLabel',xCell,'YTickLabel',yCell);
         end
-          
-        function makeSuppPlot(this, addColorBar, ColorBarStart, ColorBarFinish)            
-            %manage input variables            
-            if(nargin < 2)
-                addColorBar = false;
-                ColorBarStart = -1;
-                ColorBarFinish = -1;
+        
+        function drawColorbarOnSuppPlot(this)
+            %draw colobar behind histogram on supllemental axes
+            hfd = this.myhfdSupp;
+            if(isempty(hfd{1}))
+                return
             end
-            %make current supplemental plot                        
+            cTmp = single(this.myColorScaleObj.getCurCSInfo());
+            if(isempty(cTmp) || length(cTmp) ~= 3)
+                %should not happen
+                error('no auto-scaled color found!');
+            else
+                startClass = cTmp(2);
+                endClass = cTmp(3);
+            end
+            %fit color scaling to histogram classes            
+            rc = this.ROICoordinates;
+            rt = this.ROIType;
+            rs = this.ROISubType;
+            ri = this.ROIInvertFlag;
+            [~, centers] = hfd{1}.getCIHist(rc,rt,rs,ri);
+            [~,startClass] = min(abs(centers-cTmp(2)));
+            [~,endClass] = min(abs(centers-cTmp(3)));
+            %add colorbar either in Full Axes or at specified location, put it behind the bar
+            if(startClass == -1)
+                xtemp = this.h_s_ax.XLim;
+            else
+                xtemp = [startClass endClass];
+            end
+            ytemp = this.h_s_ax.YLim;
+            if(strcmp(hfd{1}.dType,'Intensity'))
+                temp = zeros(1,length(this.dynVisParams.cmIntensity), 3);
+                temp(1,:,:) = this.dynVisParams.cmIntensity;
+            else
+                temp = zeros(1,length(this.dynVisParams.cm), 3);
+                temp(1,:,:) = this.dynVisParams.cm;
+            end
+            if(ishghandle(this.h_cmImage))
+                try
+                    delete(this.h_cmImage);
+                    this.h_cmImage = [];
+                end
+            end
+            if(abs(startClass - endClass) > eps)
+                %draw colormap only if we have at least one class
+                this.h_cmImage = image('XData',xtemp,'YData',ytemp,'CData',temp,'Parent',this.h_s_ax);
+                this.h_s_ax.YLim = ytemp;
+                uistack(this.h_cmImage,'bottom');
+            end
+        end
+          
+        function makeSuppPlot(this)
+            %make current supplemental plot
             hfd = this.myhfdSupp;
             if(isempty(hfd{1}))
                 cla(this.h_s_ax);
-                axis(this.h_s_ax,'off');                
-                set(this.h_s_p,'Value',1);  
-                set(this.h_s_hist,'Visible','off'); 
+                axis(this.h_s_ax,'off');
+                %set(this.h_s_p,'Value',1);
+                set(this.h_s_hist,'Visible','off');
                 return
-            end            
-            nrFD = length(hfd);            
-            this.suppExport = []; 
-            if(~this.screenshot)
-                set(this.h_s_ax,'Fontsize',this.staticVisParams.fontsize);
             end
+            nrFD = length(hfd);
+            this.suppExport = []; 
+%             if(~this.screenshot)
+%                 set(this.h_s_ax,'Fontsize',this.staticVisParams.fontsize);
+%             end
             rc = this.ROICoordinates;
             rt = this.ROIType;
             rs = this.ROISubType;
@@ -1119,7 +1192,9 @@ classdef FDisplay < handle
                             return
                         end
                         this.suppExport = [centers' histo'];
-                        bar(this.h_s_ax,histo,'hist', 'Color', 'b', 'Parent', this.h_s_ax);
+                        h = bar(this.h_s_ax,histo,'hist','Parent',this.h_s_ax);
+                        h.FaceColor = [0 0 0];
+                        h.EdgeColor = [0 0 0];
                         if(this.staticVisParams.grid)
                             grid(this.h_s_ax,'on');
                         else
@@ -1133,27 +1208,7 @@ classdef FDisplay < handle
                             xtick = xtick+1;
                         end
                         set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',FLIMXFitGUI.num4disp(centers(xtick)'));
-                        
-                        if(addColorBar)
-                            %add colorbar either in Full Axe or Specified part, put it behind the bar
-                            if(ColorBarFinish == -1)
-                                xtemp = this.h_s_ax.XLim;
-                            else
-                                xtemp = [ColorBarStart ColorBarFinish];
-                            end
-                            ytemp = this.h_s_ax.YLim;
-                            bartype = this.visObj.visHandles.main_axes_l_pop.String{1, 1};
-                            if(strcmp(bartype,'Intensity'))
-                                temp = zeros(1,length(this.dynVisParams.cmIntensity), 3);
-                                temp(1,:,:) = this.dynVisParams.cmIntensity;
-                            else
-                                temp = zeros(1,length(this.dynVisParams.cm), 3);
-                                temp(1,:,:) = this.dynVisParams.cm;
-                            end
-                            cbImage = imagesc('XData',xtemp,'YData',ytemp,'CData',temp,'Parent',this.h_s_ax);
-                            this.h_s_ax.YLim = ytemp;
-                            uistack(cbImage,'bottom');
-                        end
+                        this.drawColorbarOnSuppPlot();
                     else %nothing to do
                         cla(this.h_s_ax);
                         axis(this.h_s_ax,'off');
@@ -1335,6 +1390,7 @@ classdef FDisplay < handle
                 hold(this.h_s_ax,'off');
             end
             if(~this.screenshot)
+%                 set(this.h_s_ax,'Fontsize',this.staticVisParams.fontsize);
                 if(strcmp(this.mySide,'l'))
                     this.h_s_ax.YAxisLocation = 'right';
                 end
@@ -1370,42 +1426,43 @@ classdef FDisplay < handle
             %make nTicks labels for the color bar
             nTicks = max(2,nTicks); %at least 2 labels
             out = cell(nTicks,1);
-            if(this.mDispDim == 1)
-                hfd = this.gethfd();
-                if(isempty(hfd{1}))
-                    return
-                end
-                if(isempty(hfd{1}.rawImgZSz))
-                    img_min = 0;
-                    img_max = 0;
-                else
-                    zData = hfd{1}.getZScaling();
-                    if(~isempty(zData) && zData(1))                        
-                        img_min = zData(2);
-                        img_max = zData(3);
-                    else
-                        img_min = hfd{1}.rawImgZSz(1);
-                        img_max = hfd{1}.rawImgZSz(2);
-                    end
-                end
-            else
-                img_min = this.current_img_lbl_min;
-                img_max = this.current_img_lbl_max;
-            end
-            if(isempty(img_min))
-                return
-            end            
-            if(isempty(img_max))
-                return
-            end
+%             if(this.mDispDim == 1)
+%                 hfd = this.gethfd();
+%                 if(isempty(hfd{1}))
+%                     return
+%                 end
+%                 if(isempty(hfd{1}.rawImgZSz))
+%                     img_min = 0;
+%                     img_max = 0;
+%                 else
+%                     zData = hfd{1}.getZScaling();
+%                     if(~isempty(zData) && zData(1))                        
+%                         img_min = zData(2);
+%                         img_max = zData(3);
+%                     else
+%                         img_min = hfd{1}.rawImgZSz(1);
+%                         img_max = hfd{1}.rawImgZSz(2);
+%                     end
+%                 end
+%             else
+%                 img_min = this.current_img_lbl_min;
+%                 img_max = this.current_img_lbl_max;
+%             end
+%             if(isempty(img_min))
+%                 return
+%             end            
+%             if(isempty(img_max))
+%                 return
+%             end
+            cs = this.myColorScaleObj.getCurCSInfo();
             %range = img_max - img_min;            
-            vec = linspace(double(img_min),double(img_max),nTicks);
+            vec = linspace(double(cs(2)),double(cs(3)),nTicks);
             %out(:,1) = arrayfun(@FLIMXFitGUI.num4disp,vec,'UniformOutput',false);
             out(:,1) = FLIMXFitGUI.num4disp(vec);
         end
         
         function colorImg = makeIntOverlay(this,colorImg,intImg)
-            %
+            %make intensity overlay on color image
             intImg = double(intImg);
             if(size(intImg,1) == size(colorImg,1) && size(intImg,2) == size(colorImg,2))
                 brightness = this.intOverBright;
@@ -1634,6 +1691,16 @@ classdef FDisplay < handle
             %
             out = this.visObj.visHandles.(sprintf('slider_%s_zoom',this.mySide));
         end
+        
+        function out = get.h_s_colormapLowEdit(this)
+            %
+            out = this.visObj.visHandles.(sprintf('colormap_low_%s_edit',this.mySide));
+        end
+        
+        function out = get.h_s_colormapHighEdit(this)
+            %
+            out = this.visObj.visHandles.(sprintf('colormap_high_%s_edit',this.mySide));
+        end        
         
         %visualization parameters
         function out = get.dynVisParams(this)

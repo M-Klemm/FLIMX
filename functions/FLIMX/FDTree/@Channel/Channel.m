@@ -242,6 +242,11 @@ classdef Channel < handle
             out = this.myParent.getZScaling(dType,this.getMyChannelNr(),dTypeNr);
         end
         
+        function out = getColorScaling(this,dType,dTypeNr)
+            %get color scaling
+            out = this.myParent.getColorScaling(dType,this.getMyChannelNr(),dTypeNr);
+        end
+        
         function out = getStatsParams(this)
             %get statistics parameters
             out = this.FLIMXParamMgrObj.getParamSection('statistics');
