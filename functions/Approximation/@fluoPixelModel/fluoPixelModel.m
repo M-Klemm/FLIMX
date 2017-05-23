@@ -505,6 +505,10 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 case 1 %tci fit
                     [~, ~, chi2(~idxIgnored)] = this.myChannels{ch}.compFigureOfMerit(model(:,~idxIgnored),false);
             end
+            if(isempty(xVec))
+                chi2tail = chi2;
+                return
+            end
             %ensure amplitude ordering
             if(bp.amplitudeOrder > 0 && bp.nExp > 1)
                 if(bp.amplitudeOrder == 1)
@@ -689,6 +693,10 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             lbArray = this.divideGlobalFitXVec(nonLinBounds.lb(:),true);
             ubArray = this.divideGlobalFitXVec(nonLinBounds.ub(:),true);
             igfArray = this.getFullXVec(this.currentChannel,this.divideGlobalFitXVec(nonLinBounds.initGuessFactor,true));
+            if(isempty(iArray))
+                iVec = [];
+                return
+            end
             for chIdx = 1:length(chList)
                 [amps, ~, ~, ~, scAmps, scShifts, scOset, ~, oset] = this.getXVecComponents(iArray(:,chIdx),true,chList(chIdx));
                 switch this.basicParams.nExp
@@ -958,7 +966,11 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %old: sliceXVec, reversal function: mergeXVec
             if(isOnlyNonConstant)
                 xVec = this.getFullXVec(ch,xVec);
-            end 
+            end
+            if(isempty(xVec))
+                varargout = cell(0,0);
+                return
+            end
             %cache
             bp = this.basicParams;
             vpp = this.volatilePixelParams;
@@ -1032,13 +1044,19 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %old: combineXVec, reversal function: splitXVec
             x = [];
             vcp = this.getVolatileChannelParams(ch);
-            if(length(varargin) == 1)
+            if(isempty(vcp))
+                return
+            end
+            if(length(varargin) == 1 && ~isempty(varargin{1,1}))
                 xVec = varargin{1};
+            elseif(length(varargin) == 1 && isempty(varargin{1,1}))
+                x = vcp.cVec;
+                return
             else
                 x = this.mergeXVecComponents(ch,varargin{:});
                 return
             end
-            if(isempty(vcp) || isempty(xVec))
+            if(isempty(xVec))
                 return
             end
             cMask = logical(vcp.cMask);

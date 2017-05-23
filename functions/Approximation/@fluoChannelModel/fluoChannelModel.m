@@ -32,10 +32,14 @@ classdef fluoChannelModel < matlab.mixin.Copyable
     % @brief    A class which models a multi exponential decay.
     %
     properties(SetAccess = protected)
+        myStartPos = 1; %start position on the time axes used for figure of merit computation
+        myEndPos = 1024; %end position on the time axes used for figure of merit computation
+    end
+    
+    properties(GetAccess = protected, SetAccess = protected)
         myParent = [];
+        dataStorage = []; %store measurement and related data
         myChannelNr = 0;
-        dataStorage = [];
-        %model = []; %vector of modelpoints
         dLen = 0; %length of data vector
         iLen = 0; %length of irf vector
         tLen = []; %length of t vector
@@ -44,21 +48,16 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         chi_weights = []; %weights for chi2 computation with neighbors
         irfFFT = []; %fft transform of irf
         irfFFTGPU = []; %irf on GPU (for GPU computation)
+        iMaxVal = 0; %max of irf
+        iMaxPos = 0; %position of irf max (index)        
+        linLB = []; %lower bounds for linear optimized parameters
+        linUB = []; %upper bounds for linear optimized parameters        
+    end
+        
+    properties (Dependent = true)
         dMaxVal = 1; %max of data
         dMaxPos = 0; %position of data max (index)
         dFWHMPos = 0; %position of full width at half maximum (index)
-        %         mMaxVal = 0; %max of model
-        %         mMaxPos = 0; %position of model max (index)
-        iMaxVal = 0; %max of irf
-        iMaxPos = 0; %position of irf max (index)
-        myStartPos = 1;
-        myEndPos = 1024;
-        %idxLookUp = [];
-        linLB = []; %lower bounds for linear optimized parameters
-        linUB = []; %upper bounds for linear optimized parameters
-    end
-    
-    properties (Dependent = true)
         time = []; %vector of timepoints
         nScatter = 0;
         basicParams = 0;
@@ -85,8 +84,11 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             this.dataStorage.irf.raw = irf;
             this.dataStorage.measurement.raw = []; %vector of datapoints
             this.dataStorage.measurement.rez = []; %reziproke of datapoints
-            this.dataStorage.measurement.nonZeroMask = false; %data non-zero indices
-            this.dataStorage.measurement.nonZeroMaskTail = false; %data non-zero indices max to end
+            this.dataStorage.measurement.nonZeroMask = []; %data non-zero indices
+            this.dataStorage.measurement.nonZeroMaskTail = []; %data non-zero indices max to end
+            this.dataStorage.measurement.maxPos = [];      
+            this.dataStorage.measurement.maxVal = [];
+            this.dataStorage.measurement.FWHMPos = [];
             this.dataStorage.neighbor.raw = []; %matrix with data of surrounding pixels used for chi² computation
             this.dataStorage.neighbor.rez = []; %matrix with reziproke of data of surrounding pixels used for chi² computation
             this.dataStorage.neighbor.nonZeroMask = false; %neighbor non-zero indices
@@ -144,6 +146,30 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             out = double(linspace(0,(this.tLen-1)*this.fileInfo.timeChannelWidth,this.tLen)');
         end
         
+        function out = get.dMaxVal(this)
+            %get data max
+            if(isempty(this.dataStorage.measurement.maxVal))
+                this.compSmoothedMaxValues();
+            end
+            out = this.dataStorage.measurement.maxVal;
+        end
+        
+        function out = get.dMaxPos(this)
+            %get data max
+            if(isempty(this.dataStorage.measurement.maxPos))
+                this.compSmoothedMaxValues();
+            end
+            out = this.dataStorage.measurement.maxPos;
+        end
+        
+        function out = get.dFWHMPos(this)
+            %get data max
+            if(isempty(this.dataStorage.measurement.FWHMPos))
+                this.compSmoothedMaxValues();
+            end
+            out = this.dataStorage.measurement.FWHMPos;
+        end
+        
         function out = getIRF(this)
             %get irf
             out = double(this.dataStorage.irf.raw)./this.iMaxVal;
@@ -182,7 +208,18 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         
         function out = getDataNonZeroMask(this)
             %return mask where measurement data is not zero
+            if(isempty(this.dataStorage.measurement.nonZeroMask))
+                this.compMeasurementZeroMask()
+            end
             out = this.dataStorage.measurement.nonZeroMask;
+        end
+        
+        function out = getDataNonZeroMaskTail(this)
+            %return mask where measurement data is not zero
+            if(isempty(this.dataStorage.measurement.nonZeroMaskTail))
+                this.compMeasurementZeroMask()
+            end
+            out = this.dataStorage.measurement.nonZeroMaskTail;
         end
         
         function out = getNeighborData(this)
@@ -266,94 +303,17 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 fi.EndPosition = length(pixelData);
             end
             this.myEndPos = fi.EndPosition;
-            %             if(~this.basicParams.useGPU)
-            %pixelData = pixelData + 50;
-            %use cpu
             this.dataStorage.measurement.raw = pixelData;
-            dLenTmp = length(pixelData);
-            this.dLen = dLenTmp;
-            dSmooth = pixelData;
-            dSmooth(isnan(dSmooth)) = 0;
-            dSmooth = fastsmooth(dSmooth,5,3,0);
-            [~, dMaxPosTmp] = max(dSmooth(min(dLenTmp,max(1,fi.StartPosition)):min(floor(dLenTmp/2),fi.EndPosition),1));
-            %look for maximum in real data around the max of the smootheddata
-            dMaxPosTmp = dMaxPosTmp + fi.StartPosition-1;
-            [maxVal, dMaxPosTmp2] = max(pixelData(min(dLenTmp,max(1,dMaxPosTmp-5)):min(dLenTmp,dMaxPosTmp+5),1));
-            this.dMaxPos = dMaxPosTmp-5+dMaxPosTmp2-1;
-            if(this.basicParams.fitModel ~=1)
-                this.myStartPos = max(1,this.dMaxPos-this.basicParams.tailFitPreMaxSteps-1);
-            end
-            this.dMaxVal = double(maxVal);
-            this.dFWHMPos = find(bsxfun(@lt,pixelData(1:this.dMaxPos),maxVal*0.8),1,'last');
+            this.dataStorage.measurement.nonZeroMask = [];
+            this.dataStorage.measurement.nonZeroMaskTail = [];
+            this.dataStorage.measurement.maxPos = [];
+            this.dataStorage.measurement.maxVal = [];
+            this.dataStorage.measurement.FWHMPos = [];
+            this.dLen = length(pixelData);
             this.chi_weights = ones(1,size(pixelData,2));
-            %                 if(~isempty(neighborData))
-            %                     this.chi_weights(1,2:end) = double(fitParams.neighbor_weight/(size(neighborData,1)));
-            %                 end
-            %% get postions where data is zero
-            if(~isempty(pixelData))
-                this.dataStorage.measurement.nonZeroMask = pixelData ~= 0;
-                this.dataStorage.measurement.nonZeroMask(1:fi.StartPosition-1,:) = false;
-                %this.dataStorage.measurement.nonZeroMask(fitParams.EndPosition+1:end,:) = 0;
-                if(isempty(fi.reflectionMask))
-                    fi.reflectionMask = true(size(this.dataStorage.measurement.nonZeroMask));
-                end
-                this.dataStorage.measurement.nonZeroMask = this.dataStorage.measurement.nonZeroMask & fi.reflectionMask;
-                this.dataStorage.measurement.nonZeroMaskTail = this.dataStorage.measurement.nonZeroMask;
-                this.dataStorage.measurement.nonZeroMaskTail(1:max(1,this.dMaxPos-this.basicParams.tailFitPreMaxSteps-1),:) = false;
-            else
-                this.dataStorage.measurement.nonZeroMask = false;
-                this.dataStorage.measurement.nonZeroMaskTail = false;
-            end
-            
-            %             else
-            %                 %use gpu
-            %                 %get data onto the gpu
-            %                 %                 this.data = data;
-            %                 %                 this.updateDMax();
-            %                 %                 this.dataGPU = gsingle(data);
-            %                 %                 this.dataRez = 1./this.data;
-            %                 %                 this.chi_weights = ones(1,size(data,2));
-            %                 %                 if(size(data,2) > 1)
-            %                 %                     this.chi_weights(1,2:end) = gsingle(fitParams.neighbor_weight/(size(data,2)-1));
-            %                 %                 end
-            %                 %                 this.dLen = gsingle(size(data,1));
-            %                 %                 this.time = gsingle(linspace(0,(ds*this.dLen-1)*this.fileInfo.timeChannelWidth,ds*this.dLen)');
-            %                 %                 this.tLen = this.dLen*ds;
-            %                 %                 %% get postions where data is zero
-            %                 %                 this.dataStorage.measurement.nonZeroMask = data ~= 0;
-            %                 %                 this.dataStorage.measurement.nonZeroMask(1:fitParams.StartPosition-1,:) = 0;
-            %                 %                 this.dataStorage.measurement.nonZeroMaskTail = this.dataStorage.measurement.nonZeroMask;
-            %                 %                 this.dataStorage.measurement.nonZeroMaskTail(1:this.dMaxPos,:) = 0;
-            %                 %                 this.dataStorage.measurement.nonZeroMask = gsingle(find(this.dataStorage.measurement.nonZeroMask));
-            %                 %                 this.dataStorage.measurement.nonZeroMaskTail = gsingle(find(this.dataStorage.measurement.nonZeroMaskTail));
-            %                 %                 this.irf = gsingle(irf);
-            %                 this.data = double(data);
-            %                 this.dataRez = 1./this.data;
-            %                 this.chi_weights = ones(1,size(data,2));
-            %                 if(size(data,2) > 1)
-            %                     this.chi_weights(1,2:end) = double(fitParams.neighbor_weight/(size(data,2)-1));
-            %                 end
-            %                 this.dLen = double(size(data,1));
-            %                 this.time = double(linspace(0,(ds*this.dLen-1)*this.fileInfo.timeChannelWidth,ds*this.dLen)');
-            %                 this.tLen = this.dLen*ds;
-            %                 %% get postions where data is zero
-            %                 if(~isempty(data))
-            %                     this.dataStorage.measurement.nonZeroMask = data ~= 0;
-            %                     this.dataStorage.measurement.nonZeroMask(1:fitParams.StartPosition-1,:) = false;
-            %                     %this.dataStorage.measurement.nonZeroMask(fitParams.EndPosition+1:end,:) = 0;
-            %                     if(isempty(fitParams.reflectionMask))
-            %                         fitParams.reflectionMask = true(size(this.dataStorage.measurement.nonZeroMask));
-            %                     end
-            %                     this.dataStorage.measurement.nonZeroMask = this.dataStorage.measurement.nonZeroMask & fitParams.reflectionMask;
-            %                 else
-            %                     this.dataStorage.measurement.nonZeroMask = [];
-            %                 end
-            %                 this.irf = double(irf);
-            %                 this.updateDMax();
-            %                 this.dataStorage.measurement.nonZeroMaskTail = this.dataStorage.measurement.nonZeroMask;
-            %                 this.dataStorage.measurement.nonZeroMaskTail(1:this.dMaxPos,:) = 0;
-            %             end
-            
+%             if(~isempty(neighborData))
+%                 this.chi_weights(1,2:end) = double(fitParams.neighbor_weight/(size(neighborData,1)));                
+%             end            
         end
         
         function setChiWeightData(this,weightData)
@@ -367,16 +327,15 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             this.dataStorage.neighbor.raw = neighborData;
             if(~isempty(neighborData))
                 this.dataStorage.neighbor.nonZeroMask = this.dataStorage.neighbor.raw ~= 0;
-                this.dataStorage.neighbor.nonZeroMask(1:this.fileInfo.StartPosition-1,:) = false;
-                %this.dataStorage.measurement.nonZeroMask(fitParams.EndPosition+1:end,:) = 0;
+                this.dataStorage.neighbor.nonZeroMask(1:this.myStartPos-1,:) = false;
+                this.dataStorage.neighbor.nonZeroMask(this.myEndPos+1:end,:) = false;
                 this.dataStorage.neighbor.nonZeroMask = bsxfun(@and,this.dataStorage.neighbor.nonZeroMask,this.fileInfo.reflectionMask);
                 this.dataStorage.neighbor.nonZeroMaskTail = this.dataStorage.neighbor.nonZeroMask;
                 this.dataStorage.neighbor.nonZeroMaskTail(1:this.dMaxPos,:) = 0;
             else
                 this.dataStorage.neighbor.nonZeroMask = false;
                 this.dataStorage.neighbor.nonZeroMaskTail = false;
-            end
-            
+            end            
             %             if(params.basicParams.neighborFit)
             %                 nr_nbs = size(neighbors,2);
             %                 %set start positions for neighbors
@@ -405,12 +364,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             %set initialization data for nonlinear optimization (optional)
             this.dataStorage.initialization = data;
         end
-        
-        %         function updateMMax(this)
-        %             %get max value & position from model vector
-        %             [this.mMaxVal, this.mMaxPos] = max(this.model,[],1);
-        %         end
-        
+                
         function [model, ampsOut, scAmpsOut, osetOut, exponentialsOut] = compModel(this,x)
             % compute model for parameters x and reconvolute
             % inputs:   x       - parameterset, e.g. [a1; a2; a3; t1; t2; t3; tc2; tc3; scA1 scS1 vShift hShift oset;]
@@ -514,10 +468,10 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             end
             %% move to position of data maximum + hShift - tci
             if(this.useMex && this.dLen <= 4096 && size(exponentialsShort,2) <= 16 && nVecs <= 256) %&& strcmp(bp.timeInterpMethod,'linear')
-                [exponentialsOffset(:,1:nExp+(vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)),1:nVecs), ao] = shiftAndLinearOpt_mex(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.dataStorage.measurement.nonZeroMask,...
+                [exponentialsOffset(:,1:nExp+(vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)),1:nVecs), ao] = shiftAndLinearOpt_mex(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.getDataNonZeroMask(),...
                     single(hShift),single(tcis),single(tciHShiftFine),single(oset),this.linLB,this.linUB,vcp.cMask(end)<0,true);
             else
-                [exponentialsOffset(:,1:nExp+(vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)),1:nVecs), ao] = shiftAndLinearOpt(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.dataStorage.measurement.nonZeroMask,...
+                [exponentialsOffset(:,1:nExp+(vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)),1:nVecs), ao] = shiftAndLinearOpt(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.getDataNonZeroMask(),...
                     single(hShift),single(tcis),single(tciHShiftFine),single(oset),this.linLB,this.linUB,vcp.cMask(end)<0,false);
             end
             exponentialsOffset(:,end,1:nVecs) = ones(nTimeCh,nVecs,1,'single');
@@ -626,7 +580,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                     m_nz_idx(1:this.fileInfo.StartPosition-1,:) = false;
                     m_nz_idx(this.fileInfo.EndPosition+1:end,:) = false;
                     if(isempty(this.fileInfo.reflectionMask))
-                        reflectionMask = true(size(this.dataStorage.measurement.nonZeroMask));
+                        reflectionMask = true(size(this.getDataNonZeroMask()));
                     else
                         reflectionMask = this.fileInfo.reflectionMask;
                     end
@@ -643,17 +597,17 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             end
             %use only residuum of non-zero values in measurement data
             if(tailFlag)
-                e_lsq(repmat(~this.dataStorage.measurement.nonZeroMaskTail,1,nrM)) = 0;
+                e_lsq(repmat(~this.getDataNonZeroMaskTail(),1,nrM)) = 0;
             else
-                e_lsq(repmat(~this.dataStorage.measurement.nonZeroMask,1,nrM)) = 0;
+                e_lsq(repmat(~this.getDataNonZeroMask(),1,nrM)) = 0;
             end
             
             switch fomModifier
                 case 1 %regular chi²
                     if(tailFlag)
-                        chiVec = sum(e_lsq,1) ./ (sum(this.dataStorage.measurement.nonZeroMaskTail,1)-this.volatileChannelParams.nApproxParamsPerCh);
+                        chiVec = sum(e_lsq,1) ./ (sum(this.getDataNonZeroMaskTail(),1)-this.volatileChannelParams.nApproxParamsPerCh);
                     else
-                        chiVec = sum(e_lsq,1) ./ (sum(this.dataStorage.measurement.nonZeroMask,1)-this.volatileChannelParams.nApproxParamsPerCh);%(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
+                        chiVec = sum(e_lsq,1) ./ (sum(this.getDataNonZeroMask(),1)-this.volatileChannelParams.nApproxParamsPerCh);%(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
                     end
                     if(nrNB)
                         %goodness of fit measure for neighbor pixels
@@ -683,9 +637,9 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                     roi(roi > 0) = (roi(roi > 0).*this.basicParams.ErrorMP1).^2;%boost
                     e_lsq(idx) = roi;
                     if(tailFlag)
-                        chiVec = sum(e_lsq,1) ./ (sum(this.dataStorage.measurement.nonZeroMaskTail,1)-this.volatileChannelParams.nApproxParamsPerCh);
+                        chiVec = sum(e_lsq,1) ./ (sum(this.getDataNonZeroMaskTail(),1)-this.volatileChannelParams.nApproxParamsPerCh);
                     else
-                        chiVec = sum(e_lsq,1) ./ (sum(this.dataStorage.measurement.nonZeroMask,1)-this.volatileChannelParams.nApproxParamsPerCh);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
+                        chiVec = sum(e_lsq,1) ./ (sum(this.getDataNonZeroMask(),1)-this.volatileChannelParams.nApproxParamsPerCh);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
                     end
                     if(nrNB)
                         %goodness of fit measure for neighbor pixels
@@ -717,7 +671,9 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             chi = sum(chiVec(:));
             chiD = chiVec(1);
         end
-        
+    end %methods
+    
+    methods(Access = protected)
         function out = compModelMask(this,model,mVec,invFlag)
             %compute a 'mask' of logicals for the model which corresponds to tci shifts
             %each element in sVec
@@ -768,5 +724,41 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             out = repmat((0:int32(max(this.tLen,r))-1)',1,c);%max(size(this.idxLookUp,2),c));
         end
         
-    end %methods
+        function compSmoothedMaxValues(this)
+            %compute position and value of data maximum (smoothed data) and full width half maximum position
+            %fi = this.fileInfo;
+            dSmooth = this.dataStorage.measurement.raw;
+            dSmooth(isnan(dSmooth)) = 0;
+            dSmooth = fastsmooth(dSmooth,5,3,0);
+            [~, dMaxPosTmp] = max(dSmooth(min(this.dLen,max(1,this.myStartPos)):min(floor(this.dLen/2),this.myEndPos),1));
+            %look for maximum in real data around the max of the smoothed data
+            dMaxPosTmp = dMaxPosTmp + this.myStartPos-1;
+            [maxVal, dMaxPosTmp2] = max(this.dataStorage.measurement.raw(min(this.dLen,max(1,dMaxPosTmp-5)):min(this.dLen,dMaxPosTmp+5),1));
+            this.dataStorage.measurement.maxPos = dMaxPosTmp-5+dMaxPosTmp2-1;
+            if(this.basicParams.fitModel ~=1)
+                this.myStartPos = max(1,this.dataStorage.measurement.maxPos-this.basicParams.tailFitPreMaxSteps-1);
+            end
+            this.dataStorage.measurement.maxVal = double(maxVal);
+            this.dataStorage.measurement.FWHMPos = find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos),maxVal*0.8),1,'last');
+        end
+        
+        function compMeasurementZeroMask(this)
+            %compute masks which data points are used for figure of merit computation
+            fi = this.fileInfo;
+            if(~isempty(this.dataStorage.measurement.raw))
+                this.dataStorage.measurement.nonZeroMask = this.dataStorage.measurement.raw ~= 0;
+                this.dataStorage.measurement.nonZeroMask(1:this.myStartPos-1,:) = false;
+                this.dataStorage.measurement.nonZeroMask(this.myEndPos+1:end,:) = false;
+                if(isempty(fi.reflectionMask))
+                    fi.reflectionMask = true(size(this.dataStorage.measurement.nonZeroMask));
+                end
+                this.dataStorage.measurement.nonZeroMask = this.dataStorage.measurement.nonZeroMask & fi.reflectionMask;
+                this.dataStorage.measurement.nonZeroMaskTail = this.dataStorage.measurement.nonZeroMask;
+                this.dataStorage.measurement.nonZeroMaskTail(1:max(1,this.dMaxPos-this.basicParams.tailFitPreMaxSteps-1),:) = false;
+            else
+                this.dataStorage.measurement.nonZeroMask = false;
+                this.dataStorage.measurement.nonZeroMaskTail = false;
+            end
+        end        
+    end
 end % classdef

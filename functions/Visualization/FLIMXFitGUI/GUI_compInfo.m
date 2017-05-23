@@ -150,9 +150,9 @@ end
 
 explodeS = zeros(nrAllHosts,1);
 explodeM = zeros(nrAllHosts,1);
-[m idx] = max(work(:,1));
+[~, idx] = max(work(:,1));
 explodeS(idx) = 1;
-[m idx] = max(sum(work,2));
+[~, idx] = max(sum(work,2));
 explodeM(idx) = 1;
 
 %axes(handles.axesWorkStandalone);
@@ -177,7 +177,9 @@ eff(:,2) = time(:,2) ./ work(:,2) *1000;
 %axes(handles.axesHostEff);
 b = bar(handles.axesHostEff,eff,'Group');
 b(1).FaceColor = 'b';
-b(2).FaceColor = 'r';
+if(length(b) > 1)
+    b(2).FaceColor = 'r';
+end
 set(handles.buttonDeployed,'Backgroundcolor','b');
 set(handles.buttonMatlab,'Backgroundcolor','r');
 ylabel(handles.axesHostEff,'(ms)');
@@ -207,7 +209,7 @@ set(handles.tableHostEff,'Data',tstr);
 colormap(jet)
 %fill info table
 tstr = cell(5,2);
-[h m s] = secs2hms(sum(time(:)));
+[h, m, s] = secs2hms(sum(time(:)));
 d =  max(floor(h/24),0);
 h = h-d*24;
 iter = sum(data.Iterations(data.Iterations ~= 0));
@@ -220,12 +222,12 @@ t_pixel = sum(time(:))/px;
 %info tabe 1
 tstr{1,1} = 'Number of fitted pixels'; tstr{1,2} = num2str(px); 
 tstr{2,1} = 'total CPU time';  tstr{2,2} = sprintf('%dd %dh %dmin %ds',d,h,m,round(s));
-[h m s] = secs2hms(feval*best/1000);
+[h, m, s] = secs2hms(feval*best/1000);
 d =  max(floor(h/24),0);
 h = h-d*24;
 tstr{3,1} = 'est. run time on fastest CPU';  tstr{3,2} = sprintf('%dd %dh %dmin %ds',d,h,m,round(s));
 if(isfield(data,'EffectiveTime'))
-    [h m s] = secs2hms(sum(data.EffectiveTime));
+    [h, m, s] = secs2hms(sum(data.EffectiveTime));
     d =  max(floor(h/24),0);
     h = h-d*24;
     tstr{4,1} = 'effective run time';  tstr{4,2} = sprintf('%dd %dh %dmin %ds',d,h,m,round(s));
