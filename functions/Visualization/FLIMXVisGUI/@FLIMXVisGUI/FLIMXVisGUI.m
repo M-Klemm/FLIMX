@@ -77,7 +77,7 @@ classdef FLIMXVisGUI < handle
                 this.dynParams.cmIntensity = flipud(this.dynVisParams.cmIntensity);
             end            
             this.dynParams.mouseButtonDown = false;
-            this.dynParams.lastScreenshotFile = 'image.png';
+            this.dynParams.lastExportFile = 'image.png';
             %init objects            
             this.fdt.setShortProgressCallback(@this.updateShortProgressbar);
             this.fdt.setLongProgressCallback(@this.updateLongProgressbar);            
@@ -721,7 +721,7 @@ classdef FLIMXVisGUI < handle
             if(~isempty(strfind(tag,'B')))
                 pType = 'supp'; %supp. plot
             end
-            [pathstr,name,ext] = fileparts(this.dynParams.lastScreenshotFile);
+            %[pathstr,name,ext] = fileparts(this.dynParams.lastExportFile);
             formats = {'*.png','Portable Network Graphics (*.png)';...
                 '*.jpg','Joint Photographic Experts Group (*.jpg)';...
                 '*.eps','Encapsulated Postscript (*.eps)';...
@@ -730,51 +730,57 @@ classdef FLIMXVisGUI < handle
                 '*.emf','Windows Enhanced Metafile (*.emf)';...
                 '*.pdf','Portable Document Format (*.pdf)';...
                 '*.fig','MATLAB figure (*.fig)';...
+                '*.png','16-bit Portable Network Graphics (*.png)';...
+                '*.jpg','16-bit Joint Photographic Experts Group (*.jpg)';...
+                '*.tiff','16-bit TaggedImage File Format (*.tiff)';...
                 };
-            idx = strcmp(formats(:,1),['*' ext]);
-            if(any(idx))
-                fn = cell(size(formats));
-                fn(1,:) = formats(idx,:);
-                fn(2:end,:) = formats(~idx,:);
-                formats = fn;
-                clear fn
-            end
-            [file, path, filterindex] = uiputfile(formats,'Export Screenshot as',this.dynParams.lastScreenshotFile);
+%             idx = strcmp(formats(:,1),['*' ext]);
+%             if(any(idx))
+%                 fn = cell(size(formats));
+%                 fn(1,:) = formats(idx,:);
+%                 fn(2:end,:) = formats(~idx,:);
+%                 formats = fn;
+%                 clear fn
+%             end
+            [file, path, filterindex] = uiputfile(formats,'Export Figure as',this.dynParams.lastExportFile);
             if ~path ; return ; end
             fn = fullfile(path,file);
-            this.dynParams.lastScreenshotFile = file;
-            switch formats{filterindex,1}
-                case '*.bmp'
+            this.dynParams.lastExportFile = file;
+            switch filterindex
+                case 5 %'*.bmp'
                     str = '-dbmp';
-                case '*.emf'
+                case 6% '*.emf'
                     str = '-dmeta';
-                case '*.eps'
+                case 3 %'*.eps'
                     str = '-depsc2';
-                case '*.jpg'
+                case 2 %'*.jpg'
                     str = '-djpeg';
-                case '*.pdf'
+                case 7 %'*.pdf'
                     str = '-dpdf';
-                case '*.png'
+                case 1 %'*.png'
                     str = '-dpng';
-                case '*.tiff'
-                    str = '-dtiff';
-                case '*.fig'
-                    str = '*.fig';
+                case 4 %'*.tiff'
+                    str = '-dtiff';                    
             end            
             hFig = figure;
             set(hFig,'Renderer','Painters');
             ssObj = FScreenshot(this.objHandles.(sprintf('%sdo',side)));
             ssObj.makeScreenshotPlot(hFig,pType);
-            %pause(1) %workaround for wrong painting            
-            if(strcmp(str,'*.fig'))
-                savefig(hFig,fn);
-            else
-                if(this.exportParams.resampleImage)
-                    print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
-                else
-                    imwrite(ssObj.mainExportColors,fn);
-                end
-            end            
+            %pause(1) %workaround for wrong painting
+            switch filterindex
+                case 8
+                    savefig(hFig,fn);
+                case {9,11}
+                    imwrite(uint16(ssObj.mainExportXls),fn);
+                case 10
+                    imwrite(uint16(ssObj.mainExportXls),fn,'BitDepth',16,'Mode','lossless');
+                otherwise                    
+                    if(this.exportParams.resampleImage)
+                        print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
+                    else
+                        imwrite(ssObj.mainExportColors,fn);
+                    end
+            end
             if(ishandle(hFig))
                 close(hFig);
             end   
