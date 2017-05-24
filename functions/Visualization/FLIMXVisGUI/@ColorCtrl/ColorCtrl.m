@@ -244,13 +244,18 @@ classdef ColorCtrl < handle
         
         function out = getAutoScale(this)
             %compute border for auto scale color
-            centers = this.curHistCenters;
-            if(length(centers) > 10)
-                out = [1 centers(2) centers(end-1)];
-            else
-                out = [1 centers(1) centers(end)];
+            hfd = this.myHFD;
+            if(isempty(hfd))
+                return
             end
-            %out = [1 hfd.getCImin(rc,rt,rs,ri) hfd.getCImax(rc,rt,rs,ri)];
+            rc = this.myFDisplay.ROICoordinates;
+            rt = this.myFDisplay.ROIType;
+            rs = this.myFDisplay.ROISubType;
+            ri = this.myFDisplay.ROIInvertFlag;
+            data = hfd.getROIImage(rc,rt,rs,ri);
+            out = ones(1,3);
+            out(2) = prctile(data(:),2);
+            out(3) = prctile(data(:),98);
         end
         
     end %methods

@@ -108,8 +108,8 @@ classdef axesWithROI < handle
                 return
             end
             if(nargin ~= 3)
-                lb = prctile(this.myData(:),0.1);
-                ub = prctile(this.myData(:),99.9);
+                lb = prctile(this.myData(:),2);
+                ub = prctile(this.myData(:),98);
                 cBLb = min(this.myData(:));
                 cBUb = max(this.myData(:));
             else
@@ -157,15 +157,15 @@ classdef axesWithROI < handle
             %update colorbar labels
             if(ishandle(this.myCBLblLow))                
                 if(this.shortNumbers)
-                    cBLb = FLIMXFitGUI.num4disp(cBLb);
+                    lb = FLIMXFitGUI.num4disp(lb);
                 end                    
-                set(this.myCBLblLow,'String',cBLb);
+                set(this.myCBLblLow,'String',lb);
             end
             if(ishandle(this.myCBLblHigh))
                 if(this.shortNumbers)
-                    cBUb = FLIMXFitGUI.num4disp(cBUb);
+                    ub = FLIMXFitGUI.num4disp(ub);
                 end  
-                set(this.myCBLblHigh,'String',cBUb);
+                set(this.myCBLblHigh,'String',ub);
             end
         end
         
