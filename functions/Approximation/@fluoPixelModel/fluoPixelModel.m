@@ -1519,7 +1519,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %look for the rising egde only before the signal rose to 1/8th of the maximum
             fwemAPos = find(bsxfun(@lt,avg(1:end-5),max(avg(:),[],1)/6),1,'last')+1;
             p1 = find(avg,1);
-            if(p1 >= fwemAPos)
+            if(p1 >= fwemAPos || isempty(avg) || length(avg) < 2)
                 start_pos = 1;
             else
                 start_pos = find(fastGrad(avg(p1:fwemAPos)) <= 0,1, 'last')+p1; %start 5 points prior to max
