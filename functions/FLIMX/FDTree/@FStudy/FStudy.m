@@ -51,7 +51,7 @@ classdef FStudy < handle
             % Constructor for FStudy.
             this.myParent = parent;
             this.name = name;
-            this.revision = 23;
+            this.revision = 24;
             this.myDir = sDir;
             this.mySubjects = LinkedList();
             this.myStudyInfoSet = studyIS(this);
@@ -284,10 +284,7 @@ classdef FStudy < handle
             if(isempty(subject))
                 return
             end
-            %subject.setResultROICoordinates(dType,ROIType,ROICoord);
-%             if(subject.getGlobalScale(dType))
-                this.myStudyInfoSet.setResultROICoordinates(subjectID,ROIType,ROICoord);
-%             end
+            this.myStudyInfoSet.setResultROICoordinates(subjectID,ROIType,ROICoord);
             this.clearObjMerged();
             this.clearClusters(subjectID,dType,dTypeNr);
         end
@@ -298,12 +295,18 @@ classdef FStudy < handle
             if(isempty(subject))
                 return
             end
-            %subject.setResultROICoordinates(dType,ROIType,ROICoord);
-%             if(subject.getGlobalScale(dType))
-                this.myStudyInfoSet.setResultZScaling(subjectID,ch,dType,dTypeNr,zValues);
-%             end
+            this.myStudyInfoSet.setResultZScaling(subjectID,ch,dType,dTypeNr,zValues);
             this.clearObjMerged();
             this.clearClusters(subjectID,dType,dTypeNr);
+        end
+        
+        function setResultColorScaling(this,subjectID,ch,dType,dTypeNr,colorBorders)
+            %set the color scaling at subject subjectID
+            subject = this.getSubject(subjectID);
+            if(isempty(subject))
+                return
+            end
+            this.myStudyInfoSet.setResultColorScaling(subjectID,ch,dType,dTypeNr,colorBorders);
         end
         
         function setCutVec(this,subjectID,dim,cutVec)
@@ -1327,6 +1330,11 @@ classdef FStudy < handle
         function out = getResultZScaling(this,subName,ch,dType,dTypeNr)
             %
             out = this.myStudyInfoSet.getResultZScaling(subName,dType,ch,dTypeNr);
+        end
+        
+        function out = getResultColorScaling(this,subName,ch,dType,dTypeNr)
+            %
+            out = this.myStudyInfoSet.getResultColorScaling(subName,dType,ch,dTypeNr);
         end
                 
         function out = getResultCuts(this,subName)

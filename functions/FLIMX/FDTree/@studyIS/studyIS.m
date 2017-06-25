@@ -43,7 +43,8 @@ classdef studyIS < handle
         studyClusters = cell(0,0); %cluster parameters for this study
         resultCuts = cell(0,0); %cuts for each subject
         resultROICoordinates = cell(0,0); %rois for each subject  
-        resultZScaling = cell(0,0); %z scaling for each subject  
+        resultZScaling = cell(0,0); %z scaling for each subject
+        resultColorScaling = cell(0,0); %color scaling for each subject
         allFLIMItems = cell(0,0); %selected FLIM parameters, for each subject and channel
         IRFInfo = []; %information per channel: which IRF was used, sum of IRF
         arithmeticImageInfo = cell(0,2);
@@ -81,6 +82,7 @@ classdef studyIS < handle
             this.studyClusters = import.studyClusters;
             this.resultROICoordinates = import.resultROICoordinates;
             this.resultZScaling = import.resultZScaling;
+            this.resultColorScaling = import.resultColorScaling;
             this.resultCuts = import.resultCuts;
             this.IRFInfo = import.IRFInfo;
             this.arithmeticImageInfo = import.arithmeticImageInfo;
@@ -235,6 +237,21 @@ classdef studyIS < handle
             end
         end
         
+        function clearColorScaling(this,idx)
+            %reset color scaling for subject
+            if(isempty(idx))
+                this.resultColorScaling = [];
+                this.resultColorScaling = cell(size(this.subjects));
+            else
+                %set single value
+                idx = this.subName2idx(idx);
+                if(~isempty(idx))
+                    this.resultColorScaling(idx) = cell(1,1);
+                    this.setDirty(true);
+                end
+            end
+        end
+        
         function clearCuts(this,idx)
             %reset cross sections
             if(isempty(idx))
@@ -362,8 +379,52 @@ classdef studyIS < handle
                 tmp{idxNr,2} = dType;
                 tmp{idxNr,3} = dTypeNr;
             end
-            tmp{find(idxNr,1),4} = zValues;
+            tmp{find(idxNr,1),4} = single(zValues);
             this.resultZScaling(idx) = {tmp};
+            this.setDirty(true);
+        end
+        
+        function setResultColorScaling(this,subName,ch,dType,dTypeNr,colorBorders)
+            %set the color scaling at subject subjectID
+            idx = this.subName2idx(subName);
+            if(isempty(idx) || isempty(dType) || length(colorBorders) ~= 3)
+                %subject not in study or color values size is wrong
+                return
+            end
+            tmp = this.resultColorScaling{idx};
+            if(isempty(tmp))
+                tmp = cell(0,4);
+            end
+            idxCh = ch == [tmp{:,1}];
+            idxCh = idxCh(:);
+            if(~any(idxCh))
+                %channel not found
+                idxCh(end+1,1) = true;
+                tmp{idxCh,1} = ch;
+                tmp{idxCh,2} = dType;
+                tmp{idxCh,3} = dTypeNr;
+            end
+            idxType = strcmp(dType,tmp(:,2));
+            idxType = idxType(:) & idxCh(:);
+            if(~any(idxType))
+                %dType not found
+                idxCh(end+1,1) = true;
+                idxType(end+1,1) = true;
+                tmp{idxType,1} = ch;
+                tmp{idxType,2} = dType;                
+                tmp{idxType,3} = dTypeNr;
+            end
+            idxNr = dTypeNr == [tmp{:,3}];
+            idxNr = idxNr(:) & idxType(:) & idxCh(:);
+            if(~any(idxNr))
+                %dType number not found
+                idxNr(end+1,1) = true;
+                tmp{idxNr,1} = ch;
+                tmp{idxNr,2} = dType;
+                tmp{idxNr,3} = dTypeNr;
+            end
+            tmp{find(idxNr,1),4} = colorBorders;
+            this.resultColorScaling(idx) = {tmp};
             this.setDirty(true);
         end
         
@@ -476,6 +537,7 @@ classdef studyIS < handle
             this.subjectInfo(end+1,:) = cell(1,max(1,size(this.subjectInfo,2)));
             this.resultROICoordinates(end+1) = cell(1,1);
             this.resultZScaling(end+1) = cell(1,1);
+            this.resultColorScaling(end+1) = cell(1,1);
             this.resultCuts(end+1) = cell(1,1);
             this.allFLIMItems(end+1,:) = cell(1,max(1,size(this.resultFileChs,2)));
             %sort subjects
@@ -535,6 +597,7 @@ classdef studyIS < handle
             end
             this.resultROICoordinates(subjectPos) = data.resultROICoordinates;
             this.resultZScaling(subjectPos) = data.resultZScaling;
+            this.resultColorScaling(subjectPos) = data.resultColorScaling;
             this.resultCuts(subjectPos) = data.resultCuts;
             this.setDirty(true);
         end
@@ -665,6 +728,7 @@ classdef studyIS < handle
             export.studyClusters = this.studyClusters;
             export.resultROICoordinates = this.resultROICoordinates(idx);
             export.resultZScaling = this.resultZScaling(idx);
+            export.resultColorScaling = this.resultColorScaling(idx);
             export.resultCuts = this.resultCuts(idx);
             export.allFLIMItems = this.allFLIMItems(idx,:);
             export.IRFInfo = this.IRFInfo;
@@ -930,6 +994,44 @@ classdef studyIS < handle
                 out = tmp{find(idxNr,1),4};
             end
         end
+        
+        function out = getResultColorScaling(this,subName,ch,dType,dTypeNr)
+            %return color scaling values for specific subject and data type
+            if(isempty(subName))
+                out = this.resultColorScaling;
+            else
+                if(~isnumeric(subName))
+                    subName = this.subName2idx(subName);
+                    if(isempty(subName))
+                        out = [];
+                        return
+                    end
+                end
+                out = [];
+                tmp = this.resultColorScaling{subName};
+                if(isempty(tmp))                    
+                    return
+                end
+                idxCh = ch == [tmp{:,1}];
+                if(~any(idxCh))
+                    %channel number not found
+                    return
+                end
+                idxType = strcmp(dType,tmp(:,2));
+                idxType = idxType(:) & idxCh(:);
+                if(~any(idxType))
+                    %dType not found
+                    return
+                end
+                idxNr = dTypeNr == [tmp{:,3}];
+                idxNr = idxNr(:) & idxType(:) & idxCh(:);
+                if(~any(idxNr))
+                    %dType number not found
+                    return
+                end
+                out = tmp{find(idxNr,1),4};
+            end
+        end
                 
         function out = getResultCuts(this,subName)
             %
@@ -1092,6 +1194,7 @@ classdef studyIS < handle
                 this.measurementFileChs(idx,:) = [];
                 this.resultROICoordinates(idx) = [];
                 this.resultZScaling(idx) = [];
+                this.resultColorScaling(idx) = [];
                 this.resultCuts(idx) = [];
                 this.subjects(idx) = [];
                 this.subjectInfo(idx,:) = [];
@@ -1102,6 +1205,7 @@ classdef studyIS < handle
                 this.measurementFileChs = cell(0,0);
                 this.resultROICoordinates = cell(0,0);
                 this.resultZScaling = cell(0,0);
+                this.resultColorScaling = cell(0,0);
                 this.resultCuts = cell(0,0);
                 this.subjects = cell(0,0);
                 this.subjectInfo = cell(0,0);
@@ -1117,6 +1221,7 @@ classdef studyIS < handle
                 this.resultFileChs(idx,:) = cell(1,max(1,size(this.resultFileChs,2)));
                 this.resultROICoordinates(idx) = cell(1,1);
                 this.resultZScaling(idx) = cell(1,1);
+                this.resultColorScaling(idx) = cell(1,1);
                 this.resultCuts(idx) = cell(1,1);
                 this.allFLIMItems(idx) = cell(1,1);
                 this.setDirty(true);
@@ -1322,6 +1427,7 @@ classdef studyIS < handle
                 this.subjectInfo = this.subjectInfo(idx,:);
                 this.resultROICoordinates = this.resultROICoordinates(idx);
                 this.resultZScaling = this.resultZScaling(idx);
+                this.resultColorScaling = this.resultColorScaling(idx);
                 this.resultCuts = this.resultCuts(idx);
                 this.allFLIMItems = this.allFLIMItems(idx,:);
                 this.setDirty(true);
@@ -1334,6 +1440,7 @@ classdef studyIS < handle
                 oldStudy.subjectInfo = oldStudy.subjectInfo(idx,:);
                 oldStudy.resultROICoordinates = oldStudy.resultROICoordinates(idx);
                 oldStudy.resultZScaling = oldStudy.resultZScaling(idx);
+                oldStudy.resultColorScaling = oldStudy.resultColorScaling(idx);
                 oldStudy.resultCuts = oldStudy.resultCuts(idx);
                 oldStudy.allFLIMItems = oldStudy.allFLIMItems(idx,:);
                 out = oldStudy;
@@ -1606,6 +1713,13 @@ classdef studyIS < handle
                     oldStudy.viewColors(1,1) = {FDTree.defaultConditionName()};
                 end                
             end
+            
+            if(oldStudy.revision < 24)
+                %new field resultColorScaling
+                if(isfield(oldStudy,'resultZScaling'))
+                    oldStudy.resultColorScaling = cell(size(oldStudy.resultZScaling));
+                end
+            end
             this.setDirty(true);
         end
         
@@ -1817,7 +1931,20 @@ classdef studyIS < handle
             elseif(tmpLen > nrSubjects)
                 testStudy.resultZScaling = testStudy.resultZScaling(1:nrSubjects);
                 dirty = true;
-            end            
+            end
+            %resultColorScaling
+            if(size(testStudy.resultColorScaling,2) > 1)
+                testStudy.resultColorScaling = testStudy.resultColorScaling(:);
+                dirty = true;
+            end
+            tmpLen = length(testStudy.resultColorScaling);
+            if(tmpLen < nrSubjects)
+                testStudy.resultColorScaling(end+1:end+nrSubjects-tmpLen) = cell(nrSubjects-tmpLen,1);
+                dirty = true;
+            elseif(tmpLen > nrSubjects)
+                testStudy.resultColorScaling = testStudy.resultColorScaling(1:nrSubjects);
+                dirty = true;
+            end
             %resultCuts
             if(size(testStudy.resultCuts,2) > 1)
                 testStudy.resultCuts = testStudy.resultCuts(:);

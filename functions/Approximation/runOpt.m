@@ -71,6 +71,16 @@ else %enough photons
     while(resultIsValidCnt > 0)
         optimIter = 1;
         for optimizer = apObj.pixelFitParams.optimizer
+            %check if we have at least one non-linear parameter
+            vcp = apObj.getVolatileChannelParams(chList(ch));
+            if(vcp.nApproxParamsPerCh == 0) %todo: check global fit
+                %no non-linear parameter -> nothing to do here
+                resultIsValidCnt = 0;
+                result.Iterations(1,1) = 1;
+                result.FunctionEvaluations(1,1) = 1;
+                xVec = double.empty(0,nrChannels);
+                break
+            end            
             %select initialization
             if(optimIter ~= 1 && ~isempty(prevXVec))
                 iVec = prevXVec; %use result from previous optimization as initialization
@@ -132,12 +142,11 @@ else %enough photons
             %% select optimizer
             switch optimizer
                 case 0 %% brute force
-                    %removed 10.03.2009                    
+                    %removed 10.03.2009 
+                    [c, offset, A, tau, dc, dtau, irs, zz, t, chi] = Fluofit(apObj.getIRF(ch), double(apObj.getMeasurementData(ch)), apObj.fileInfo.tacRange, apObj.fileInfo.timeChannelWidth, iVec(1:3,1)', false);
                 case 1 %% DE
                     optParams.paramDefCell{4} = iVec(:,1);
-                    [xVec, ~, ~, iter, feval] = ...
-                        differentialevolution(optParams, optParams.paramDefCell, @apObj.costFcn, ...
-                        [], [], optParams.emailParams, optParams.title);
+                    [xVec, ~, ~, iter, feval] = differentialevolution(optParams, optParams.paramDefCell, @apObj.costFcn, [], [], optParams.emailParams, optParams.title);
                 case 2 %% MSimplexBnd
                     [xVec,~,~,output] = MSimplexBnd(@apObj.costFcn, iVec, optParams);
                     iter = output.iterations;
@@ -170,8 +179,7 @@ else %enough photons
                     options.MaxFunEvals = 100;
                     [xVec,resnorm,residual,exitflag,output] = lsqnonlin(fun,iVec(:,1),nonLinBounds.lb',nonLinBounds.ub',options);
                     iter = output.iterations;
-                    feval = output.funcCount;
-                    
+                    feval = output.funcCount;                    
                 case 6 %GODLIKE
                     %options = set_options();
                     %options.display = 'on';

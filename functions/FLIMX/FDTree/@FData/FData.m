@@ -264,6 +264,11 @@ classdef FData < handle
             out = this.myParent.getZScaling(this.id);
         end
         
+        function out = getColorScaling(this)
+            %get color scaling parameters
+            out = this.myParent.getColorScaling(this.id);
+        end
+        
         function out = get.isEmptyStat(this)
             %
             out = isempty(this.cachedImage.statistics.descriptive);

@@ -383,6 +383,14 @@ classdef FDTree < handle
             end
         end
         
+        function setResultColorScaling(this,studyName,subjectID,ch,dType,dTypeNr,colorBorders)
+            %set the z scaling for study studyName at subject subjectID and ROIType
+            study = this.getStudy(studyName);
+            if(~isempty(study))
+                study.setResultColorScaling(subjectID,ch,dType,dTypeNr,colorBorders);
+            end
+        end
+        
         function setCutVec(this,studyName,subjectID,dim,cutVec)
             %set the cut vector for study studyName at subject subjectID and dimension dim
             study = this.getStudy(studyName);

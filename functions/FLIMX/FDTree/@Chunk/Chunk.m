@@ -275,6 +275,11 @@ classdef Chunk < handle
             out = this.myParent.getZScaling(this.dType,dTypeNr);
         end
         
+        function out = getColorScaling(this,dTypeNr)
+            %get color scaling
+            out = this.myParent.getColorScaling(this.dType,dTypeNr);
+        end
+        
         function out = getStatsParams(this)
             %get statistics parameters
             out = this.myParent.getStatsParams();

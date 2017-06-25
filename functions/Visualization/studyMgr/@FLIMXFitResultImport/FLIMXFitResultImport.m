@@ -5,6 +5,7 @@ classdef FLIMXFitResultImport < handle
     properties(GetAccess = public, SetAccess = private)
         FLIMXObj = [];
         visHandles = [];
+        dynVisParams = [];
         allFiles = struct;
         headnames = {'fullname','ext','channel','name','image','bin','import'};
         % read
@@ -14,6 +15,7 @@ classdef FLIMXFitResultImport < handle
         % Bin
         binFact = 1;
         % Roi
+        axesRawMgr = [];
         axesMgr = [];
         measurementObj = [];
         buttonDown = false; %flags if mouse button is pressed
@@ -62,6 +64,22 @@ classdef FLIMXFitResultImport < handle
         %% Rest
         function this = FLIMXFitResultImport(hFLIMX)
             this.FLIMXObj = hFLIMX;
+            try
+                this.dynVisParams.cm = eval(sprintf('%s(256)',lower(this.FLIMXObj.paramMgr.generalParams.cmType)));
+            catch
+                this.dynVisParams.cm = jet(256);
+            end            
+            if(this.FLIMXObj.paramMgr.generalParams.cmInvert)
+                this.dynVisParams.cm = flipud(this.dynVisParams.cm);
+            end
+            try
+                this.dynVisParams.cmIntensity = eval(sprintf('%s(256)',lower(this.FLIMXObj.paramMgr.generalParams.cmIntensityType)));
+            catch
+                this.dynVisParams.cmIntensity = gray(256);
+            end
+            if(this.FLIMXObj.paramMgr.generalParams.cmIntensityInvert)
+                this.dynVisParams.cmIntensity = flipud(this.dynVisParams.cmIntensity);
+            end
         end
         
         function out = isOpenVisWnd(this)
@@ -343,10 +361,17 @@ classdef FLIMXFitResultImport < handle
         
         
         function importAll(this)
-% flag = this.checkSubjectID(1)
+            % checkSubjectID (channel)
             this.createBinFiles();
             this.updateGUI();
-            importResult();
+            studyNames = get(this.visHandles.popupStudy,'String');
+            subjectNames = get(this.visHandles.popupSubject,'String');
+            studyName = studyNames{get(this.visHandles.popupStudy,'Value')};
+            subjectName = subjectNames{get(this.visHandles.popupSubject,'Value')};
+            is = this.FLIMXObj.fdt.getSubject4Import(studyName,subjectName);
+            fi = measurementFile.getDefaultFileInfo();
+            is.importResult(fullfile(path,files),filterindex,opt.ch,fi.position,fi.pixelResolution)
+            %importResult();
         end
         function flag = checkSubjectID(this, Ch)
             %check if channel ch of subject is already in tree
@@ -455,22 +480,28 @@ classdef FLIMXFitResultImport < handle
         %colorbar
         function updateColorbar(this)
             %update the colorbar to the current color map
-            temp = zeros(length(this.FLIMXObj.FLIMVisGUI.dynParams.cm),2,3);
-            if(strcmp(this.FLIMXObj.FLIMVisGUI.getFLIMItem('l'),'Intensity'))
+            temp = zeros(length(this.FLIMXObj.FLIMVisGUI.dynParams.cm),1,3);
+            if(~strcmp(this.FLIMXObj.FLIMVisGUI.getFLIMItem('l'),'Intensity'))
                 temp(:,1,:) = gray(size(temp,1));
             else
                 temp(:,1,:) = this.FLIMXObj.FLIMVisGUI.dynParams.cm;
             end
-            if(strcmp(this.FLIMXObj.FLIMVisGUI.getFLIMItem('r'),'Intensity'))
-                temp(:,2,:) = gray(size(temp,1));
-            else
-                temp(:,2,:) = this.FLIMXObj.FLIMVisGUI.dynParams.cm;
-            end
+%             if(~strcmp(this.FLIMXObj.FLIMVisGUI.getFLIMItem('r'),'Intensity'))
+%                 temp(:,2,:) = gray(size(temp,1));
+%             else
+%                 temp(:,2,:) = this.FLIMXObj.FLIMVisGUI.dynParams.cm;
+%             end
             image(temp,'Parent',this.visHandles.cm_axes);
             ytick = (0:0.25:1).*size(this.FLIMXObj.FLIMVisGUI.dynParams.cm,1);
             ytick(1) = 1;
             set(this.visHandles.cm_axes,'YDir','normal','YTick',ytick,'YTickLabel','','YAxisLocation','right','XTick',[],'XTickLabel','');
             ylim(this.visHandles.cm_axes,[1 size(this.FLIMXObj.FLIMVisGUI.dynParams.cm,1)]);
+        
+        
+        
+            a = 2;
+            this.axesRawMgr.setColorMap(this.dynVisParams.cm);
+            this.axesRawMgr.setReverseYDirFlag(this.FLIMXObj.FLIMVisGUI.generalParams.reverseYDir);
         end
     end
     
@@ -506,9 +537,7 @@ classdef FLIMXFitResultImport < handle
             this.visHandles.patchProgress = patch(xpatch,ypatch,'r','EdgeColor','r','Parent',this.visHandles.axesProgress);%,'EraseMode','normal'
             this.visHandles.textProgress = text(1,0,'','Parent',this.visHandles.axesProgress);
             % radiobutton
-%             set(this.visHandles.radioDefault,'Callback',@this.GUI_radioROI_Callback);
-%             set(this.visHandles.radioAuto,'Callback',@this.GUI_radioROI_Callback);
-%             set(this.visHandles.radioCustom,'Callback',@this.GUI_radioROI_Callback);
+
             % push button
             set(this.visHandles.pushBrowse,'Callback',@this.GUI_pushBrowse_Callback,'TooltipString','Browse folder.');
             set(this.visHandles.pushImport,'Callback',@this.GUI_pushImport_Callback,'TooltipString','If you are ready, click here to import all selected files from all channels for the selected stem.');
@@ -526,7 +555,16 @@ classdef FLIMXFitResultImport < handle
 %                          set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonDownFcn',@this.GUI_mouseButtonDown_Callback);
 %                          set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback);
 %                          set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
-            % start task
+            
+
+ % axesWithROI(hMainAx,hCBAx,hCBLblLow,hCBLblHigh,hCPLbl,cm)
+%               this.axesRawMgr = axesWithROI(this.visHandles.axesRaw,this.visHandles.axesCbRaw,this.visHandles.textCbRawBottom,this.visHandles.textCbRawTop,this.visHandles.editCPRaw,this.dynVisParams.cmIntensity);
+%             this.axesROIMgr = axesWithROI(this.visHandles.axesSupp,this.visHandles.axesCbSupp,this.visHandles.textCbSuppBottom,this.visHandles.textCbSuppTop,this.visHandles.editCPSupp,this.dynVisParams.cm);          
+%this.axesRawMgr = axesWithROI(this.visHandles.axesRaw,this.visHandles.axesCbRaw,this.visHandles.textCbRawBottom,this.visHandles.textCbRawTop,this.visHandles.editCPRaw,this.dynVisParams.cmIntensity);
+ this.axesRawMgr = axesWithROI(this.visHandles.axesROI,this.visHandles.axesCb,this.visHandles.textCbBottom,this.visHandles.textCbTop,this.visHandles.editCP,this.dynVisParams.cmIntensity);
+          %  this.axesROIMgr = 
+
+% start task
             this.openFolderByGUI();
             this.setupGUI();
         end

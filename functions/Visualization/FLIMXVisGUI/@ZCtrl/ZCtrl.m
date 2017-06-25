@@ -496,20 +496,16 @@ classdef ZCtrl < handle
         function setUIHandles(this)
             %builds the uicontrol handles for the ROICtrl object for axis ax
             s = this.mySide;
-            dims ='z';
-            for i=1:1
-                dim = dims(i);
-                this.(sprintf('%s_lo_dec_button',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_lo_dec_button',s,dim));
-                this.(sprintf('%s_lo_inc_button',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_lo_inc_button',s,dim));
-                this.(sprintf('%s_lo_edit',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_lo_edit',s,dim));
-                this.(sprintf('%s_u_dec_button',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_u_dec_button',s,dim));
-                this.(sprintf('%s_u_inc_button',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_u_inc_button',s,dim));
-                this.(sprintf('%s_u_edit',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_u_edit',s,dim));
-                this.(sprintf('%s_check',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_check',s,dim));
-                this.(sprintf('%s_text',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_text',s,dim));
-                this.(sprintf('%s_sz_text',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_sz_text',s,dim));
-                this.(sprintf('%s_sz_edit',dim)) = this.visObj.visHandles.(sprintf('ms_%s_%s_sz_edit',s,dim));
-            end
+            this.z_lo_dec_button = this.visObj.visHandles.(sprintf('ms_%s_z_lo_dec_button',s));
+            this.z_lo_inc_button = this.visObj.visHandles.(sprintf('ms_%s_z_lo_inc_button',s));
+            this.z_lo_edit = this.visObj.visHandles.(sprintf('ms_%s_z_lo_edit',s));
+            this.z_u_dec_button = this.visObj.visHandles.(sprintf('ms_%s_z_u_dec_button',s));
+            this.z_u_inc_button = this.visObj.visHandles.(sprintf('ms_%s_z_u_inc_button',s));
+            this.z_u_edit = this.visObj.visHandles.(sprintf('ms_%s_z_u_edit',s));
+            this.z_check = this.visObj.visHandles.(sprintf('ms_%s_z_check',s));
+            this.z_text = this.visObj.visHandles.(sprintf('ms_%s_z_text',s));
+            this.z_sz_text = this.visObj.visHandles.(sprintf('ms_%s_z_sz_text',s));
+            this.z_sz_edit = this.visObj.visHandles.(sprintf('ms_%s_z_sz_edit',s));
         end
     end %methods protected
     

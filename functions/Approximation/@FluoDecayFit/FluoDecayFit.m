@@ -338,7 +338,7 @@ classdef FluoDecayFit < handle
             %user may have pressed stop while init fit was running
             if(this.parameters.stopOptimization)
                 this.parameters.stopOptimization = false;
-                disp(sprintf('Fitting process aborted after initialization fit!'));
+                fprintf('Fitting process aborted after initialization fit!\n');
                 button = questdlg(sprintf('Fitting process aborted.\n\nDo you want to save the incomplete results?'),'Fitting process aborted!','Yes','No','No');
                 switch button
                     case 'Yes'
@@ -377,6 +377,8 @@ classdef FluoDecayFit < handle
             end            
             %fit current channel
             totalPixel = this.FLIMXObj.curSubject.getROIXSz() * this.FLIMXObj.curSubject.getROIYSz();
+            %make ROI first
+            this.FLIMXObj.curSubject.getROIData(ch,[],[]);
             this.updateProgressLong(0.5,'Approximate Pixels...');
             stratStr = this.computeMultipleFits(ch,1:1:totalPixel,false); %user aborted if stratStr is empty            
             %clean up stage

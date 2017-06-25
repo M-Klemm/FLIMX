@@ -77,7 +77,7 @@ classdef FLIMXVisGUI < handle
                 this.dynParams.cmIntensity = flipud(this.dynVisParams.cmIntensity);
             end            
             this.dynParams.mouseButtonDown = false;
-            this.dynParams.lastScreenshotFile = 'image.png';
+            this.dynParams.lastExportFile = 'image.png';
             %init objects            
             this.fdt.setShortProgressCallback(@this.updateShortProgressbar);
             this.fdt.setLongProgressCallback(@this.updateLongProgressbar);            
@@ -239,7 +239,7 @@ classdef FLIMXVisGUI < handle
                         set(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Value',1);
                     end
                     %setup gui according to variation selection
-                    switch get(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Value');
+                    switch get(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Value')
                         case 1 %univariate
                             %add cluster objects to channel object string
                             chObj = unique([chObj;MVGroupNames]);
@@ -312,8 +312,12 @@ classdef FLIMXVisGUI < handle
                         else %multivariate, clusters
                             set(this.visHandles.(sprintf('supp_axes_hist_%s_pop',s)),'Visible','on','Enable','off','Value',1);
                         end
+                        set(this.visHandles.(sprintf('supp_axes_scale_%s_pop',s)),'Visible','on');
+                        set(this.visHandles.(sprintf('color_scale_%s_panel',s)),'Visible','on');
                     else %none, cuts
                         set(this.visHandles.(sprintf('supp_axes_hist_%s_pop',s)),'Visible','off');
+                        set(this.visHandles.(sprintf('supp_axes_scale_%s_pop',s)),'Visible','off');
+                        set(this.visHandles.(sprintf('color_scale_%s_panel',s)),'Visible','off');
                     end
                     if(~isempty(chObj))
                         oldPStr = get(this.visHandles.(sprintf('main_axes_%s_pop',s)),'String');
@@ -374,13 +378,13 @@ classdef FLIMXVisGUI < handle
                 %roi
                 this.objHandles.(sprintf('%sROI',s)).updateGUI([]);
                 this.objHandles.(sprintf('%sZScale',s)).updateGUI([]);
-                this.objHandles.(sprintf('%sdo',s)).updatePlots();                
+                this.objHandles.(sprintf('%sdo',s)).updatePlots();
                 if(strcmp(s,'l'))
                     %update cuts
                     this.objHandles.cutx.updateCtrls();
                     this.objHandles.cuty.updateCtrls();
                 end
-                switch get(this.visHandles.(sprintf('supp_axes_%s_pop',s)),'Value');
+                switch get(this.visHandles.(sprintf('supp_axes_%s_pop',s)),'Value')
                     case 1 %none
                         set(this.visHandles.(sprintf('supp_axes_scale_%s_pop',s)),'Enable','off');
                     case {2,3,4} %histograms
@@ -788,7 +792,7 @@ classdef FLIMXVisGUI < handle
             if(~isempty(strfind(tag,'B')))
                 pType = 'supp'; %supp. plot
             end
-            [pathstr,name,ext] = fileparts(this.dynParams.lastScreenshotFile);
+            %[pathstr,name,ext] = fileparts(this.dynParams.lastExportFile);
             formats = {'*.png','Portable Network Graphics (*.png)';...
                 '*.jpg','Joint Photographic Experts Group (*.jpg)';...
                 '*.eps','Encapsulated Postscript (*.eps)';...
@@ -797,51 +801,57 @@ classdef FLIMXVisGUI < handle
                 '*.emf','Windows Enhanced Metafile (*.emf)';...
                 '*.pdf','Portable Document Format (*.pdf)';...
                 '*.fig','MATLAB figure (*.fig)';...
+                '*.png','16-bit Portable Network Graphics (*.png)';...
+                '*.jpg','16-bit Joint Photographic Experts Group (*.jpg)';...
+                '*.tiff','16-bit TaggedImage File Format (*.tiff)';...
                 };
-            idx = strcmp(formats(:,1),['*' ext]);
-            if(any(idx))
-                fn = cell(size(formats));
-                fn(1,:) = formats(idx,:);
-                fn(2:end,:) = formats(~idx,:);
-                formats = fn;
-                clear fn
-            end
-            [file, path, filterindex] = uiputfile(formats,'Export Screenshot as',this.dynParams.lastScreenshotFile);
+%             idx = strcmp(formats(:,1),['*' ext]);
+%             if(any(idx))
+%                 fn = cell(size(formats));
+%                 fn(1,:) = formats(idx,:);
+%                 fn(2:end,:) = formats(~idx,:);
+%                 formats = fn;
+%                 clear fn
+%             end
+            [file, path, filterindex] = uiputfile(formats,'Export Figure as',this.dynParams.lastExportFile);
             if ~path ; return ; end
             fn = fullfile(path,file);
-            this.dynParams.lastScreenshotFile = file;
-            switch formats{filterindex,1}
-                case '*.bmp'
+            this.dynParams.lastExportFile = file;
+            switch filterindex
+                case 5 %'*.bmp'
                     str = '-dbmp';
-                case '*.emf'
+                case 6% '*.emf'
                     str = '-dmeta';
-                case '*.eps'
+                case 3 %'*.eps'
                     str = '-depsc2';
-                case '*.jpg'
+                case 2 %'*.jpg'
                     str = '-djpeg';
-                case '*.pdf'
+                case 7 %'*.pdf'
                     str = '-dpdf';
-                case '*.png'
+                case 1 %'*.png'
                     str = '-dpng';
-                case '*.tiff'
-                    str = '-dtiff';
-                case '*.fig'
-                    str = '*.fig';
+                case 4 %'*.tiff'
+                    str = '-dtiff';                    
             end            
             hFig = figure;
             set(hFig,'Renderer','Painters');
             ssObj = FScreenshot(this.objHandles.(sprintf('%sdo',side)));
             ssObj.makeScreenshotPlot(hFig,pType);
-            %pause(1) %workaround for wrong painting            
-            if(strcmp(str,'*.fig'))
-                savefig(hFig,fn);
-            else
-                if(this.exportParams.resampleImage)
-                    print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
-                else
-                    imwrite(ssObj.mainExportColors,fn);
-                end
-            end            
+            %pause(1) %workaround for wrong painting
+            switch filterindex
+                case 8
+                    savefig(hFig,fn);
+                case {9,11}
+                    imwrite(uint16(ssObj.mainExportXls),fn);
+                case 10
+                    imwrite(uint16(ssObj.mainExportXls),fn,'BitDepth',16,'Mode','lossless');
+                otherwise                    
+                    if(this.exportParams.resampleImage)
+                        print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
+                    else
+                        imwrite(ssObj.mainExportColors,fn);
+                    end
+            end
             if(ishandle(hFig))
                 close(hFig);
             end   
@@ -1026,10 +1036,10 @@ classdef FLIMXVisGUI < handle
         
         function GUI_mouseScrollWheel_Callback(this,hObject,eventdata)
             %executes on mouse scroll wheel move in window 
-            cp = this.objHandles.ldo.getMyCP();
+            cp = this.objHandles.ldo.getMyCP(1);
             s = 'l'; %this side
             if(isempty(cp))
-                cp = this.objHandles.rdo.getMyCP();
+                cp = this.objHandles.rdo.getMyCP(1);
                 if(isempty(cp))
                     return;
                 end
@@ -1061,22 +1071,28 @@ classdef FLIMXVisGUI < handle
             catch
                 tNow = now;  %slower
             end            
-            if ~isempty(lastUpdate) && tNow - lastUpdate < 0.010*oneSec
+            if(~isempty(lastUpdate) && tNow - lastUpdate < 0.010*oneSec)
                 inFunction = [];  %enable callback
                 return;
             end
             lastUpdate = tNow;
+%<<<<<<< HEAD
             cp = this.objHandles.ldo.getMyCP();
+%=======
+            %main axes
+            cp = this.objHandles.ldo.getMyCP(1);
+%>>>>>>> refs/remotes/M-Klemm/master
             thisSide = 'l'; %this side
             otherSide = 'r'; %other side
             if(isempty(cp))
-                cp = this.objHandles.rdo.getMyCP();
+                cp = this.objHandles.rdo.getMyCP(1);
                 thisSide = 'r';
                 otherSide = 'l';
             end            
             %draw current point in both (empty cp deletes old lines)
             this.objHandles.ldo.drawCP(cp);
             this.objHandles.rdo.drawCP(cp);
+%<<<<<<< HEAD
             if(isempty(cp))
                 if(this.getROIDisplayMode(thisSide) < 3)
                     set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
@@ -1086,6 +1102,8 @@ classdef FLIMXVisGUI < handle
             end
             thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
             otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
+%=======
+%>>>>>>> refs/remotes/M-Klemm/master
             if(~isempty(cp) && this.getROIDisplayMode(thisSide) < 3)
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
                 if(this.dynParams.mouseButtonDown)% && this.getROIType(s) == 2)
@@ -1111,59 +1129,117 @@ classdef FLIMXVisGUI < handle
                         end
                     end
                 end
-            end 
-            inFunction = []; %enable callback
+            end
+            %% supp axes
+            cp = this.objHandles.ldo.getMyCP(2);
+            thisSide = 'l';
+            otherSide = 'r';
+            if(isempty(cp))
+                cp = this.objHandles.rdo.getMyCP(2);
+                thisSide = 'r';
+                otherSide = 'l';
+            end
+            if(isempty(cp) || this.visHandles.(sprintf('supp_axes_%s_pop',thisSide)).Value ~= 2)
+                if(this.getROIDisplayMode(thisSide) < 3)
+                    set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
+                end
+                inFunction = []; %enable callback
+                return
+            end
+            if(this.dynParams.mouseButtonDown)
+                set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
+                this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 this.dynParams.mouseButtonDownCoord(1) cp(1)]),true);
+                %this.objHandles.(sprintf('%sdo',thisSide)).updatePlots();
+                [thisDType, thisDTypeNr] = this.getFLIMItem(thisSide);
+                [otherDType, otherDTypeNr] = this.getFLIMItem(otherSide);
+                if(strcmp(thisDType,otherDType) && thisDTypeNr == otherDTypeNr && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)))
+                    this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
+                end
+            end
+            %% enable callback
+            inFunction = [];
         end
         
         function GUI_mouseButtonDown_Callback(this,hObject,eventdata)
             %executes on mouse button down in window
+%<<<<<<< HEAD
             %this function is now always called by the its wrapper: rotate_mouseButtonDownWrapper
             cp = this.objHandles.ldo.getMyCP();
+%=======
+            %this function is now always called by its wrapper: rotate_mouseButtonDownWrapper        
+            %% main axes
+            cp = this.objHandles.ldo.getMyCP(1);
+%>>>>>>> refs/remotes/M-Klemm/master
             thisSide = 'l';
             otherSide = 'r';
             if(isempty(cp))
-                cp = this.objHandles.rdo.getMyCP();
+                cp = this.objHandles.rdo.getMyCP(1);
                 thisSide = 'r';
                 otherSide = 'l';
             end
-            if(this.getROIType(thisSide) < 1)
-                return
-            end
-            mLeftButton = strcmp('normal',get(hObject,'SelectionType'));
-            thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
-            otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
-            if(isempty(cp))
-                %set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-            elseif(this.getROIDisplayMode(thisSide) < 3 && get(this.visHandles.enableMouse_check,'Value') && this.getROIType(thisSide) >= 1)
-                this.dynParams.mouseButtonDown = true;
-                this.dynParams.mouseButtonDownCoord = cp;
-                currentROI = thisROIObj.getCurROIInfo();
-                this.dynParams.mouseButtonDownROI = currentROI(:,2);
-                set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
+            if(this.getROIType(thisSide) >= 1)
+                mLeftButton = strcmp('normal',get(hObject,'SelectionType'));
+                thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
+                otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
+                if(isempty(cp))
+                    %set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
+                elseif(this.getROIDisplayMode(thisSide) < 3 && get(this.visHandles.enableMouse_check,'Value') && this.getROIType(thisSide) >= 1)
+                    this.dynParams.mouseButtonDown = true;
+                    this.dynParams.mouseButtonDownCoord = cp;
+                    currentROI = thisROIObj.getCurROIInfo();
+                    this.dynParams.mouseButtonDownROI = currentROI(:,2);
+                    set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
+                    if(mLeftButton && this.getROIType(thisSide) < 6)
+                        %left click
+                        thisROIObj.setStartPoint(flipud(cp));
+                    end
+                else
+                    return
+                end
                 if(mLeftButton && this.getROIType(thisSide) < 6)
-                    %left click
-                    thisROIObj.setStartPoint(flipud(cp));
-                end
-            else
-                return
-            end            
-            if(mLeftButton && this.getROIType(thisSide) < 6)
-                %draw current point in both (empty cp deletes old lines)
-                this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(cp),flipud(cp),false);
-                if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
-                    this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(cp),flipud(cp),false);
+                    %draw current point in both (empty cp deletes old lines)
+                    this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(cp),flipud(cp),false);
+                    if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
+                        this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(cp),flipud(cp),false);
+                    end
                 end
             end
+            %% supp axes
+            cp = this.objHandles.ldo.getMyCP(2);
+            thisSide = 'l';
+            otherSide = 'r';
+            if(isempty(cp))
+                cp = this.objHandles.rdo.getMyCP(2);
+                thisSide = 'r';
+                otherSide = 'l';
+            end
+            if(isempty(cp) || this.visHandles.(sprintf('supp_axes_%s_pop',thisSide)).Value ~= 2 || this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.check)
+                return
+            end
+%<<<<<<< HEAD
+%=======
+            switch get(hObject,'SelectionType')
+                case 'normal'
+                    set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
+                    this.dynParams.mouseButtonDown = true;
+                    this.dynParams.mouseButtonDownCoord = cp;
+                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setLowerBorder(cp(1),true);
+                    %this.objHandles.(sprintf('%sdo',thisSide)).updatePlots();
+                    this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
+                case 'alt'
+            end
+%>>>>>>> refs/remotes/M-Klemm/master
         end
         
         function GUI_mouseButtonUp_Callback(this,hObject,eventdata)
             %executes on mouse button up in window
-            %this function is now always called by the its wrapper: rotate_mouseButtonUpWrapper
-            cp = this.objHandles.ldo.getMyCP();
+            %this function is now always called by its wrapper: rotate_mouseButtonUpWrapper
+            %% main axes
+            cp = this.objHandles.ldo.getMyCP(1);
             thisSide = 'l';
             otherSide = 'r';
             if(isempty(cp))
-                cp = this.objHandles.rdo.getMyCP();
+                cp = this.objHandles.rdo.getMyCP(1);
                 thisSide = 'r';
                 otherSide = 'l';
             end
@@ -1194,6 +1270,33 @@ classdef FLIMXVisGUI < handle
                 end
                 this.dynParams.mouseButtonDown = false;
                 this.dynParams.mouseButtonDownCoord = [];
+            end                        
+            %% supp axes
+            cp = this.objHandles.ldo.getMyCP(2);
+            thisSide = 'l';
+            otherSide = 'r';
+            if(isempty(cp))
+                cp = this.objHandles.rdo.getMyCP(2);
+                thisSide = 'r';
+                otherSide = 'l';
+            end
+            if(isempty(cp) || this.visHandles.(sprintf('supp_axes_%s_pop',thisSide)).Value ~= 2)
+                return
+            end
+            switch get(hObject,'SelectionType')
+                case 'normal'
+                    if(this.dynParams.mouseButtonDown)
+                        this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 this.dynParams.mouseButtonDownCoord(1) cp(1)]),true);
+                        %this.objHandles.(sprintf('%sdo',thisSide)).updatePlots();
+                        this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
+                        this.dynParams.mouseButtonDownCoord = [];
+                        this.dynParams.mouseButtonDown = false;
+                    end
+                case 'alt'
+                    this.dynParams.mouseButtonDownCoord = [];
+                    this.dynParams.mouseButtonDown = false;
+                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.forceAutoScale();
+                    this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
             end
         end
         
@@ -1203,8 +1306,6 @@ classdef FLIMXVisGUI < handle
             if(strcmp(get(hObject,'Tag'),'study_l_pop'))                
                 s = 'l';            
             end
-%             this.updateViewList(s);
-%             this.updateSubjectDSList(s);
             this.setupGUI();
             this.updateGUI(s);            
             
@@ -1216,7 +1317,6 @@ classdef FLIMXVisGUI < handle
             if(strcmp(get(hObject,'Tag'),'view_l_pop'))                
                 s = 'l';            
             end
-%             this.updateSubjectDSList(s);
             this.setupGUI();
             this.updateGUI(s);             
         end
@@ -1343,7 +1443,43 @@ classdef FLIMXVisGUI < handle
             this.objHandles.rdo.updatePlots();
             this.objHandles.ldo.updatePlots();
         end
-                                
+        
+        function GUI_colorScale_Callback(this,hObject,eventdata)
+            %adjust the color scaling
+            thisSide = 'r';
+            otherSide = 'l';
+            tag = get(hObject,'Tag');
+            if(~isempty(strfind(tag,'_l_')))
+                thisSide = 'l';
+                otherSide = 'r';
+            end
+            if(~isempty(strfind(tag,'edit')))
+                this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.editCallback();
+                %this.objHandles.(sprintf('%sdo',thisSide)).updatePlots();
+                if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
+                    this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
+                end
+            elseif(~isempty(strfind(tag,'check')))
+                this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.checkCallback();
+                if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
+                    this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
+                end
+            elseif(~isempty(strfind(tag,'button')))
+                if(~isempty(strfind(tag,'in')))
+                    this.objHandles.(sprintf('%sdo',thisSide)).zoomSuppXScale('in');
+                    if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
+                        this.objHandles.(sprintf('%sdo',otherSide)).zoomSuppXScale('in');
+                    end
+                else
+                    this.objHandles.(sprintf('%sdo',thisSide)).zoomSuppXScale('out');
+                    if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
+                        this.objHandles.(sprintf('%sdo',otherSide)).zoomSuppXScale('out');
+                    end
+                end
+                return
+            end
+        end
+        
         function GUI_roi_Callback(this,hObject,eventdata)
             %change roi size in x, y or z direction
             s1 = 'r'; %side which activated the control
@@ -1424,7 +1560,7 @@ classdef FLIMXVisGUI < handle
             this.objHandles.rdo.updatePlots();
             this.objHandles.ldo.updatePlots();
         end
-                
+        
         function GUI_suppAxesPop_Callback(this,hObject,eventdata)
             %select cut or histogram for supplemental display
             s = 'r';
@@ -1549,38 +1685,47 @@ classdef FLIMXVisGUI < handle
                 case 3
                     this.visHandles = FLIMXVisGUIFigureLarge();
             end
+%<<<<<<< HEAD
             figure(this.visHandles.FLIMXVisGUIFigure);            
             %set callbacks
             set(this.visHandles.FLIMXVisGUIFigure,'Units','Pixels');
             %popups
             set(this.visHandles.enableMouse_check,'Callback',@this.GUI_enableMouseCheck_Callback,'Value',0,'String','enable ROI definition','TooltipString','Enable or disable the ROI definition using the mouse pointer');
             set(this.visHandles.sync3DViews_check,'Callback',@this.GUI_sync3DViews_check_Callback,'Value',0,'TooltipString','Enable or disable synchronization of 3D views on left and right side');
+%=======
+            figure(this.visHandles.FLIMXVisGUIFigure);
+            %set callbacks
+            set(this.visHandles.FLIMXVisGUIFigure,'Units','Pixels');
+            %popups
+            set(this.visHandles.enableMouse_check,'Callback',@this.GUI_enableMouseCheck_Callback,'Value',0,'String','enable ROI definition');
+            set(this.visHandles.sync3DViews_check,'Callback',@this.GUI_sync3DViews_check_Callback,'Value',0);
+%>>>>>>> refs/remotes/M-Klemm/master
             %main axes
             set(this.visHandles.dataset_l_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the left side');
             set(this.visHandles.dataset_r_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the right side');
             set(this.visHandles.dataset_l_dec_button,'FontName','Symbol','String',char(173),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to previous subject on the left side');
             set(this.visHandles.dataset_l_inc_button,'FontName','Symbol','String',char(175),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to next subject on the left side');
             set(this.visHandles.dataset_r_dec_button,'FontName','Symbol','String',char(173),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to previous subject on the right side');
-            set(this.visHandles.dataset_r_inc_button,'FontName','Symbol','String',char(175),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to next subject on the right side');            
+            set(this.visHandles.dataset_r_inc_button,'FontName','Symbol','String',char(175),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to next subject on the right side');
             set(this.visHandles.main_axes_l_pop,'Callback',@this.GUI_mainAxesPop_Callback,'TooltipString','Select FLIM parameter to display on the left side');
-            set(this.visHandles.main_axes_r_pop,'Callback',@this.GUI_mainAxesPop_Callback,'TooltipString','Select FLIM parameter to display on the right side');            
+            set(this.visHandles.main_axes_r_pop,'Callback',@this.GUI_mainAxesPop_Callback,'TooltipString','Select FLIM parameter to display on the right side');
             set(this.visHandles.main_axes_var_l_pop,'Callback',@this.GUI_mainAxesVarPop_Callback,'TooltipString','Display one or multiple FLIM parameters on the left side');
-            set(this.visHandles.main_axes_var_r_pop,'Callback',@this.GUI_mainAxesVarPop_Callback,'TooltipString','Display one or multiple FLIM parameters on the right side');            
+            set(this.visHandles.main_axes_var_r_pop,'Callback',@this.GUI_mainAxesVarPop_Callback,'TooltipString','Display one or multiple FLIM parameters on the right side');
             set(this.visHandles.main_axes_pdim_l_pop,'Callback',@this.GUI_mainAxesDimPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the left side');
-            set(this.visHandles.main_axes_pdim_r_pop,'Callback',@this.GUI_mainAxesDimPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the right side');            
+            set(this.visHandles.main_axes_pdim_r_pop,'Callback',@this.GUI_mainAxesDimPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the right side');
             set(this.visHandles.main_axes_chan_l_pop,'Callback',@this.GUI_mainAxesChPop_Callback,'TooltipString','Switch the spectral channel on the left side');
-            set(this.visHandles.main_axes_chan_r_pop,'Callback',@this.GUI_mainAxesChPop_Callback,'TooltipString','Switch the spectral channel on the right side');            
+            set(this.visHandles.main_axes_chan_r_pop,'Callback',@this.GUI_mainAxesChPop_Callback,'TooltipString','Switch the spectral channel on the right side');
             set(this.visHandles.main_axes_scale_l_pop,'Callback',@this.GUI_mainAxesScalePop_Callback,'Enable','off','Value',1,'TooltipString','Select linear or log10 scaling of the FLIM parameter on the left side');
-            set(this.visHandles.main_axes_scale_r_pop,'Callback',@this.GUI_mainAxesScalePop_Callback,'Enable','off','Value',1,'TooltipString','Select linear or log10 scaling of the FLIM parameter on the right side'); 
-            set(this.visHandles.slider_l_zoom,'Callback',@this.GUI_mainAxesZoom_Callback,'TooltipString','Zoom left side'); 
-            set(this.visHandles.slider_r_zoom,'Callback',@this.GUI_mainAxesZoom_Callback,'TooltipString','Zoom right side'); 
+            set(this.visHandles.main_axes_scale_r_pop,'Callback',@this.GUI_mainAxesScalePop_Callback,'Enable','off','Value',1,'TooltipString','Select linear or log10 scaling of the FLIM parameter on the right side');
+            set(this.visHandles.slider_l_zoom,'Callback',@this.GUI_mainAxesZoom_Callback,'TooltipString','Zoom left side');
+            set(this.visHandles.slider_r_zoom,'Callback',@this.GUI_mainAxesZoom_Callback,'TooltipString','Zoom right side');
             %supp axes
-            set(this.visHandles.supp_axes_l_pop,'Callback',@this.GUI_suppAxesPop_Callback,'TooltipString','Show histogram or cross-section for current subject','Value',2); 
-            set(this.visHandles.supp_axes_r_pop,'Callback',@this.GUI_suppAxesPop_Callback,'TooltipString','Show histogram or cross-section for current subject','Value',2); 
-            set(this.visHandles.supp_axes_hist_l_pop,'Callback',@this.GUI_suppAxesHistPop_Callback,'TooltipString','Show histogram for current subject or current study / condition'); 
-            set(this.visHandles.supp_axes_hist_r_pop,'Callback',@this.GUI_suppAxesHistPop_Callback,'TooltipString','Show histogram for current subject or current study / condition'); 
-            set(this.visHandles.supp_axes_scale_l_pop,'Callback',@this.GUI_suppAxesScalePop_Callback,'TooltipString','Select linear or log10 scaling for cross-section'); 
-            set(this.visHandles.supp_axes_scale_r_pop,'Callback',@this.GUI_suppAxesScalePop_Callback,'TooltipString','Select linear or log10 scaling for cross-section');            
+            set(this.visHandles.supp_axes_l_pop,'Callback',@this.GUI_suppAxesPop_Callback,'TooltipString','Show histogram or cross-section for current subject','Value',2);
+            set(this.visHandles.supp_axes_r_pop,'Callback',@this.GUI_suppAxesPop_Callback,'TooltipString','Show histogram or cross-section for current subject','Value',2);
+            set(this.visHandles.supp_axes_hist_l_pop,'Callback',@this.GUI_suppAxesHistPop_Callback,'TooltipString','Show histogram for current subject or current study / condition');
+            set(this.visHandles.supp_axes_hist_r_pop,'Callback',@this.GUI_suppAxesHistPop_Callback,'TooltipString','Show histogram for current subject or current study / condition');
+            set(this.visHandles.supp_axes_scale_l_pop,'Callback',@this.GUI_suppAxesScalePop_Callback,'TooltipString','Select linear or log10 scaling for cross-section');
+            set(this.visHandles.supp_axes_scale_r_pop,'Callback',@this.GUI_suppAxesScalePop_Callback,'TooltipString','Select linear or log10 scaling for cross-section');
             %cuts
             set(this.visHandles.cut_x_l_check,'Callback',@this.GUI_cut_Callback,'TooltipString','Enable or disable the vertical cross-section');
             set(this.visHandles.cut_y_l_check,'Callback',@this.GUI_cut_Callback,'TooltipString','Enable or disable the horizontal cross-section');
@@ -1590,7 +1735,7 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.cut_x_l_edit,'Callback',@this.GUI_cut_Callback,'TooltipString','Enter position in pixels for vertical cross-section');
             set(this.visHandles.cut_x_inv_check,'Callback',@this.GUI_cut_Callback,'TooltipString','Toggle which side of the cross-section is cut off (3D plot only)');
             set(this.visHandles.cut_y_inv_check,'Callback',@this.GUI_cut_Callback,'TooltipString','Toggle which side of the cross-section is cut off (3D plot only)');
-            %manual scaling
+            %ROI controls and z scaling
             dims =['x','y','z'];
             axs = ['l','r'];
             for j = 1:2
@@ -1610,9 +1755,15 @@ classdef FLIMXVisGUI < handle
                 set(this.visHandles.(sprintf('roi_%s_table',ax)),'CellEditCallback',@this.GUI_roi_Callback);
                 set(this.visHandles.(sprintf('roi_table_clearLast_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Clear last node of current polygon ROI');
                 set(this.visHandles.(sprintf('roi_table_clearAll_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Clear all nodes of current polygon ROI');
+                %color scaling controls
+                set(this.visHandles.(sprintf('colormap_auto_%s_check',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Enable or disable automatic color scaling');
+                set(this.visHandles.(sprintf('colormap_low_%s_edit',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Enter lower border for color scaling');
+                set(this.visHandles.(sprintf('colormap_high_%s_edit',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Enter upper border for color scaling');
+                set(this.visHandles.(sprintf('colormap_zoom_in_%s_button',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Zoom into histogram');
+                set(this.visHandles.(sprintf('colormap_zoom_out_%s_button',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Zoom out of histogram');
             end
-            %menu            
-            set(this.visHandles.menuImportResult,'Callback',@this.menuImport_Callback); 
+            %menu
+            set(this.visHandles.menuImportResult,'Callback',@this.menuImport_Callback);
             set(this.visHandles.menuExit,'Callback',@this.menuExit_Callback);
             set(this.visHandles.FLIMXVisGUIFigure,'CloseRequestFcn',@this.menuExit_Callback);
             set(this.visHandles.menuFilterOptions,'Callback',@this.menuFiltOpt_Callback);
@@ -1626,43 +1777,43 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.menuSSTL,'Callback',@this.menuScreenshot_Callback);
             set(this.visHandles.menuSSTR,'Callback',@this.menuScreenshot_Callback);
             set(this.visHandles.menuSSBL,'Callback',@this.menuScreenshot_Callback);
-            set(this.visHandles.menuSSBR,'Callback',@this.menuScreenshot_Callback); 
-            set(this.visHandles.menuMovie,'Callback',@this.menuExportMovie_Callback); 
+            set(this.visHandles.menuSSBR,'Callback',@this.menuScreenshot_Callback);
+            set(this.visHandles.menuMovie,'Callback',@this.menuExportMovie_Callback);
             set(this.visHandles.menuXlsTL,'Callback',@this.menuExportExcel_Callback);
             set(this.visHandles.menuXlsTR,'Callback',@this.menuExportExcel_Callback);
             set(this.visHandles.menuXlsBL,'Callback',@this.menuExportExcel_Callback);
             set(this.visHandles.menuXlsBR,'Callback',@this.menuExportExcel_Callback);
-            set(this.visHandles.menuOpenFLIMXFit,'Callback',@this.menuOpenFLIMXFit_Callback);            
-            set(this.visHandles.menuAbout,'Callback',@this.menuAbout_Callback);            
+            set(this.visHandles.menuOpenFLIMXFit,'Callback',@this.menuOpenFLIMXFit_Callback);
+            set(this.visHandles.menuAbout,'Callback',@this.menuAbout_Callback);
             %intensity overlay
             set(this.visHandles.IO_l_check,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Enable or disable overlay of the intensity image on the left side');
             set(this.visHandles.IO_r_check,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Enable or disable overlay of the intensity image on the right side');
-            set(this.visHandles.IO_l_dec_button,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Decrease brightness of intensity overlay on the left side');            
+            set(this.visHandles.IO_l_dec_button,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Decrease brightness of intensity overlay on the left side');
             set(this.visHandles.IO_r_dec_button,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Decrease brightness of intensity overlay on the right side');
             set(this.visHandles.IO_l_inc_button,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Increase brightness of intensity overlay on the left side');
             set(this.visHandles.IO_r_inc_button,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Increase brightness of intensity overlay on the right side');
             set(this.visHandles.IO_l_edit,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Enter brightness value for the intensity overlay on the left side (0: dark; 1: bright)');
-            set(this.visHandles.IO_r_edit,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Enter brightness value for the intensity overlay on the right side (0: dark; 1: bright)');            
+            set(this.visHandles.IO_r_edit,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Enter brightness value for the intensity overlay on the right side (0: dark; 1: bright)');
             %current point
             set(this.visHandles.cp_l_desc_text,'Visible','on');
             set(this.visHandles.cp_r_desc_text,'Visible','on');
             set(this.visHandles.cp_l_pos_text,'Visible','on');
             set(this.visHandles.cp_r_pos_text,'Visible','on');
             set(this.visHandles.cp_l_val_text,'Visible','on');
-            set(this.visHandles.cp_r_val_text,'Visible','on');            
+            set(this.visHandles.cp_r_val_text,'Visible','on');
             %setup study controls
             set(this.visHandles.study_l_pop,'Callback',@this.GUI_studySet_Callback,'TooltipString','Select current study for the left side');
             set(this.visHandles.study_r_pop,'Callback',@this.GUI_studySet_Callback,'TooltipString','Select current study for the right side');
             set(this.visHandles.view_l_pop,'Callback',@this.GUI_viewSet_Callback,'TooltipString','Select current condition for the current study on left side');
-            set(this.visHandles.view_r_pop,'Callback',@this.GUI_viewSet_Callback,'TooltipString','Select current condition for the current study on right side');            
+            set(this.visHandles.view_r_pop,'Callback',@this.GUI_viewSet_Callback,'TooltipString','Select current condition for the current study on right side');
             %study color selection
             set(this.visHandles.study_color_l_button,'Callback',@this.GUI_viewColorSelection_Callback,'TooltipString','Set color for current condition on the left side (only for scatter plots)');
-            set(this.visHandles.study_color_r_button,'Callback',@this.GUI_viewColorSelection_Callback,'TooltipString','Set color for current condition on the right side (only for scatter plots)');            
+            set(this.visHandles.study_color_r_button,'Callback',@this.GUI_viewColorSelection_Callback,'TooltipString','Set color for current condition on the right side (only for scatter plots)');
             %progress bars
             set(this.visHandles.cancel_button,'Callback',@this.GUI_cancelButton_Callback,'TooltipString','Stop current operation');
             xpatch = [0 0 0 0];
             ypatch = [0 0 1 1];
-            axis(this.visHandles.short_progress_axes ,'off');            
+            axis(this.visHandles.short_progress_axes ,'off');
             xlim(this.visHandles.short_progress_axes,[0 100]);
             ylim(this.visHandles.short_progress_axes,[0 1]);
             this.visHandles.patch_short_progress = patch(xpatch,ypatch,'m','EdgeColor','m','Parent',this.visHandles.short_progress_axes);%,'EraseMode','normal'
@@ -1671,8 +1822,8 @@ classdef FLIMXVisGUI < handle
             xlim(this.visHandles.long_progress_axes,[0 100]);
             ylim(this.visHandles.long_progress_axes,[0 1]);
             this.visHandles.patch_long_progress = patch(xpatch,ypatch,'r','EdgeColor','r','Parent',this.visHandles.long_progress_axes);%,'EraseMode','normal'
-            this.visHandles.text_long_progress = text(1,0,'','Parent',this.visHandles.long_progress_axes);            
-            %init ui control objects           
+            this.visHandles.text_long_progress = text(1,0,'','Parent',this.visHandles.long_progress_axes);
+            %init ui control objects
             this.objHandles.ldo = FDisplay(this,'l');
             this.objHandles.rdo = FDisplay(this,'r');
             this.objHandles.cutx = CutCtrl(this,'x',this.objHandles.ldo,this.objHandles.rdo);
@@ -1682,7 +1833,7 @@ classdef FLIMXVisGUI < handle
             this.objHandles.lZScale = ZCtrl(this,'l',this.objHandles.ldo,this.objHandles.rdo);
             this.objHandles.rZScale = ZCtrl(this,'r',this.objHandles.ldo,this.objHandles.rdo);
             this.objHandles.AI = AICtrl(this); %arithmetic image
-            this.objHandles.movObj = exportMovie(this);                        
+            this.objHandles.movObj = exportMovie(this);
             this.clearAxes([]);
             this.setupPopUps([]);
             this.visHandles.hrotate3d = rotate3d(this.visHandles.FLIMXVisGUIFigure);
@@ -1705,9 +1856,15 @@ classdef FLIMXVisGUI < handle
             end
             set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonDownFcn',{@FLIMXVisGUI.rotate_mouseButtonDownWrapper,this});
             set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonUpFcn',{@FLIMXVisGUI.rotate_mouseButtonUpWrapper,this});
+%<<<<<<< HEAD
             set(this.visHandles.FLIMXVisGUIFigure,'WindowScrollWheelFcn',@this.GUI_mouseScrollWheel_Callback);           
         end   
     end %methods protected   
+%=======
+            set(this.visHandles.FLIMXVisGUIFigure,'WindowScrollWheelFcn',@this.GUI_mouseScrollWheel_Callback);
+        end
+    end %methods protected
+%>>>>>>> refs/remotes/M-Klemm/master
     
     methods(Static)
         function [rs, lastPath] = loadResultFile(lastPath,subjectName,ch)
@@ -1928,7 +2085,11 @@ classdef FLIMXVisGUI < handle
             %now run hrotate3d callback
             %rdata = getuimode(hFig,'Exploration.Rotate3d');
             hManager = uigetmodemanager(hObject);
-            hManager.CurrentMode.WindowButtonDownFcn(hObject,eventdata);
+            try
+                hManager.CurrentMode.WindowButtonDownFcn(hObject,eventdata);
+            catch
+                return
+            end
             %hrotate3d callback set the button up function to empty
             try
                 set(hManager.WindowListenerHandles, 'Enable', 'off');  % HG1
