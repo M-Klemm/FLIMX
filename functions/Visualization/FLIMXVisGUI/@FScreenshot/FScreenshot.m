@@ -46,17 +46,22 @@ classdef FScreenshot < FDisplay
             %set inital values
             this.myDynVisParams = FDisplayObj.dynVisParams;
             this.myDynVisParams.mainAxesUnits = FDisplayObj.h_m_ax.Units;
-            this.myDynVisParams.mainAxesPosition = FDisplayObj.h_m_ax.Position;            
-            switch lower(this.visObj.exportParams.colorbarLocation)
-                case 'westoutside'
-                    this.myDynVisParams.mainAxesPosition(1,1) = 200;
-                    this.myDynVisParams.mainAxesPosition(1,2) = 50;
-                case 'southoutside'
-                    this.myDynVisParams.mainAxesPosition(1,1) = 100;
-                    this.myDynVisParams.mainAxesPosition(1,2) = 150;
-                otherwise
-                    this.myDynVisParams.mainAxesPosition(1,1) = 100;
-                    this.myDynVisParams.mainAxesPosition(1,2) = 50;                    
+            this.myDynVisParams.mainAxesPosition = FDisplayObj.h_m_ax.Position;
+            if(this.visObj.exportParams.plotColorbar)
+                switch lower(this.visObj.exportParams.colorbarLocation)
+                    case 'westoutside'
+                        this.myDynVisParams.mainAxesPosition(1,1) = 200;
+                        this.myDynVisParams.mainAxesPosition(1,2) = 50;
+                    case 'southoutside'
+                        this.myDynVisParams.mainAxesPosition(1,1) = 100;
+                        this.myDynVisParams.mainAxesPosition(1,2) = 150;
+                    otherwise
+                        this.myDynVisParams.mainAxesPosition(1,1) = 100;
+                        this.myDynVisParams.mainAxesPosition(1,2) = 50;
+                end
+            else
+                this.myDynVisParams.mainAxesPosition(1,1) = 100;
+                this.myDynVisParams.mainAxesPosition(1,2) = 50;
             end
             this.myStaticVisParams = FDisplayObj.staticVisParams;
             this.disp_view = FDisplayObj.disp_view;
