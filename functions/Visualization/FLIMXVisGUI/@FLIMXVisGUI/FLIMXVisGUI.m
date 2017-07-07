@@ -487,6 +487,7 @@ classdef FLIMXVisGUI < handle
                 opt.position = fi.position;
                 opt.pixelResolution = fi.pixelResolution;
             end       
+            while(true)  
                 success = false;
                 %open GUI dialog to select study for new result
                 opt.ch = ch;
@@ -501,10 +502,10 @@ classdef FLIMXVisGUI < handle
                 %check if channel number exceeds IRF channel number
                 if(fileImport) %we don't need an IRF we have a result structure (amplitues are already in photons)
                     if(opt.ch > this.FLIMXObj.irfMgr.getSpectralChNrs([],'',[]))
-                        choice = questdlg('Channel number exceeds number of IRF channels! Select another channel?','Error importing channel','Yes','No','Yes');
+                        choice = questdlg('Channel number exceeds number of IRF channels! Select another Channel?','Error importing Channel','Yes','No','Yes');
                         switch choice
                             case 'Yes'
-%                                continue
+                                %continue
                             case 'No'
                                 return
                         end
@@ -513,8 +514,30 @@ classdef FLIMXVisGUI < handle
                     is = this.fdt.getSubject4Import(studyName,subjectName);
                     if(isempty(is))
                         return
-                    end          
-                    switch opt.mode
+                    end
+%                     pause(1);
+%                     [files, path, filterindex] = uigetfile( ...
+%                         {'*.asc','ASCII files [SPCImage >= 3.97] (*.asc)';
+%                         '*.dat;*.txt','Text files [SPCImage < 3.97] (*.dat,*.txt)';
+%                         '*.mat','FLIMFit result files (*.mat)'}, ...
+%                         sprintf('Select fitting results for subject %s channel %d...',subjectName,ch), ...
+%                         'MultiSelect', 'on',this.dynParams.lastPath);
+%                     if(~path)
+%                         %lastPath = '';
+%                         return
+%                     end
+%                     lastPath = path;
+%                     idx = strfind(lastPath,filesep);
+%                     if(length(idx) > 1)
+%                         lastPath = lastPath(1:idx(end-1));
+%                     end                    
+%                     is.importResult(fullfile(path,files),filterindex,opt.ch,opt.position,opt.pixelResolution)
+%                     this.dynParams.lastPath = lastPath;
+%                 else
+%                     %update subject name
+%                     rs.name = subjectName;
+%                 end
+                switch opt.mode
                     case 0
                         %skip subject
                         return
@@ -541,117 +564,128 @@ classdef FLIMXVisGUI < handle
                                 return
                         end
                         opt.mode = 1;
-                    end
-                    %update GUI
-                    this.setupGUI();
-                    this.updateGUI([]);
-                    pause(1);
-                    pathname = uigetdir('', 'Choose folder');
-                    if pathname == 0
-                        return
-                    end;
-                    files = dir(pathname); 
-                    if size(files,1) == 0 
-                        return
-                    end;
-                    this.FLIMXObj.importResultGUI.checkVisWnd();
-                    %call folder selection
-                    % for each file extension
-                    names_asc = {}; 
-                    names_bmp = {};
-                    names_tif = {};
-                    maxChan = 16;
-                    column_asc = zeros(maxChan,1);
-                    column_bmp = zeros(maxChan,1);
-                    column_tif = zeros(maxChan,1);
-                    i = 1;
-                    stem = {};
-                    while(i <= length(files)) 
-                        [~,filename,ext] = fileparts(files(i).name);
-                        if(strcmp(ext,'.asc'))
-                            idx_= strfind(filename,'_');
-                            idxminus = strfind(filename,'-');
-                            % Check: 2*'-' and '-_'
-                            if length(strfind(filename,'-'))<2 || idx_(end)~=1+idxminus(end) 
-                                return % invalid filename 
-                            end;
-                            stem{length(stem)+1} = (filename(1:idxminus(end-1)-1));
+                end
+                %update GUI
+                this.setupGUI();
+                this.updateGUI([]);
+                pause(1);
+                pathname = uigetdir('', 'Choose folder');
+                if pathname == 0
+                    return
+                end;
+                files = dir(pathname);
+                if size(files,1) == 0
+                    return
+                end;
+                this.FLIMXObj.importResultGUI.checkVisWnd();
+                %call folder selection
+                % for each file extension
+                names_asc = {};
+                names_bmp = {};
+                names_tif = {};
+                maxChan = 16;
+                column_asc = zeros(maxChan,1);
+                column_bmp = zeros(maxChan,1);
+                column_tif = zeros(maxChan,1);
+                i = 1;
+                stem = {};
+                while(i <= length(files))
+                    [~,filename,ext] = fileparts(files(i).name);
+                    if(strcmp(ext,'.asc'))
+                        idx_= strfind(filename,'_');
+                        idxminus = strfind(filename,'-');
+                        % Check: 2*'-' and '-_'
+                        if length(strfind(filename,'-'))<2 || idx_(end)~=1+idxminus(end)
+                            return % invalid filename
                         end;
-                        i = i+1;
+                        stem{length(stem)+1} = (filename(1:idxminus(end-1)-1));
                     end;
-                    % find most available word stem
-                    singlestem = unique(stem);
-                    counter = zeros(length(singlestem));
-                    for i=1:length(singlestem)
-                        for j=1:length(stem)
-                            if strcmp(singlestem(i),stem(j))
-                                counter(i)=counter(i)+1;
-                            end;
+                    i = i+1;
+                end;
+                % find most available word stem
+                singlestem = unique(stem);
+                counter = zeros(length(singlestem));
+                for i=1:length(singlestem)
+                    for j=1:length(stem)
+                        if strcmp(singlestem(i),stem(j))
+                            counter(i)=counter(i)+1;
                         end;
                     end;
-                    [~,place] = max(counter);
-                    subjectstamm = singlestem{place(1)};
-                    % delete other word stems
-                    files = files(strncmp({files.name},subjectstamm,length(subjectstamm)));
-                    % sort every file
-                    for i=1:length(files)
-                        if files(i).isdir == false 
-                            fullfilename = files(i).name; 
-                            [~,filename,ext] = fileparts(fullfilename); 
-                            aktstamm = filename(1:length(subjectstamm));
-                            if aktstamm == subjectstamm 
-                                switch ext
-                                    case {'.asc', '.bmp', '.tif'} 
-                                        % two digits
-                                        ChanNr = str2double(filename(length(subjectstamm)+4:length(subjectstamm)+5)); 
+                end;
+                [~,place] = max(counter);
+                subjectstamm = singlestem{place(1)};
+                % delete other word stems
+                files = files(strncmp({files.name},subjectstamm,length(subjectstamm)));
+                % sort every file
+                for i=1:length(files)
+                    if files(i).isdir == false
+                        fullfilename = files(i).name;
+                        [~,filename,ext] = fileparts(fullfilename);
+                        aktstamm = filename(1:length(subjectstamm));
+                        if aktstamm == subjectstamm
+                            switch ext
+                                case {'.asc', '.bmp', '.tif'}
+                                    % two digits
+                                    ChanNr = str2double(filename(length(subjectstamm)+4:length(subjectstamm)+5));
+                                    if isempty(ChanNr) || isnan(ChanNr)
+                                        % one digit
+                                        ChanNr = str2double(filename(length(subjectstamm)+4:length(subjectstamm)+4));
                                         if isempty(ChanNr) || isnan(ChanNr)
-                                            % one digit
-                                            ChanNr = str2double(filename(length(subjectstamm)+4:length(subjectstamm)+4));
-                                            if isempty(ChanNr) || isnan(ChanNr)
-                                                return
-                                            end;
+                                            return
                                         end;
-                                        switch ext
-                                            case '.asc' 
-                                                column_asc(ChanNr)=column_asc(ChanNr)+1; 
-                                                names_asc{column_asc(ChanNr),ChanNr}=filename;
-                                            case '.bmp'
-                                                column_bmp(ChanNr)=column_bmp(ChanNr)+1; 
-                                                names_bmp{column_bmp(ChanNr),ChanNr}=filename;
-                                            otherwise % '.tif'
-                                                column_tif(ChanNr)=column_tif(ChanNr)+1; 
-                                                names_tif{column_tif(ChanNr),ChanNr}=filename;
-                                        end;
-                                    otherwise
-                                end;
+                                    end;
+                                    switch ext
+                                        case '.asc'
+                                            column_asc(ChanNr)=column_asc(ChanNr)+1;
+                                            names_asc{column_asc(ChanNr),ChanNr}=filename;
+                                        case '.bmp'
+                                            column_bmp(ChanNr)=column_bmp(ChanNr)+1;
+                                            names_bmp{column_bmp(ChanNr),ChanNr}=filename;
+                                        otherwise % '.tif'
+                                            column_tif(ChanNr)=column_tif(ChanNr)+1;
+                                            names_tif{column_tif(ChanNr),ChanNr}=filename;
+                                    end;
+                                otherwise
                             end;
                         end;
                     end;
-                    % import data
-                    path = pathname;
-                    [~,dim] = size(names_asc);
-                    filterindex = 1; 
-                    lastPath = path;
-                    idx = strfind(lastPath,filesep);
-                    if(length(idx) > 1)
-                        lastPath = lastPath(1:idx(end-1));
-                    end
-                    for i=1:dim
-                        files = names_asc(:,i);
-                        files = files(~cellfun(@isempty,names_asc(:,i)));
-                        opt.ch = i;
-                        for i2=1:length(files)
-                            files{i2} = strcat(files{i2}, '.asc');
-                        end;
-                        is.importResult(fullfile(path,files),filterindex,opt.ch,opt.position,opt.pixelResolution)
+                end;
+                % import data
+                path = pathname;
+                [~,dim] = size(names_asc);
+                filterindex = 1;
+                lastPath = path;
+                idx = strfind(lastPath,filesep);
+                if(length(idx) > 1)
+                    lastPath = lastPath(1:idx(end-1));
+                end
+                for i=1:dim
+                    files = names_asc(:,i);
+                    files = files(~cellfun(@isempty,names_asc(:,i)));
+                    opt.ch = i;
+                    for i2=1:length(files)
+                        files{i2} = strcat(files{i2}, '.asc');
                     end;
-                    this.dynParams.lastPath = lastPath;
+                    is.importResult(fullfile(path,files),filterindex,opt.ch,opt.position,opt.pixelResolution)
+                end;
+                this.dynParams.lastPath = lastPath;
                 else
                     %update subject name
                     rs.name = subjectName;
                 end
                 success = true;
-        end
+%                 if(fileImport)
+%                     choice = questdlg(sprintf('Import another Channel to subject ''%s?''',subjectName),'Import next Channel?','Yes','No','Yes');
+%                 else
+%                     break
+%                 end
+%                 switch choice
+%                     case 'No'
+%                         break
+%                 end
+%                 ch = ch+1;
+            end 
+        end 
         
         %colorbar
         function updateColorbar(this)
@@ -1024,7 +1058,7 @@ classdef FLIMXVisGUI < handle
         end
         
         function GUI_enableMouseCheck_Callback(this,hObject,eventdata)
-            %en/dis-able ROI definition using the mouse
+            %en/dis-able mouse motion callbacks
         end
         
         function GUI_sync3DViews_check_Callback(this,hObject,eventdata)
@@ -1076,12 +1110,8 @@ classdef FLIMXVisGUI < handle
                 return;
             end
             lastUpdate = tNow;
-%<<<<<<< HEAD
-            cp = this.objHandles.ldo.getMyCP();
-%=======
             %main axes
             cp = this.objHandles.ldo.getMyCP(1);
-%>>>>>>> refs/remotes/M-Klemm/master
             thisSide = 'l'; %this side
             otherSide = 'r'; %other side
             if(isempty(cp))
@@ -1092,41 +1122,16 @@ classdef FLIMXVisGUI < handle
             %draw current point in both (empty cp deletes old lines)
             this.objHandles.ldo.drawCP(cp);
             this.objHandles.rdo.drawCP(cp);
-%<<<<<<< HEAD
-            if(isempty(cp))
-                if(this.getROIDisplayMode(thisSide) < 3)
-                    set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
-                end
-                inFunction = []; %enable callback
-                return
-            end
-            thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
-            otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
-%=======
-%>>>>>>> refs/remotes/M-Klemm/master
             if(~isempty(cp) && this.getROIDisplayMode(thisSide) < 3)
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
                 if(this.dynParams.mouseButtonDown)% && this.getROIType(s) == 2)
-                    if(strcmp('normal',get(hObject,'SelectionType')))
-                        %left click
-                        this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
-                        if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
-                            this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
-                        end
-                        if(this.getROIType(thisSide) >= 1 && this.getROIType(thisSide) < 6)
-                            thisROIObj.setEndPoint(flipud(cp),false);
-                        end
-                    else
-                        %right click
-                        dTarget = int16(flipud(this.dynParams.mouseButtonDownCoord-cp));
-                        ROICoord = this.objHandles.(sprintf('%sROI',thisSide)).getCurROIInfo();
-                        ROICoord = ROICoord(:,2:end);
-                        dMoved = this.dynParams.mouseButtonDownROI - ROICoord(:,1);
-                        thisROIObj.moveROI(dTarget-dMoved,false);
-                        this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),ROICoord(:,1),ROICoord(:,2:end),false);
-                        if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
-                            this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),ROICoord(:,1),ROICoord(:,2:end),false);
-                        end
+                    this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
+                    if(strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
+                        this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cp),false);
+                    end
+                    %this.objHandles.rdo.drawROI(this.getROIType(tS),flipud(cp),flipud(this.dynParams.mouseButtonDownCoord),false);
+                    if(this.getROIType(thisSide) >= 1 && this.getROIType(thisSide) < 6)
+                        this.objHandles.(sprintf('%sROI',thisSide)).setEndPoint(flipud(cp),false);
                     end
                 end
             end
@@ -1162,14 +1167,9 @@ classdef FLIMXVisGUI < handle
         
         function GUI_mouseButtonDown_Callback(this,hObject,eventdata)
             %executes on mouse button down in window
-%<<<<<<< HEAD
-            %this function is now always called by the its wrapper: rotate_mouseButtonDownWrapper
-            cp = this.objHandles.ldo.getMyCP();
-%=======
             %this function is now always called by its wrapper: rotate_mouseButtonDownWrapper        
             %% main axes
             cp = this.objHandles.ldo.getMyCP(1);
-%>>>>>>> refs/remotes/M-Klemm/master
             thisSide = 'l';
             otherSide = 'r';
             if(isempty(cp))
@@ -1216,8 +1216,6 @@ classdef FLIMXVisGUI < handle
             if(isempty(cp) || this.visHandles.(sprintf('supp_axes_%s_pop',thisSide)).Value ~= 2 || this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.check)
                 return
             end
-%<<<<<<< HEAD
-%=======
             switch get(hObject,'SelectionType')
                 case 'normal'
                     set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
@@ -1228,7 +1226,6 @@ classdef FLIMXVisGUI < handle
                     this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                 case 'alt'
             end
-%>>>>>>> refs/remotes/M-Klemm/master
         end
         
         function GUI_mouseButtonUp_Callback(this,hObject,eventdata)
@@ -1685,21 +1682,12 @@ classdef FLIMXVisGUI < handle
                 case 3
                     this.visHandles = FLIMXVisGUIFigureLarge();
             end
-%<<<<<<< HEAD
-            figure(this.visHandles.FLIMXVisGUIFigure);            
-            %set callbacks
-            set(this.visHandles.FLIMXVisGUIFigure,'Units','Pixels');
-            %popups
-            set(this.visHandles.enableMouse_check,'Callback',@this.GUI_enableMouseCheck_Callback,'Value',0,'String','enable ROI definition','TooltipString','Enable or disable the ROI definition using the mouse pointer');
-            set(this.visHandles.sync3DViews_check,'Callback',@this.GUI_sync3DViews_check_Callback,'Value',0,'TooltipString','Enable or disable synchronization of 3D views on left and right side');
-%=======
             figure(this.visHandles.FLIMXVisGUIFigure);
             %set callbacks
             set(this.visHandles.FLIMXVisGUIFigure,'Units','Pixels');
             %popups
             set(this.visHandles.enableMouse_check,'Callback',@this.GUI_enableMouseCheck_Callback,'Value',0,'String','enable ROI definition');
             set(this.visHandles.sync3DViews_check,'Callback',@this.GUI_sync3DViews_check_Callback,'Value',0);
-%>>>>>>> refs/remotes/M-Klemm/master
             %main axes
             set(this.visHandles.dataset_l_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the left side');
             set(this.visHandles.dataset_r_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the right side');
@@ -1856,15 +1844,9 @@ classdef FLIMXVisGUI < handle
             end
             set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonDownFcn',{@FLIMXVisGUI.rotate_mouseButtonDownWrapper,this});
             set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonUpFcn',{@FLIMXVisGUI.rotate_mouseButtonUpWrapper,this});
-%<<<<<<< HEAD
-            set(this.visHandles.FLIMXVisGUIFigure,'WindowScrollWheelFcn',@this.GUI_mouseScrollWheel_Callback);           
-        end   
-    end %methods protected   
-%=======
             set(this.visHandles.FLIMXVisGUIFigure,'WindowScrollWheelFcn',@this.GUI_mouseScrollWheel_Callback);
         end
     end %methods protected
-%>>>>>>> refs/remotes/M-Klemm/master
     
     methods(Static)
         function [rs, lastPath] = loadResultFile(lastPath,subjectName,ch)
