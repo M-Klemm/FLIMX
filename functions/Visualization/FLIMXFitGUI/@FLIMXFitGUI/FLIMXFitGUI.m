@@ -261,7 +261,13 @@ classdef FLIMXFitGUI < handle
             end
             set(this.visHandles.popupROI,'String',pstr,'Value',idx,'Enable','on');
             this.axesRawMgr.setColorMap(this.dynVisParams.cmIntensity);
+            this.axesRawMgr.setColorMapPercentiles(this.generalParams.cmIntensityPercentileLB,this.generalParams.cmIntensityPercentileUB);
             this.axesROIMgr.setColorMap(this.dynVisParams.cm);
+            if(strcmp(pstr{idx},'Intensity'))
+                this.axesROIMgr.setColorMapPercentiles(this.generalParams.cmIntensityPercentileLB,this.generalParams.cmIntensityPercentileUB);
+            else
+                this.axesROIMgr.setColorMapPercentiles(this.generalParams.cmPercentileLB,this.generalParams.cmPercentileUB);
+            end
             this.axesRawMgr.setReverseYDirFlag(this.generalParams.reverseYDir);
             this.axesROIMgr.setReverseYDirFlag(this.generalParams.reverseYDir);
             set(this.visHandles.FLIMXFitGUIFigure,'Name',sprintf('FLIMXFit: %s - Channel %d',this.FLIMXObj.curSubject.getDatasetName(),ch));
@@ -1001,9 +1007,9 @@ classdef FLIMXFitGUI < handle
             if(isempty(data))
                 return
             end
-            lb = prctile(data(:),0.1);
-            ub = prctile(data(:),99.9);
-            img = image2ColorMap(data,this.dynVisParams.cmIntensity,lb,ub);
+%             lb = prctile(data(:),0.1);
+%             ub = prctile(data(:),99.9);
+            img = image2ColorMap(data,this.dynVisParams.cmIntensity);
 %             if(lb == ub || isnan(lb) || isnan(ub))
                 image(img,'Parent',handle);
 %             else
@@ -1126,9 +1132,9 @@ classdef FLIMXFitGUI < handle
             if(isempty(data))
                 return
             end
-            lb = prctile(data(:),0.1);
-            ub = prctile(data(:),99.9);
-            img = image2ColorMap(data,this.dynVisParams.cm,lb,ub);
+%             lb = prctile(data(:),0.1);
+%             ub = prctile(data(:),99.9);
+            img = image2ColorMap(data,this.dynVisParams.cm);
 %             if(lb == ub || isnan(lb) || isnan(ub))
                 image(img,'Parent',handle);
 %             else
@@ -1475,6 +1481,7 @@ classdef FLIMXFitGUI < handle
         
         function GUI_popupROI_Callback(this,hObject,eventdata)
             %call of popupROI control
+            this.setupGUI();
             this.updateGUI(true);
         end
         

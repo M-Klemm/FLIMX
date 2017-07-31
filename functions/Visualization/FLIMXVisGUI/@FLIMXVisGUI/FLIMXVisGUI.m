@@ -165,7 +165,7 @@ classdef FLIMXVisGUI < handle
                 this.dynParams.cmIntensity = gray(256);
             end
             if(this.generalParams.cmIntensityInvert)
-                this.dynParams.cmIntensity = flipud(this.dynVisParams.cmIntensity);
+                this.dynParams.cmIntensity = flipud(this.dynParams.cmIntensity);
             end
             colormap(this.visHandles.cm_axes,this.dynParams.cm);
             for j = 1:length(side)                
@@ -378,7 +378,8 @@ classdef FLIMXVisGUI < handle
                 %roi
                 this.objHandles.(sprintf('%sROI',s)).updateGUI([]);
                 this.objHandles.(sprintf('%sZScale',s)).updateGUI([]);
-                this.objHandles.(sprintf('%sdo',s)).updatePlots();
+                this.objHandles.(sprintf('%sdo',s)).myColorScaleObj.checkCallback();
+                %this.objHandles.(sprintf('%sdo',s)).updatePlots();
                 if(strcmp(s,'l'))
                     %update cuts
                     this.objHandles.cutx.updateCtrls();
@@ -665,6 +666,11 @@ classdef FLIMXVisGUI < handle
                     this.FLIMXObj.paramMgr.setParamSection('general',new.general);
                     this.FLIMXObj.FLIMFitGUI.setupGUI();
                     this.FLIMXObj.FLIMFitGUI.updateGUI(1);
+%                     if(new.general.cmIntensityPercentileLB ~= defaults.general.cmIntensityPercentileLB || new.general.cmIntensityPercentileUB ~= defaults.general.cmIntensityPercentileUB ||...
+%                         new.general.cmPercentileLB ~= defaults.general.cmPercentileLB || new.general.cmPercentileUB ~= defaults.general.cmPercentileUB)
+%                         this.objHandles.ldo.myColorScaleObj.checkCallback();
+%                         this.objHandles.rdo.myColorScaleObj.checkCallback();
+%                     end
                 end
                 this.setupGUI();
                 this.updateGUI([]);

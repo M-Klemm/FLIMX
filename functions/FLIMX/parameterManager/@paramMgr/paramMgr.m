@@ -589,16 +589,20 @@ classdef paramMgr < handle
             def.filtering.ifilter_size	=	3;
             def.filtering.ifilter_type	=	2;
             
-            def.general.openFitGUIonStartup = 1;
-            def.general.openVisGUIonStartup = 1;
-            def.general.windowSize          = 1; %1: medium, 2: small, 3: large (fullHD)
-            def.general.cmIntensityType     = 'gray|';
-            def.general.cmIntensityInvert   = 0;
-            def.general.cmType              = 'jet|';
-            def.general.cmInvert            = 1;
-            def.general.saveMaxMem          = 0;
-            def.general.flimParameterView   = 1; %1: simple, 2: expert, 3: all
-            def.general.reverseYDir         = 0;
+            def.general.openFitGUIonStartup     = 1;
+            def.general.openVisGUIonStartup     = 1;
+            def.general.windowSize              = 1; %1: medium, 2: small, 3: large (fullHD)
+            def.general.cmIntensityType         = 'gray|';
+            def.general.cmIntensityInvert       = 0;
+            def.general.cmIntensityPercentileLB = 0.1;
+            def.general.cmIntensityPercentileUB = 98;
+            def.general.cmType                  = 'jet|';
+            def.general.cmInvert                = 1;            
+            def.general.cmPercentileLB          = 0.1;
+            def.general.cmPercentileUB          = 98;
+            def.general.saveMaxMem              = 0;
+            def.general.flimParameterView       = 1; %1: simple, 2: expert, 3: all
+            def.general.reverseYDir             = 0;
         end
 
     end %methods

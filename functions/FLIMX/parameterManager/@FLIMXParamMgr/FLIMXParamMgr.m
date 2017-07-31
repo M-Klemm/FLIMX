@@ -326,7 +326,7 @@ classdef FLIMXParamMgr < paramMgr
             end
             writeFlag = true;
             goOn = setParamSection@paramMgr(this,sStr,new,resetResults);
-            if(writeFlag && goOn);
+            if(writeFlag && goOn)
                 this.writeConfig();
             end
         end

@@ -277,8 +277,8 @@ classdef batchJobMgrGUI < handle
                 cla(this.visHandles.axesRaw)
             else
                 %raw
-                lb = prctile(rawPic(:),0.1);
-                ub = prctile(rawPic(:),99.9);
+                lb = prctile(rawPic(:),this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileLB);
+                ub = prctile(rawPic(:),this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileUB);
                 img = image2ColorMap(rawPic,this.FLIMXObj.FLIMFitGUI.dynVisParams.cmIntensity,lb,ub);
                 image(img,'Parent',this.visHandles.axesRaw);                
 %                 imagesc(rawPic,'Parent',this.visHandles.axesRaw);

@@ -391,6 +391,7 @@ classdef importWizard < handle
                 cm = gray(256);
             end
             this.axesMgr = axesWithROI(this.visHandles.axesROI,this.visHandles.axesCb,this.visHandles.textCbBottom,this.visHandles.textCbTop,this.visHandles.editCP,cm);
+            this.axesMgr.setColorMapPercentiles(this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileLB,this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileUB);
         end
         
         function setSubject(this,study,subject)
