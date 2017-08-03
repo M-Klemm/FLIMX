@@ -200,13 +200,12 @@ classdef FDisplay < handle
                     return;
             end
             cp = get(hAx,'CurrentPoint');
-            cp = cp(logical([1 1 0; 0 0 0]));
-            if(any(cp(:) < 0))
+            cp = round(cp(logical([1 1 0; 0 0 0])));
+            if(any(cp(:) <= 0))
                 %we are outside axes - nothing to do
                 cp = [];
                 return;
             end
-            cp = round(cp);
             if(cp(1) < hAx.XLim(1) || cp(1) > hAx.XLim(2) || cp(2) < hAx.YLim(1) || cp(2) > hAx.YLim(2))
                 cp = [];
             end
