@@ -33,6 +33,13 @@ classdef FDisplay < handle
     %
     properties(GetAccess = public, SetAccess = protected)
         myColorScaleObj = [];
+        myhfdMain = {[]};
+        myhfdSupp = {[]};
+        myhfdInt = {[]};
+        mainExportGfx = [];
+        mainExportXls = [];
+        mainExportColors = [];
+        suppExport = [];
     end
     properties(GetAccess = protected, SetAccess = protected)
         visObj = [];
@@ -43,8 +50,6 @@ classdef FDisplay < handle
         current_img_max = [];
         current_img_lbl_min = [];
         current_img_lbl_max = [];
-        h_CPXLine = [];
-        h_CPYLine = [];
         h_Rectangle = [];
         h_Circle = [];
         h_ETDRSGrid = [];
@@ -55,15 +60,8 @@ classdef FDisplay < handle
         measurementPosition = 'OS';
         zoomAnchor = [1; 1];
         zoomFactor = 1;
-    end
-    properties(GetAccess = public, SetAccess = protected)
-        myhfdMain = {[]};
-        myhfdSupp = {[]};
-        myhfdInt = {[]};
-        mainExportGfx = [];
-        mainExportXls = [];
-        mainExportColors = [];
-        suppExport = [];
+        mouseOverlayBoxMain = [];
+        mouseOverlayBoxSupp = [];
     end
     properties (Dependent = true)
         ROICoordinates = [];
@@ -101,8 +99,6 @@ classdef FDisplay < handle
         h_t5 = [];
         h_io_check = [];
         h_io_edit = [];
-        h_CPPosTxt = [];
-        h_CPValTxt = [];
         h_zoom_slider = [];
         h_s_colormapLowEdit = [];
         h_s_colormapHighEdit = [];
@@ -116,9 +112,11 @@ classdef FDisplay < handle
             %Constructs a FDisplay object.
             this.visObj = visObj;
             this.mySide = side;
-            this.myColorScaleObj = ColorCtrl(visObj,side,this);            
-%             this.setUIHandles();
+            this.myColorScaleObj = ColorCtrl(visObj,side,this);
             this.disp_view = [-40 30];
+            this.mouseOverlayBoxMain = mouseOverlayBox(this.h_m_ax);
+            this.mouseOverlayBoxSupp = mouseOverlayBox(this.h_s_ax);
+            this.mouseOverlayBoxSupp.setVerticalBoxPositionMode(0);
         end %FDisplay
         
         function setDispView(this,viewVec)
@@ -136,6 +134,14 @@ classdef FDisplay < handle
                 this.myhfdMain = {val};
             end
             this.setZoomAnchor([]);
+            %todo: find the right spot for this
+%             this.mouseOverlayBoxMain.setBackgroundColor([this.staticVisParams.plotCoordinateBoxColor(:); this.visualizationParams.plotCoordinateBoxTransparency]); 
+            this.mouseOverlayBoxMain.setLineColor([1 1 1]);
+            this.mouseOverlayBoxMain.setLineStyle(':');
+            this.mouseOverlayBoxMain.setLineWidth(2);
+            this.mouseOverlayBoxSupp.setLineColor([0.2 0.2 0.2]);
+            this.mouseOverlayBoxSupp.setLineStyle(':');
+            this.mouseOverlayBoxSupp.setLineWidth(2);
         end
         
         function sethfdSupp(this,val)
@@ -211,18 +217,17 @@ classdef FDisplay < handle
             end
         end
         
-        function drawCP(this,cp)
-            %draw current point into 2D plots
+        function drawCPMain(this,cp)
+            %draw current point into 2D plots of main axes
             %if isMultipleCall();  return;  end
             hfd = this.gethfd();
             dim = this.mDispDim;
             if(isempty(hfd{1}) || length(hfd) > 1 || dim > 2)
-                set(this.h_CPPosTxt,'String','|');
-                set(this.h_CPValTxt,'String','');
+                this.mouseOverlayBoxMain.clear();
                 return
             end
             hfd = hfd{1};
-            cp=fix(cp+0.52);            
+            cp = round(cp);
             if(dim == 1)
                 ci = hfd.getFullImage();
             else
@@ -232,21 +237,8 @@ classdef FDisplay < handle
                 ri = this.ROIInvertFlag;
                 ci = hfd.getROIImage(rc,rt,rs,ri);
             end
-            if(isempty(cp))
-                if(ishghandle(this.h_CPYLine))
-                    delete(this.h_CPYLine);
-                end
-                if(ishghandle(this.h_CPXLine))
-                    delete(this.h_CPXLine);
-                end
-                set(this.h_CPPosTxt,'String','|');
-                set(this.h_CPValTxt,'String','');
-                return
-            end
-            %delete(this.h_CPLines(idx))
-            if(isempty(ci))
-                set(this.h_CPPosTxt,'String','  |  ');
-                set(this.h_CPValTxt,'String','');
+            if(isempty(cp) || isempty(ci))
+                this.mouseOverlayBoxMain.clear();
             else
                 [y, x] = size(ci);
                 cp(1) = min(cp(1),x);
@@ -258,19 +250,27 @@ classdef FDisplay < handle
                     xLbl = hfd.getCIXLbl(rc,rt,rs,ri);
                     yLbl = hfd.getCIYLbl(rc,rt,rs,ri);
                 end
-                set(this.h_CPPosTxt,'String',sprintf('%d | %d',xLbl(cp(1)),yLbl(cp(2))));
-                set(this.h_CPValTxt,'String',FLIMXFitGUI.num4disp(ci(cp(2),cp(1))));
-                if(ishghandle(this.h_CPXLine))
-                    set(this.h_CPXLine,'XData',[cp(1) cp(1)],'YData',[1 y]);
-                else
-                    this.h_CPXLine = line('XData',[cp(1) cp(1)],'YData',[1 y],'Color','w','LineWidth',2,'LineStyle',':','Parent',this.h_m_ax);
-                end
-                if(ishghandle(this.h_CPYLine))
-                    set(this.h_CPYLine,'XData',[1 x],'YData',[cp(2) cp(2)]);
-                else
-                    this.h_CPYLine =  line('XData',[1 x],'YData',[cp(2) cp(2)],'Color','w','LineWidth',2,'LineStyle',':','Parent',this.h_m_ax);
-                end
-            end                      
+                this.mouseOverlayBoxMain.draw(cp,[{sprintf('x:%d y:%d',xLbl(cp(1)),yLbl(cp(2)))},FLIMXFitGUI.num4disp(ci(cp(2),cp(1)))]);
+                this.mouseOverlayBoxMain.displayBoxOnTop();
+            end
+        end
+        
+        function drawCPSupp(this,cp)
+            %draw current point into support axes
+            sdm = this.sDispMode;
+            if(isempty(this.suppExport) || isempty(cp) || size(this.suppExport,1) < cp(1) || sdm == 1)
+                this.mouseOverlayBoxSupp.clear();
+                return
+            end
+            if(sdm == 2 && size(this.suppExport,2) == 2)
+                %histogram
+                str = FLIMXFitGUI.num4disp(this.suppExport(cp(1),:));
+                this.mouseOverlayBoxSupp.draw(cp,sprintf('%s: %s',str{1},str{2}),this.suppExport(cp(1),2));
+            else
+                %cross-section 
+                str = FLIMXFitGUI.num4disp(this.suppExport(cp(1),1));
+                this.mouseOverlayBoxSupp.draw(cp,sprintf('%d: %s',cp(1),str{1}),this.suppExport(cp(1),1));
+            end
         end
         
         function drawROI(this,ROIType,op,cp,drawTextFlag)
@@ -432,7 +432,7 @@ classdef FDisplay < handle
                         fileInfo.pixelResolution = res;
                         fileInfo.position = this.measurementPosition;
                         mask = zeros(size(this.mainExportXls),'single');
-                        [~,idx] = FData.getImgSeg(zeros(size(this.mainExportXls)),this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag,fileInfo);
+                        [~,idx] = FData.getImgSeg(zeros(size(this.mainExportXls)),[cp cp],this.ROIType,this.ROISubType,this.ROIInvertFlag,fileInfo);
                         if(~isempty(idx))
                             mask(idx) = 1;
                             mask = repmat(mask,1,1,4);
@@ -773,7 +773,6 @@ classdef FDisplay < handle
                         %draw ROI if TOP view
                         if(dispDim == 1)
                             %check roi
-%                             h = hfd{i};
                             rt = this.ROIType;
                             if(rt >= 1)
                                 ROICoord = this.ROICoordinates;
@@ -781,7 +780,6 @@ classdef FDisplay < handle
                             end
                         end
                         %save for export
-                        %this.mainExportGfx = current_img;
                     case 3 %3D plot
                         if(sVisParam.offset_m3d && nrFD > 1)
                             %add offset to each 3d plot
@@ -1114,7 +1112,7 @@ classdef FDisplay < handle
             [~, centers] = hfd{1}.getCIHist(rc,rt,rs,ri);
             [~,startClass] = min(abs(centers-cTmp(2)));
             [~,endClass] = min(abs(centers-cTmp(3)));
-            %add colorbar either in Full Axes or at specified location, put it behind the bar
+            %add colorbar either in full axes or at specified location, put it behind the bar
             if(startClass == -1)
                 xtemp = this.h_s_ax.XLim;
             else
@@ -1148,15 +1146,14 @@ classdef FDisplay < handle
             if(isempty(hfd{1}))
                 cla(this.h_s_ax);
                 axis(this.h_s_ax,'off');
-                %set(this.h_s_p,'Value',1);
                 set(this.h_s_hist,'Visible','off');
                 return
             end
             nrFD = length(hfd);
-            this.suppExport = []; 
-%             if(~this.screenshot)
-%                 set(this.h_s_ax,'Fontsize',this.staticVisParams.fontsize);
-%             end
+            this.suppExport = [];
+            %             if(~this.screenshot)
+            %                 set(this.h_s_ax,'Fontsize',this.staticVisParams.fontsize);
+            %             end
             rc = this.ROICoordinates;
             rt = this.ROIType;
             rs = this.ROISubType;
@@ -1173,15 +1170,15 @@ classdef FDisplay < handle
                                 %centers = hfd{1}.getCIHistCenters();
                             case 2 %histogram of current study view
                                 list = get(this.h_m_p,'String');
-                                typeSel = get(this.h_m_p,'Value');                                
-                                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(char(list(typeSel,:)));                               
+                                typeSel = get(this.h_m_p,'Value');
+                                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(char(list(typeSel,:)));
                                 [centers, histo] = this.visObj.fdt.getStudyHistogram(...
                                     this.visObj.getStudy(this.mySide),this.visObj.getView(this.mySide),...
                                     this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1));
                             case 3 %global histogram
                                 list = get(this.h_m_p,'String');
                                 typeSel = get(this.h_m_p,'Value');
-                                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(char(list(typeSel,:)));                               
+                                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(char(list(typeSel,:)));
                                 [centers, histo] = this.visObj.fdt.getGlobalHistogram(...
                                     this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1));
                         end
@@ -1211,14 +1208,14 @@ classdef FDisplay < handle
                     else %nothing to do
                         cla(this.h_s_ax);
                         axis(this.h_s_ax,'off');
-                    end                    
+                    end
                 case {3, 4} %3:horizontal cut, 4: vertical cut
                     if( (this.sDispMode == 4 && hfd{1}.getCutX() && hfd{1}.getCutXVal(true,true,rc,rt,rs,ri) ~= 0 ) ||...
                             (this.sDispMode == 3 && hfd{1}.getCutY() && hfd{1}.getCutYVal(true,true,rc,rt,rs,ri) ~= 0 ))
                         offset = 0;
                         max_amp = 0;
                         ytick = [];
-                        yticklbl = [];                        
+                        yticklbl = [];
                         for i= 1:nrFD
                             %get data from object with the appropriate data format
                             if(hfd{i}.sType == this.sDispScale)
@@ -1227,7 +1224,7 @@ classdef FDisplay < handle
                                 zMax(i) = hfd{i}.getCImax(rc,rt,rs,ri);
                                 %z scaling
                                 zData = hfd{i}.getZScaling();
-                                if(~isempty(zData) && zData(1))                                    
+                                if(~isempty(zData) && zData(1))
                                     zMin(i) = zData(2);
                                     zMax(i) = zData(3);
                                 end
@@ -1246,11 +1243,11 @@ classdef FDisplay < handle
                                 zMax(i) = hfdT.getCImax();
                                 %z scaling
                                 zData = hfdT.getZScaling();
-                                if(~isempty(zData) && zData(1))                                    
+                                if(~isempty(zData) && zData(1))
                                     zMin(i) = zData(2);
                                     zMax(i) = zData(3);
                                 end
-                            end                            
+                            end
                             if(this.staticVisParams.offset_m3d && nrFD > 1)
                                 %get offset
                                 pos = get(this.h_s_ax,'Position');
@@ -1259,10 +1256,10 @@ classdef FDisplay < handle
                             %cuts
                             if(this.sDispMode == 3) %horizontal cut
                                 current_img = current_img(min(hfd{1}.getCutYVal(true,true,rc,rt,rs,ri),size(current_img,1)),:);
-                                this.suppExport(i,:) = current_img;
+                                this.suppExport(:,i) = current_img;
                             else %vertical cut
                                 current_img = current_img(:,min(hfd{1}.getCutXVal(true,true,rc,rt,rs,ri),size(current_img,2)));
-                                this.suppExport(i,:) = current_img;
+                                this.suppExport(:,i) = current_img;
                             end
                             if(nrFD > 1)
                                 if(this.sDispScale == 2 && this.staticVisParams.offset_m3d)
@@ -1280,7 +1277,7 @@ classdef FDisplay < handle
                                     end
                                     current_img = current_img + offset;
                                 end
-                            end                            
+                            end
                             plot(this.h_s_ax,current_img,'Color',this.staticVisParams.supp_plot_color,'LineWidth',this.staticVisParams.supp_plot_linewidth);
                             if(nrFD > 1)
                                 hold(this.h_s_ax,'on');
@@ -1323,7 +1320,7 @@ classdef FDisplay < handle
                                     set(this.h_s_ax,'YTick',ytick,'YTickLabel',yticklbl);
                                 else
                                     %no offset
-%                                     [ytick, yticklbl] = FDisplay.makeLinScaling([min(zMin(:)) max(zMax(:))]);
+                                    %                                     [ytick, yticklbl] = FDisplay.makeLinScaling([min(zMin(:)) max(zMax(:))]);
                                     ytick = get(this.h_s_ax,'YTick');
                                 end
                                 ylim(this.h_s_ax,[ytick(1) ytick(end)]);
@@ -1675,17 +1672,7 @@ classdef FDisplay < handle
             %
             out = this.visObj.visHandles.(sprintf('IO_%s_edit',this.mySide));
         end
-        
-        function out = get.h_CPPosTxt(this)
-            %
-            out = this.visObj.visHandles.(sprintf('cp_%s_pos_text',this.mySide));
-        end
-        
-        function out = get.h_CPValTxt(this)
-            %
-            out = this.visObj.visHandles.(sprintf('cp_%s_val_text',this.mySide));
-        end
-        
+                
         function out = get.h_zoom_slider(this)
             %
             out = this.visObj.visHandles.(sprintf('slider_%s_zoom',this.mySide));
