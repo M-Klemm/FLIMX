@@ -279,10 +279,10 @@ classdef FDisplay < handle
                 %nothing to do
                 ROIType = 0;
             end
-            op = double(op); 
-            cp = double(cp);            
+            op = double(op);
+            cp = double(cp);
             switch ROIType
-                case 1                    
+                case 1
                     this.drawETDRSGrid(cp,drawTextFlag);
                 case {2,3}
                     if(isempty(op))
@@ -296,7 +296,7 @@ classdef FDisplay < handle
                     radius = sqrt(sum((op-cp).^2));
                     this.drawCircle(op,radius,drawTextFlag);
                 case {6,7}
-                    this.drawPolygon([op,cp],drawTextFlag);                    
+                    this.drawPolygon([op,cp],drawTextFlag);
                 otherwise
                     try
                         delete(this.h_Rectangle);
@@ -318,7 +318,7 @@ classdef FDisplay < handle
                         delete(this.h_Polygon);
                         this.h_Polygon = [];
                     end
-            end                    
+            end
         end
         
         function drawRectangle(this,cp,widths,drawTextFlag)
@@ -776,7 +776,9 @@ classdef FDisplay < handle
                             rt = this.ROIType;
                             if(rt >= 1)
                                 ROICoord = this.ROICoordinates;
-                                this.drawROI(rt,ROICoord(:,1),ROICoord(:,2:end),true);
+                                if(~isempty(ROICoord))
+                                    this.drawROI(rt,ROICoord(:,1),ROICoord(:,2:end),true);
+                                end
                             end
                         end
                         %save for export

@@ -172,15 +172,7 @@ classdef ROICtrl < handle
                 set(this.(sprintf('%s_szMM_edit',dim(i))),'Enable','off','Visible',argVis);
             end
         end
-        
-        %         function checkCallback(this,dim)
-        %             %callback function of the check control
-        %             current = get(this.(sprintf('%s_check',dim)),'Value');
-        %             this.enDisAble(dim,current,'on');
-        %             this.save();
-        %             this.updateGUI();
-        %         end
-        
+                
         function editCallback(this,dim,bnd)
             %callback function of the edit field
             current = str2double(get(this.(sprintf('%s_%s_edit',dim,bnd)),'String'));
@@ -402,10 +394,15 @@ classdef ROICtrl < handle
                 ROICoord = hfd.getROICoordinates(this.ROIType);
                 if(isempty(ROICoord) || ~any(ROICoord(:)))
                     if(this.ROIType < 6)
+                        %ETDRS grid, rectangles, circles
                         ROICoord = [hfd.rawImgYSz; hfd.rawImgXSz];
                     else
                         ROICoord = [];
                     end
+                end
+                if(this.ROIType >= 6 && ~all(all(ROICoord,1)))
+                    %polygons
+                    ROICoord = ROICoord(:,all(ROICoord,1));
                 end
             end
             fi = hfd.getFileInfoStruct();
@@ -462,6 +459,9 @@ classdef ROICtrl < handle
                 out(:,3) = out(:,2);
             elseif(this.ROIType == 6 || this.ROIType == 7)
                 out = int16([[1;this.ROIInvertFlag], cell2mat(get(this.roi_table,'Data'))]);
+%                 if(size(tmp,2) < size(out,2))
+%                     out(:,1:size(tmp,2)) = tmp;
+%                 end
             else
                 out(1,3) = hfd.yLbl2Pos(sscanf(get(this.y_u_edit,'String'),'%i',1));
                 out(2,3) = hfd.xLbl2Pos(sscanf(get(this.x_u_edit,'String'),'%i',1));

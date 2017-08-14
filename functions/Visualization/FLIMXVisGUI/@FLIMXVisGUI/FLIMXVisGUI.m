@@ -78,6 +78,7 @@ classdef FLIMXVisGUI < handle
             end            
             this.dynParams.mouseButtonDown = false;
             this.dynParams.mouseButtonUp = false;
+            this.dynParams.mouseButtonDownROI = [];
             this.dynParams.lastExportFile = 'image.png';
             %init objects            
             this.fdt.setShortProgressCallback(@this.updateShortProgressbar);
@@ -1044,14 +1045,28 @@ classdef FLIMXVisGUI < handle
             otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
             if(~isempty(cpMain) && this.getROIDisplayMode(thisSide) < 3)
                 if(this.dynParams.mouseButtonDown)
-                    %move ROI
-                    this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cpMain),false);                    
-                    if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
-                        %move ROI also on the other side
-                        this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cpMain),false);
-                    end
-                    if(this.getROIType(thisSide) >= 1 && this.getROIType(thisSide) < 6)
-                        this.objHandles.(sprintf('%sROI',thisSide)).setEndPoint(flipud(cpMain),false);
+                    if(this.getROIType(thisSide) >= 1)% && this.getROIType(thisSide) < 6)% && get(this.visHandles.enableMouse_check,'Value'))
+                        if(strcmp('normal',get(hObject,'SelectionType')))
+                            %left button down
+                            thisROIObj.setEndPoint(flipud(cpMain),false);
+                            %draw ROI
+                            this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(this.dynParams.mouseButtonDownCoord),flipud(cpMain),false);
+                        else
+                            %right button down: move ROI
+                            dTarget = int16(flipud(this.dynParams.mouseButtonDownCoord-cpMain));
+                            ROICoord = thisROIObj.getCurROIInfo();
+                            ROICoord = ROICoord(:,2:end);
+                            dMoved = this.dynParams.mouseButtonDownROI - ROICoord(:,1);
+                            thisROIObj.moveROI(dTarget-dMoved,false);
+                            %get ROI coordinates after moving
+                            ROICoord = thisROIObj.getCurROIInfo();
+                            %draw ROI
+                            this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),ROICoord(:,3:end),ROICoord(:,2),false);
+                            if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
+                                %move ROI also on the other side
+                                this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),ROICoord(:,3:end),ROICoord(:,2),false);
+                            end
+                        end                    
                     end
                 end
                 %draw mouse overlay on this side in main axes
@@ -1131,7 +1146,11 @@ classdef FLIMXVisGUI < handle
                     this.dynParams.mouseButtonUp = false;
                     this.dynParams.mouseButtonDownCoord = cpMain;
                     currentROI = thisROIObj.getCurROIInfo();
-                    this.dynParams.mouseButtonDownROI = currentROI(:,2);
+                    if(size(currentROI,2) >= 2)
+                        this.dynParams.mouseButtonDownROI = currentROI(:,2);
+                    else
+                        this.dynParams.mouseButtonDownCoord = [];
+                    end
                     if(mLeftButton && this.getROIType(thisSide) < 6)
                         %left click
                         thisROIObj.setStartPoint(flipud(cpMain));
@@ -1229,6 +1248,7 @@ classdef FLIMXVisGUI < handle
                     end
                     this.dynParams.mouseButtonDown = false;
                     this.dynParams.mouseButtonDownCoord = [];
+                    this.dynParams.mouseButtonDownROI = [];
                 end                
             end                        
             %% supp axes
