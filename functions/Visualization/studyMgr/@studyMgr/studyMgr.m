@@ -560,24 +560,16 @@ classdef studyMgr < handle
         function menuExportStudy_Callback(this,hObject,eventdata)
             %get all studies in FDtree
             studiesFLIM = this.fdt.getStudyNames();
-            studiesFile = cell(0,0);
-            
+            studiesFile = cell(0,0);            
             %open export dialog to export studies
-            list = GUI_studyExportImport(studiesFLIM,studiesFile);
-            
+            list = GUI_studyExportImport(studiesFLIM,studiesFile);            
             if(~isempty(list))
                 %file dialog -> select export file name
-                [file,path] = uiputfile('*.mat','Export Studies...');
+                [file,path] = uiputfile('*.flimxstudy','Destination for exported studies...');
                 if(~file)
                     return;
                 end
-                fn = fullfile(path,file);
-                
-                %clear selected file and write export info
-                t = datestr(clock);
-                exInfo = sprintf('Export File from %s',t);
-                save(fn,'exInfo');
-                
+                fn = fullfile(path,file);                
                 %studies to export:
                 this.fdt.exportStudies(list,fn);
             end
@@ -585,94 +577,69 @@ classdef studyMgr < handle
         
         function menuImportStudy_Callback(this,hObject,eventdata)
             %opens import dialog to import studies
-            [file,path] = uigetfile('*.mat','Import Studies...',...
-                'MultiSelect', 'off');
-            if(~file)
+            [file,path] = uigetfile('*.flimxstudy','Import Studies...',...
+                'MultiSelect', 'on');
+            if(~iscell(file) && ~ischar(file) && file == 0)
+                %user pressed cancel
                 return;
             end
-            fn = fullfile(path,file);
-            
-            try
-                exInfo = load(fn,'exInfo');
-                exInfo = exInfo.exInfo;
-                nStudies = load(fn,'nStudies'); %number of studies in export file
-                nStudies = nStudies.nStudies;
-            catch
-                %first check: file has no valid header
-                errordlg('The selected file is no valid export file! Please select another file!',...
-                    'Error importing studies');
-                return
-            end            
-            %get all studies in FDTree
-            studiesFLIM = this.fdt.getStudyNames();
-            studiesFile = cell(nStudies,1);
-            list = cell(0,0);            
-            %check studies
-            tStart = clock;
-            for i = 1:nStudies
-                %import one study                
-                import = load(fn,sprintf('study%d',i));
-                eval(sprintf('import = import.study%d;',i));                
-                if(~isempty(import.study))
-                    %check study names
-                    [conflict] = intersect(studiesFLIM,import.study.name);
-                    if(~isempty(conflict))
-                        choice = questdlg(sprintf('Study ''%s'' is already assigned. Rename study?',import.study.name),...
-                            'Rename study?','Rename study (FLIMX)',...
-                            'Rename study (Export File)','Skip study','Rename study (Export File)');
-                        switch choice
-                            case 'Rename study (FLIMX)'
-                                % rename study in FLIMX
-                                this.renameStudy(import.study.name);
-                                studiesFile{i} = import.study.name;
-                                studiesFLIM = this.fdt.getStudyNames();
-                            case 'Rename study (Export File)'
-                                % rename study in export file
-                                newName = this.newStudyName();
-                                if(isempty(newName))
-                                    %user pressed cancel
-                                    return
-                                end
-                                import.study.name = newName;
-                                % update name in export file
-                                v = matlab.lang.makeValidName(sprintf('study%d',i));
-                                eval([v ' = import']);
-                                save(fn,v,'-append');
-                                studiesFile{i} = newName;
-                            case 'Skip study'
-                                %
-                        end
-                    else
-                        %no conflict
-                        studiesFile{i} = import.study.name;
-                    end
-                end                
-                %update progress bar
-                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(nStudies-i)); %mean cputime for finished runs * cycles left
-                this.plotProgressbar(i/(nStudies),[],...
-                    sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec - Checking Study ''%s''',...
-                    100*i/nStudies,hours,minutes,secs,import.study.name));
-            end            
-            this.plotProgressbar(0,'','');
-            studiesFile = studiesFile(~cellfun('isempty',studiesFile));            
-            %open import dialog to import studies
-            if(~isempty(studiesFile))
-                list = GUI_studyExportImport(list,studiesFile);
+            if(ischar(file))
+                file = {file};
             end
-            tStart = clock;
-            if(~isempty(list))
-                %studies to export:
-                for i=1:length(list)
-                    this.fdt.importStudy(list{i},fn);                    
-                    %update progress bar
-                    [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(list)-i)); %mean cputime for finished runs * cycles left
-                    this.plotProgressbar(i/(length(list)),[],...
-                        sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec - Importing Study ''%s''',...
-                        100*i/length(list),hours,minutes,secs,list{i}));
+            %find number of studies
+            studyNames = cell(length(file),1);
+            userNames = cell(length(file),1);
+            for i = 1:length(file)
+                idx = strfind(file{i},'~FLIMX~');
+                userNames{i} = file{i}(1:idx-1);
+                studyNames{i} = file{i}(idx+7:end-length('.flimxstudy'));
+                %check for multiple parts of a study
+                hit = regexp(studyNames{i},'#\d\d\d');
+                if(~isempty(hit))
+                    studyNames{i} = studyNames{i}(1:hit-1);
                 end
             end
+            [studyNames,idx] = unique(studyNames);
+            userNames = userNames(idx);
+            %get all studies in FDTree
+            studiesFLIMX = this.fdt.getStudyNames();
+            tStart = clock;
+            for i = 1:length(studyNames)
+                %check study names
+                newStudyNames = studyNames;
+                if(any(strncmp(studiesFLIMX,newStudyNames{i},length(newStudyNames{i}))))
+                    choice = questdlg(sprintf('Study ''%s'' already exists in FLIMX. Choose a new name for the imported study or skip this study.',newStudyNames{i}),...
+                        'Study already exists','Choose new name','Skip study','Choose new name');
+                    switch choice
+                        case 'Choose new name'
+                            % rename study in export file
+                            newName = this.newStudyName();
+                            if(isempty(newName))
+                                %user pressed cancel
+                                return
+                            end
+                            newStudyNames{i} = newName;
+                            % update name in export file
+                        case 'Skip study'
+                            continue
+                    end
+                end
+                %update progress bar
+                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(studyNames)-i)); %mean cputime for finished runs * cycles left
+                this.plotProgressbar(i/(length(studyNames)),[],sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec - Importing study ''%s''',100*i/length(studyNames),hours,minutes,secs,newStudyNames{i}));
+                %check for additional files on disk
+                fn = rdir(fullfile(path,sprintf('%s~FLIMX~%s*.flimxstudy',userNames{i},studyNames{i})));
+                if(~isempty(fn))
+                    %import
+                    this.fdt.importStudy(newStudyNames{i},{fn.name});
+                end                
+            end           
             this.plotProgressbar(0,'','');
             this.updateGUI();
+            this.visObj.setupGUI();
+            this.visObj.updateGUI('');
+            this.FLIMXObj.FLIMFitGUI.setupGUI();
+            this.FLIMXObj.FLIMFitGUI.updateGUI(true);
         end
         
         function menuRenameStudy_Callback(this,hObject,eventdata)

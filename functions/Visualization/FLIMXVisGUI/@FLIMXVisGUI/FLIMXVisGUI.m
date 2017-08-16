@@ -121,14 +121,11 @@ classdef FLIMXVisGUI < handle
                 return
             end
             cla(this.visHandles.(sprintf('main_%s_axes',s)));
-            %setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.(sprintf('main_%s_axes',s)),true);
             axis(this.visHandles.(sprintf('main_%s_axes',s)),'off');
             cla(this.visHandles.(sprintf('supp_%s_axes',s)));
-            %setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.(sprintf('supp_%s_axes',s)),false);
             axis(this.visHandles.(sprintf('supp_%s_axes',s)),'off');
             cla(this.visHandles.cm_axes);
-            %setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.cm_axes,false);
-            axis(this.visHandles.cm_axes ,'off');
+            axis(this.visHandles.cm_axes,'off');
             this.setupPopUps(s);
         end
         
@@ -336,24 +333,25 @@ classdef FLIMXVisGUI < handle
                         %empty channels
                         set(this.visHandles.(sprintf('main_axes_%s_pop',s)),'String','params','Value',1);
                     end
-                else 
+                else
                     %no channels
                     this.clearAxes(s);
                     %clear display objects
                     this.objHandles.(sprintf('%sdo',s)).sethfdMain([]);
                     %channel popups
-                    set(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'String','Ch','Value',1);                    
+                    set(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'String','Ch','Value',1);
                     %setup main popup menus
                     set(this.visHandles.(sprintf('main_axes_%s_pop',s)),'String','params','Value',1);
-                end                
-                
+                end
                 %set arbitrary initial color value for new study
-                if(isempty(this.fdt.getViewColor(curStudy,curView)))
+                cColor = this.fdt.getViewColor(curStudy,curView);
+                if(isempty(cColor) || length(cColor) ~= 3)
                     newColor = studyIS.makeRndColor();
                     set(this.visHandles.(sprintf('study_color_%s_button',s)),'Backgroundcolor',newColor);
                     this.fdt.setViewColor(curStudy,curView,newColor);
-                end                
-                set(this.visHandles.(sprintf('study_color_%s_button',s)),'Backgroundcolor',this.fdt.getViewColor(curStudy,curView));
+                else
+                    set(this.visHandles.(sprintf('study_color_%s_button',s)),'Backgroundcolor',cColor);
+                end
             end
             %colorbar
             this.updateColorbar();                               
@@ -1822,6 +1820,8 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonDownFcn',{@FLIMXVisGUI.rotate_mouseButtonDownWrapper,this});
             set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonUpFcn',{@FLIMXVisGUI.rotate_mouseButtonUpWrapper,this});
             set(this.visHandles.FLIMXVisGUIFigure,'WindowScrollWheelFcn',@this.GUI_mouseScrollWheel_Callback);
+            setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.short_progress_axes,false);
+            setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.long_progress_axes,false);
         end
     end %methods protected
     

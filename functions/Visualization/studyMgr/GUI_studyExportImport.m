@@ -119,14 +119,13 @@ function varargout = GUI_studyExportImport_OutputFcn(hObject, eventdata, handles
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
 % Get default command line output from handles structure
 if isempty(handles)
     handles.output='';
     varargout{1} = '';
 else
     %out = get(handles.figure1,'userdata'); 
-    switch get(handles.button_execute,'String');
+    switch get(handles.button_execute,'String')
         case 'Export'
             varargout{1} = get(handles.list_right,'String');
         case 'Import'
@@ -140,11 +139,10 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function updateGUI(handles,studiesFLIM,studiesFile)
 %update listboxes
-
-set(handles.list_left,'Value',length(studiesFLIM));
-set(handles.list_right,'Value',length(studiesFile));
 set(handles.list_left,'String',studiesFLIM);
 set(handles.list_right,'String',studiesFile);
+set(handles.list_left,'Value',curElementLeft(handles));
+set(handles.list_right,'Value',curElementRight(handles));
 
 function out = curElementLeft(handles)
 out = get(handles.list_left,'Value');
@@ -152,47 +150,24 @@ out = get(handles.list_left,'Value');
 function out = curElementRight(handles)
 out = get(handles.list_right,'Value');
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Listboxes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 % --- Executes on selection change in list_right.
 function list_right_Callback(hObject, eventdata, handles)
-
 % Hints: contents = cellstr(get(hObject,'String')) returns list_right contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from list_right
 
-
-% --- Executes during object creation, after setting all properties.
-function list_right_CreateFcn(hObject, eventdata, handles)
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on selection change in list_left.
 function list_left_Callback(hObject, eventdata, handles)
-
 % Hints: contents = cellstr(get(hObject,'String')) returns list_left contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from list_left
 
 
-% --- Executes during object creation, after setting all properties.
-function list_left_CreateFcn(hObject, eventdata, handles)
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Push buttons
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 function button_execute_Callback(hObject, eventdata, handles)
 % Give list with import / export studies to StudyMgr
 mode = get(hObject,'String');
@@ -200,7 +175,7 @@ if(strcmp(mode,'Export'))
     %Export
     if(isempty(get(handles.list_right,'String')))
         errordlg('You have to select at least one study to export!',...
-                    'Error exporting studies');
+            'Error exporting studies');
     else
         uiresume(handles.figure1);
     end
@@ -208,10 +183,10 @@ else
     %Import
     if(isempty(get(handles.list_left,'String')))
         errordlg('You have to select at least one study to import!',...
-                    'Error importing studies');
+            'Error importing studies');
     else
         uiresume(handles.figure1);
-    end    
+    end
 end
 
 function button_cancel_Callback(hObject, eventdata, handles)
@@ -223,7 +198,6 @@ function button_left_all_Callback(hObject, eventdata, handles)
 % Move all studies to right list (export to file)
 left = get(handles.list_left,'String');
 right =  get(handles.list_right,'String');
-
 moveList = setdiff(left,right);
 if(~isempty(moveList))
     right(end+1:end+length(moveList)) = moveList;
@@ -236,7 +210,6 @@ function button_left_sel_Callback(hObject, eventdata, handles)
 % Move selected study to right list (export to file)
 left = get(handles.list_left,'String');
 right =  get(handles.list_right,'String');
-
 if(~isempty(left))    
     moveElem = left(curElementLeft(handles));
     if(isempty(intersect(moveElem,right)))
@@ -250,8 +223,6 @@ function button_right_sel_Callback(hObject, eventdata, handles)
 % Move selected study to left list (import to FLIM)
 left = get(handles.list_left,'String');
 right =  get(handles.list_right,'String');
-
-
 if(~isempty(right))    
     moveElem = right(curElementRight(handles));
     if(isempty(intersect(moveElem,left)))
@@ -271,4 +242,19 @@ if(~isempty(moveList))
     left(end+1:end+length(moveList)) = moveList;
     right = setdiff(right,moveList);
     updateGUI(handles,left,right);
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Create functions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --- Executes during object creation, after setting all properties.
+function list_right_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function list_left_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end

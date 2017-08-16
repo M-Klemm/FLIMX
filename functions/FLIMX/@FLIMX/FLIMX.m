@@ -453,7 +453,7 @@ classdef FLIMX < handle
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 261;
-            out.client_revision = 372;
+            out.client_revision = 373;
             out.core_revision = 364;
             out.results_revision = 256;
             out.measurement_revision = 204;
@@ -836,29 +836,56 @@ classdef FLIMX < handle
                 '      notice, this list of conditions and the following disclaimer in ';
                 '      the documentation and/or other materials provided with the distribution';
                 char(13);
-                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"'
-                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE'
-                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE'
-                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE'
-                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR'
-                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF'
-                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS'
-                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN'
-                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)'
-                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE'
-                'POSSIBILITY OF SUCH DAMAGE.'
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
+                'POSSIBILITY OF SUCH DAMAGE.';
                 
                 char(10);
                 'This software uses the color maps ''Magma'', ''Inferno'', ''Plasma'', ''Virirdis'' by Nathaniel Smith & Stefan van der Walt from https://bids.github.io/colormap, which is covered by the following license:';
-                'CC0 1.0 Universal'
-                'No Copyright'
+                'CC0 1.0 Universal';
+                'No Copyright';
                 char(13);                
-                'mpl-colormaps by Nathaniel Smith & Stefan van der Walt'                
-                'To the extent possible under law, the persons who associated CC0 with'
-                'mpl-colormaps have waived all copyright and related or neighboring rights'
-                'to mpl-colormaps.'                
-                'You should have received a copy of the CC0 legalcode along with this'
-                'work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.'
+                'mpl-colormaps by Nathaniel Smith & Stefan van der Walt' ;               
+                'To the extent possible under law, the persons who associated CC0 with';
+                'mpl-colormaps have waived all copyright and related or neighboring rights';
+                'to mpl-colormaps.';
+                'You should have received a copy of the CC0 legalcode along with this';
+                'work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.';
+                                
+                char(10);
+                'This software uses ''DirSize'' by Richard Moore from https://de.mathworks.com/matlabcentral/fileexchange/41300-dirsize, which is covered by the following license:';
+                'Copyright (c) 2013, Richard Moore';
+                'All rights reserved.';
+                char(13);                
+                'Redistribution and use in source and binary forms, with or without';
+                'modification, are permitted provided that the following conditions are';
+                'met:';
+                char(13);
+                '   * Redistributions of source code must retain the above copyright';
+                '     notice, this list of conditions and the following disclaimer.';
+                '   * Redistributions in binary form must reproduce the above copyright';
+                '     notice, this list of conditions and the following disclaimer in';
+                '     the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
+                'POSSIBILITY OF SUCH DAMAGE.';
                 
                 };
         end
