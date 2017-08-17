@@ -364,7 +364,7 @@ classdef paramMgr < handle
             
             def.bounds_1_exp.init               =	[1  500];
             def.bounds_1_exp.lb                 =	[0.01           10];
-            def.bounds_1_exp.deQuantization     =	[0.01           5];
+            def.bounds_1_exp.deQuantization     =	[0.001           5];
             def.bounds_1_exp.simplexInit        =	[0.3           200];
             def.bounds_1_exp.tol                =	[0.001         0.1];
             def.bounds_1_exp.ub                 =	[1  10000];
@@ -372,8 +372,8 @@ classdef paramMgr < handle
             def.bounds_1_exp.initGuessFactor    =   [0      1];
             
             def.bounds_2_exp.init               =	[1            0.5           500           2000];
-            def.bounds_2_exp.lb                 =	[0.1          0.1            10           100];
-            def.bounds_2_exp.deQuantization     =	[0.1          0.1            10           50];
+            def.bounds_2_exp.lb                 =	[0.0005          0.0001            10           100];
+            def.bounds_2_exp.deQuantization     =	[0.001          0.0001            10           50];
             def.bounds_2_exp.simplexInit        =	[0.3           0.3           100           500];
             def.bounds_2_exp.tol                =	[0.01         0.01            1           5];
             def.bounds_2_exp.ub                 =	[1     1  10000  10000];
@@ -381,7 +381,7 @@ classdef paramMgr < handle
             def.bounds_2_exp.initGuessFactor    =   [0     0     0.05    0.2];
             
             def.bounds_3_exp.init               =	[0.8            0.15            0.05            100            500           2000];
-            def.bounds_3_exp.lb                 =	[0.4             0.1             0.01            10           100           500];
+            def.bounds_3_exp.lb                 =	[0.0005             0.0001             0.0001            10           100           500];
             def.bounds_3_exp.deQuantization     =	[0.01         0.01         0.005            5            50           100];
             def.bounds_3_exp.simplexInit        =	[0.15          0.1          0.05            100           500           1500];
             def.bounds_3_exp.tol                =	[0.01         0.01        0.005            1           5           10];
