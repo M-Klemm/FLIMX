@@ -35,7 +35,7 @@ function varargout = GUI_FLIMXVisGUIVisualizationOptions(varargin)
 % vargin - structure with preferences and defaults
 %output: same as input, but altered according to user input
 
-% Last Modified by GUIDE v2.5 31-Jul-2017 16:07:21
+% Last Modified by GUIDE v2.5 16-Aug-2017 18:29:58
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -198,7 +198,14 @@ elseif(~data.general.openFitGUIonStartup && data.general.openVisGUIonStartup)
 else
     set(handles.popupStartupGUIs,'Value',3);
 end
-set(handles.popupWindowSize,'Value',data.general.windowSize);
+%window size
+if(data.general.autoWindowSize)
+    enFlag = 'off';
+else
+    enFlag = 'on';
+end
+set(handles.checkAutoWindowSize,'Value',data.general.autoWindowSize);
+set(handles.popupWindowSize,'Value',data.general.windowSize,'Enable',enFlag);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -396,6 +403,17 @@ updateGUI(handles,rdh);
 function checkReverseYDir_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.general.reverseYDir = get(hObject,'Value');
+rdh.isDirty(2) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+updateGUI(handles,rdh);
+
+% --- Executes on button press in checkAutoWindowSize.
+function checkAutoWindowSize_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+rdh.general.autoWindowSize = get(hObject,'Value');
+if(rdh.general.autoWindowSize)
+    rdh.general.windowSize = FLIMX.getAutoWindowSize();
+end
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);

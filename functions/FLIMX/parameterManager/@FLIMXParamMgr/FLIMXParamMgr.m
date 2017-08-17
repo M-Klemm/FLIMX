@@ -414,26 +414,10 @@ classdef FLIMXParamMgr < paramMgr
             %single parameter struct
             goOn = true;
             %update new sections
-%             if(strcmp('volatilePixel',sStr))
-%                 fields = intersect(fieldnames(new),fieldnames(this.volatilePixelParams));
-%                 tmp = this.volatilePixelParams;
-%                 for j = 1:length(fields)
-%                     tmp.(fields{j}) = new.(fields{j});
-%                 end
-%                 this.volatilePixelParams = tmp;
-%             elseif(strcmp('volatileChannel',sStr))
-%                 if(ch > 1 && ch <= length(this.volatileChannelParams))
-%                     tmp = this.volatileChannelParams{ch};
-%                     fields = intersect(fieldnames(new),fieldnames(tmp));
-%                     for j = 1:length(fields)
-%                         tmp.(fields{j}) = new.(fields{j});
-%                     end
-%                     this.volatileChannelParams{ch} = tmp;
-%                 end
             if(any(strcmp(sStr,fieldnames(this.data))))
                 fields = intersect(fieldnames(new),fieldnames(this.data.(sStr)));
                 tmp = this.data.(sStr);
-%                 old = tmp;
+                old = tmp;
                 for j = 1:length(fields)
                     tmp.(fields{j}) = new.(fields{j});
                 end
@@ -465,6 +449,9 @@ classdef FLIMXParamMgr < paramMgr
                             this.fdt.setDataSmoothFilter(alg,params);
                         end
                     case 'general'
+                        if(isfield(new,'autoWindowSize') && old.autoWindowSize ~= new.autoWindowSize && new.autoWindowSize == 1)                            
+                            new.windowSize = FLIMX.getAutoWindowSize(); %just to make sure, should have been set already
+                        end
                         if(isfield(new,'windowSize') && ~isempty(this.FLIMFitGUI) && this.FLIMFitGUI.isOpenVisWnd() && this.FLIMFitGUI.visHandles.mySize ~= new.windowSize)
                             button = questdlg(sprintf('Window size was changed. FLIMXFit needs to restart.\n\nAll unsaved data will be lost!\n\nDo you want to proceed?'),'Window size changed','Restart later','Restart now','Restart later');
                             switch button

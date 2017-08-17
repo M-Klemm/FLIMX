@@ -57,7 +57,7 @@ classdef paramMgr < handle
         
         %% input methods 
         function goOn = setParamSection(this,sStr,new,resetResults)
-            %set a parameter section to new values, save to disk if writeFlag == true
+            %set a parameter section to new values
             if(~isstruct(new) || ~ischar(sStr)) %isempty(this.data) ||
                 %no sucess
                 return
@@ -123,12 +123,12 @@ classdef paramMgr < handle
         end
                 
         function out = get.initFitParams(this)
-            %make fitParams struct
+            %get pixel fit parameters
             out = this.getParamSection('init_fit');
         end
         
         function out = get.pixelFitParams(this)
-            %make fitParams struct
+            %get pixel fit parameters
             out = this.getParamSection('pixel_fit');
         end
         
@@ -142,16 +142,51 @@ classdef paramMgr < handle
             params = this.getParamSection('bounds');
         end
         
-%         function params = get.volatilePixelParams(this)
-%             %get bounds
-%             params = this.getParamSection('volatilePixel');
-%         end
+        function set.generalParams(this,val)
+            %set general parameters
+            this.setParamSection('general',val);
+        end
         
-%         function params = getVolatileChannelParams(this,ch)
-%             %get volatileChannelParams, all channels if ch = 0
-%             params = this.getParamSection('volatileChannel',ch);
-%         end
+        function set.computationParams(this,val)
+            %set computation parameters
+            this.getParamSection('computation',val);
+        end
         
+        function set.cleanupFitParams(this,val)
+            %set cleanup fit parameters
+            this.getParamSection('cleanup_fit',val);
+        end
+        
+        function set.preProcessParams(this,val)
+            %set pre processing parameters
+            this.getParamSection('pre_processing',val);
+        end
+        
+        function set.basicParams(this,val)
+            %set basic fit parameters
+            this.getParamSection('basic_fit',val);
+        end
+                
+        function set.initFitParams(this,val)
+            %set init fit parameters
+            this.getParamSection('init_fit',val);
+        end
+        
+        function set.pixelFitParams(this,val)
+            %set pixel fit parameters
+            this.getParamSection('pixel_fit',val);
+        end
+        
+        function set.optimizationParams(this,val)
+            %set optimization parameters
+            this.getParamSection('optimization',val);
+        end
+        
+        function set.boundsParams(this,val)
+            %set bounds
+            this.getParamSection('bounds',val);
+        end
+                
         function def = getDefaults(this)
             %get default FluoDecayFit parameters
             def.about.config_revision = this.about.config_revision;
@@ -591,6 +626,7 @@ classdef paramMgr < handle
             
             def.general.openFitGUIonStartup     = 1;
             def.general.openVisGUIonStartup     = 1;
+            def.general.autoWindowSize          = 1; %0: manual, 1: automatic window size
             def.general.windowSize              = 1; %1: medium, 2: small, 3: large (fullHD)
             def.general.cmIntensityType         = 'gray|';
             def.general.cmIntensityInvert       = 0;

@@ -54,7 +54,7 @@ function varargout = GUI_FLIMXFitGUIVisualizationOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_FLIMXFitGUIVisualizationOptions
 
-% Last Modified by GUIDE v2.5 31-Jul-2017 16:09:56
+% Last Modified by GUIDE v2.5 16-Aug-2017 15:11:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -235,7 +235,13 @@ else
     set(handles.popupStartupGUIs,'Value',3);
 end
 %window size
-set(handles.popupWindowSize,'Value',data.general.windowSize);
+if(data.general.autoWindowSize)
+    enFlag = 'off';
+else
+    enFlag = 'on';
+end
+set(handles.checkAutoWindowSize,'Value',data.general.autoWindowSize);
+set(handles.popupWindowSize,'Value',data.general.windowSize,'Enable',enFlag);
 
 function out = id2MarkerStyle(str)
 %convert descriptive string or running number to markerstyle string
@@ -400,6 +406,17 @@ rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
 rdh.fluoDecay.plotCurLinesAndText = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
+% --- Executes on button press in checkAutoWindowSize.
+function checkAutoWindowSize_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.general.autoWindowSize = get(hObject,'Value');
+if(rdh.general.autoWindowSize)
+    rdh.general.windowSize = FLIMX.getAutoWindowSize();
+end
+rdh.isDirty(2) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+updateGUI(handles,rdh);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %edit fields

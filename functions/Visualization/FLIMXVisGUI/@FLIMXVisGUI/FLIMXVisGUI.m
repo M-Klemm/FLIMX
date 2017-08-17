@@ -166,21 +166,22 @@ classdef FLIMXVisGUI < handle
             if(this.generalParams.cmIntensityInvert)
                 this.dynParams.cmIntensity = flipud(this.dynParams.cmIntensity);
             end
-            colormap(this.visHandles.cm_axes,this.dynParams.cm);
-            for j = 1:length(side)                
-                s = side(j);                      
-                curStudy = this.getStudy(s); %current study name and index  
+            %colormap(this.visHandles.cm_axes,this.dynParams.cm);
+            for j = 1:length(side)
+                s = side(j);
+                curStudy = this.getStudy(s); %current study name and index
                 curStudyIdx = find(strcmp(curStudy,studies),1);
                 if(isempty(curStudyIdx) || curStudyIdx ~= get(this.visHandles.(sprintf('study_%s_pop',s)),'Value'))
-                    set(this.visHandles.(sprintf('study_%s_pop',s)),'Value',min(get(this.visHandles.(sprintf('study_%s_pop',s)),'Value'),length(studies)),'String',studies);                    
+                    set(this.visHandles.(sprintf('study_%s_pop',s)),'Value',min(get(this.visHandles.(sprintf('study_%s_pop',s)),'Value'),length(studies)),'String',studies);
                 else
                     set(this.visHandles.(sprintf('study_%s_pop',s)),'String',studies,'Value',curStudyIdx);
-                end    
+                end
+                curStudy = this.getStudy(s);
                 %update views
-                views = this.fdt.getStudyViewsStr(this.getStudy(s)); 
-                set(this.visHandles.(sprintf('view_%s_pop',s)),'String',views,'Value',min(get(this.visHandles.(sprintf('view_%s_pop',s)),'Value'),length(views)));                              
+                views = this.fdt.getStudyViewsStr(this.getStudy(s));
+                set(this.visHandles.(sprintf('view_%s_pop',s)),'String',views,'Value',min(get(this.visHandles.(sprintf('view_%s_pop',s)),'Value'),length(views)));
                 curView = this.getView(s);          %current view name
-                nrSubs = this.fdt.getNrSubjects(curStudy,curView);    %Number of subjects                                
+                nrSubs = this.fdt.getNrSubjects(curStudy,curView);    %Number of subjects
                 if(~nrSubs)
                     this.clearAxes(s);
                     this.updateColorbar();                                                    
@@ -207,11 +208,10 @@ classdef FLIMXVisGUI < handle
                 %update subject selection popups
                 dStr = this.fdt.getSubjectsNames(curStudy,curView);
                 if(~isempty(dStr))
-                    set(this.visHandles.(sprintf('dataset_%s_pop',s)),'String',dStr,'Value',...
-                    min(get(this.visHandles.(sprintf('dataset_%s_pop',s)),'Value'),nrSubs));
+                    set(this.visHandles.(sprintf('dataset_%s_pop',s)),'String',dStr,'Value',min(get(this.visHandles.(sprintf('dataset_%s_pop',s)),'Value'),nrSubs));
                 else
                     set(this.visHandles.(sprintf('dataset_%s_pop',s)),'String','dataset','Value',1);
-                end                
+                end
                 this.myStatsGroupComp.setupGUI();
                 curSubject = this.getSubject(s);
                 str = this.fdt.getChStr(curStudy,curSubject);                
@@ -246,7 +246,6 @@ classdef FLIMXVisGUI < handle
                             set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('main_axes_pdim_%s_pop',s)),'Enable','on');
-%                             set(this.visHandles.(sprintf('parasel_%s_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
                             set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
@@ -256,7 +255,6 @@ classdef FLIMXVisGUI < handle
                             set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('main_axes_pdim_%s_pop',s)),'Enable','off','Value',3);
-%                             set(this.visHandles.(sprintf('parasel_%s_button',s)),'Visible','off');
                             set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
                             set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
@@ -267,7 +265,6 @@ classdef FLIMXVisGUI < handle
                             set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','off');
                             set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','off');
                             set(this.visHandles.(sprintf('main_axes_pdim_%s_pop',s)),'Enable','on');
-%                             set(this.visHandles.(sprintf('parasel_%s_button',s)),'Visible','off');
                             set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
                             set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
@@ -286,7 +283,6 @@ classdef FLIMXVisGUI < handle
                                 set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','on');
                                 set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','on');
                                 set(this.visHandles.(sprintf('main_axes_pdim_%s_pop',s)),'Enable','on');
-%                                 set(this.visHandles.(sprintf('parasel_%s_button',s)),'Visible','on');
                                 set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','on');
                                 set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
                                 set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
@@ -295,8 +291,6 @@ classdef FLIMXVisGUI < handle
                                 set(this.visHandles.(sprintf('dataset_%s_pop',s)),'Visible','off');
                                 set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','off');
                                 set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','off');
-%                                 set(this.visHandles.(sprintf('remove_ds_%s_button',s)),'Visible','off');
-%                                 set(this.visHandles.(sprintf('parasel_%s_button',s)),'Visible','off');
                                 set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','off');
                                 set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','off');
                                 set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','off');

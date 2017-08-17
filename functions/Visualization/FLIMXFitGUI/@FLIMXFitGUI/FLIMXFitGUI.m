@@ -1699,6 +1699,7 @@ classdef FLIMXFitGUI < handle
                         set(this.visHandles.radioTimeScalManual,'Value', 0);
                         set(this.visHandles.radioTimeScalAuto,'Value', 1);
                         this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalAuto);
+                        yVal = this.currentDecayData;
                         if(xPos > 0 && xPos <= length(yVal) && ~isempty(this.currentDecayData))
                             this.mouseOverlayBoxMain.draw(cpMain,{sprintf('Time: %04.2fns',xPos.*this.FLIMXObj.curSubject.timeChannelWidth/1000), sprintf('Counts: %d',yVal(xPos))},yVal(xPos));
                         end
@@ -2479,7 +2480,7 @@ classdef FLIMXFitGUI < handle
                     xlim(hAx,[xAxis(1) xAxis(end)]);
                 end
             catch ME
-                warning('FLIMXFitGUI:makeVerticalLinePlot',ME.message);
+                warning('FLIMXFitGUI:makeVerticalLinePlot','%s',ME.message);
                 return
             end
             if(~isempty(legendName))

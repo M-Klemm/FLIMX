@@ -77,7 +77,7 @@ classdef FLIMX < handle
             %parameters from ini file
             warning('off','parallel:gpu:DeviceCapabiity');
             %make lower level objects
-            this.paramMgr = FLIMXParamMgr(this,FLIMX.getVersionInfo());
+            this.paramMgr = FLIMXParamMgr(this,FLIMX.getVersionInfo());            
             this.irfMgr = IRFMgr(this,fullfile(FLIMX.getWorkingDir(),'data'));
             this.updateSplashScreenProgressLong(0.3,'Building data tree structure...');
             this.fdt = FDTree(this,FLIMX.getWorkingDir()); %replace with path from config?!
@@ -91,6 +91,10 @@ classdef FLIMX < handle
                 params = 0;
             end
             this.fdt.setDataSmoothFilter(alg,params);
+            %set window size
+            if(this.paramMgr.generalParams.autoWindowSize)
+                this.paramMgr.generalParams.windowSize = FLIMX.getAutoWindowSize();
+            end
             %load a subject
             this.updateSplashScreenProgressLong(0.5,'Loading first subject...');
             subs = this.fdt.getSubjectsNames('Default',FDTree.defaultConditionName());
@@ -103,7 +107,6 @@ classdef FLIMX < handle
             this.updateSplashScreenProgressLong(0.7,'Opening MATLAB pool...');
             this.openMatlabPool();
             this.updateSplashScreenProgressShort(0,'');
-            
         end
         
         function openFLIMXFitGUI(this)
@@ -123,9 +126,9 @@ classdef FLIMX < handle
             if(computationParams.useMatlabDistComp > 0 && isempty(p))
                 %start local matlab workers
                 this.splashScreenGUIObj.updateProgressShort(0.5,sprintf('MATLAB pool workers can be disabled in Settings -> Computation'));
-                try                    
-                    p = parpool('local',feature('numCores')); 
-                    this.splashScreenGUIObj.updateProgressShort(1,'Trying to open pool of MATLAB workers - done');  
+                try
+                    p = parpool('local',feature('numCores'));
+                    this.splashScreenGUIObj.updateProgressShort(1,'Trying to open pool of MATLAB workers - done');
                     %p.IdleTimeout = 0;
                 catch ME
                     if(ishandle(hwb))
@@ -153,7 +156,7 @@ classdef FLIMX < handle
             p = gcp('nocreate');
             if(~isempty(p))
                 %delete idle timer object
-                try 
+                try
                     delete(this.matlabPoolTimer);
                 catch
                 end
@@ -196,14 +199,13 @@ classdef FLIMX < handle
                             this.sDDMgrObj.saveAll();
                         case 'No'
                             %load unmodified parameter sets
-                            %                         this.FLIMXObj.sDDMgr.deleteAllSDDs();
                             this.sDDMgrObj.scanForSDDs();
                     end
                 end
                 %close remaining GUIs
                 if(~isempty(this.studyMgrGUIObj))
                     this.studyMgrGUIObj.menuExit_Callback();
-                end                
+                end
                 if(~isempty(this.batchJobMgrGUIObj))
                     this.batchJobMgrGUIObj.menuExit_Callback();
                 end
@@ -452,11 +454,24 @@ classdef FLIMX < handle
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
-            out.config_revision = 261;
-            out.client_revision = 373;
+            out.config_revision = 262;
+            out.client_revision = 374;
             out.core_revision = 364;
             out.results_revision = 256;
             out.measurement_revision = 204;
+        end
+        
+        function out = getAutoWindowSize()
+            %determine best window size for current display and set it
+            set(0,'units','pixels');
+            ss = get(0,'screensize');
+            if(ss(3) >= 1750 && ss(4) >= 1050)
+                out = 3; %large
+            elseif(ss(3) < 1750 && ss(3) >= 1400 && ss(4) >= 900)
+                out = 1; %medium
+            else %ss(3) < 1720 && ss(4) < 768)
+                out = 2; %small
+            end
         end
         
         function MatlabPoolIdleFcn()
