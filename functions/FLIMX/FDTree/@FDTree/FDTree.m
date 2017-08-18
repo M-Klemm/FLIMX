@@ -31,7 +31,8 @@ classdef FDTree < handle
     %
     % @brief    A class to handle FLIMX studies and subjects
     %
-    properties(SetAccess = protected,GetAccess = public)
+    properties(SetAccess = protected,GetAccess = protected)
+        myFileLock = [];
         myParent = [];
         myDir = '';             %FStudyMgr's working directory
         myStudies = [];         %list of studies
@@ -50,16 +51,22 @@ classdef FDTree < handle
     
     methods
         function this = FDTree(parent,rootDir)
-            % Constructor for FStudyMgr.
-            this.myParent = parent;
-            this.myStudies = LinkedList();
-            this.myViewsMerged = subjectDS(this,'GlobalMergedSubjects');
-            this.myClusterTargets = LinkedList();
-            this.saveMaxMem = this.getSaveMaxMemFlag();
+            % Constructor for FDTree
             this.myDir = fullfile(rootDir,'studyData');
             if(~isdir(this.myDir))
                 mkdir(this.myDir);
             end
+            %try to establish the lock file
+            this.myFileLock = fileLock(fullfile(this.myDir,'file.lock'));
+            if(~this.myFileLock.isLocked)
+                delete(this.myFileLock);
+                error('FLIMX:FDTree','Could not establish file lock for database');                
+            end
+            this.myParent = parent;
+            this.myStudies = LinkedList();
+            this.myViewsMerged = subjectDS(this,'GlobalMergedSubjects');
+            this.myClusterTargets = LinkedList();
+            this.saveMaxMem = this.getSaveMaxMemFlag();            
             %Add default study as container for not assigned subjects
             if(this.myStudies.queueLen == 0)
                 this.addStudy('Default');
