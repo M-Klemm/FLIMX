@@ -176,7 +176,7 @@ classdef mouseOverlayBox < handle
                 end
             end
             %0.02*xWidth + this.myTextBox.Extent(3)
-            if((cp(1)+1.2*this.myTextBox.Extent(3)) < xl(2))
+            if((cp(1)+1.25*this.myTextBox.Extent(3)) < xl(2))
                 %right of the cursor
                 this.myTextBox.Position = [cp(1)+0.2*this.myTextBox.Extent(3) cp(2)+dy*this.myTextBox.Extent(4)];
             else

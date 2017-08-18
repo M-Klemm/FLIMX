@@ -54,7 +54,7 @@ function varargout = GUI_FLIMXFitGUIVisualizationOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_FLIMXFitGUIVisualizationOptions
 
-% Last Modified by GUIDE v2.5 16-Aug-2017 15:11:27
+% Last Modified by GUIDE v2.5 17-Aug-2017 15:56:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
