@@ -370,7 +370,16 @@ classdef FLIMXFitResultImport < handle
             subjectName = subjectNames{get(this.visHandles.popupSubject,'Value')};
             is = this.FLIMXObj.fdt.getSubject4Import(studyName,subjectName);
             fi = measurementFile.getDefaultFileInfo();
-            is.importResult(fullfile(path,files),filterindex,opt.ch,fi.position,fi.pixelResolution)
+            transfer = struct2cell(this.allFiles);
+            transfer(1,:) = strcat(transfer(1,:),transfer(2,:));
+            for ch=1:this.maxCh
+                transfer = transfer(:,strcmp((transfer(2,:)),'.asc'));
+                files = transfer([1,7],cell2mat(transfer(3,:))== ch);
+                files = files(1,logical([files{2,:}])== true);
+                filterindex = 1; % ??
+                is.importResult(fullfile(this.folderpath,files),filterindex,ch,fi.position,fi.pixelResolution)
+            end
+            this.closeVisWnd();
             %importResult();
         end
         function flag = checkSubjectID(this, Ch)
