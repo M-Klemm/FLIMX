@@ -54,7 +54,7 @@ function varargout = GUI_FLIMXFitGUIVisualizationOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_FLIMXFitGUIVisualizationOptions
 
-% Last Modified by GUIDE v2.5 12-Jul-2016 14:43:34
+% Last Modified by GUIDE v2.5 17-Aug-2017 15:56:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -96,7 +96,8 @@ rdh.isDirty = [0 0]; %1: FLIMXFitGUI, 2: general
 if(~isempty(iconPaths))
     %thanks to Yair Altman
     htmlStr = strcat('<html><img width=105 height=10 src="file:///', iconPaths,'">', mapNames');
-    set(handles.popupColormap,'String',htmlStr);
+    set(handles.popupColormapFLIMItems,'String',htmlStr);
+    set(handles.popupColormapIntensity,'String',htmlStr);
 end
 updateGUI(handles, rdh);
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
@@ -137,12 +138,22 @@ set(handles.checkSlope,'Value',data.fluoDecay.plotSlope);
 set(handles.checkInit,'Value',data.fluoDecay.plotInit);
 %general
 set(handles.checkLegend,'Value',data.fluoDecay.showLegend);
-set(handles.checkInvertColormap,'Value',data.general.cmInvert);
-idx = find(strcmpi(regexprep(get(handles.popupColormap,'String'), '<html><.*">', ''),data.general.cmType),1);
+idx = find(strcmpi(regexprep(get(handles.popupColormapFLIMItems,'String'), '<html><.*">', ''),data.general.cmType),1);
 if(isempty(idx))
     idx = 10; %jet
 end
-set(handles.popupColormap,'Value',idx);
+set(handles.popupColormapFLIMItems,'Value',idx);
+idx = find(strcmpi(regexprep(get(handles.popupColormapIntensity,'String'), '<html><.*">', ''),data.general.cmIntensityType),1);
+if(isempty(idx))
+    idx = 7; %gray
+end
+set(handles.popupColormapIntensity,'Value',idx);
+set(handles.checkInvertColormapFLIMItems,'Value',data.general.cmInvert);
+set(handles.checkInvertColormapIntensity,'Value',data.general.cmIntensityInvert);
+set(handles.editLowerBoundColormapFLIMItems,'string',data.general.cmPercentileLB);
+set(handles.editUpperBoundColormapFLIMItems,'string',data.general.cmPercentileUB);
+set(handles.editLowerBoundColormapIntensity,'string',data.general.cmIntensityPercentileLB);
+set(handles.editUpperBoundColormapIntensity,'string',data.general.cmIntensityPercentileUB);
 %plot colormap
 try
     cm = eval(sprintf('%s(256)',lower(data.general.cmType)));
@@ -150,8 +161,17 @@ try
         cm = flipud(cm);
     end
     temp(1,:,:) = cm;
-    image(temp,'Parent',handles.axesCM);
-    axis(handles.axesCM,'off');
+    image(temp,'Parent',handles.axesColormapFLIMItems);
+    axis(handles.axesColormapFLIMItems,'off');
+end
+try
+    cm = eval(sprintf('%s(256)',lower(data.general.cmIntensityType)));
+    if(data.general.cmIntensityInvert)
+        cm = flipud(cm);
+    end
+    temp(1,:,:) = cm;
+    image(temp,'Parent',handles.axesColormapIntensity);
+    axis(handles.axesColormapIntensity,'off');
 end
 set(handles.checkReverseYDir,'Value',data.general.reverseYDir);
 
@@ -215,7 +235,13 @@ else
     set(handles.popupStartupGUIs,'Value',3);
 end
 %window size
-set(handles.popupWindowSize,'Value',data.general.windowSize);
+if(data.general.autoWindowSize)
+    enFlag = 'off';
+else
+    enFlag = 'on';
+end
+set(handles.checkAutoWindowSize,'Value',data.general.autoWindowSize);
+set(handles.popupWindowSize,'Value',data.general.windowSize,'Enable',enFlag);
 
 function out = id2MarkerStyle(str)
 %convert descriptive string or running number to markerstyle string
@@ -352,10 +378,18 @@ rdh.fluoDecay.plotInit = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
-% --- Executes on button press in checkInvertColormap.
-function checkInvertColormap_Callback(hObject, eventdata, handles)
+% --- Executes on button press in checkInvertColormapFLIMItems.
+function checkInvertColormapFLIMItems_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
 rdh.general.cmInvert = get(hObject,'Value');
+rdh.isDirty(2) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+updateGUI(handles,rdh);
+
+% --- Executes on button press in checkInvertColormapIntensity.
+function checkInvertColormapIntensity_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.general.cmIntensityInvert = get(hObject,'Value');
 rdh.isDirty(2) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 updateGUI(handles,rdh);
@@ -372,6 +406,17 @@ rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
 rdh.fluoDecay.plotCurLinesAndText = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
+% --- Executes on button press in checkAutoWindowSize.
+function checkAutoWindowSize_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.general.autoWindowSize = get(hObject,'Value');
+if(rdh.general.autoWindowSize)
+    rdh.general.windowSize = FLIMX.getAutoWindowSize();
+end
+rdh.isDirty(2) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+updateGUI(handles,rdh);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %edit fields
@@ -473,6 +518,38 @@ rdh.fluoDecay.plotCoordinateBoxTransparency = min(100,max(1,abs(round(str2double
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 updateGUI(handles,rdh);
+
+function editUpperBoundColormapFLIMItems_Callback(hObject, eventdata, handles)
+current = min(max(round(10*str2double(get(hObject,'String')))/10,1+str2double(get(handles.editLowerBoundColormapFLIMItems,'String'))),100);
+set(hObject,'String',current);
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.general.cmPercentileUB = current;
+rdh.isDirty(2) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
+function editLowerBoundColormapFLIMItems_Callback(hObject, eventdata, handles)
+current = min(max(round(10*str2double(get(hObject,'String')))/10,0),str2double(get(handles.editUpperBoundColormapFLIMItems,'String'))-1);
+set(hObject,'String',current);
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.general.cmPercentileLB = current;
+rdh.isDirty(2) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
+function editUpperBoundColormapIntensity_Callback(hObject, eventdata, handles)
+current = min(max(round(10*str2double(get(hObject,'String')))/10,1+str2double(get(handles.editLowerBoundColormapIntensity,'String'))),100);
+set(hObject,'String',current);
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.general.cmIntensityPercentileUB = current;
+rdh.isDirty(2) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
+function editLowerBoundColormapIntensity_Callback(hObject, eventdata, handles)
+current = min(max(round(10*str2double(get(hObject,'String')))/10,0),str2double(get(handles.editUpperBoundColormapIntensity,'String'))-1);
+set(hObject,'String',current);
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.general.cmIntensityPercentileLB = current;
+rdh.isDirty(2) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -759,8 +836,8 @@ rdh.fluoDecay.plotInitLinestyle = id2LineStyle(get(hObject,'Value'));
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
-% --- Executes on selection change in popupColormap.
-function popupColormap_Callback(hObject, eventdata, handles)
+% --- Executes on selection change in popupColormapFLIMItems.
+function popupColormapFLIMItems_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
 str = get(hObject,'String');
 str = str(get(hObject,'Value'));
@@ -769,6 +846,18 @@ rdh.general.cmType = str{:};
 rdh.isDirty(2) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 updateGUI(handles,rdh);
+
+% --- Executes on selection change in popupColormapIntensity.
+function popupColormapIntensity_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+str = get(hObject,'String');
+str = str(get(hObject,'Value'));
+str = regexprep(str, '<html><.*">', '');
+rdh.general.cmIntensityType = str{:};
+rdh.isDirty(2) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+updateGUI(handles,rdh);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % create functions
@@ -899,7 +988,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 % --- Executes during object creation, after setting all properties.
-function popupColormap_CreateFcn(hObject, eventdata, handles)
+function popupColormapFLIMItems_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
@@ -913,24 +1002,43 @@ function popupFLIMItems_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
 % --- Executes during object creation, after setting all properties.
 function popupCurLinesStyle_CreateFcn(hObject, eventdata, handles)
-
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
 % --- Executes during object creation, after setting all properties.
 function editCurlineswidth_CreateFcn(hObject, eventdata, handles)
-
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
 % --- Executes during object creation, after setting all properties.
 function editCoordinateBoxTransparency_CreateFcn(hObject, eventdata, handles)
-
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupColormapIntensity_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editUpperBoundColormapFLIMItems_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editLowerBoundColormapFLIMItems_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editUpperBoundColormapIntensity_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editLowerBoundColormapIntensity_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

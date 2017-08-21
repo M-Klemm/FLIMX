@@ -245,7 +245,8 @@ classdef ColorCtrl < handle
         function out = getAutoScale(this)
             %compute border for auto scale color
             hfd = this.myHFD;
-            if(isempty(hfd))
+            out = ones(1,3);
+            if(isempty(hfd))                
                 return
             end
             rc = this.myFDisplay.ROICoordinates;
@@ -253,9 +254,13 @@ classdef ColorCtrl < handle
             rs = this.myFDisplay.ROISubType;
             ri = this.myFDisplay.ROIInvertFlag;
             data = hfd.getROIImage(rc,rt,rs,ri);
-            out = ones(1,3);
-            out(2) = prctile(data(:),2);
-            out(3) = prctile(data(:),98);
+            if(strcmp(hfd.dType,'Intensity'))
+                out(2) = prctile(data(:),this.visObj.generalParams.cmIntensityPercentileLB);
+                out(3) = prctile(data(:),this.visObj.generalParams.cmIntensityPercentileUB);
+            else
+                out(2) = prctile(data(:),this.visObj.generalParams.cmPercentileLB);
+                out(3) = prctile(data(:),this.visObj.generalParams.cmPercentileUB);
+            end
         end
         
     end %methods

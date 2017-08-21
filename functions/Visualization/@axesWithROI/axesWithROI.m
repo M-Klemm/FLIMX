@@ -41,6 +41,9 @@ classdef axesWithROI < handle
         myData = [];
         myCM = [];
         
+        myCMPercentileLB = 0;
+        myCMPercentileUB = 0;
+        
         ROITopLine = -1;
         ROIBottomLine = -1;
         ROILeftLine = -1;
@@ -100,6 +103,14 @@ classdef axesWithROI < handle
             end
         end
         
+        function setColorMapPercentiles(this,lb,ub)
+            %set default percentiles for color mapping, lower bound (lb) and upper bound (ub) must be between 0 and 100
+            if(~isnan(lb) && ~isnan(ub) && lb < ub && ub-lb >= 1 && lb >= 0 && ub <= 100)
+                this.myCMPercentileLB = lb;
+                this.myCMPercentileUB = ub;
+            end
+        end
+        
         %% drawing methods
         function drawMain(this,lb,ub)
             %draw main axes, delete ROI box and current point
@@ -108,20 +119,16 @@ classdef axesWithROI < handle
                 return
             end
             if(nargin ~= 3)
-                lb = prctile(this.myData(:),2);
-                ub = prctile(this.myData(:),98);
-                cBLb = min(this.myData(:));
-                cBUb = max(this.myData(:));
-            else
-                cBLb = lb;
-                cBUb = ub;
+                lb = prctile(this.myData(:),this.myCMPercentileLB);
+                ub = prctile(this.myData(:),this.myCMPercentileUB);
+%                 cBLb = min(this.myData(:));
+%                 cBUb = max(this.myData(:));
+%             else
+%                 cBLb = lb;
+%                 cBUb = ub;
             end
             img = image2ColorMap(this.myData,this.myCM,lb,ub);
-            %if(lb == ub || isnan(lb) || isnan(ub))
             image(img,'Parent',this.myMainAxes);
-            %else
-            %imagesc(img,'Parent',this.myMainAxes,[lb ub]);
-            %end
             [r, c] = size(this.myData);
             if(~isnan(r) && ~isnan(c) && size(this.myData,1) > 1 && size(this.myData,2) > 1)
                 xlim(this.myMainAxes,[1 size(this.myData,2)])

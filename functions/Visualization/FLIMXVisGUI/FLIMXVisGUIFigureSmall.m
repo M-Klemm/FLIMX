@@ -54,7 +54,7 @@ function varargout = FLIMXVisGUIFigureSmall(varargin)
 
 % Edit the above text to modify the response to help FLIMXVisGUIFigureSmall
 
-% Last Modified by GUIDE v2.5 17-Jul-2014 17:03:43
+% Last Modified by GUIDE v2.5 11-Aug-2017 11:25:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;

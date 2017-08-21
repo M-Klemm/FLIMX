@@ -48,6 +48,9 @@ classdef FLIMXFitGUI < handle
     properties(GetAccess = protected, SetAccess = private)
         axesRawMgr = [];
         axesROIMgr = [];
+        mouseOverlayBoxMain = [];
+        mouseOverlayBoxSupp = [];
+        mouseOverlayBoxRaw = [];
         simToolObj = []; %handle to simulation tool
         simCompToolObj = []; %handle to simulation analysis tool
     end
@@ -145,22 +148,6 @@ classdef FLIMXFitGUI < handle
             this.currentX = max(1,min(x,this.maxX));
             this.updateGUI(1);
         end
-                
-%         function openResultFile(this)
-%             %reads exported results from disc
-%             [fn, fi] = loadFile({'*.mat','FLIMFit result File (*.mat)';'*.dat;*.txt','B&H Result Files (*.dat,*.txt)'},'Load result file(s)...',this.FLIMXObj.FLIMFit.folderParams.export,'on');
-%             if(isempty(fn))
-%                 return;
-%             end
-%             %toDo: fix me
-% %             this.FLIMXObj.newResultFile();
-% %             ch = this.FLIMXObj.curResultObj.openResult(fn,fi,true);
-%             this.setupGUI();
-% %             this.FLIMXObj.convResult2Synthetic();
-%             if(ch > 0)
-%                 this.currentChannel = ch;
-%             end
-%         end
         
         function setupGUI(this)
             %make parameter popup menu string
@@ -261,11 +248,29 @@ classdef FLIMXFitGUI < handle
             end
             set(this.visHandles.popupROI,'String',pstr,'Value',idx,'Enable','on');
             this.axesRawMgr.setColorMap(this.dynVisParams.cmIntensity);
+            this.axesRawMgr.setColorMapPercentiles(this.generalParams.cmIntensityPercentileLB,this.generalParams.cmIntensityPercentileUB);
             this.axesROIMgr.setColorMap(this.dynVisParams.cm);
+            if(strcmp(pstr{idx},'Intensity'))
+                this.axesROIMgr.setColorMapPercentiles(this.generalParams.cmIntensityPercentileLB,this.generalParams.cmIntensityPercentileUB);
+            else
+                this.axesROIMgr.setColorMapPercentiles(this.generalParams.cmPercentileLB,this.generalParams.cmPercentileUB);
+            end
             this.axesRawMgr.setReverseYDirFlag(this.generalParams.reverseYDir);
             this.axesROIMgr.setReverseYDirFlag(this.generalParams.reverseYDir);
+            this.mouseOverlayBoxMain.setBackgroundColor([this.visualizationParams.plotCoordinateBoxColor(:); this.visualizationParams.plotCoordinateBoxTransparency]);
+            this.mouseOverlayBoxMain.setLineColor(this.visualizationParams.plotCurLinesColor);
+            this.mouseOverlayBoxMain.setLineStyle(this.visualizationParams.plotCurLinesStyle);
+            this.mouseOverlayBoxMain.setLineWidth(this.visualizationParams.plotCurlineswidth);
+            this.mouseOverlayBoxSupp.setBackgroundColor([this.visualizationParams.plotCoordinateBoxColor(:); this.visualizationParams.plotCoordinateBoxTransparency]);
+            this.mouseOverlayBoxSupp.setLineColor(this.visualizationParams.plotCurLinesColor);
+            this.mouseOverlayBoxSupp.setLineStyle(this.visualizationParams.plotCurLinesStyle);
+            this.mouseOverlayBoxSupp.setLineWidth(this.visualizationParams.plotCurlineswidth);
+            this.mouseOverlayBoxRaw.setBackgroundColor([this.visualizationParams.plotCoordinateBoxColor(:); this.visualizationParams.plotCoordinateBoxTransparency]);
+            this.mouseOverlayBoxRaw.setLineColor(this.visualizationParams.plotCurLinesColor);
+            this.mouseOverlayBoxRaw.setLineStyle(this.visualizationParams.plotCurLinesStyle);
+            this.mouseOverlayBoxRaw.setLineWidth(this.visualizationParams.plotCurlineswidth);
             set(this.visHandles.FLIMXFitGUIFigure,'Name',sprintf('FLIMXFit: %s - Channel %d',this.FLIMXObj.curSubject.getDatasetName(),ch));
-            this.lastProgressCmdLine = 0;%-1
+            this.lastProgressCmdLine = 0;
 %             this.updateProgressbar(0,'');
             if(this.showInitialization)
                 this.currentX = max(1,min(this.initFitParams.gridSize,this.currentX));
@@ -354,15 +359,10 @@ classdef FLIMXFitGUI < handle
                     this.axesROIMgr.setMainData(data);
                 end
             end
-            %s = axesWithROI(this.visHandles.axesRaw,this.visHandles.axesCbRaw,this.visHandles.textCbRawBottom,this.visHandles.textCbRawTop,this.visHandles.editCP,this.dynVisParams.cm);
-%             s.setMainData(this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel));
             roi = this.FLIMXObj.curSubject.ROICoordinates;
             this.axesRawMgr.drawROIBox(roi);
             this.axesRawMgr.drawCP([this.currentY+roi(3)-1 this.currentX+roi(1)-1]);
             this.axesROIMgr.drawCP([this.currentY this.currentX]);
-%             this.plotRawDataROI(this.visHandles.axesRaw,[]);
-%             this.plotRawDataCP(this.visHandles.axesRaw,[]);
-%             this.plotSuppDataCP(this.visHandles.axesCurSupp);
         end %updateGUI
         
         %% dependent properties
@@ -740,7 +740,7 @@ classdef FLIMXFitGUI < handle
                 hAxRes = this.visHandles.axesRes;
             end
             if(nargin < 5 || ~ishandle(hAxMain))
-                hAxMain = this.visHandles.axesCurMain;
+                hAxMain = this.visHandles.axesMain;
             end
             exponentials = [];
             data = this.currentDecayData;
@@ -1001,9 +1001,9 @@ classdef FLIMXFitGUI < handle
             if(isempty(data))
                 return
             end
-            lb = prctile(data(:),0.1);
-            ub = prctile(data(:),99.9);
-            img = image2ColorMap(data,this.dynVisParams.cmIntensity,lb,ub);
+%             lb = prctile(data(:),0.1);
+%             ub = prctile(data(:),99.9);
+            img = image2ColorMap(data,this.dynVisParams.cmIntensity);
 %             if(lb == ub || isnan(lb) || isnan(ub))
                 image(img,'Parent',handle);
 %             else
@@ -1113,8 +1113,8 @@ classdef FLIMXFitGUI < handle
                 return;
             end
             if(isempty(handle))
-                this.plotSuppData(this.visHandles.axesCurMain);
-                this.plotSuppData(this.visHandles.axesCurSupp);
+                this.plotSuppData(this.visHandles.axesMain);
+                this.plotSuppData(this.visHandles.axesSupp);
                 set(this.visHandles.textCbSuppTop,'String',max(data(:)));
                 set(this.visHandles.textCbSuppBottom,'String',min(data(:)));
                 return;
@@ -1126,9 +1126,9 @@ classdef FLIMXFitGUI < handle
             if(isempty(data))
                 return
             end
-            lb = prctile(data(:),0.1);
-            ub = prctile(data(:),99.9);
-            img = image2ColorMap(data,this.dynVisParams.cm,lb,ub);
+%             lb = prctile(data(:),0.1);
+%             ub = prctile(data(:),99.9);
+            img = image2ColorMap(data,this.dynVisParams.cm);
 %             if(lb == ub || isnan(lb) || isnan(ub))
                 image(img,'Parent',handle);
 %             else
@@ -1163,8 +1163,8 @@ classdef FLIMXFitGUI < handle
                 return;
             end
             if(isempty(handle))
-                this.plotSuppDataCP(this.visHandles.axesCurMain);
-                this.plotSuppDataCP(this.visHandles.axesCurSupp);
+                this.plotSuppDataCP(this.visHandles.axesMain);
+                this.plotSuppDataCP(this.visHandles.axesSupp);
                 return;
             end
             data = this.axesSuppData;
@@ -1208,7 +1208,7 @@ classdef FLIMXFitGUI < handle
             this.visCurFit(this.currentChannel,this.currentY,this.currentX);
             this.plotRawDataROI(this.visHandles.axesRaw,[]);
             this.plotRawDataCP(this.visHandles.axesRaw,[]);
-            this.plotSuppDataCP(this.visHandles.axesCurSupp);
+            this.plotSuppDataCP(this.visHandles.axesSupp);
         end
         
         %% GUI callbacks
@@ -1475,6 +1475,7 @@ classdef FLIMXFitGUI < handle
         
         function GUI_popupROI_Callback(this,hObject,eventdata)
             %call of popupROI control
+            this.setupGUI();
             this.updateGUI(true);
         end
         
@@ -1562,116 +1563,89 @@ classdef FLIMXFitGUI < handle
                 inFunction = [];  %enable callback
                 return;
             end
-            lastUpdate = tNow;
-            inSuppAx = false;
-            inMainAx = false;
-            %check support axes
-            hAxSupp = this.visHandles.axesCurSupp;
-            cp = get(hAxSupp,'CurrentPoint');
-            cp = cp(logical([1 1 0; 0 0 0]));
-            %cp=fix(cp+0.52);            
-            cp = round(cp);
-            if(cp(1) >= hAxSupp.XLim(1) && cp(1) <= hAxSupp.XLim(2) && cp(2) >= hAxSupp.YLim(1) && cp(2) <= hAxSupp.YLim(2))
-                %inside support axes
-                inSuppAx = true;
-                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
-                set(this.visHandles.editX,'String',num2str(cp(1)));
-                set(this.visHandles.editY,'String',num2str(cp(2)));
-                %update current point edit
-                data = this.axesSuppData;
-                if(~isempty(data))
-                    set(this.visHandles.editCPSupp,'String',FLIMXFitGUI.num4disp(data(min(size(data,1),cp(2)),min(size(data,2),cp(1)))));
-                end
-            end
-            %check main axes
-            cp = get(this.visHandles.axesCurMain,'CurrentPoint');
-            cp = cp(logical([1 1 0; 0 0 0]));            
-            xl = this.visHandles.axesCurMain.XLim;
-            yl = this.visHandles.axesCurMain.YLim;
-            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2) && ~isempty(this.currentDecayData) && this.visualizationParams.plotCurLinesAndText)
+            lastUpdate = tNow;            
+            %% main axes
+            cpMain = get(this.visHandles.axesMain,'CurrentPoint');
+            cpMain = cpMain(logical([1 1 0; 0 0 0]));
+            xl = this.visHandles.axesMain.XLim;
+            yl = this.visHandles.axesMain.YLim;
+            if(cpMain(1) >= xl(1) && cpMain(1) <= xl(2) && cpMain(2) >= yl(1) && cpMain(2) <= yl(2) && ~isempty(this.currentDecayData) && this.visualizationParams.plotCurLinesAndText)
                 %inside main axes
-                inMainAx = true;
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
-                %Xval = Mousecoordinates transformed to dimension of YData
-                Yval = this.currentDecayData;
-                tVec = abs(this.FLIMXObj.curSubject.timeVector - cp(1));
-                [~,Xval] = min(tVec(:));
-                %vertical cursorline, goes green while setting the scale
-                %per mouseclick
-                if(~ishandle(this.visHandles.cursorLineMainVertical))
-                    this.visHandles.cursorLineMainVertical = line([NaN NaN], ylim(this.visHandles.axesCurMain),'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesCurMain, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth );
+                yVal = this.currentDecayData;
+                %xPos = mouse coordinates transformed to dimension of YData
+                tVec = abs(this.FLIMXObj.curSubject.timeVector - cpMain(1));
+                [~,xPos] = min(tVec(:));
+                if(abs(xPos - this.dynVisParams.timeScalingStart) >= 10 && xPos > this.dynVisParams.timeScalingStart)
+                    %at least 10 time channels difference
+                    this.visHandles.editTimeScalEnd.String = num2str(xPos .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
                 end
-                if (this.visHandles.isSettingScale ==1)
-                    this.visHandles.cursorLineMainVertical.Color = [0 0.75 0];
-                else
-                    this.visHandles.cursorLineMainVertical.Color = this.visualizationParams.plotCurLinesColor;
-                end
-                this.visHandles.cursorLineMainVertical.XData = [cp(1) cp(1)];
                 %cursorline for axesres
-                if(~ishandle(this.visHandles.cursorLineResiduum))
+                if(~ishghandle(this.visHandles.cursorLineResiduum))
                     this.visHandles.cursorLineResiduum = line([NaN NaN], ylim(this.visHandles.axesRes),'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesRes, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth);
                 end
-                this.visHandles.cursorLineResiduum.XData = [cp(1) cp(1)];
-                %textbox and horizontal line
-                if(~ishandle(this.visHandles.cursorLineMainHorizontal))
-                    this.visHandles.cursorLineMainHorizontal = line(xlim(this.visHandles.axesCurMain), [NaN NaN],'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesCurMain, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth);
+                this.visHandles.cursorLineResiduum.XData = [cpMain(1) cpMain(1)];
+                if(xPos > 0 && xPos <= length(yVal) && ~isempty(this.currentDecayData))
+                    this.mouseOverlayBoxMain.draw(cpMain,{sprintf('Time: %04.2fns',xPos.*this.FLIMXObj.curSubject.timeChannelWidth/1000), sprintf('Counts: %d',yVal(xPos))},yVal(xPos));
                 end
-                if(~ishandle(this.visHandles.coordinateBoxMain))
-                    Coordinateboxcolor = [this.visualizationParams.plotCoordinateBoxColor(1) this.visualizationParams.plotCoordinateBoxColor(2) this.visualizationParams.plotCoordinateBoxColor(3) this.visualizationParams.plotCoordinateBoxTransparency];
-                    this.visHandles.coordinateBoxMain = text(NaN, NaN, 'HI BILLY MAYS HERE ;)', 'EdgeColor', [ 0 0 0], 'BackgroundColor', Coordinateboxcolor, 'Parent' , this.visHandles.axesCurMain);
+                %draw zoom area when mouse button down
+                if(ishghandle(this.visHandles.scaleZoomRectangle))
+                    this.visHandles.scaleZoomRectangle.Position(3) = max(cpMain(1)-this.visHandles.scaleZoomRectangle.Position(1),10*this.FLIMXObj.curSubject.timeVector(2));
+                    this.mouseOverlayBoxMain.displayBoxOnTop();
                 end
-                cpStr = FLIMXFitGUI.num4disp(cp);
-                if(Xval > 0 && Xval <= length(Yval) && ~isempty(this.currentDecayData))
-                    if(Yval(Xval) > 0)
-                        if( 1.125*(cp(1)-xl(1)) <= (xl(2)-xl(1)) && Xval < length(Yval))
-                            this.visHandles.coordinateBoxMain.Position = [cp(1)+0.02*(xl(2)-xl(1)) cp(2)];%double(Yval(Xval))
-                            this.visHandles.coordinateBoxMain.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
-                        elseif (Xval < length(Yval))
-                            this.visHandles.coordinateBoxMain.Position = [cp(1)-0.1*(xl(2)-xl(1)) cp(2)];%double(Yval(Xval))
-                            this.visHandles.coordinateBoxMain.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
+                %clear other mouse overs
+                this.mouseOverlayBoxSupp.clear();
+                this.mouseOverlayBoxRaw.clear();
+            else
+                cpMain = [];
+                this.mouseOverlayBoxMain.clear();
+                if(ishghandle(this.visHandles.cursorLineResiduum))
+                    this.visHandles.cursorLineResiduum.XData = [NaN NaN];
+                end
+                %% support axes
+                cpSupp = get(this.visHandles.axesSupp,'CurrentPoint');
+                cpSupp = round(cpSupp(logical([1 1 0; 0 0 0])));
+                xl = this.visHandles.axesSupp.XLim;
+                yl = this.visHandles.axesSupp.YLim;
+                if(cpSupp(1) >= xl(1) && cpSupp(1) <= xl(2) && cpSupp(2) >= yl(1) && cpSupp(2) <= yl(2))
+                    %inside support axes
+                    set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
+                    data = this.axesSuppData;
+                    if(~isempty(data))
+                        str = FLIMXFitGUI.num4disp(data(min(size(data,1),cpSupp(2)),min(size(data,2),cpSupp(1))));
+                        this.mouseOverlayBoxSupp.draw(cpSupp,[sprintf('x:%d y:%d',cpSupp(1),cpSupp(2));str]);
+                        this.mouseOverlayBoxSupp.displayBoxOnTop();
+                    end
+                    %clear other mouse overs
+                    this.mouseOverlayBoxMain.clear();
+                    this.mouseOverlayBoxRaw.clear();
+                else
+                    cpSupp = [];
+                    this.mouseOverlayBoxSupp.clear();
+                    %% raw intensity axes
+                    cpRaw = get(this.visHandles.axesRaw,'CurrentPoint');
+                    cpRaw = round(cpRaw(logical([1 1 0; 0 0 0])));
+                    xl = this.visHandles.axesRaw.XLim;
+                    yl = this.visHandles.axesRaw.YLim;
+                    if(cpRaw(1) >= xl(1) && cpRaw(1) <= xl(2) && cpRaw(2) >= yl(1) && cpRaw(2) <= yl(2))
+                        %inside raw intensity axes
+                        set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
+                        data = this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel);
+                        if(~isempty(data))
+                            str = FLIMXFitGUI.num4disp(data(min(size(data,1),cpRaw(2)),min(size(data,2),cpRaw(1))));
+                            this.mouseOverlayBoxRaw.draw(cpRaw,[sprintf('x:%d y:%d',cpRaw(1),cpRaw(2));str]);
+                            this.mouseOverlayBoxRaw.displayBoxOnTop();
                         end
-                        if (this.visHandles.isSettingScale ==-1)
-                            this.visHandles.cursorLineMainHorizontal.YData = [Yval(Xval) Yval(Xval)];
-                        else
-                            this.visHandles.cursorLineMainHorizontal.YData = [NaN NaN];
-                        end
+                        %clear other mouse overs
+                        this.mouseOverlayBoxMain.clear();
+                        this.mouseOverlayBoxSupp.clear();
                     else
-                        this.visHandles.cursorLineMainHorizontal.YData = [NaN NaN];
-                        if( 1.125*cp(1) <= xl(2) && Xval < length(Yval))
-                            this.visHandles.coordinateBoxMain.Position = [cp(1)+0.02*(xl(2)-xl(1)) cp(2)]; %0.005*yl(2)
-                            this.visHandles.coordinateBoxMain.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
-                        elseif (Xval < length(Yval))
-                            this.visHandles.coordinateBoxMain.Position = [cp(1)-0.1*(xl(2)-xl(1)) cp(2)]; %0.005*yl(2)
-                            this.visHandles.coordinateBoxMain.String= {['Time: ', cpStr{1}, 'ns'], ['Counts: ' , num2str(Yval(Xval))]};
-                        end
+                        cpRaw = [];
+                        this.mouseOverlayBoxRaw.clear();
                     end
                 end
             end
-            if(~inSuppAx)
-                set(this.visHandles.editX,'String',num2str(this.currentX));
-                set(this.visHandles.editY,'String',num2str(this.currentY));
-                %update current point edit
-                data = this.axesSuppData;
-                if(~isempty(data))
-                    set(this.visHandles.editCPSupp,'String',FLIMXFitGUI.num4disp(data(min(size(data,1),this.currentY),min(size(data,2),this.currentX))));
-                end
-            end            
-            if(~inMainAx)
-                %if outside of main axes delete all lines and textbox                
-                if(ishandle(this.visHandles.cursorLineMainVertical))
-                    delete(this.visHandles.cursorLineMainVertical)
-                end
-                if(ishandle(this.visHandles.cursorLineMainHorizontal))
-                    delete(this.visHandles.cursorLineMainHorizontal)
-                end
-                if(ishandle(this.visHandles.coordinateBoxMain))
-                    delete(this.visHandles.coordinateBoxMain)
-                end
-                if(ishandle(this.visHandles.cursorLineResiduum))
-                    delete(this.visHandles.cursorLineResiduum)
-                end
-            end
-            if(~inSuppAx && ~inMainAx)
+            if(isempty(cpMain) && isempty(cpSupp) && isempty(cpRaw))
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
             end
             inFunction = []; %enable callback
@@ -1679,88 +1653,168 @@ classdef FLIMXFitGUI < handle
         
         function GUI_mouseButtonUp_Callback(this,hObject,eventdata)
             %executes on clickrelease in window            
-            switch get(hObject,'SelectionType')
-                case 'normal'
-                    this.currentX = max(min(round(abs(str2double(get(this.visHandles.editX,'String')))),this.maxX),1);
-                    this.currentY = max(min(round(abs(str2double(get(this.visHandles.editY,'String')))),this.maxY),1);
-                    if(get(this.visHandles.checkAutoFitPixel,'Value') && ~this.FLIMXObj.curSubject.isPixelResult(this.currentChannel,this.currentY,this.currentX,this.showInitialization))
-                        %automatically fit current pixel when activated
-                        this.menuFitPixel_Callback(this.visHandles.menuFitPixel,[]);
-                    else
-                        this.updateGUI(0);
-                    end
-                    cp = get(this.visHandles.axesCurMain,'CurrentPoint');
-                    cp = cp(logical([1 1 0; 0 0 0]));
-                    this.visHandles.isSettingScale = -1;
-                    xl = xlim(this.visHandles.axesCurMain);
-                    yl= ylim(this.visHandles.axesCurMain);
-                    if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
-                        this.visHandles.editTimeScalEnd.String =  num2str(cp(1)*1000);
-                        val = int64(round(cp(1) ./ this.FLIMXObj.curSubject.timeChannelWidth*1000));
-                        if(abs(val - this.dynVisParams.timeScalingStart) >= 10)
-                            %at least 10 time channels difference
-                            this.dynVisParams.timeScalingEnd = val;
-                            if(val < this.dynVisParams.timeScalingStart)
-                                this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingStart;
-                                this.dynVisParams.timeScalingStart = val;
+            cpMain = get(this.visHandles.axesMain,'CurrentPoint');
+            cpMain = cpMain(logical([1 1 0; 0 0 0]));
+            xl = xlim(this.visHandles.axesMain);
+            yl = ylim(this.visHandles.axesMain);
+            if(cpMain(1) < xl(1) || cpMain(1) > xl(2) || cpMain(2) < yl(1) || cpMain(2) > yl(2))
+                cpMain = [];
+            end
+            %% main axes
+            if(~isempty(cpMain))
+                %xPos = mouse coordinates transformed to dimension of YData
+                tVec = abs(this.FLIMXObj.curSubject.timeVector - cpMain(1));
+                [~,xPos] = min(tVec(:));
+                switch get(hObject,'SelectionType')
+                    case 'normal'                        
+                        if(cpMain(1) >= xl(1) && cpMain(1) <= xl(2) && cpMain(2) >= yl(1) && cpMain(2) <= yl(2))
+                            if(abs(xPos - this.dynVisParams.timeScalingStart) >= 10)
+                                %at least 10 time channels difference
+                                if(xPos < this.dynVisParams.timeScalingStart)
+                                    this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingStart;
+                                    this.dynVisParams.timeScalingStart = uint32(xPos);
+                                else
+                                    this.dynVisParams.timeScalingEnd = uint32(xPos);
+                                end
+                                this.visHandles.editTimeScalStart.String = num2str(this.dynVisParams.timeScalingStart .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
+                                this.visHandles.editTimeScalEnd.String = num2str(this.dynVisParams.timeScalingEnd .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
+                                this.dynVisParams.timeScalingStartOld = this.dynVisParams.timeScalingStart;
+                                this.dynVisParams.timeScalingEndOld = this.dynVisParams.timeScalingEnd;
+                                set(this.visHandles.radioTimeScalManual,'Value', 1);
+                                set(this.visHandles.radioTimeScalAuto,'Value', 0);
+                                this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalManual);
                             else
-                                this.dynVisParams.timeScalingEnd = val;
+                                %abort zoom in main axes
+                                if(ishghandle(this.visHandles.scaleZoomRectangle))
+                                    delete(this.visHandles.scaleZoomRectangle);
+                                end
+                                this.dynVisParams.timeScalingStart = this.dynVisParams.timeScalingStartOld;
+                                this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingEndOld;
+                                this.visHandles.editTimeScalStart.String = num2str(this.dynVisParams.timeScalingStartOld .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
+                                this.visHandles.editTimeScalEnd.String = num2str(this.dynVisParams.timeScalingEndOld .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
                             end
-                            this.visHandles.editTimeScalStart.String = num2str(this.dynVisParams.timeScalingStart .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
-                            this.visHandles.editTimeScalEnd.String = num2str(this.dynVisParams.timeScalingEnd .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
-                            this.dynVisParams.timeScalingStartOld = this.dynVisParams.timeScalingStart;
-                            this.dynVisParams.timeScalingEndOld = this.dynVisParams.timeScalingEnd;
-                            set(this.visHandles.radioTimeScalManual,'Value', 1);
-                            set(this.visHandles.radioTimeScalAuto,'Value', 0);
-                            this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalManual);
-                        else
-                            this.dynVisParams.timeScalingStart = this.dynVisParams.timeScalingStartOld;
-                            this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingEndOld;
-                            this.visHandles.editTimeScalStart.String = num2str(this.dynVisParams.timeScalingStartOld .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
-                            this.visHandles.editTimeScalEnd.String = num2str(this.dynVisParams.timeScalingEndOld .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
+                        end
+                    case 'alt'
+                        %reset zoom in main axes on right click
+                        set(this.visHandles.radioTimeScalManual,'Value', 0);
+                        set(this.visHandles.radioTimeScalAuto,'Value', 1);
+                        this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalAuto);
+                        yVal = this.currentDecayData;
+                        if(xPos > 0 && xPos <= length(yVal) && ~isempty(this.currentDecayData))
+                            this.mouseOverlayBoxMain.draw(cpMain,{sprintf('Time: %04.2fns',xPos.*this.FLIMXObj.curSubject.timeChannelWidth/1000), sprintf('Counts: %d',yVal(xPos))},yVal(xPos));
+                        end
+                end
+            else
+                %no hit on main axes, try supp axes
+                cpSupp = get(this.visHandles.axesSupp,'CurrentPoint');
+                cpSupp = round(cpSupp(logical([1 1 0; 0 0 0])));
+                xl = xlim(this.visHandles.axesSupp);
+                yl = ylim(this.visHandles.axesSupp);
+                if(cpSupp(1) < xl(1) || cpSupp(1) > xl(2) || cpSupp(2) < yl(1) || cpSupp(2) > yl(2))
+                    cpSupp = [];
+                end
+                if(~isempty(cpSupp))
+                    switch get(hObject,'SelectionType')
+                        case 'normal'
+                            set(this.visHandles.editX,'String',num2str(cpSupp(1)));
+                            set(this.visHandles.editY,'String',num2str(cpSupp(2)));
+%                             data = this.axesSuppData;
+%                             if(~isempty(data))
+%                                 str = FLIMXFitGUI.num4disp(data(min(size(data,1),cpSupp(2)),min(size(data,2),cpSupp(1))));
+%                                 this.mouseOverlayBoxSupp.draw(cpSupp,[sprintf('x:%d y:%d',cpSupp(1),cpSupp(2));str]);
+%                             end
+                            this.currentX = max(min(round(abs(str2double(get(this.visHandles.editX,'String')))),this.maxX),1);
+                            this.currentY = max(min(round(abs(str2double(get(this.visHandles.editY,'String')))),this.maxY),1);
+                            if(get(this.visHandles.checkAutoFitPixel,'Value') && ~this.FLIMXObj.curSubject.isPixelResult(this.currentChannel,this.currentY,this.currentX,this.showInitialization))
+                                %automatically fit current pixel when activated
+                                this.menuFitPixel_Callback(this.visHandles.menuFitPixel,[]);
+                            else
+                                this.updateGUI(0);
+                            end
+                    end
+                else
+                    %no hit on supp axes, try raw axes
+                    cpRaw = get(this.visHandles.axesRaw,'CurrentPoint');
+                    cpRaw = round(cpRaw(logical([1 1 0; 0 0 0])));
+                    xl = xlim(this.visHandles.axesRaw);
+                    yl = ylim(this.visHandles.axesRaw);
+                    if(cpRaw(1) < xl(1) || cpRaw(1) > xl(2) || cpRaw(2) < yl(1) || cpRaw(2) > yl(2))
+                        cpRaw = [];
+                    end
+                    if(~isempty(cpRaw))
+                        switch get(hObject,'SelectionType')
+                            case 'normal'
+                                roi = this.FLIMXObj.curSubject.ROICoordinates;
+                                cpRaw(1) = cpRaw(1)-roi(1)+1;
+                                cpRaw(2) = cpRaw(2)-roi(3)+1;
+                                if(cpRaw(1) >= 1 && cpRaw(1) <= this.maxX && cpRaw(2) >= 1 && cpRaw(2) <= this.maxY)
+                                    set(this.visHandles.editX,'String',num2str(cpRaw(1)));
+                                    set(this.visHandles.editY,'String',num2str(cpRaw(2)));
+%                                     data = this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel);
+%                                     if(~isempty(data))
+%                                         str = FLIMXFitGUI.num4disp(data(min(size(data,1),cpRaw(2)),min(size(data,2),cpRaw(1))));
+%                                         this.mouseOverlayBoxRaw.draw(cpRaw,[sprintf('x:%d y:%d',cpRaw(1),cpRaw(2));str]);
+%                                     end
+                                    this.currentX = max(min(round(abs(str2double(get(this.visHandles.editX,'String')))),this.maxX),1);
+                                    this.currentY = max(min(round(abs(str2double(get(this.visHandles.editY,'String')))),this.maxY),1);
+                                    if(get(this.visHandles.checkAutoFitPixel,'Value') && ~this.FLIMXObj.curSubject.isPixelResult(this.currentChannel,this.currentY,this.currentX,this.showInitialization))
+                                        %automatically fit current pixel when activated
+                                        this.menuFitPixel_Callback(this.visHandles.menuFitPixel,[]);
+                                    else
+                                        this.updateGUI(0);
+                                    end
+                                end
+                        end
+                    else
+                        %mouse button was released outside of all axes
+                        switch get(hObject,'SelectionType')
+                            case 'normal'
+                                %abort zoom in main axes
+                                if(ishghandle(this.visHandles.scaleZoomRectangle))
+                                    delete(this.visHandles.scaleZoomRectangle);
+                                end
+                                this.dynVisParams.timeScalingStart = this.dynVisParams.timeScalingStartOld;
+                                this.dynVisParams.timeScalingEnd = this.dynVisParams.timeScalingEndOld;
+                                this.visHandles.editTimeScalStart.String = num2str(this.dynVisParams.timeScalingStartOld .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
+                                this.visHandles.editTimeScalEnd.String = num2str(this.dynVisParams.timeScalingEndOld .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
                         end
                     end
+                end
             end
         end
         
         function GUI_mouseButtonDown_Callback(this,hObject,eventdata)
-            %executes on clicking down in window
+            %executes on clicking down in window            
             switch get(hObject,'SelectionType')
                 case 'normal'
-                    cp = get(this.visHandles.axesCurMain,'CurrentPoint');
+                    cp = get(this.visHandles.axesMain,'CurrentPoint');
                     cp = cp(logical([1 1 0; 0 0 0]));
                     if(any(cp(:) < 0))
+                        %outside main axes
                         return;
                     end
-                    xl = xlim(this.visHandles.axesCurMain);
-                    yl= ylim(this.visHandles.axesCurMain);
+                    xl = xlim(this.visHandles.axesMain);
+                    yl = ylim(this.visHandles.axesMain);
                     if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
-                        if(ishandle(this.visHandles.setScaleStartLine))
-                            delete(this.visHandles.setScaleStartLine)
+                        if(ishghandle(this.visHandles.scaleZoomRectangle))
+                            delete(this.visHandles.scaleZoomRectangle)
                         end
-                        this.visHandles.isSettingScale = 1;
-                        this.visHandles.setScaleStartLine = line([cp(1) cp(1)], ylim(this.visHandles.axesCurMain),'Color' , [0 0.75 0], 'Parent', this.visHandles.axesCurMain);
-                        this.visHandles.editTimeScalStart.String =  num2str(cp(1)./ this.FLIMXObj.curSubject.timeChannelWidth*1000);
-                        this.dynVisParams.timeScalingStart = int64(cp(1)*100*0.82);
+                        this.visHandles.scaleZoomRectangle = rectangle('Position',[cp(1),yl(1),10*this.FLIMXObj.curSubject.timeVector(2),yl(2)-yl(1)],'EdgeColor',[0 0.75 0 this.visualizationParams.plotCoordinateBoxTransparency],'FaceColor',[0 0.75 0 this.visualizationParams.plotCoordinateBoxTransparency],'Parent',this.visHandles.axesMain);
+                        %xPos = mouse coordinates transformed to dimension of YData
+                        tVec = abs(this.FLIMXObj.curSubject.timeVector - cp(1));
+                        [~,xPos] = min(tVec(:));
+                        this.dynVisParams.timeScalingStart = uint32(xPos);
+                        this.visHandles.editTimeScalStart.String = num2str(xPos .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
                     end
-                case 'alt'
-                    set(this.visHandles.radioTimeScalManual,'Value', 0);
-                    set(this.visHandles.radioTimeScalAuto,'Value', 1);
-                    this.GUI_radioTimeScal_Callback(this, this.visHandles.radioTimeScalAuto);
             end
         end
 
         
-        %% menu callbacks        
-%         function menuImportResult_Callback(this,hObject,eventdata)
-%             %call of load result menu item
-%             this.openResultFile();
-%         end
-
+        %% menu callbacks
         function menuExportFiles_Callback(this,hObject,eventdata)
             %write results to disc (again)
             expDir = uigetdir(this.FLIMXObj.getWorkingDir());
-            if(isempty(expDir))
+            if(isempty(expDir) || ~expDir)
                 return
             end
             %save to disc
@@ -2260,21 +2314,15 @@ classdef FLIMXFitGUI < handle
             this.visHandles.roiPlotCPYLine = [];
             
             %set defaut axes
-            this.visHandles.axesCurMain = this.visHandles.axesMain;
-            this.visHandles.axesCurSupp = this.visHandles.axesSupp;
             axis(this.visHandles.axesMain,'off');
             axis(this.visHandles.axesRaw,'off');
             axis(this.visHandles.axesSupp,'off');
             axis(this.visHandles.axesRes,'off');
             axis(this.visHandles.axesResHis,'off');
                         
-            %set objects for mainax
-            this.visHandles.cursorLineMainVertical = -1; %cursorline in mainax
-            this.visHandles.cursorLineMainHorizontal = -1; %cursorline in mainax
-            this.visHandles.cursorLineResiduum = -1; %cursorline in axesres
-            this.visHandles.setScaleStartLine = -1; %startline when clicking down
-            this.visHandles.isSettingScale = -1; %variable to help identify whether the scale is getting set by clicking right now
-            this.visHandles.coordinateBoxMain = -1; %Textbox that displays coordinates of Datapoints in the Mainax
+            %set handles for zoom in main axes and current mouse position in residdum
+            this.visHandles.cursorLineResiduum = []; %cursorline in axesres
+            this.visHandles.scaleZoomRectangle = []; %rectangle when mouse button down for zoom
             
             %set callbacks
             set(this.visHandles.FLIMXFitGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback, 'WindowButtonDownFcn', @this.GUI_mouseButtonDown_Callback);
@@ -2378,6 +2426,10 @@ classdef FLIMXFitGUI < handle
             
             this.axesRawMgr = axesWithROI(this.visHandles.axesRaw,this.visHandles.axesCbRaw,this.visHandles.textCbRawBottom,this.visHandles.textCbRawTop,this.visHandles.editCPRaw,this.dynVisParams.cmIntensity);
             this.axesROIMgr = axesWithROI(this.visHandles.axesSupp,this.visHandles.axesCbSupp,this.visHandles.textCbSuppBottom,this.visHandles.textCbSuppTop,this.visHandles.editCPSupp,this.dynVisParams.cm);
+            this.mouseOverlayBoxMain = mouseOverlayBox(this.visHandles.axesMain);
+            this.mouseOverlayBoxMain.setVerticalBoxPositionMode(0);
+            this.mouseOverlayBoxSupp = mouseOverlayBox(this.visHandles.axesSupp);
+            this.mouseOverlayBoxRaw = mouseOverlayBox(this.visHandles.axesRaw);
             
 %             this.setupGUI();
 %             this.updateGUI(true);
@@ -2428,7 +2480,7 @@ classdef FLIMXFitGUI < handle
                     xlim(hAx,[xAxis(1) xAxis(end)]);
                 end
             catch ME
-                warning('FLIMXFitGUI:makeVerticalLinePlot',ME.message);
+                warning('FLIMXFitGUI:makeVerticalLinePlot','%s',ME.message);
                 return
             end
             if(~isempty(legendName))
@@ -2503,7 +2555,7 @@ classdef FLIMXFitGUI < handle
         end
         
         function makeLegend(hAx,lStr)
-            legend(hAx,lStr);
+            legend(hAx,lStr,'AutoUpdate','off');
         end
     end %methods(Static)
     

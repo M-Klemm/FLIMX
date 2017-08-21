@@ -31,13 +31,14 @@ classdef importWizard < handle
     %
     % @brief    A class to handle the GUI to import of time resolved fluorescence data
     %
-    properties(GetAccess = public, SetAccess = private)
+    properties(GetAccess = protected, SetAccess = private)
         FLIMXObj = [];
         visHandles = [];
         buttonDown = false; %flags if mouse button is pressed
         finalROIVec = [];
         measurementObj = [];
         axesMgr = [];
+        mouseOverlay = [];
         isDirty = false(1,5); %flags which part was changed, 1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo
     end
     
@@ -390,7 +391,9 @@ classdef importWizard < handle
             if(isempty(cm))
                 cm = gray(256);
             end
-            this.axesMgr = axesWithROI(this.visHandles.axesROI,this.visHandles.axesCb,this.visHandles.textCbBottom,this.visHandles.textCbTop,this.visHandles.editCP,cm);
+            this.axesMgr = axesWithROI(this.visHandles.axesROI,this.visHandles.axesCb,this.visHandles.textCbBottom,this.visHandles.textCbTop,[],cm);
+            this.axesMgr.setColorMapPercentiles(this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileLB,this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileUB);
+            this.mouseOverlay = mouseOverlayBox(this.visHandles.axesROI);
         end
         
         function setSubject(this,study,subject)
@@ -750,18 +753,8 @@ classdef importWizard < handle
         
         function GUI_mouseMotion_Callback(this, hObject, eventdata)
             %executes on mouse move in window
-%             if(this.roiMode ~= 3)
-%                 return;
-%             end
             cp = get(this.visHandles.axesROI,'CurrentPoint');
-            cp = cp(logical([1 1 0; 0 0 0]));
-            if(any(cp(:) < 0))
-                set(this.visHandles.importWizardFigure,'Pointer','arrow');
-                this.editFieldROIVec = this.finalROIVec;
-                this.updateROIControls([]);
-                return;
-            end
-            cp=fix(cp+0.52);
+            cp = round(cp(logical([1 1 0; 0 0 0])));
             if(cp(1) >= 1 && cp(1) <= this.myMeasurement.getRawYSz() && cp(2) >= 1 && cp(2) <= this.myMeasurement.getRawXSz())
                 %inside axes
                 set(this.visHandles.importWizardFigure,'Pointer','cross');
@@ -777,13 +770,16 @@ classdef importWizard < handle
                 end
                 %update current point field
                 raw = this.myMeasurement.getRawDataFlat(this.currentChannel);
-                if(~isempty(raw))    
-                    set(this.visHandles.editCP,'String',num2str(raw(cp(2),cp(1))));
+                if(~isempty(raw))
+                    str = FLIMXFitGUI.num4disp(raw(min(size(raw,1),cp(2)),min(size(raw,2),cp(1))));
+                    this.mouseOverlay.draw(cp,[sprintf('x:%d y:%d',cp(1),cp(2));str]);
+                    this.mouseOverlay.displayBoxOnTop();
                 end
             else
                 set(this.visHandles.importWizardFigure,'Pointer','arrow');
                 this.editFieldROIVec = this.finalROIVec;
                 this.updateROIControls([]);
+                this.mouseOverlay.clear();
             end
         end
         
@@ -807,9 +803,8 @@ classdef importWizard < handle
             this.isDirty(1) = true; %flags which part was changed, 1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo
             this.updateROIControls([]);
         end
-            
-            
     end
+    
     methods(Static)
         function roi = getAutoROI(imgFlat,roiBinning)
             %try to determine a reasonable ROI
@@ -854,7 +849,6 @@ classdef importWizard < handle
             else
                 return
             end
-        end
-        
+        end        
     end %methods(Static)
 end

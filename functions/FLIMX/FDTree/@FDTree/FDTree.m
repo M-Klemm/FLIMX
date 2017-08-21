@@ -31,7 +31,8 @@ classdef FDTree < handle
     %
     % @brief    A class to handle FLIMX studies and subjects
     %
-    properties(SetAccess = protected,GetAccess = public)
+    properties(SetAccess = protected,GetAccess = protected)
+        myFileLock = [];
         myParent = [];
         myDir = '';             %FStudyMgr's working directory
         myStudies = [];         %list of studies
@@ -50,16 +51,22 @@ classdef FDTree < handle
     
     methods
         function this = FDTree(parent,rootDir)
-            % Constructor for FStudyMgr.
-            this.myParent = parent;
-            this.myStudies = LinkedList();
-            this.myViewsMerged = subjectDS(this,'GlobalMergedSubjects');
-            this.myClusterTargets = LinkedList();
-            this.saveMaxMem = this.getSaveMaxMemFlag();
+            % Constructor for FDTree
             this.myDir = fullfile(rootDir,'studyData');
             if(~isdir(this.myDir))
                 mkdir(this.myDir);
             end
+            %try to establish the lock file
+            this.myFileLock = fileLock(fullfile(this.myDir,'file.lock'));
+            if(~this.myFileLock.isLocked)
+                delete(this.myFileLock);
+                error('FLIMX:FDTree','Could not establish file lock for database');                
+            end
+            this.myParent = parent;
+            this.myStudies = LinkedList();
+            this.myViewsMerged = subjectDS(this,'GlobalMergedSubjects');
+            this.myClusterTargets = LinkedList();
+            this.saveMaxMem = this.getSaveMaxMemFlag();            
             %Add default study as container for not assigned subjects
             if(this.myStudies.queueLen == 0)
                 this.addStudy('Default');
@@ -185,69 +192,36 @@ classdef FDTree < handle
             end
         end
         
-        function importStudy(this,entry,fn)
-            %import study from export file
-            i=1;
-            while(true)
-                import = load(fn,sprintf('study%d',i));
-                if(isempty(import))
-                    %import should not be empty
-                    break
+        function importStudy(this,newStudyName,fn)
+            %import study from export file(s)
+            %check if we have this study already
+            if(any(strcmp(this.getStudyNames,newStudyName)))
+                %ask user
+                return
+            end
+            studyDir = fullfile(this.myDir,newStudyName);
+            if(~exist(studyDir,'dir'))
+                mkdir(studyDir);
+            end
+            if(~iscell(fn))
+                fn = {fn};
+            end
+            for i = 1:length(fn)
+                %load all files without any sanity checks
+                unzip(fn{i},studyDir)
+            end
+            %check studyData.mat
+            sdFile = fullfile(studyDir,'studyData.mat');
+            if(exist(sdFile,'file'))
+                export = load(sdFile,'-mat');
+                export = export.export;
+                if(~strcmp(export.name,newStudyName))
+                    %update study name
+                    export.name = newStudyName;
+                    save(sdFile,'export','-mat');
                 end
-                eval(sprintf('impStudy = import.study%d;',i));                
-                if(strcmp(entry,impStudy.study.name))
-                    %we found study for import in export file
-                    h_wait = waitbar(0,sprintf('Loading study ''%s'' for import',entry));
-                    %add study to FDTree
-                    tStart = clock;
-                    this.addStudy(entry);
-                    %check study revision
-                    if(impStudy.study.revision ~= this.getStudyRevision(entry))
-                        %version problem
-                        impStudy.study = this.updateStudyVer(entry,impStudy.study);
-                    end
-                    nSubjects = length(impStudy.study.subjects);                    
-                    newStudy = this.getStudy(entry);
-                    %import study data
-                    newStudy.removeColumn('column 1');
-                    for i = 1:length(impStudy.study.subjectInfoHeaders)
-                        newStudy.myStudyInfoSet.addColumn(impStudy.study.subjectInfoHeaders{i});
-                        newStudy.setSubjectInfoCombi(impStudy.study.subjectInfoCombi(i),i);
-                    end
-                    for j=1:nSubjects
-                        %import subjects
-                        subjectID = impStudy.study.subjects{j};
-                        data = [];                        
-                        data.subjectInfoHeaders = impStudy.study.subjectInfoHeaders;
-                        data.subjectFiles = impStudy.study.subjectFiles(j,:);
-                        data.subjectScalings = impStudy.study.subjectScalings(j);
-                        data.subjectCuts = impStudy.study.subjectCuts(j);
-                        data.subjectInfo = impStudy.study.subjectInfo(j,:);
-                        data.allFLIMItems = impStudy.study.allFLIMItems(j);
-                        data.selFLIMItems = impStudy.study.selFLIMItems(j);
-                        newStudy.insertSubject(subjectID,data);                        
-                        %import according files
-                        files = impStudy.files{j};
-                        for ch=1:length(files)
-                            newDir = fullfile(newStudy.myDir,subjectID);
-                            if(~isdir(newDir))
-                                mkdir(newDir);
-                            end
-                            sfile = sprintf('result_ch%02d.mat',ch);
-                            path = fullfile(newStudy.myDir,subjectID,sfile);
-                            result = files{ch};
-                            save(path,'result');
-                        end
-                        newStudy.save();                        
-                        %update waitbar
-                        [hours, minutes, secs] = secs2hms(etime(clock,tStart)/j*(nSubjects-j)); %mean cputime for finished runs * cycles left
-                        waitbar(j/nSubjects,h_wait,sprintf('Time left: %dh %dmin %.0fsec - Importing ''%s''',hours,minutes,secs,entry));
-                    end %end for (study data)
-                    close(h_wait);
-                    break %study imported
-                end
-                i = i+1;
-            end %end while
+            end
+            this.addStudy(newStudyName);            
         end
         
         function addSubject(this,studyID,subjectID)
@@ -1253,20 +1227,50 @@ classdef FDTree < handle
         end
         
         function exportStudies(this,list,fn)
-            %export selected studies to file
-            export = [];
-            for i = 1:length(list)
+            %export selected studies (including measurements and results) into one file per study
+            nStudies = length(list);            
+            h_wait = waitbar(0,'Exporting studies...');
+            for i = 1:nStudies
                 study = this.getStudy(list{i});
                 if(isempty(study))
                     continue
                 end
-                [export.study, export.files] = study.save();
-                v = genvarname(sprintf('study%d',i));
-                eval([v ' = export;']);
-                %save to file
-                nStudies = i;
-                save(fn,v,'nStudies','-append');
+                waitbar((i-1)/nStudies,h_wait,sprintf('Preparing study ''%s'' for export...',list{i}));
+                if(study.isDirty)
+                    %save changes to study (to do: ask user? at least display meassage?!)
+                    study.save();
+                end
+                [pathstr,exportName,ext] = fileparts(fn);
+                exportName = [exportName '~FLIMX~' list{i}];
+                waitbar((i-1)/nStudies+0.25/nStudies,h_wait,sprintf('Checking size of study ''%s''...',list{i}));
+                siz = DirSize(study.myDir);
+                waitbar((i-1)/nStudies+0.5/nStudies,h_wait,sprintf('Exporting study ''%s''...',list{i}));
+                th = 4*1024^3-1024^2; %1 MB safety margin
+                %if directory is larger than 4GB -> split it into parts
+                subjects = dir(study.myDir);
+                subjects = subjects(~strncmp({subjects.name},'.',1));
+                for j = 1:length(subjects)
+                    if(subjects(j).bytes == 0)
+                        subjects(j).bytes = DirSize(fullfile(study.myDir,subjects(j).name));
+                    end
+                end
+                cumBytes = cumsum([subjects.bytes]);
+                nParts = ceil(siz / th);
+                for j = 1:nParts
+                    thIdx = cumBytes >= (j-1)*th & cumBytes < j*th;
+                    zipFn = fullfile(pathstr,[exportName '#' sprintf('%03d%s',j,'.zip')]);
+                    try
+                        zip(zipFn,{subjects(thIdx).name},study.myDir);
+                        %rename zip file to .flimxstudy
+                        movefile(zipFn,fullfile(pathstr,[exportName '#' sprintf('%03d%s',j,ext)]));
+                    catch ME
+                        warndlg(ME.message,'Error creating file');
+                    end
+                    waitbar((i-1)/nStudies+0.5/nStudies+0.5*j/nStudies/nParts,h_wait,sprintf('Exporting study ''%s''...',list{i}));
+                end
+                waitbar(i/nStudies,h_wait,sprintf('Finished.'));
             end %for-end
+            close(h_wait);
         end
         
         function exportXLS(this,studyID,file)

@@ -688,7 +688,7 @@ classdef FluoDecayFit < handle
             kernel = @median;
             if(this.cleanupFitParams.filterType == 1)
                 kernel = @mean;
-            end
+            end            
             fs = this.cleanupFitParams.filterSize;
             for chIdx = chList
                 for i = 1:size(data,1)
@@ -701,7 +701,7 @@ classdef FluoDecayFit < handle
                     end
                 end
             end
-            secStageParams.pixelPool = unique(secStageParams.pixelPool);                       
+            secStageParams.pixelPool = unique(secStageParams.pixelPool);
             %initialzation
             secStageParams.iVec = zeros(apObj.getVolatileChannelParams(chList(1)).nApproxParamsPerCh,length(secStageParams.pixelPool),length(chList));
             xArray = zeros(apObj.volatilePixelParams.nModelParamsPerCh,length(chList));%apObj.volatilePixelParams.nApproxParamsAllCh %apObj.getVolatileChannelParams(chList(1)).nApproxParamsPerCh

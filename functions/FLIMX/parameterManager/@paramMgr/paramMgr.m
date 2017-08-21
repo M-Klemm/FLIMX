@@ -57,7 +57,7 @@ classdef paramMgr < handle
         
         %% input methods 
         function goOn = setParamSection(this,sStr,new,resetResults)
-            %set a parameter section to new values, save to disk if writeFlag == true
+            %set a parameter section to new values
             if(~isstruct(new) || ~ischar(sStr)) %isempty(this.data) ||
                 %no sucess
                 return
@@ -123,12 +123,12 @@ classdef paramMgr < handle
         end
                 
         function out = get.initFitParams(this)
-            %make fitParams struct
+            %get pixel fit parameters
             out = this.getParamSection('init_fit');
         end
         
         function out = get.pixelFitParams(this)
-            %make fitParams struct
+            %get pixel fit parameters
             out = this.getParamSection('pixel_fit');
         end
         
@@ -142,16 +142,51 @@ classdef paramMgr < handle
             params = this.getParamSection('bounds');
         end
         
-%         function params = get.volatilePixelParams(this)
-%             %get bounds
-%             params = this.getParamSection('volatilePixel');
-%         end
+        function set.generalParams(this,val)
+            %set general parameters
+            this.setParamSection('general',val);
+        end
         
-%         function params = getVolatileChannelParams(this,ch)
-%             %get volatileChannelParams, all channels if ch = 0
-%             params = this.getParamSection('volatileChannel',ch);
-%         end
+        function set.computationParams(this,val)
+            %set computation parameters
+            this.getParamSection('computation',val);
+        end
         
+        function set.cleanupFitParams(this,val)
+            %set cleanup fit parameters
+            this.getParamSection('cleanup_fit',val);
+        end
+        
+        function set.preProcessParams(this,val)
+            %set pre processing parameters
+            this.getParamSection('pre_processing',val);
+        end
+        
+        function set.basicParams(this,val)
+            %set basic fit parameters
+            this.getParamSection('basic_fit',val);
+        end
+                
+        function set.initFitParams(this,val)
+            %set init fit parameters
+            this.getParamSection('init_fit',val);
+        end
+        
+        function set.pixelFitParams(this,val)
+            %set pixel fit parameters
+            this.getParamSection('pixel_fit',val);
+        end
+        
+        function set.optimizationParams(this,val)
+            %set optimization parameters
+            this.getParamSection('optimization',val);
+        end
+        
+        function set.boundsParams(this,val)
+            %set bounds
+            this.getParamSection('bounds',val);
+        end
+                
         function def = getDefaults(this)
             %get default FluoDecayFit parameters
             def.about.config_revision = this.about.config_revision;
@@ -329,7 +364,7 @@ classdef paramMgr < handle
             
             def.bounds_1_exp.init               =	[1  500];
             def.bounds_1_exp.lb                 =	[0.01           10];
-            def.bounds_1_exp.deQuantization     =	[0.01           5];
+            def.bounds_1_exp.deQuantization     =	[0.001           5];
             def.bounds_1_exp.simplexInit        =	[0.3           200];
             def.bounds_1_exp.tol                =	[0.001         0.1];
             def.bounds_1_exp.ub                 =	[1  10000];
@@ -337,8 +372,8 @@ classdef paramMgr < handle
             def.bounds_1_exp.initGuessFactor    =   [0      1];
             
             def.bounds_2_exp.init               =	[1            0.5           500           2000];
-            def.bounds_2_exp.lb                 =	[0.1          0.1            10           100];
-            def.bounds_2_exp.deQuantization     =	[0.1          0.1            10           50];
+            def.bounds_2_exp.lb                 =	[0.0005          0.0001            10           100];
+            def.bounds_2_exp.deQuantization     =	[0.001          0.0001            10           50];
             def.bounds_2_exp.simplexInit        =	[0.3           0.3           100           500];
             def.bounds_2_exp.tol                =	[0.01         0.01            1           5];
             def.bounds_2_exp.ub                 =	[1     1  10000  10000];
@@ -346,7 +381,7 @@ classdef paramMgr < handle
             def.bounds_2_exp.initGuessFactor    =   [0     0     0.05    0.2];
             
             def.bounds_3_exp.init               =	[0.8            0.15            0.05            100            500           2000];
-            def.bounds_3_exp.lb                 =	[0.4             0.1             0.01            10           100           500];
+            def.bounds_3_exp.lb                 =	[0.0005             0.0001             0.0001            10           100           500];
             def.bounds_3_exp.deQuantization     =	[0.01         0.01         0.005            5            50           100];
             def.bounds_3_exp.simplexInit        =	[0.15          0.1          0.05            100           500           1500];
             def.bounds_3_exp.tol                =	[0.01         0.01        0.005            1           5           10];
@@ -589,16 +624,21 @@ classdef paramMgr < handle
             def.filtering.ifilter_size	=	3;
             def.filtering.ifilter_type	=	2;
             
-            def.general.openFitGUIonStartup = 1;
-            def.general.openVisGUIonStartup = 1;
-            def.general.windowSize          = 1; %1: medium, 2: small, 3: large (fullHD)
-            def.general.cmIntensityType     = 'gray|';
-            def.general.cmIntensityInvert   = 0;
-            def.general.cmType              = 'jet|';
-            def.general.cmInvert            = 1;
-            def.general.saveMaxMem          = 0;
-            def.general.flimParameterView   = 1; %1: simple, 2: expert, 3: all
-            def.general.reverseYDir         = 0;
+            def.general.openFitGUIonStartup     = 1;
+            def.general.openVisGUIonStartup     = 1;
+            def.general.autoWindowSize          = 1; %0: manual, 1: automatic window size
+            def.general.windowSize              = 1; %1: medium, 2: small, 3: large (fullHD)
+            def.general.cmIntensityType         = 'gray|';
+            def.general.cmIntensityInvert       = 0;
+            def.general.cmIntensityPercentileLB = 0.1;
+            def.general.cmIntensityPercentileUB = 98;
+            def.general.cmType                  = 'jet|';
+            def.general.cmInvert                = 1;            
+            def.general.cmPercentileLB          = 0.1;
+            def.general.cmPercentileUB          = 98;
+            def.general.saveMaxMem              = 0;
+            def.general.flimParameterView       = 1; %1: simple, 2: expert, 3: all
+            def.general.reverseYDir             = 0;
         end
 
     end %methods

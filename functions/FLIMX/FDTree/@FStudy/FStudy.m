@@ -714,36 +714,13 @@ classdef FStudy < handle
         end
         
         %% output functions
-        function [export, files] = save(this)
+        function save(this)
             %save current study data to disk
             export = this.myStudyInfoSet.makeExportStruct([]);
             export.name = this.name;
             export.revision = this.revision;
-            if(nargout == 0)
-                save(fullfile(this.myDir,'studyData.mat'),'export');
-                this.isDirty = false;
-            else
-                files = [];
-                %get data of subjects
-                if(~isfield(export,'subjects'))
-                    return
-                end
-                tStart = clock;
-                files = cell(length(export.subjects),1);
-                for j = 1:length(export.subjects)
-                    %get according files for the export file
-                    chNrs = cell2mat(export.subjectFiles(j,:));
-                    data = cell(length(chNrs),0);   %reset data
-                    for k=1:length(chNrs)
-                        data(k) = {this.getResultObj(export.subjects{j},chNrs(k))};
-                    end
-                    files(j,1) = {data};
-                    %update waitbar
-                    [~, minutes, secs] = secs2hms(etime(clock,tStart)/j*(length(export.subjects)-j)); %mean cputime for finished runs * cycles left
-                    this.updateLongProgress(j/length(export.subjects),sprintf('Time left: %dmin %.0fsec - Exporting ''%s''',minutes,secs,this.name));
-                end
-                this.updateLongProgress(0,'');
-            end
+            save(fullfile(this.myDir,'studyData.mat'),'export');
+            this.isDirty = false;
         end
         
         function out = getStatsParams(this)

@@ -79,7 +79,7 @@ classdef FLIMX < handle
             %parameters from ini file
             warning('off','parallel:gpu:DeviceCapabiity');
             %make lower level objects
-            this.paramMgr = FLIMXParamMgr(this,FLIMX.getVersionInfo());
+            this.paramMgr = FLIMXParamMgr(this,FLIMX.getVersionInfo());            
             this.irfMgr = IRFMgr(this,fullfile(FLIMX.getWorkingDir(),'data'));
             this.updateSplashScreenProgressLong(0.3,'Building data tree structure...');
             this.fdt = FDTree(this,FLIMX.getWorkingDir()); %replace with path from config?!
@@ -93,6 +93,10 @@ classdef FLIMX < handle
                 params = 0;
             end
             this.fdt.setDataSmoothFilter(alg,params);
+            %set window size
+            if(this.paramMgr.generalParams.autoWindowSize)
+                this.paramMgr.generalParams.windowSize = FLIMX.getAutoWindowSize();
+            end
             %load a subject
             this.updateSplashScreenProgressLong(0.5,'Loading first subject...');
             subs = this.fdt.getSubjectsNames('Default',FDTree.defaultConditionName());
@@ -105,7 +109,6 @@ classdef FLIMX < handle
             this.updateSplashScreenProgressLong(0.7,'Opening MATLAB pool...');
             this.openMatlabPool();
             this.updateSplashScreenProgressShort(0,'');
-            
         end
         
         function openFLIMXFitGUI(this)
@@ -125,9 +128,9 @@ classdef FLIMX < handle
             if(computationParams.useMatlabDistComp > 0 && isempty(p))
                 %start local matlab workers
                 this.splashScreenGUIObj.updateProgressShort(0.5,sprintf('MATLAB pool workers can be disabled in Settings -> Computation'));
-                try                    
-                    p = parpool('local',feature('numCores')); 
-                    this.splashScreenGUIObj.updateProgressShort(1,'Trying to open pool of MATLAB workers - done');  
+                try
+                    p = parpool('local',feature('numCores'));
+                    this.splashScreenGUIObj.updateProgressShort(1,'Trying to open pool of MATLAB workers - done');
                     %p.IdleTimeout = 0;
                 catch ME
                     if(ishandle(hwb))
@@ -155,7 +158,7 @@ classdef FLIMX < handle
             p = gcp('nocreate');
             if(~isempty(p))
                 %delete idle timer object
-                try 
+                try
                     delete(this.matlabPoolTimer);
                 catch
                 end
@@ -198,14 +201,13 @@ classdef FLIMX < handle
                             this.sDDMgrObj.saveAll();
                         case 'No'
                             %load unmodified parameter sets
-                            %                         this.FLIMXObj.sDDMgr.deleteAllSDDs();
                             this.sDDMgrObj.scanForSDDs();
                     end
                 end
                 %close remaining GUIs
                 if(~isempty(this.studyMgrGUIObj))
                     this.studyMgrGUIObj.menuExit_Callback();
-                end                
+                end
                 if(~isempty(this.batchJobMgrGUIObj))
                     this.batchJobMgrGUIObj.menuExit_Callback();
                 end
@@ -462,11 +464,24 @@ classdef FLIMX < handle
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
-            out.config_revision = 260;
-            out.client_revision = 370;
+            out.config_revision = 262;
+            out.client_revision = 375;
             out.core_revision = 364;
             out.results_revision = 256;
             out.measurement_revision = 204;
+        end
+        
+        function out = getAutoWindowSize()
+            %determine best window size for current display and set it
+            set(0,'units','pixels');
+            ss = get(0,'screensize');
+            if(ss(3) >= 1750 && ss(4) >= 1050)
+                out = 3; %large
+            elseif(ss(3) < 1750 && ss(3) >= 1400 && ss(4) >= 900)
+                out = 1; %medium
+            else %ss(3) < 1720 && ss(4) < 768)
+                out = 2; %small
+            end
         end
         
         function MatlabPoolIdleFcn()
@@ -846,29 +861,56 @@ classdef FLIMX < handle
                 '      notice, this list of conditions and the following disclaimer in ';
                 '      the documentation and/or other materials provided with the distribution';
                 char(13);
-                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"'
-                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE'
-                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE'
-                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE'
-                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR'
-                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF'
-                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS'
-                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN'
-                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)'
-                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE'
-                'POSSIBILITY OF SUCH DAMAGE.'
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
+                'POSSIBILITY OF SUCH DAMAGE.';
                 
                 char(10);
                 'This software uses the color maps ''Magma'', ''Inferno'', ''Plasma'', ''Virirdis'' by Nathaniel Smith & Stefan van der Walt from https://bids.github.io/colormap, which is covered by the following license:';
-                'CC0 1.0 Universal'
-                'No Copyright'
+                'CC0 1.0 Universal';
+                'No Copyright';
                 char(13);                
-                'mpl-colormaps by Nathaniel Smith & Stefan van der Walt'                
-                'To the extent possible under law, the persons who associated CC0 with'
-                'mpl-colormaps have waived all copyright and related or neighboring rights'
-                'to mpl-colormaps.'                
-                'You should have received a copy of the CC0 legalcode along with this'
-                'work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.'
+                'mpl-colormaps by Nathaniel Smith & Stefan van der Walt' ;               
+                'To the extent possible under law, the persons who associated CC0 with';
+                'mpl-colormaps have waived all copyright and related or neighboring rights';
+                'to mpl-colormaps.';
+                'You should have received a copy of the CC0 legalcode along with this';
+                'work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.';
+                                
+                char(10);
+                'This software uses ''DirSize'' by Richard Moore from https://de.mathworks.com/matlabcentral/fileexchange/41300-dirsize, which is covered by the following license:';
+                'Copyright (c) 2013, Richard Moore';
+                'All rights reserved.';
+                char(13);                
+                'Redistribution and use in source and binary forms, with or without';
+                'modification, are permitted provided that the following conditions are';
+                'met:';
+                char(13);
+                '   * Redistributions of source code must retain the above copyright';
+                '     notice, this list of conditions and the following disclaimer.';
+                '   * Redistributions in binary form must reproduce the above copyright';
+                '     notice, this list of conditions and the following disclaimer in';
+                '     the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE';
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE';
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE';
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR';
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF';
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS';
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN';
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
+                'POSSIBILITY OF SUCH DAMAGE.';
                 
                 };
         end
