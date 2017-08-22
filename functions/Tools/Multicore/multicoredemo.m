@@ -164,7 +164,10 @@ if runWithoutSlaves
   settingsTemp = settings;
   settingsTemp.multicoreDir = multicoreDir2;
   if ~exist(multicoreDir2, 'dir')
-    mkdir(multicoreDir2);
+      [status, message, ~] = mkdir(multicoreDir2);
+      if(~status)
+          error('multicore:multicoredemo','Unable to create directory %s.\n%s',multicoreDir2,message);
+      end
   end
   
   % Call function STARTMULTICOREMASTER.

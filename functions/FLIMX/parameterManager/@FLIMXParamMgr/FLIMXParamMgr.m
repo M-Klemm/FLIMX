@@ -61,9 +61,9 @@ classdef FLIMXParamMgr < paramMgr
             %read config information from disk
             if(~isempty(this.fileName))
                 ini = paramMgr.ini2struct(this.fileName);
-                if(isempty(ini))
-                    uiwait(warndlg('config.ini empty or not found! Using defaults instead.','config.ini not found!','modal'));
-                end
+%                 if(isempty(ini))
+%                     uiwait(warndlg('config.ini empty or not found! Using defaults instead.','config.ini not found!','modal'));
+%                 end
             else
                 ini = [];
             end
@@ -255,9 +255,13 @@ classdef FLIMXParamMgr < paramMgr
             if(ini_isdirty && ~isempty(this.fileName))
                 %check if dir for config exists - if not: create it
                 idx = strfind(this.fileName,filesep);
-                if(~isdir(this.fileName(1:idx(end)-1)))
-                    mkdir(this.fileName(1:idx(end)-1));
-                end                
+                pathstr = this.fileName(1:idx(end)-1);
+                if(~isdir(pathstr))
+                    [status, message, ~] = mkdir(pathstr);
+                    if(~status)
+                        error('FLIMX:FLIMXParamMgr:readConfig','Could not create config folder: %s\n%s',pathstr,message);
+                    end
+                end
                 paramMgr.struct2ini(this.fileName,checkStructConsistency(ini,this.getDefaults()));
                 disp('Config update was successful.');
             end

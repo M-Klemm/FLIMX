@@ -54,19 +54,22 @@ classdef FDTree < handle
             % Constructor for FDTree
             this.myDir = fullfile(rootDir,'studyData');
             if(~isdir(this.myDir))
-                mkdir(this.myDir);
+                [status, message, ~] = mkdir(this.myDir);
+                if(~status)
+                    error('FLIMX:FDTree:createStudyDataFolder','Could not create studyData folder: %s\n%s',this.myDir,message);
+                end
             end
             %try to establish the lock file
             this.myFileLock = fileLock(fullfile(this.myDir,'file.lock'));
             if(~this.myFileLock.isLocked)
                 delete(this.myFileLock);
-                error('FLIMX:FDTree','Could not establish file lock for database');                
+                error('FLIMX:FDTree:fileLock','Could not establish file lock for database');
             end
             this.myParent = parent;
             this.myStudies = LinkedList();
             this.myViewsMerged = subjectDS(this,'GlobalMergedSubjects');
             this.myClusterTargets = LinkedList();
-            this.saveMaxMem = this.getSaveMaxMemFlag();            
+            this.saveMaxMem = this.getSaveMaxMemFlag();
             %Add default study as container for not assigned subjects
             if(this.myStudies.queueLen == 0)
                 this.addStudy('Default');
@@ -74,7 +77,7 @@ classdef FDTree < handle
             try
                 this.setShortProgressCallback(@parent.updateSplashScreenProgressShort);
             end
-            this.scanForStudies();            
+            this.scanForStudies();
         end
         
         function removeObj(this,studyID,subjectID,chan,dType,id)
@@ -173,7 +176,10 @@ classdef FDTree < handle
             end
             sDir = fullfile(this.myDir,name);
             if(~isdir(sDir))
-                mkdir(sDir);
+                [status, message, ~] = mkdir(sDir);
+                if(~status)
+                    error('FLIMX:FDTree:addStudy','Could not create study folder: %s\n%s',sDir,message);
+                end
             end
             this.myStudies.insertID(FStudy(this,sDir,name),name);
             %try to load the study data
@@ -201,7 +207,10 @@ classdef FDTree < handle
             end
             studyDir = fullfile(this.myDir,newStudyName);
             if(~exist(studyDir,'dir'))
-                mkdir(studyDir);
+                [status, message, ~] = mkdir(studyDir);
+                if(~status)
+                    error('FLIMX:FDTree:importStudy','Could not create study folder: %s\n%s',studyDir,message);
+                end
             end
             if(~iscell(fn))
                 fn = {fn};

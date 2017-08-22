@@ -41,8 +41,8 @@ classdef studyMgr < handle
         lastAddedSubject = ''; %name last added subject
         stop = false;
         FLIMXObj = []; %handle to FLIMVis
-        lastStudyPath = [];
-        lastImportPath = [];
+        lastStudyPath = '';
+        lastImportPath = '';
         selectedSubjects = [];
         selectedInfoField = [];
     end
@@ -59,7 +59,10 @@ classdef studyMgr < handle
             %constructor for studyMgr
             this.myDir = myDir;
             if(~isdir(myDir))
-                mkdir(myDir);
+                [status, message, ~] = mkdir(myDir);
+                if(~status)
+                    error('FLIMX:studyMgr','Could not create study manager working directory %s.\n%s',myDir,message);
+                end
             end
             this.FLIMXObj = flimX;
             this.lastStudyPath = flimX.getWorkingDir();

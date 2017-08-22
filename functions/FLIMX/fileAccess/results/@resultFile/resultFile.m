@@ -626,42 +626,13 @@ classdef resultFile < handle
             fn = this.getResultFileName(ch,fn);
             [pathstr, ~, ~] = fileparts(fn);
              if(~isdir(pathstr))
-                 mkdir(pathstr);
+                 [status, message, ~] = mkdir(pathstr);
+                 if(~status)
+                     error('FLIMX:resultFile:exportMatFile','Could not create path for result file export: %s\n%s',pathstr,message);
+                 end
              end
             %this.parameters.lastResultFile = expStr;
             save(fn,'result');
-%             for i = 1:this.basicParams.nExp
-%                 amp = result.results.pixel.(sprintf('Amplitude%d',i));
-%                 tau = result.results.pixel.(sprintf('Tau%d',i));
-%                 save(fullfile(expStr,sprintf('amp%d_ch%02d.txt',i,ch)),'amp','-ASCII');
-%                 save(fullfile(expStr,sprintf('tau%d_ch%02d.txt',i,ch)),'tau','-ASCII');
-%             end
-%             %save tci files
-%             for i = 1:this.basicParams.nExp
-%                 tci_str = sprintf('tc%d_ch%02d',i,ch);
-%                 if(this.basicParams.compMaxCorrTci)
-%                     tcic_str = sprintf('tc%d_corrected_ch%02d',i,ch);
-%                 end
-%                 if(this.basicParams.tciMask(i))
-%                     eval(sprintf('%s = squeeze(result.results.pixel.tc%d);',tci_str,i));
-%                     if(this.basicParams.compMaxCorrTci)
-%                         eval(sprintf('%s = squeeze(result.results.pixel.tc%d_corrected);',tcic_str,i));
-%                     end
-%                 else
-%                     eval(sprintf('%s = zeros(size(tau));',tci_str));
-%                     if(this.basicParams.compMaxCorrTci)
-%                         eval(sprintf('%s = zeros(size(tau));',tcic_str));
-%                     end
-%                 end
-%                 save([expStr filesep tci_str '.txt'],tci_str,'-ASCII');
-%                 if(this.basicParams.compMaxCorrTci)
-%                     save([expStr filesep tcic_str '.txt'],tcic_str,'-ASCII');
-%                 end
-%             end
-%             if(this.basicParams.compMaxCorrTci)
-%                 tau_tc1_corrected = squeeze(result.results.pixel.tc1_corrected);
-%                 save([expStr filesep 'tcc1.txt'],'tau_tc1_corrected','-ASCII');
-%             end
         end
         
         function results = makeResultStructs(this,y,x)

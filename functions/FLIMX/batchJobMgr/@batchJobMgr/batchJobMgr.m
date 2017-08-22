@@ -54,7 +54,10 @@ classdef batchJobMgr < handle
             %constructor for batchJobMgr
             this.myDir = myDir;
             if(~isdir(myDir))
-                mkdir(myDir);
+                [status, message, ~] = mkdir(myDir);
+                if(~status)
+                    error('FLIMX:batchJobMgr:createRootFolder','Could not create batch job manager root folder: %s\n%s',myDir,message);
+                end
             end
             this.FLIMXObj = flimX;
             this.myJobs = LinkedList();
@@ -66,7 +69,10 @@ classdef batchJobMgr < handle
             %create a new job
             jDir = fullfile(this.myDir,jName);
             if(~isdir(jDir))
-                mkdir(jDir);
+                [status, message, ~] = mkdir(jDir);
+                if(~status)
+                    error('FLIMX:batchJobMgr:addJob','Could not create folder for batch job: %s\n%s',jDir,message);
+                end
             end
             id = this.myJobs.insertEnd(batchJob(this,jDir,jName));
             job = this.myJobs.getDataByID(id);

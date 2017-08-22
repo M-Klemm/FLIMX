@@ -44,7 +44,10 @@ classdef sddMgr < handle
             %sdd mgr
             this.myDir = myDir;
             if(~isdir(myDir))
-                mkdir(myDir);
+                [status, message, ~] = mkdir(myDir);
+                if(~status)
+                    error('FLIMX:sddMgr:createSDDFolder','Unable to create synthetic data definition root folder %s.\n%s',myDir,message);
+                end
             end
             this.FLIMXObj = flimX;
             this.mySDDs = LinkedList();

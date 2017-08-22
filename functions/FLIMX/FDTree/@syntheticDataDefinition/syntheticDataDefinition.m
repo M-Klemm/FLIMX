@@ -241,7 +241,10 @@ classdef syntheticDataDefinition < handle
             export = this.getStructFromMyData();
             dStr = fullfile(this.myDir,this.myUID);
             if(~isdir(dStr))
-                mkdir(dStr);
+                [status, message, ~] = mkdir(dStr);
+                if(~status)
+                    error('FLIMX:FDTree:sytheticDataDefinition','Could not create sythetic data definition folder: %s\n%s',dStr,message);
+                end
             end
             save(fullfile(this.myDir,this.myUID,'synthDataDef.mat'),'export');
             this.isDirty = false;

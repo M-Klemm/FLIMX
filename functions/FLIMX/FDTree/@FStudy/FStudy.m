@@ -143,12 +143,9 @@ classdef FStudy < handle
                 %make dir if not present
                 sDir = fullfile(this.myDir,subjectID);
                 if(~isdir(sDir))
-                    try
-                        mkdir(sDir);
-                    catch ME
-                        %directory creation failed
-                        %todo: better error handling / messaging
-                        return
+                    [status, message, ~] = mkdir(sDir);
+                    if(~status)
+                        error('FLIMX:FDTree:addSubject','Could not create subject folder: %s\n%s',sDir,message);
                     end
                 end
             end

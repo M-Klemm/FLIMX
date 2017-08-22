@@ -20,11 +20,10 @@ if isempty(tempDir2Persistent)
 
   % if directory is not existing, try to create it
   if ~exist(tempDir2, 'dir')
-    try
-      mkdir(tempDir2);
-    catch
-      error('Unable to create directory %s.', tempDir2);
-    end
+      [status, message, ~] = mkdir(tempDir2);
+      if(~status)
+          error('multicore:tempDir2','Unable to create directory %s.\n%s',tempDir2,message);
+      end
   end
 
   % save string for next function call

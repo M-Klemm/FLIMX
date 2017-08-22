@@ -154,10 +154,9 @@ if isempty(settings.multicoreDir)
     % create default slave file directory if not existing
     multicoreDir = fullfile(tempdir2, 'multicorefiles');
     if ~exist(multicoreDir, 'dir')
-        try
-            mkdir(multicoreDir);
-        catch
-            error('Unable to create slave file directory %s.', multicoreDir);
+        [status, message, ~] = mkdir(multicoreDir);
+        if(~status)
+            error('multicore:startmulticoremaster','Unable to create slave file directory %s.\n%s', multicoreDir,message);
         end
     end
 else
@@ -195,7 +194,7 @@ dateStr = sprintf('%04d%02d%02d%02d%02d%02d', round(clock));
 %create a directory for this multicore session
 [status, message, ~] = mkdir(multicoreDir,dateStr);
 if(~status)
-    error('Unable to create session directory ''%s'' in ''%s'':\n\n%s',dateStr,multicoreDir,message);
+    error('multicore:startmulticoremaster','Unable to create session directory ''%s'' in ''%s'':\n\n%s',dateStr,multicoreDir,message);
 end
 multicoreDir = fullfile(multicoreDir,dateStr);
 parameterFileNameTemplate = fullfile(multicoreDir,sprintf('parameters_%s_XX.mat', dateStr));
@@ -1058,7 +1057,7 @@ end
                     end
                 catch ME
                     if showWarnings
-                        disp(textwrap2(sprintf('Warning: Unable to save file %s.', parameterFileName)));
+                        disp(textwrap2(sprintf('Warning: Unable to save file %s.\n%s', parameterFileName,ME.message)));
                         displayerrorstruct;
                     end
                 end

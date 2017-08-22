@@ -41,11 +41,10 @@ persistent lastSessionDateStr
 if ~exist('multicoreDir', 'var') || isempty(multicoreDir)
     multicoreDir = fullfile(tempdir2, 'multicorefiles');
 end
-if ~exist(multicoreDir, 'dir')
-    try
-        mkdir(multicoreDir);
-    catch
-        error('Unable to create slave file directory %s.', multicoreDir);
+if ~exist(multicoreDir, 'dir')    
+    [status, message, ~] = mkdir(multicoreDir);
+    if(~status)
+        error('multicore:startmulticoreslave','Unable to create slave file directory %s.\n%s', multicoreDir,message);
     end
 end
 
