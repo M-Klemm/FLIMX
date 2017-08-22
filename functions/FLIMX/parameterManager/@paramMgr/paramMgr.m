@@ -226,8 +226,8 @@ classdef paramMgr < handle
             def.basic_fit.amplitudeOrder        =   1; %force higher exponentials to have lower amplitudes; 0: disabled, 1: amp1 > amp2, 2: amp1 > amp2 > amp3 > ...
             def.basic_fit.tcOrder               =   1; %force time shifts (tc) of shifted exponentials to be ordered: e.g. tc3 > tc2
             def.basic_fit.lifetimeGap           =   2; %minimal gap/distance between lifetimes (relative factor, e.g. tau2 >= tau1 * factor)
-            def.basic_fit.resultValidyCheckCnt  =   1; %retries for optimizer to get valid result (all amps & offset ~= zero)
-            def.basic_fit.fitModel              =   1; %0: tail fit, 1: tci fit
+            def.basic_fit.resultValidyCheckCnt  =   0; %retries for optimizer to get valid result (all amps & offset ~= zero)
+            def.basic_fit.fitModel              =   0; %0: tail fit, 1: tci fit
             def.basic_fit.tailFitPreMaxSteps    =   10; %number of time points prior to the maximum which are used additionally in case of tail fits
             def.basic_fit.compMaxCorrTci        =	0;
             def.basic_fit.curIRFID              =   1;
@@ -237,7 +237,7 @@ classdef paramMgr < handle
             def.basic_fit.neighborWeight        =	1;
             def.basic_fit.nonLinOffsetFit       =	1; %1: linear optimizer, 2: non-linear optimizer, 3: guess value
             def.basic_fit.photonThreshold       =	1000;
-            def.basic_fit.tciMask               =	[0  0  1];
+            def.basic_fit.tciMask               =	[0  0  0];
             def.basic_fit.stretchedExpMask      =	[0  0  0];
             def.basic_fit.hybridFit             =   1;
             def.basic_fit.constMaskSaveStrCh1   =   '';
@@ -249,7 +249,7 @@ classdef paramMgr < handle
             def.basic_fit.constMaskSaveStrCh7   =   '';
             def.basic_fit.constMaskSaveStrCh8   =   '';
             def.basic_fit.constMaskSaveStrCh9   =   '';
-            def.basic_fit.constMaskSaveStrCh10   =   '';
+            def.basic_fit.constMaskSaveStrCh10  =   '';
             def.basic_fit.constMaskSaveStrCh11  =   '';
             def.basic_fit.constMaskSaveStrCh12  =   '';
             def.basic_fit.constMaskSaveStrCh13  =   '';
@@ -265,7 +265,7 @@ classdef paramMgr < handle
             def.basic_fit.constMaskSaveValCh7   =   [1];
             def.basic_fit.constMaskSaveValCh8   =   [1];
             def.basic_fit.constMaskSaveValCh9   =   [1];
-            def.basic_fit.constMaskSaveValCh10   =   [1];
+            def.basic_fit.constMaskSaveValCh10  =   [1];
             def.basic_fit.constMaskSaveValCh11  =   [1];
             def.basic_fit.constMaskSaveValCh12  =   [1];
             def.basic_fit.constMaskSaveValCh13  =   [1];
@@ -298,8 +298,8 @@ classdef paramMgr < handle
             def.cleanup_fit.iterations  =   1;
             
             def.init_fit.optimizer          =   [1 2];
-            def.init_fit.gridSize           =   5;
-            def.init_fit.gridPhotons        =   300000;
+            def.init_fit.gridSize           =   1;
+            def.init_fit.gridPhotons        =   0;
             
             def.pixel_fit.optimizer     =	[2];      
             def.pixel_fit.fitDimension  = 	1;
