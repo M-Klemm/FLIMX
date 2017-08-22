@@ -199,6 +199,7 @@ classdef measurementFile < handle
                             th = max(mask(:))*0.10;
                             mask(mask < th) = 0;
                             mask(mask >= th) = 1;
+                            %mask = imdilate(mask,true(3));
                             mask = logical(mask);
                             [yR,xR,zR] = size(raw);
                             raw = reshape(raw,[yR*xR,zR]);
@@ -721,7 +722,7 @@ classdef measurementFile < handle
             end
             %get grid size
             if(isempty(this.paramMgrObj))
-                gridSz = 3;
+                gridSz = 2;
             else
                 param = this.paramMgrObj.getParamSection('init_fit');
                 gridSz = param.gridSize;
@@ -900,7 +901,10 @@ classdef measurementFile < handle
             fn = this.getMeasurementFileName(ch,folder);
             [pathstr, ~, ~]= fileparts(fn);
             if(~isdir(pathstr))
-                mkdir(pathstr);
+                [status, message, ~] = mkdir(pathstr);
+                if(~status)
+                    error('FLIMX:measurementFile:exportMatFile','Could not create path for measurement file export: %s\n%s',pathstr,message);
+                end
             end
             %saveVars = {'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'};
             df = this.getDirtyFlags(ch,1:4);
