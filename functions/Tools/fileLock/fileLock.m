@@ -33,8 +33,9 @@ classdef fileLock < handle
     %           Modified from https://stackoverflow.com/a/17595762 by Nathan Donnellan
     %
     properties (Access = private)
-        myFileLock = [];
-        myFile = [];
+        myFileName = '';
+        myFileHandle = [];
+        myFileLock = [];        
     end
     properties (Dependent = true)
         isLocked = false;
@@ -43,8 +44,9 @@ classdef fileLock < handle
     methods
         function this = fileLock(filename)
             %constructor: create the lockfile
-            this.myFile = java.io.RandomAccessFile(filename,'rw');
-            fileChannel = this.myFile.getChannel();
+            this.myFileName = filename;
+            this.myFileHandle = java.io.RandomAccessFile(filename,'rw');
+            fileChannel = this.myFileHandle.getChannel();
             this.myFileLock = fileChannel.tryLock();
         end
 
@@ -60,6 +62,11 @@ classdef fileLock < handle
         function delete(this)
             %destructor
             this.release();
+            try
+                delete(this.myFileName);
+            catch ME
+                warning('Could not delete lock file: %s\n%s',this.myFileName,ME.message);
+            end
         end
 
         function release(this)
@@ -67,7 +74,7 @@ classdef fileLock < handle
             if(this.isLocked())
                 this.myFileLock.release();
             end
-            this.myFile.close
+            this.myFileHandle.close
         end
     end
 end
