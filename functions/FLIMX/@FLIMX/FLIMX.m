@@ -125,13 +125,15 @@ classdef FLIMX < handle
             p = gcp('nocreate');
             if(computationParams.useMatlabDistComp > 0 && isempty(p))
                 %start local matlab workers
-                this.splashScreenGUIObj.updateProgressShort(0.5,sprintf('MATLAB pool workers can be disabled in Settings -> Computation'));
+                if(ishandle(this.splashScreenGUIObj))
+                    this.splashScreenGUIObj.updateProgressShort(0.5,sprintf('MATLAB pool workers can be disabled in Settings -> Computation'));
+                end
                 try
                     p = parpool('local',feature('numCores'));
                     this.splashScreenGUIObj.updateProgressShort(1,'Trying to open pool of MATLAB workers - done');
                     %p.IdleTimeout = 0;
                 catch ME
-                    if(ishandle(hwb))
+                    if(ishandle(this.splashScreenGUIObj))
                         this.splashScreenGUIObj.updateProgressShort(1,'Trying to open pool of Matlab workers - failed');
                     end
                     warning('FLIMX:openMatlabPool','Could not open Matlab pool for parallel computations: %s',ME.message);
