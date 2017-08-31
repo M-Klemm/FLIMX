@@ -243,7 +243,9 @@ classdef studyMgr < handle
             else
                 set(this.visHandles.popupSubjectSelection,'String',sStr,'Value',min(length(sStr),get(this.visHandles.popupSubjectSelection,'Value')));
                 if(isempty(this.selectedSubjects))
-                    GUI_subjectSelPop_Callback(this,this.visHandles.popupSubjectSelection,[])
+                    GUI_subjectSelPop_Callback(this,this.visHandles.popupSubjectSelection,[]);
+                else
+                    this.setSelectedSubjects(this.selectedSubjects);
                 end
             end
         end
@@ -920,21 +922,8 @@ classdef studyMgr < handle
             if(isMultipleCall())
                 return
             end
-            ed.Indices(1) = get(hObject,'Value');
-            ed.Indices(2) = 1;
-            try
-                sp = findjobj(this.visHandles.tableFileData);
-                components = sp.getComponents;
-                viewport = components(1);
-                curComp = viewport.getComponents;
-                jtable=curComp(1);
-                %             jtable.setRowSelectionAllowed(0);
-                %             jtable.setColumnSelectionAllowed(0);
-                jtable.changeSelection(ed.Indices(1)-1,0, false, false);
-            catch
-                GUI_tableFileDataSel_Callback(this,this.visHandles.tableFileData,ed);
-            end
-        end        
+            this.setSelectedSubjects(get(hObject,'Value'));
+        end
         
         function GUI_columnSelPop_Callback(this,hObject,eventdata)
             % set current column for editing and moving purposes
@@ -947,19 +936,20 @@ classdef studyMgr < handle
             if(~isempty(subName))
                 this.fdt.addSubject(this.curStudyName,subName);
                 this.lastAddedSubject = subName;
+                this.selectedSubjects = this.fdt.getSubjectNr(this.curStudyName,subName);
                 this.updateGUI();
             end
         end
         
         function menuDeleteSubject_Callback(this,hObject,eventdata)
             %delete subject from current study
-            subjects = sort(this.selectedSubjects,'descend');
-            if(isempty(subjects))
+            subNrs = sort(this.selectedSubjects,'descend');
+            if(isempty(subNrs))
                 return
             end
             askUser = true;
-            for i = 1:length(subjects)
-                subName = this.fdt.getSubjectName(this.curStudyName,subjects(i));
+            for i = 1:length(subNrs)
+                subName = this.fdt.getSubjectName(this.curStudyName,subNrs(i));
                 if(~isempty(subName))
                     if(askUser)
                         choice = questdlg(sprintf('Delete subject ''%s'' from study ''%s''?',subName,this.curStudyName),...
@@ -991,7 +981,12 @@ classdef studyMgr < handle
             else
                 this.FLIMXObj.FLIMFitGUI.setupGUI();
                 this.FLIMXObj.FLIMFitGUI.updateGUI(true);
+            end            
+            subNrs = subNrs(end)-1;
+            if(subNrs < 0)
+                subNrs = [];
             end
+            this.selectedSubjects = subNrs;
             this.checkVisWnd();
         end
         
@@ -1067,19 +1062,21 @@ classdef studyMgr < handle
                 subNames{i} = this.fdt.getSubjectName(this.curStudyName,subNrs(i));
             end
             %rename selected subjects
+            newSubNrs = zeros(size(subNrs));
             for i=1:length(subNrs)
-                oldSubName = subNames{i};
-                newSubName = this.getUniqueSubjectName(this.curStudyName,oldSubName);
+                newSubName = this.getUniqueSubjectName(this.curStudyName,subNames{i});
                 if(isempty(newSubName))
                     break
                 end
                 %duplicate subject
-                this.fdt.copySubject(this.curStudyName,oldSubName,this.curStudyName,newSubName);
+                this.fdt.copySubject(this.curStudyName,subNames{i},this.curStudyName,newSubName);
+                newSubNrs(i) = this.fdt.getSubjectNr(this.curStudyName,newSubName);
             end
             this.updateGUI();
             this.visObj.setupGUI();
             this.FLIMXObj.FLIMFitGUI.setupGUI();
             this.FLIMXObj.FLIMFitGUI.updateGUI(true);
+            this.setSelectedSubjects(newSubNrs);
         end
         
         function menuRenameSubject_Callback(this,hObject,eventdata)
@@ -1096,18 +1093,22 @@ classdef studyMgr < handle
                 end %end switch
             end %end if
             subNrs = this.selectedSubjects;
+            newSubNrs = zeros(size(subNrs));
             %rename selected subjects
             for i=1:length(subNrs)
                 oldSubName = this.fdt.getSubjectName(this.curStudyName,subNrs(i));
-                subName = this.getUniqueSubjectName(this.curStudyName,oldSubName);
-                if(~isempty(subName))
+                newSubName = this.getUniqueSubjectName(this.curStudyName,oldSubName);
+                if(~isempty(newSubName))
                     %rename subject
-                    this.fdt.setSubjectName(this.curStudyName,oldSubName,subName);
+                    this.fdt.setSubjectName(this.curStudyName,oldSubName,newSubName);
+                    newSubNrs(i) = this.fdt.getSubjectNr(this.curStudyName,newSubName);
                 end
             end
+            newSubNrs = newSubNrs(newSubNrs ~= 0);
             this.visObj.setupGUI();
             this.FLIMXObj.FLIMFitGUI.setupGUI();
             this.FLIMXObj.FLIMFitGUI.updateGUI(true);
+            this.selectedSubjects = newSubNrs;
             this.checkVisWnd();
         end
         
@@ -1302,12 +1303,35 @@ classdef studyMgr < handle
             end
             xpatch = [0 x x 0];
             set(this.visHandles.patchProgress,'XData',xpatch,'Parent',this.visHandles.axesProgress)
-            if nargin>0,
+            if(nargin > 0)
                 % update waitbar
                 yl = ylim(this.visHandles.axesProgress);
                 set(this.visHandles.textProgress,'Position',[1,yl(2)/2,0],'String',varargin{2},'Parent',this.visHandles.axesProgress);
             end
             drawnow;
+        end
+        
+        function setSelectedSubjects(this,subNrs)
+            %set the selected subjects and mark them in the table
+            this.selectedSubjects = subNrs;
+            if(isempty(subNrs))
+                %clear table selection
+                subNrs=0;
+            end
+            ed.Indices(1) = subNrs;
+            ed.Indices(2) = 1;
+            try
+                sp = findjobj(this.visHandles.tableFileData,'persist');
+                components = sp.getComponents;
+                viewport = components(1);
+                curComp = viewport.getComponents;
+                jtable = curComp(1);
+                % jtable.setRowSelectionAllowed(0);
+                % jtable.setColumnSelectionAllowed(0);
+                jtable.changeSelection(ed.Indices(1)-1,0, false, false);
+            catch
+                GUI_tableFileDataSel_Callback(this,this.visHandles.tableFileData,ed);
+            end
         end
         
         %% dependent properties
