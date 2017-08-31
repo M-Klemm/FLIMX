@@ -91,8 +91,6 @@ classdef importWizard < handle
                     end
                 end
                 this.setSubject(study,subject);
-%                 set(this.visHandles.radioExistingSubject,'Value',0);
-%                 set(this.visHandles.radioNewSubject,'Value',1);
                 this.setupGUI();
             end
         end
@@ -102,8 +100,7 @@ classdef importWizard < handle
             success = false;
             if(isempty(fn))
                 return;
-            end            
-            %subject = this.FLIMXObj.fdt.getSubject4Import(this.currentStudy,subName);
+            end
             this.measurementObj = measurementReadRawData(this.FLIMXObj.paramMgr);
             this.measurementObj.setSourceFile(fn);
             if(this.isOpenVisWnd())
@@ -118,7 +115,7 @@ classdef importWizard < handle
                 if(ROIVec(1) > 5 || ROIVec(3) > 5 || ROIVec(2) < this.myMeasurement.rawXSz-5 || ROIVec(4) < this.myMeasurement.rawYSz-5)
                     this.finalROIVec = ROIVec;
                 end
-                this.isDirty(1) = true; %flags which part was changed, 1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo            
+                this.isDirty(1) = true; %flags which part was changed, 1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo
                 this.myMeasurement.setROICoord(this.finalROIVec);
                 x = this.myMeasurement.rawXSz;
                 if(x < 256)
@@ -126,7 +123,8 @@ classdef importWizard < handle
                 end
                 this.myMeasurement.pixelResolution = 1000*8.8/x;
             end
-            %this.currentSubject = subName;
+            %guess position of the eye            
+            this.myMeasurement.guessEyePosition();
             success = true;
         end
         

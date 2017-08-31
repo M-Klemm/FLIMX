@@ -87,6 +87,8 @@ classdef subject4Import < fluoSubject
             end
             %add me to my study
             this.myParent.addSubject(this.name);
+            %guess position of the eye
+            this.myMeasurement.guessEyePosition();
             for ch = 1:this.myMeasurement.nrSpectralChannels
                 %read the actual payload
                 if(ch == 1 && isempty(this.myMeasurement.ROICoord))

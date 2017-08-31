@@ -90,7 +90,7 @@ classdef measurementFile < handle
             this.fileInfoLoaded = false;
         end
         
-        %%converter
+        %% converter
         function out = fluoSyntheticFile(this)
             out = fluoSyntheticFile(this.paramMgrObj);
             %copy all properties
@@ -966,6 +966,26 @@ classdef measurementFile < handle
         end
         
         %% computation methods
+        function guessEyePosition(this)
+            %guess position (left: OS or right: OD) of the eye
+            [eyePos, confidence] = eyePosition(this.getRawDataFlat(1));
+            %try other channel(s)
+            for ch = 2:this.nrSpectralChannels
+                if(confidence >= 0.05)
+                    break
+                end
+                [eyePosN, confidenceN] = eyePosition(this.getRawDataFlat(ch));
+                if(confidenceN > confidence)
+                    eyePos = eyePosN;
+                    confidence = confidenceN;
+                end
+            end
+            if(~isnan(confidence))
+                %save the position only if the algorithm didn't fail
+                this.position = eyePos;
+            end
+        end
+        
         function out = makeROIData(this,channel)
             %bin raw data using binFactor and save in object
             out = [];
@@ -1098,6 +1118,7 @@ classdef measurementFile < handle
                 this.getFileInfoStruct(this.nonEmptyChannelList(i));
             end
             this.fileInfo.position = val;
+            this.setDirtyFlags([],2,true);
         end
         
         function setPixelResolution(this,val)
@@ -1107,6 +1128,7 @@ classdef measurementFile < handle
                 this.getFileInfoStruct(this.nonEmptyChannelList(i));
             end
             this.fileInfo.pixelResolution = val;
+            this.setDirtyFlags([],2,true);
         end
         
         function setDirtyFlags(this,ch,flagPos,val)
