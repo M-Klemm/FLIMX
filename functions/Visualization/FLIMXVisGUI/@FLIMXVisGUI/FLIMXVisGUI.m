@@ -500,7 +500,7 @@ classdef FLIMXVisGUI < handle
                         choice = questdlg('Channel number exceeds number of IRF channels! Select another Channel?','Error importing Channel','Yes','No','Yes');
                         switch choice
                             case 'Yes'
-                                continue
+                                %continue
                             case 'No'
                                 return
                         end
@@ -510,28 +510,28 @@ classdef FLIMXVisGUI < handle
                     if(isempty(is))
                         return
                     end
-                    pause(1);
-                    [files, path, filterindex] = uigetfile( ...
-                        {'*.asc','ASCII files [SPCImage >= 3.97] (*.asc)';
-                        '*.dat;*.txt','Text files [SPCImage < 3.97] (*.dat,*.txt)';
-                        '*.mat','FLIMFit result files (*.mat)'}, ...
-                        sprintf('Select fitting results for subject %s channel %d...',subjectName,ch), ...
-                        'MultiSelect', 'on',this.dynParams.lastPath);
-                    if(~path)
-                        %lastPath = '';
-                        return
-                    end
-                    lastPath = path;
-                    idx = strfind(lastPath,filesep);
-                    if(length(idx) > 1)
-                        lastPath = lastPath(1:idx(end-1));
-                    end                    
-                    is.importResult(fullfile(path,files),filterindex,opt.ch,opt.position,opt.pixelResolution)
-                    this.dynParams.lastPath = lastPath;
-                else
-                    %update subject name
-                    rs.name = subjectName;
-                end
+%                     pause(1);
+%                     [files, path, filterindex] = uigetfile( ...
+%                         {'*.asc','ASCII files [SPCImage >= 3.97] (*.asc)';
+%                         '*.dat;*.txt','Text files [SPCImage < 3.97] (*.dat,*.txt)';
+%                         '*.mat','FLIMFit result files (*.mat)'}, ...
+%                         sprintf('Select fitting results for subject %s channel %d...',subjectName,ch), ...
+%                         'MultiSelect', 'on',this.dynParams.lastPath);
+%                     if(~path)
+%                         %lastPath = '';
+%                         return
+%                     end
+%                     lastPath = path;
+%                     idx = strfind(lastPath,filesep);
+%                     if(length(idx) > 1)
+%                         lastPath = lastPath(1:idx(end-1));
+%                     end                    
+%                     is.importResult(fullfile(path,files),filterindex,opt.ch,opt.position,opt.pixelResolution)
+%                     this.dynParams.lastPath = lastPath;
+%                 else
+%                     %update subject name
+%                     rs.name = subjectName;
+%                 end
                 switch opt.mode
                     case 0
                         %skip subject
@@ -563,17 +563,122 @@ classdef FLIMXVisGUI < handle
                 %update GUI
                 this.setupGUI();
                 this.updateGUI([]);
-                success = true;
-                if(fileImport)
-                    choice = questdlg(sprintf('Import another Channel to subject ''%s?''',subjectName),'Import next Channel?','Yes','No','Yes');
+                pause(1);
+                pathname = uigetdir('', 'Choose folder');
+                if pathname == 0
+                    return
+                end;
+                files = dir(pathname);
+                if size(files,1) == 0
+                    return
+                end;
+                this.FLIMXObj.importResultGUI.checkVisWnd();
+                %call folder selection
+                % for each file extension
+                names_asc = {};
+                names_bmp = {};
+                names_tif = {};
+                maxChan = 16;
+                column_asc = zeros(maxChan,1);
+                column_bmp = zeros(maxChan,1);
+                column_tif = zeros(maxChan,1);
+                i = 1;
+                stem = {};
+                while(i <= length(files))
+                    [~,filename,ext] = fileparts(files(i).name);
+                    if(strcmp(ext,'.asc'))
+                        idx_= strfind(filename,'_');
+                        idxminus = strfind(filename,'-');
+                        % Check: 2*'-' and '-_'
+                        if length(strfind(filename,'-'))<2 || idx_(end)~=1+idxminus(end)
+                            return % invalid filename
+                        end;
+                        stem{length(stem)+1} = (filename(1:idxminus(end-1)-1));
+                    end;
+                    i = i+1;
+                end;
+                % find most available word stem
+                singlestem = unique(stem);
+                counter = zeros(length(singlestem));
+                for i=1:length(singlestem)
+                    for j=1:length(stem)
+                        if strcmp(singlestem(i),stem(j))
+                            counter(i)=counter(i)+1;
+                        end;
+                    end;
+                end;
+                [~,place] = max(counter);
+                subjectstamm = singlestem{place(1)};
+                % delete other word stems
+                files = files(strncmp({files.name},subjectstamm,length(subjectstamm)));
+                % sort every file
+                for i=1:length(files)
+                    if files(i).isdir == false
+                        fullfilename = files(i).name;
+                        [~,filename,ext] = fileparts(fullfilename);
+                        aktstamm = filename(1:length(subjectstamm));
+                        if aktstamm == subjectstamm
+                            switch ext
+                                case {'.asc', '.bmp', '.tif'}
+                                    % two digits
+                                    ChanNr = str2double(filename(length(subjectstamm)+4:length(subjectstamm)+5));
+                                    if isempty(ChanNr) || isnan(ChanNr)
+                                        % one digit
+                                        ChanNr = str2double(filename(length(subjectstamm)+4:length(subjectstamm)+4));
+                                        if isempty(ChanNr) || isnan(ChanNr)
+                                            return
+                                        end;
+                                    end;
+                                    switch ext
+                                        case '.asc'
+                                            column_asc(ChanNr)=column_asc(ChanNr)+1;
+                                            names_asc{column_asc(ChanNr),ChanNr}=filename;
+                                        case '.bmp'
+                                            column_bmp(ChanNr)=column_bmp(ChanNr)+1;
+                                            names_bmp{column_bmp(ChanNr),ChanNr}=filename;
+                                        otherwise % '.tif'
+                                            column_tif(ChanNr)=column_tif(ChanNr)+1;
+                                            names_tif{column_tif(ChanNr),ChanNr}=filename;
+                                    end;
+                                otherwise
+                            end;
+                        end;
+                    end;
+                end;
+                % import data
+                path = pathname;
+                [~,dim] = size(names_asc);
+                filterindex = 1;
+                lastPath = path;
+                idx = strfind(lastPath,filesep);
+                if(length(idx) > 1)
+                    lastPath = lastPath(1:idx(end-1));
+                end
+                for i=1:dim
+                    files = names_asc(:,i);
+                    files = files(~cellfun(@isempty,names_asc(:,i)));
+                    opt.ch = i;
+                    for i2=1:length(files)
+                        files{i2} = strcat(files{i2}, '.asc');
+                    end;
+                    is.importResult(fullfile(path,files),filterindex,opt.ch,opt.position,opt.pixelResolution)
+                end;
+                this.dynParams.lastPath = lastPath;
                 else
-                    break
+                    %update subject name
+                    rs.name = subjectName;
                 end
-                switch choice
-                    case 'No'
-                        break
-                end
-                ch = ch+1;
+                success = true;
+%                 if(fileImport)
+%                     choice = questdlg(sprintf('Import another Channel to subject ''%s?''',subjectName),'Import next Channel?','Yes','No','Yes');
+%                 else
+%                     break
+%                 end
+%                 switch choice
+%                     case 'No'
+%                         break
+%                 end
+%                 ch = ch+1;
             end 
         end 
         

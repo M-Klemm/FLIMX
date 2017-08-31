@@ -833,14 +833,14 @@ classdef FDTree < handle
             end
         end
         
-        function [measurements, results] = getSubjectFilesStatus(this,studyID,subjectID)
+        function [measurementChs, resultChs] = getSubjectFilesStatus(this,studyID,subjectID)
             %returns which channels are available for a subject in a study
             study = this.getStudy(studyID);
             if(~isempty(study))
-                [measurements, results] = study.getSubjectFilesStatus(subjectID);
+                [measurementChs, resultChs] = study.getSubjectFilesStatus(subjectID);
             else
-                measurements = [];
-                results = [];
+                measurementChs = [];
+                resultChs = [];
             end            
         end
         
