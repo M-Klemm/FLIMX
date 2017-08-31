@@ -135,3 +135,27 @@ Autofluorescence Decay Fitting  -  Dependency List
 - modified: no
 - URL: http://www.mathworks.com/matlabcentral/fileexchange/14317-findjobj-find-java-handles-of-matlab-graphic-objects
 - license: license_findjobj.txt
+
+
+* color maps 'Magma', 'Inferno', 'Plasma', 'Virirdis'
+- Author: Nathaniel Smith & Stefan van der Walt  
+- files: magma.m, inferno.m, plasma.m, virirdis.m
+- modified: no
+- URL: https://bids.github.io/colormap
+- license: CC0 1.0 Universal
+
+
+* DirSize - Determine the size of a folder/directory in bytes, including all subdirectories
+- Author: Richard Moore 
+- files: DirSize.m
+- modified: yes (removed fallback to current directoy)
+- URL: https://www.mathworks.com/matlabcentral/fileexchange/41300-dirsize
+- license: license_dirSize.txt
+
+
+* findjobj - find java handles of Matlab graphic objects
+- Author: Tyler Coye
+- files: eyePosition.m, isodata.m
+- modified: yes (used and adapted only part of the vessel segmentation)
+- URL: https://www.mathworks.com/matlabcentral/fileexchange/50839-a-novel-retinal-blood-vessel-segmentation-algorithm-for-fundus-images
+- license: license_coyeFilter.txt

@@ -88,6 +88,7 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
 %    Please send to Yair Altman (altmany at gmail dot com)
 %
 % Change log:
+%    2017-04-13: Fixed two edge-cases (one suggested by H. Koch)
 %    2016-04-19: Fixed edge-cases in old Matlab release; slightly improved performance even further
 %    2016-04-14: Improved performance for the most common use-case (single input/output): improved code + allow inspecting groot
 %    2016-04-11: Improved performance for the most common use-case (single input/output)
@@ -144,7 +145,7 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin) %#ok<
 % referenced and attributed as such. The original author maintains the right to be solely associated with this work.
 
 % Programmed and Copyright by Yair M. Altman: altmany(at)gmail.com
-% $Revision: 1.49 $  $Date: 2016/04/18 23:44:49 $
+% $Revision: 1.50 $  $Date: 2017/04/13 20:47:08 $
 
     % Ensure Java AWT is enabled
     error(javachk('awt'));
@@ -3377,7 +3378,13 @@ function jControl = findjobj_fast(hControl, jContainer)
     oldWarn = warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
     if nargin < 2 || isempty(jContainer)
         % Use a HG2 matlab.ui.container.Panel jContainer if the control's parent is a uipanel
-        hParent = get(hControl,'Parent');
+        try
+            hParent = get(hControl,'Parent');
+        catch
+            % Probably indicates an invalid/deleted/empty handle
+            jControl = [];
+            return
+        end
         try jContainer = hParent.JavaFrame.getGUIDEView; catch, jContainer = []; end
     end
     if isempty(jContainer)
@@ -3401,6 +3408,7 @@ function jControl = findjobj_fast(hControl, jContainer)
 end
 function jControl = findTooltipIn(jContainer)
     try
+        jControl = [];  % Fix suggested by H. Koch 11/4/2017
         tooltipStr = jContainer.getToolTipText;
         %if strcmp(char(tooltipStr),'!@#$%^&*')
         if ~isempty(tooltipStr) && tooltipStr.startsWith('!@#$%^&*')  % a bit faster
@@ -3413,7 +3421,6 @@ function jControl = findTooltipIn(jContainer)
         end
     catch
         % ignore
-        jControl = [];
     end
 end
 
