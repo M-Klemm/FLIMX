@@ -213,33 +213,35 @@ classdef ColorCtrl < handle
         
         function updateGUI(this,data)
             %update GUI with values from data - if empty use data from FDTree
-            persistent inFunction          
-            if(~isempty(inFunction)), return; end
-            inFunction = 1;
-            if(isempty(data))
-                %set GUI items to values from FDTree / FData object
-                hfd = this.myHFD;
-                if(isempty(hfd))
-                    inFunction = [];
-                    return
+            %persistent inFunction          
+            %if(~isempty(inFunction)), return; end
+            if(~isMultipleCall())
+                %inFunction = 1;
+                if(isempty(data))
+                    %set GUI items to values from FDTree / FData object
+                    hfd = this.myHFD;
+                    if(isempty(hfd))
+                        inFunction = [];
+                        return
+                    end
+                    data = hfd.getColorScaling();
+                    if(isempty(data) || length(data) ~= 3 || ~any(data(:)))
+                        data = this.getAutoScale();
+                    end
                 end
-                data = hfd.getColorScaling();
-                if(isempty(data) || length(data) ~= 3 || ~any(data(:)))
-                    data = this.getAutoScale();
+                if(data(1))
+                    flag = 'off';
+                else
+                    flag = 'on';
                 end
+                this.enDisAble(flag,'on');
+                %set edit field values
+                set(this.auto_check,'Value',data(1));
+                set(this.low_edit,'String',FLIMXFitGUI.num4disp(data(2)));
+                set(this.high_edit,'String',FLIMXFitGUI.num4disp(data(3)));
+                this.myFDisplay.updatePlots();
             end
-            if(data(1))
-                flag = 'off';
-            else
-                flag = 'on';
-            end
-            this.enDisAble(flag,'on');
-            %set edit field values
-            set(this.auto_check,'Value',data(1));
-            set(this.low_edit,'String',FLIMXFitGUI.num4disp(data(2)));
-            set(this.high_edit,'String',FLIMXFitGUI.num4disp(data(3)));
-            this.myFDisplay.updatePlots();
-            inFunction = [];
+            %inFunction = [];
         end
         
         function out = getAutoScale(this)
