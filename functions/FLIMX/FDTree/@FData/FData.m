@@ -953,6 +953,15 @@ classdef FData < handle
                         case 12 %full circle
                             thetaRange = [-pi, 0; 0, pi];
                             r = rOuter;
+                        case 13 %center + inner ring
+                            thetaRange = [-pi, 0; 0, pi];
+                            r = rInner;
+                        case 14 %center + outer ring
+                            thetaRange = [-pi, 0; 0, pi];
+                            r = rOuter;
+                        case 15 %inner + outer ring
+                            thetaRange = [-pi, 0; 0, pi];
+                            r = rOuter;
                     end
                     [data,idx] = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,ROISubType,rCenter,rInner);                    
                 case {2,3} %rectangle
@@ -1022,10 +1031,12 @@ classdef FData < handle
             [xCord,yCord] = meshgrid(px, px);
             [theta,rho] = cart2pol(xCord,yCord);
             mask = rho <= r & (theta <= thetaRange(1,2) & theta >= thetaRange(1,1) | theta <= thetaRange(2,2) & theta >= thetaRange(2,1));
-            if(ROISubType > 5 && ROISubType ~= 10 && ROISubType ~= 12)
+            if(ROISubType > 5 && ROISubType ~= 10 && ROISubType < 12)
                 mask(rho < rInner) = false;
-            elseif((ROISubType > 1 && ROISubType < 6) || ROISubType == 10)
+            elseif((ROISubType > 1 && ROISubType < 6) || ROISubType == 10 || ROISubType == 15)
                 mask(rho < rCenter) = false;
+            elseif(ROISubType == 14)
+                mask(rho > rCenter & rho < rInner) = false;
             end
             %cut off unused pixels
             cols = any(mask,1);

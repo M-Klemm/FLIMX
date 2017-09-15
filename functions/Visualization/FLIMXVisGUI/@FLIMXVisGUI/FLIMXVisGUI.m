@@ -1327,42 +1327,42 @@ classdef FLIMXVisGUI < handle
             s2 = 'l'; %side we have to update to the new values
             %find side/axes
             tag = get(hObject,'Tag');
-            if(~isempty(strfind(tag,'_l_')))
+            if(contains(tag,'_l_'))
                 s1 = 'l';
                 s2 = 'r';
             end
             %find dimension
-            if(~isempty(strfind(tag,'_x_')))
+            if(contains(tag,'_x_'))
                 dim = 'x';
-            elseif(~isempty(strfind(tag,'_y_')))
+            elseif(contains(tag,'_y_'))
                 dim = 'y';
             else
                 dim = 'z';
             end
             %lower or upper bound?
-            if(~isempty(strfind(tag,'_lo_')))
+            if(contains(tag,'_lo_'))
                 bnd = 'lo';
             else
                 bnd = 'u';
             end
             %find control type
-            if(~isempty(strfind(tag,'edit')))
+            if(contains(tag,'edit'))
                 if(strcmp(dim,'z'))
                     this.objHandles.(sprintf('%sZScale',s1)).editCallback(dim,bnd);
                 else
                     this.objHandles.(sprintf('%sROI',s1)).editCallback(dim,bnd);
                 end
-            elseif(length(tag) == 11 && ~isempty(strfind(tag,'table')))
+            elseif(length(tag) == 11 && contains(tag,'table'))
                 this.objHandles.(sprintf('%sROI',s1)).tableEditCallback(eventdata);
                 this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
-            elseif(~isempty(strfind(tag,'roi_table_clearLast')))
+            elseif(contains(tag,'roi_table_clearLast'))
                 this.objHandles.(sprintf('%sROI',s1)).buttonClearLastCallback();
                 this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
-            elseif(~isempty(strfind(tag,'roi_table_clearAll')))
+            elseif(contains(tag,'roi_table_clearAll'))
                 this.objHandles.(sprintf('%sROI',s1)).buttonClearAllCallback();
                 this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
-            elseif(~isempty(strfind(tag,'button')) && isempty(strfind(tag,'roi_table_clearAll')))
-                if(~isempty(strfind(tag,'_dec_')))
+            elseif(contains(tag,'button') && ~contains(tag,'roi_table_clearAll'))
+                if(contains(tag,'_dec_'))
                     target = 'dec';
                 else
                     target = 'inc';
@@ -1372,8 +1372,8 @@ classdef FLIMXVisGUI < handle
                 else
                     this.objHandles.(sprintf('%sROI',s1)).buttonCallback(dim,bnd,target);
                 end
-            elseif(~isempty(strfind(tag,'popup')))
-                if(~isempty(strfind(tag,'roi_subtype_')))
+            elseif(contains(tag,'popup'))
+                if(contains(tag,'roi_subtype_'))
                     type = 'main';
                 else
                     type = 'sub';
@@ -1383,7 +1383,7 @@ classdef FLIMXVisGUI < handle
                 this.objHandles.(sprintf('%sZScale',s1)).checkCallback(dim);
             end
             %update ROI controls on other side
-            if(~isempty(strfind(tag,'type_')))
+            if(contains(tag,'type_'))
                 this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
             else                
                 if(~strcmp(dim,'z'))
