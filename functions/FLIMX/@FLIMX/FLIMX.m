@@ -291,7 +291,7 @@ classdef FLIMX < handle
         function out = get.studyMgrGUI(this)
             %get studyMgrGUI object
             if(isempty(this.studyMgrGUIObj))
-                this.studyMgrGUIObj = studyMgr(this,fullfile(FLIMX.getWorkingDir(),'studyData')); %replace with path from config?!
+                this.studyMgrGUIObj = studyMgr(this); %replace with path from config?!
             end
             out = this.studyMgrGUIObj;
         end        
@@ -467,7 +467,7 @@ classdef FLIMX < handle
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 262;
-            out.client_revision = 376;
+            out.client_revision = 377;
             out.core_revision = 364;
             out.results_revision = 256;
             out.measurement_revision = 204;

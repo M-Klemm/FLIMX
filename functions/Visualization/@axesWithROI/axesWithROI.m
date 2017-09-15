@@ -42,7 +42,7 @@ classdef axesWithROI < handle
         myCM = [];
         
         myCMPercentileLB = 0;
-        myCMPercentileUB = 0;
+        myCMPercentileUB = 1;
         
         ROITopLine = -1;
         ROIBottomLine = -1;

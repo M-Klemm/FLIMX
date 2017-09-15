@@ -197,10 +197,14 @@ classdef mouseOverlayBox < handle
                 this.myTextBox.Visible = 'off';
             end
             if(ishghandle(this.myVerticalLine))
-                this.myVerticalLine.Visible = 'off';
+                for i = 1:length(this.myVerticalLine)
+                    this.myVerticalLine(i).Visible = 'off';
+                end
             end
             if(ishghandle(this.myHorizontalLine))
-                this.myHorizontalLine.Visible = 'off';
+                for i = 1:length(this.myHorizontalLine)
+                    this.myHorizontalLine(i).Visible = 'off';
+                end
             end
                 %this.draw([NaN; NaN],'');
         end

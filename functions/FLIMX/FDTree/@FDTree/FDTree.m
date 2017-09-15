@@ -656,15 +656,10 @@ classdef FDTree < handle
             end
         end
         
-%         function studyDir = getStudyDir(this,studyID)
-%             % get directory of study
-%             study = this.getStudy(studyID);
-%             if(~isempty(study))
-%                 studyDir = study.myDir;
-%             else
-%                 studyDir = [];
-%             end
-%         end
+        function out = getRootDirectory(this)
+            % get root directory of FDTree
+            out = this.myDir;
+        end
         
         function out = getFDataObj(this,studyID,subjectID,chan,dType,id,sType)
             %get FData object

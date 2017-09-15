@@ -35,18 +35,20 @@ classdef studyMgr < handle
         
     end
     properties(GetAccess = public, SetAccess = private)
-        myDir = []; %study manager working directory
+        FLIMXObj = []; %handle to FLIMX        
+        lastAddedSubject = ''; %name last added subject
+        lastStudyPath = '';
+        lastImportPath = '';        
+    end
+    properties(GetAccess = protected, SetAccess = protected)
         visHandles = []; %structure to handles in GUI
         myClipboard = []; %Clipboard to copy/insert Subjects between studies
-        lastAddedSubject = ''; %name last added subject
         stop = false;
-        FLIMXObj = []; %handle to FLIMVis
-        lastStudyPath = '';
-        lastImportPath = '';
         selectedSubjects = [];
         selectedInfoField = [];
     end
     properties (Dependent = true)
+        myDir = []; %study manager working directory
         fdt = [];
         visObj = [];
         curStudyNr = [];
@@ -55,15 +57,8 @@ classdef studyMgr < handle
     end
     
     methods
-        function this = studyMgr(flimX,myDir)
+        function this = studyMgr(flimX)
             %constructor for studyMgr
-            this.myDir = myDir;
-            if(~isdir(myDir))
-                [status, message, ~] = mkdir(myDir);
-                if(~status)
-                    error('FLIMX:studyMgr','Could not create study manager working directory %s.\n%s',myDir,message);
-                end
-            end
             this.FLIMXObj = flimX;
             this.lastStudyPath = flimX.getWorkingDir();
             this.lastImportPath = flimX.getWorkingDir();
@@ -451,13 +446,12 @@ classdef studyMgr < handle
                 end
                 opt.position = fi.position;
                 opt.pixelResolution = fi.pixelResolution;
-                if(~this.visObj.importResult([],opt))
-                    %user pressed cancel or something went wrong
-                    return
-                end
-                this.fdt.checkSubjectFiles(this.curStudyName,'');
-                this.updateGUI();
+                this.FLIMXObj.importResultGUI.openFolderByGUI(this.curStudyName,subName);
+                waitfor(this.FLIMXObj.importResultGUI,'isOpenVisWnd',false);
             end
+            this.fdt.checkSubjectFiles(this.curStudyName,'');
+            this.updateGUI();
+            %this.setSelectedSubjects(subjects);
         end
         
         %% GUI & menu callbacks
@@ -1318,17 +1312,17 @@ classdef studyMgr < handle
                 %clear table selection
                 subNrs=0;
             end
-            ed.Indices(1) = subNrs;
+            ed.Indices(1) = subNrs(1);
             ed.Indices(2) = 1;
             try
-                sp = findjobj(this.visHandles.tableFileData,'persist');
+                sp = findjobj(this.visHandles.tableFileData); %,'persist'
                 components = sp.getComponents;
                 viewport = components(1);
                 curComp = viewport.getComponents;
                 jtable = curComp(1);
                 % jtable.setRowSelectionAllowed(0);
                 % jtable.setColumnSelectionAllowed(0);
-                jtable.changeSelection(ed.Indices(1)-1,0, false, false);
+                jtable.changeSelection(ed.Indices(1,:)-1,0, false, false);
             catch
                 GUI_tableFileDataSel_Callback(this,this.visHandles.tableFileData,ed);
             end
@@ -1338,6 +1332,15 @@ classdef studyMgr < handle
         function out = get.fdt(this)
             %shortcut to fdt
             out = this.FLIMXObj.fdt;
+        end
+        
+        function out = get.myDir(this)
+            %get FDTree working directory
+            persistent theDir
+            if(isempty(theDir))
+                theDir = this.fdt.getRootDirectory();
+            end
+            out = theDir;
         end
         
         function out = get.visObj(this)
@@ -1391,6 +1394,27 @@ classdef studyMgr < handle
              name = regexprep(name,'\','');
              name = strtrim(name); %remove leading and trailing whitespace
              name = regexprep(name,'[.]*$', ''); %remove trailing dots
-         end         
+         end
+         
+         function name = checkStructFieldName(name)
+             %check field name for valid characters
+             idxA = isstrprop(name,'alpha');
+             idxN = isstrprop(name,'digit');
+             idx_ = strfind(name,'_');
+             idx = idxA | idxN;
+             if(~isempty(idx_))
+                 %allow _
+                 idx(idx_) = true;
+             end
+             %make sure name beginns with a letter
+             idxA = find(idxA,1);
+             if(isempty(idxA))
+                 name = '';
+             else
+                 idx(1:idxA-1) = false;
+                 name = name(idx);
+             end
+             
+         end
      end %methods(Static)
 end %classdef

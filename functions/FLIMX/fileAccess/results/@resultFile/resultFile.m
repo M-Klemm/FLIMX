@@ -83,15 +83,15 @@ classdef resultFile < handle
             %open result files of a specific channel and store
             success = false;
             if(~isMultipleCall())
-                result = this.loadFromDisk(this.getResultFileName(ch,''));
-                if(isempty(result))                    
+                rs = this.loadFromDisk(this.getResultFileName(ch,''));
+                if(isempty(rs))                    
                     return
                 end
-                this.loadResult(result);
+                this.loadResult(rs);
                 %check if we have the IRF used for the result
                 IRFMgr = this.mySubject.myIRFMgr;
                 aux = this.getAuxiliaryData(ch);
-                if(strcmp('FluoDecayFit',result.resultType) && ~isempty(IRFMgr) && ~isempty(aux) && isempty(IRFMgr.getIRF(aux.fileInfo.nrTimeChannels,aux.IRF.name,aux.fileInfo.tacRange,ch)) )
+                if(strcmp('FluoDecayFit',rs.resultType) && ~isempty(IRFMgr) && ~isempty(aux) && isempty(IRFMgr.getIRF(aux.fileInfo.nrTimeChannels,aux.IRF.name,aux.fileInfo.tacRange,ch)) )
                     %we don't have this IRF yet -> add it to our IRF manager
                     irf = linspace(0,aux.fileInfo.tacRange,length(aux.IRF.vector))';
                     irf(:,2) = double(aux.IRF.vector);
@@ -101,17 +101,16 @@ classdef resultFile < handle
             end
         end
         
-        function loadResult(this,result)
-            %load result and measurement data into corresponding objects
-            %save parameter structure, check its consistency
+        function loadResult(this,rs)
+            %load data from result struct rs into this object
             %load aux data first because we need the file info!            
-            if(isfield(result,'auxiliaryData'))                
-                this.auxiliaryData{result.channel} = result.auxiliaryData;
+            if(isfield(rs,'auxiliaryData'))                
+                this.auxiliaryData{rs.channel} = rs.auxiliaryData;
             end
             if(isempty(this.loadedChannelList))
                 %this is the first result we load from this subject -> load used parameters
-                if(isfield(result,'parameters'))
-                    parameters = checkStructConsistency(result.parameters,this.paramMgrObj.getDefaults());
+                if(isfield(rs,'parameters'))
+                    parameters = checkStructConsistency(rs.parameters,this.paramMgrObj.getDefaults());
                 else
                     parameters = this.paramMgrObj.getDefaults();
                 end
@@ -128,23 +127,23 @@ classdef resultFile < handle
                 this.paramMgrObj.setParamSection('bounds',parameters);
                 this.paramMgrObj.setParamSection('optimization',parameters);
             end
-            if(isfield(result.results,'init'))
-                this.results.init{result.channel,1} = result.results.init;
-                this.initApproximated = true(result.channel,1);
+            if(isfield(rs.results,'init'))
+                this.results.init{rs.channel,1} = rs.results.init;
+                this.initApproximated = true(rs.channel,1);
             else
-                this.results.init(result.channel,1) = cell(1,1);
+                this.results.init(rs.channel,1) = cell(1,1);
             end
-            if(isfield(result.results,'pixel'))
-                this.results.pixel{result.channel,1} = result.results.pixel;
-                this.pixelApproximated(result.channel,1) = true;
+            if(isfield(rs.results,'pixel'))
+                this.results.pixel{rs.channel,1} = rs.results.pixel;
+                this.pixelApproximated(rs.channel,1) = true;
             else
-                this.results.pixel(result.channel,1) = cell(1,1);
+                this.results.pixel(rs.channel,1) = cell(1,1);
             end
             this.paramMgrObj.makeVolatileParams();
-            this.results.about = result.about;
-            this.resultType = result.resultType;
-            this.resultSize = result.size;
-            this.loadedChannels(result.channel,1) = true;
+            this.results.about = rs.about;
+            this.resultType = rs.resultType;
+            this.resultSize = rs.size;
+            this.loadedChannels(rs.channel,1) = true;
             %this.resultFileInfo = result.fileInfo;
         end
         
@@ -240,7 +239,7 @@ classdef resultFile < handle
             %check if size is correct
             [y, x, z] = size(val);
             if(this.initFitParams.gridSize == x && this.initFitParams.gridSize == y)
-                this.results.init{ch,1}.(pStr) = val; %toDo: check correct size! how?
+                this.results.init{ch,1}.(pStr) = val;
             else
                 error('fluoDecayFitResult:setInitFLIMItem','Size of initFLIMItem (%d, %d) does not match size of init grid (%d, %d)',y,x,this.initFitParams.gridSize,this.initFitParams.gridSize);
             end
@@ -255,7 +254,7 @@ classdef resultFile < handle
             %check if size is correct
             [y, x, z] = size(val);
             if(this.resultSize(2) == x && this.resultSize(1) == y)
-                this.results.pixel{ch,1}.(pStr) = val; %toDo: check correct size! how?
+                this.results.pixel{ch,1}.(pStr) = val;
             else
                 error('fluoDecayFitResult:setPixelFLIMItem','Size of pixelFLIMItem (%d, %d) does not match ROI size (%d, %d)',y,x,this.resultSize(1),this.resultSize(2));
             end
@@ -631,7 +630,6 @@ classdef resultFile < handle
                      error('FLIMX:resultFile:exportMatFile','Could not create path for result file export: %s\n%s',pathstr,message);
                  end
              end
-            %this.parameters.lastResultFile = expStr;
             save(fn,'result');
         end
         
@@ -655,7 +653,6 @@ classdef resultFile < handle
                 r = sprintf('RAUCIS%d',i);
                 results.(r) = zeros(y,x);
             end
-%             results.tc1_corrected = zeros(y,x);
             tcis = find(bp.tciMask);
             nTci = length(tcis);
             if(nTci > 0)
@@ -664,10 +661,6 @@ classdef resultFile < handle
                     tcig_str = sprintf('tcGuess%d',tcis(i));
                     results.(tci_str) = zeros(y,x);
                     results.(tcig_str) = zeros(y,x);
-%                     if(bp.compMaxCorrTci)
-%                         tcic_str = sprintf('tc%d_corrected',cur_tci);
-%                         results.(tcic_str) = zeros(y,x);
-%                     end
                 end
             end
             Betas = find(bp.stretchedExpMask);
@@ -740,16 +733,15 @@ classdef resultFile < handle
             end            
         end
         
-        function result = loadFromDisk(this,resFN)
-            %load a fluo decay fit result channel
-            result = [];
-%             resFN = this.getResultFileName(ch,'');
+        function rs = loadFromDisk(this,resFN)
+            %load a FLIMX result struct rs (contains one channel) from disk
+            rs = [];
             if(~exist(resFN,'file'))
                 return
             end
-            result = load(resFN);
+            rs = load(resFN);
             %update result to latest version
-            result = resultFile.updateFitResultsStruct(result,this.paramMgrObj.getDefaults().about);
+            rs = resultFile.updateFitResultsStruct(rs,this.paramMgrObj.getDefaults().about);
         end
         
         function saveMatFile2Disk(this,ch)

@@ -56,10 +56,20 @@ classdef subject4Import < fluoSubject
             this.importMeasurement2FDTree();
         end
         
-        function importResult(this,fn,fi,chFlag,position,scaling)
+        function importResult(this,fn,resultType,ch,position,scaling)
             %import a result from ASCII files
-            ch = this.myResult.importResult(fn,fi,chFlag,position,scaling);
-            this.updateSubjectChannel(ch,'result');
+            ch = this.myResult.importResult(fn,resultType,ch,position,scaling);
+            %this.updateSubjectChannel(ch,'result');
+            idx = find(this.resultIsDirty);
+            for i = 1:length(idx)
+                this.updateSubjectChannel(idx(i),'result');
+            end
+        end
+        
+        function importResultStruct(this,rs,ch,position,scaling)
+            %import a result from a result struct
+            this.myResult.importResultStruct(rs,ch,position,scaling);
+            %this.updateSubjectChannel(ch,'result');
             idx = find(this.resultIsDirty);
             for i = 1:length(idx)
                 this.updateSubjectChannel(idx(i),'result');
