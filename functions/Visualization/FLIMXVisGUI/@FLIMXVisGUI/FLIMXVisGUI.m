@@ -467,12 +467,7 @@ classdef FLIMXVisGUI < handle
             setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.cm_axes,false);
         end
                                
-        %% menu functions               
-        function menuImport_Callback(this,hObject,eventdata)
-            %import approximation result(s)
-            this.importResult([]);
-        end
-                
+        %% menu functions                
         function menuExit_Callback(this,hObject,eventdata)
             %close window
             this.myStatsMVGroup.closeCallback();
@@ -582,11 +577,11 @@ classdef FLIMXVisGUI < handle
             %take a screenshot (therefore redraw selected axes in new figure)   
             tag = get(hObject,'Tag');
             side = 'l';            
-            if(~isempty(strfind(tag,'R')))
+            if(contains(tag,'R'))
                 side = 'r';
             end
             pType = 'main'; %main plot
-            if(~isempty(strfind(tag,'B')))
+            if(contains(tag,'B'))
                 pType = 'supp'; %supp. plot
             end
             %[pathstr,name,ext] = fileparts(this.dynParams.lastExportFile);
@@ -1271,12 +1266,12 @@ classdef FLIMXVisGUI < handle
             end
             ax = 'x';
             tag = get(hObject,'Tag');
-            if(~isempty(strfind(tag,'y')))
+            if(contains(tag,'y'))
                 ax = 'y';
             end
-            if(~isempty(strfind(tag,'edit')))
+            if(contains(tag,'edit'))
                 this.objHandles.(sprintf('cut%s',ax)).editCallback();
-            elseif(~isempty(strfind(tag,'check')))
+            elseif(contains(tag,'check'))
                 this.objHandles.(sprintf('cut%s',ax)).checkCallback();
             else
                 this.objHandles.(sprintf('cut%s',ax)).sliderCallback();
@@ -1290,23 +1285,23 @@ classdef FLIMXVisGUI < handle
             thisSide = 'r';
             otherSide = 'l';
             tag = get(hObject,'Tag');
-            if(~isempty(strfind(tag,'_l_')))
+            if(contains(tag,'_l_'))
                 thisSide = 'l';
                 otherSide = 'r';
             end
-            if(~isempty(strfind(tag,'edit')))
+            if(contains(tag,'edit'))
                 this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.editCallback();
                 %this.objHandles.(sprintf('%sdo',thisSide)).updatePlots();
                 if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
                     this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                 end
-            elseif(~isempty(strfind(tag,'check')))
+            elseif(contains(tag,'check'))
                 this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.checkCallback();
                 if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
                     this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                 end
-            elseif(~isempty(strfind(tag,'button')))
-                if(~isempty(strfind(tag,'in')))
+            elseif(contains(tag,'button'))
+                if(contains(tag,'in'))
                     this.objHandles.(sprintf('%sdo',thisSide)).zoomSuppXScale('in');
                     if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
                         this.objHandles.(sprintf('%sdo',otherSide)).zoomSuppXScale('in');
@@ -1434,11 +1429,11 @@ classdef FLIMXVisGUI < handle
             %
             tag = get(hObject,'Tag');
             side = 'l';            
-            if(~isempty(strfind(tag,'R')))
+            if(contains(tag,'R'))
                 side = 'r';
             end
             pType = 'main'; %main plot
-            if(~isempty(strfind(tag,'B')))
+            if(contains(tag,'B'))
                 pType = 'supp'; %supp. plot
             end
             switch pType
@@ -1474,15 +1469,15 @@ classdef FLIMXVisGUI < handle
             s = 'l';                     
             %find side/axes
             tag = get(hObject,'Tag');
-            if(isempty(strfind(tag,'_l_')))
+            if(~contains(tag,'_l_'))
                 s = 'r';
             end     
             if(this.fdt.getNrSubjects(this.getStudy(s),this.getView(s)) < 1)
                 return
             end
             %check if button was pressed
-            if(~isempty(strfind(tag,'_button')))
-                if(~isempty(strfind(tag,'_dec_')))
+            if(contains(tag,'_button'))
+                if(contains(tag,'_dec_'))
                     %decrease brightness
                     set(this.visHandles.(sprintf('IO_%s_edit',s)),'String',...
                         num2str(max(str2double(get(this.visHandles.(sprintf('IO_%s_edit',s)),'String'))-0.1,0)));
@@ -1595,7 +1590,6 @@ classdef FLIMXVisGUI < handle
                 set(this.visHandles.(sprintf('colormap_zoom_out_%s_button',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Zoom out of histogram');
             end
             %menu
-            set(this.visHandles.menuImportResult,'Callback',@this.menuImport_Callback);
             set(this.visHandles.menuExit,'Callback',@this.menuExit_Callback);
             set(this.visHandles.FLIMXVisGUIFigure,'CloseRequestFcn',@this.menuExit_Callback);
             set(this.visHandles.menuFilterOptions,'Callback',@this.menuFiltOpt_Callback);
