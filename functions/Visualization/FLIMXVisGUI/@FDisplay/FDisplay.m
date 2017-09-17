@@ -62,6 +62,7 @@ classdef FDisplay < handle
         zoomFactor = 1;
         mouseOverlayBoxMain = [];
         mouseOverlayBoxSupp = [];
+        mySuppXZoomScale = [];
     end
     properties (Dependent = true)
         ROICoordinates = [];
@@ -151,6 +152,7 @@ classdef FDisplay < handle
             else
                 this.myhfdSupp = {val};
             end
+            this.mySuppXZoomScale = [];
         end
         
         function zoomSuppXScale(this,target)
@@ -182,6 +184,7 @@ classdef FDisplay < handle
             lb = max(1,min(curStartClass,floor(curColorCenter-range/2)));
             ub = min(length(histCenters),max(curEndClass,round(curColorCenter+range/2)));
             xlim(this.h_s_ax,[lb ub]);
+            this.mySuppXZoomScale = [lb ub];
             xtick = get(this.h_s_ax,'XTick');
             if(xtick(1) == 0)
                 xtick = xtick+1;
@@ -544,24 +547,24 @@ classdef FDisplay < handle
                 %histogram
                 switch get(this.h_s_hist,'Value')
                     case 1 %single histogram
-                        this.myhfdSupp = hfd;
+                        this.sethfdSupp(hfd);
                     case 2 %study view histogram
                         if(~(dTypeNr == 0))
-                            this.myhfdSupp{1} = this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
-                                this.visObj.getView(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1);
+                            this.sethfdSupp(this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
+                                this.visObj.getView(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1));
                         else
-                            this.myhfdSupp = {[]};
+                            this.sethfdSupp({[]});
                         end
                     case 3 %global histogram
                         if(~isnan(dTypeNr))
-                            this.myhfdSupp{1} = this.visObj.fdt.getGlobalObjMerged(this.visObj.getChannel(this.mySide),dType{1},dTypeNr);
+                            this.sethfdSupp(this.visObj.fdt.getGlobalObjMerged(this.visObj.getChannel(this.mySide),dType{1},dTypeNr));
                         else
-                            this.myhfdSupp = hfd;
+                            this.sethfdSupp(hfd);
                         end
                 end
             else
                 %cuts                    
-                this.myhfdSupp = hfd;
+                this.sethfdSupp(hfd);
             end
             if(~isempty(hfd{1}))
                 fi = hfd{1}.getFileInfoStruct();
@@ -1201,11 +1204,14 @@ classdef FDisplay < handle
                         if(length(histo) > 1)
                             xlim(this.h_s_ax,size(histo));
                         end
+                        if(~isempty(this.mySuppXZoomScale))
+                            xlim(this.h_s_ax,this.mySuppXZoomScale);
+                        end
                         xtick = get(this.h_s_ax,'XTick');
                         if(xtick(1) == 0)
                             xtick = xtick+1;
                         end
-                        set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',FLIMXFitGUI.num4disp(centers(xtick)'));
+                        set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',FLIMXFitGUI.num4disp(centers(xtick)'));                        
                         this.drawColorbarOnSuppPlot();
                     else %nothing to do
                         cla(this.h_s_ax);
