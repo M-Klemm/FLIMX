@@ -45,12 +45,14 @@ classdef FLIMXFitResultImport < handle
         myFileGroups = {};
         myFileGroupsCounts = [];
         myResultStruct = [];
+        myJTableHandle = [];
         myChannelNrs = [];
         maxCh = 16;
-        curRow = 1;
-        binFact = 1;
+        currentRow = 1;
         axesMgr = [];
-        mouseOverlay = []
+        mouseOverlay = [];
+        xRef = [];
+        yRef = [];
     end
     
     properties (Dependent = true)
@@ -198,15 +200,43 @@ classdef FLIMXFitResultImport < handle
         
         function updateGUI(this)
             %update GUI controls
+            if(isMultipleCall())
+                return
+            end
             % selected channel in uitable
             data = this.getTableData4Channel(this.currentChannel);
             set(this.visHandles.tableFiles,'Data',data(:,1:5));
+            if(isempty(this.currentRow))
+                %clear table selection
+                ed.Indices(1) = 0;
+            else
+                ed.Indices(1) = this.currentRow(1);
+            end            
+            ed.Indices(2) = 1;
+            if(~isempty(this.myJTableHandle))
+                this.myJTableHandle.changeSelection(ed.Indices(1)-1,0, false, false);
+            else
+                try
+                    sp = findjobj(this.visHandles.tableFiles); %,'persist'
+                    components = sp.getComponents;
+                    viewport = components(1);
+                    curComp = viewport.getComponents;
+                    jtable = curComp(1);
+                    % jtable.setRowSelectionAllowed(0);
+                    % jtable.setColumnSelectionAllowed(0);
+                    jtable.changeSelection(ed.Indices(1)-1,0, false, false);
+                end
+            end
             % show selected image
-            if(~isempty(data) || size(data,1) >= this.curRow || size(data,2) < 8)
+            if(~isempty(data) || size(data,1) >= this.currentRow || size(data,2) < 8)
                 img = this.myResultStruct(this.currentChannel).results.pixel.(this.currentItem);
+                %resize if neccessary
+                if(any([this.yRef,this.xRef] ~= size(img)))
+                    img = imresize(img,[this.yRef,this.xRef]);
+                end
+                %do binning if neccessary
+                img = FLIMXFitResultImport.binImage(img,data{this.currentRow,4});
                 this.axesMgr.setMainData(img);
-                
-                binIds = [data{[data{:,5}],4}];
                 nCh = sum([data{:,5}]);
                 nAll = 0;
                 for chId = 1:length(this.myChannelNrs)
@@ -214,17 +244,9 @@ classdef FLIMXFitResultImport < handle
                     nAll = nAll + sum([data{:,5}]);
                 end
             else
-                binIds = [];
                 nCh = 0;
                 nAll = 0;
                 cla(this.visHandles.axesPreview);
-            end
-            if(any(binIds))
-                this.visHandles.editBin.Enable = 'On';
-                this.visHandles.textBin.Enable = 'On';
-            else
-                this.visHandles.editBin.Enable = 'Off';
-                this.visHandles.textBin.Enable = 'Off';
             end
             set(this.visHandles.editNumberImports,'String',sprintf('%d/%d in current channel',nCh, nAll));
         end
@@ -270,7 +292,7 @@ classdef FLIMXFitResultImport < handle
             end
             data = this.visHandles.tableFiles.Data;
             if(~isempty(data))
-                out = data{max(1,min(size(data,1),this.curRow)),1};
+                out = data{max(1,min(size(data,1),this.currentRow)),1};
             end
         end
         
@@ -371,7 +393,7 @@ classdef FLIMXFitResultImport < handle
             end
             val = max(val,this.maxCh);
             set(this.visHandles.popupChannel,'Value',val);
-            this.curRow = 1;
+            this.currentRow = 1;
             this.updateGUI();
         end
         
@@ -395,14 +417,17 @@ classdef FLIMXFitResultImport < handle
             this.allFiles = cell(0,0);
             this.myFileGroups = cell(0,0);
             this.myFileGroupsCounts = [];
+            this.currentRow = 1;
             this.myChannelNrs = [];
             this.maxCh = 16;
             this.myResultStruct = [];
+            this.xRef = [];
+            this.yRef = [];
             %save path
             this.currentPath = path;
             %read info from disk
             [this.myFileGroups, this.myFileGroupsCounts] = result4Import.detectFileGroups(this.currentPath,this.myFileTypes);
-            rs = result4Import.ASCIIFilesInGroup2ResultStruct(this.currentPath,this.myFileTypes,this.currentFileGroup,this.currentSubject);
+            rs = result4Import.ASCIIFilesInGroup2ResultStruct(this.currentPath,this.myFileTypes,this.currentFileGroup,this.currentSubject,@this.plotProgressbar);
             %check if there are too many channels
             rsChNrs = length(rs);
             maxChNr = this.FLIMXObj.irfMgr.getSpectralChNrs([],'',[]);
@@ -411,12 +436,16 @@ classdef FLIMXFitResultImport < handle
                 %remove the channels
                 rs = rs(1:maxChNr);
                 %display into to user
-                warndlg(sprintf('Detected the following channel numbers: %s\nMaximum number of known IRF channels is %d.\nChannel(s) %s have been removed from this import. To import those channels add the corresponding IRF channels using the IRF manager.',num2str(rsChNrs),maxChNr,num2str(removeChs)),'Too many channels');
+                warndlg(sprintf('Detected the following channel numbers: %s\nMaximum number of known IRF channels is %d.\nChannel(s) %s have been removed from this import. To import those channels add the corresponding IRF channels using the IRF manager.',num2str(rsChNrs),maxChNr,num2str(removeChs)),'FLIMX Result Import: Too Many Channels');
             end
             this.myResultStruct = rs;
-            if(~isempty(this.myResultStruct) && isfield(this.myResultStruct,'channel'))
+            if(rsChNrs > 0 && ~isempty(this.myResultStruct) && isfield(this.myResultStruct,'channel'))
                 this.myChannelNrs = [this.myResultStruct.channel];
                 this.maxCh = max(this.myChannelNrs(:));
+            else
+                set(this.visHandles.editPath,'String',this.currentPath);
+                warndlg('No result files found!','FLIMX Result Import: No Files Found');
+                return
             end
             for chId = 1:length(this.myChannelNrs)
                 fn = fieldnames(rs(this.myChannelNrs(chId)).results.pixel);
@@ -424,9 +453,9 @@ classdef FLIMXFitResultImport < handle
                 for i = 1:length(fn)
                     [sy, sx, sz] = size(rs(this.myChannelNrs(chId)).results.pixel.(fn{i}));
                     af(i,1) = {fn{i}};
-                    af(i,2) = {this.currentChannel};
+                    af(i,2) = {this.myChannelNrs(chId)};
                     af(i,3) = {sprintf('%dx%d',sx,sy)};
-                    af(i,4) = {false};
+                    af(i,4) = {0};
                     af(i,5) = {true};
                     af(i,6) = {[sy, sx, sz]};
                 end
@@ -434,19 +463,26 @@ classdef FLIMXFitResultImport < handle
                 af(:,5) = num2cell(this.checkImageSizes(this.myChannelNrs(chId)));
                 this.allFiles(this.myChannelNrs(chId)) = {af};
             end
+            [this.xRef,this.yRef] = this.getRefImageSize();
             this.setupGUI();
             this.updateGUI();
         end
         
-        function [out,xRef,yRef] = checkImageSizes(this,ch)
+        function out = checkImageSizes(this,ch)
             %check if to be imported results fit to the measurement resolution or to amplitude 1
             out = true;
-            if(isempty(this.allFiles))
+            if(isempty(this.allFiles) || isempty(this.xRef) || isempty(this.yRef))
                 return
             end
-            fi = this.currentFileInfo;
             af = this.allFiles{ch};
             sz = vertcat(af{:,6});
+            out = sz(:,2) == this.xRef & sz(:,1) == this.yRef;
+        end
+        
+        function [xRef,yRef] = getRefImageSize(this)
+            %return the size of the subject's intensity image or of amplitude 1
+            xRef = []; yRef = [];
+            fi = this.currentFileInfo;            
             if(fi.rawXSz == 0)
                 %look in valid channel for reference
                 afRef = this.allFiles{this.myChannelNrs(1)};
@@ -455,36 +491,21 @@ classdef FLIMXFitResultImport < handle
                     %no reference, nothing to do
                     return
                 end
+                sz = vertcat(afRef{:,6});
                 xRef = sz(idx,2);
                 yRef = sz(idx,1);
             else
                 xRef = fi.rawXSz;
                 yRef = fi.rawYSz;
-            end
-            out = sz(:,2) == xRef & sz(:,1) == yRef;
+            end            
         end
-        
+            
         function flag = checkSubjectID(this, Ch)
             %check if channel ch of subject is already in tree
             [~, resultChs] = this.FLIMXObj.fdt.getSubjectFilesStatus(this.FLIMXObj.curSubject.myParent.name,this.FLIMXObj.curSubject.name);
             
             flag = any(resultChs == Ch);
         end
-        
-        %         function createBinFiles(this)
-        %             N = length(this.allFiles);
-        %             for i=1:N
-        %                 if (~isequal(this.allFiles(i).ext,'.asc') && this.allFiles(i).bin && this.allFiles(i).import)
-        %                     this.allFiles(end+1) = this.allFiles(i);
-        %                     this.allFiles(end).fullname = [this.allFiles(i).fullname, '_BIN'];
-        %                     this.allFiles(end).name = [this.allFiles(i).name, '_BIN'];
-        %                     image = this.allFiles(i).image;
-        %                     %add a second version of the image/mask with binning n
-        %                     image(:,:) = imdilate(image(:,:),true(2*this.binFact+1));
-        %                     this.allFiles(end).image = image;
-        %                 end
-        %             end
-        %         end
         
         function matchingImportsInitialize(this, channel)
             %make sure corresponding amplitudes and taus are checked / unchecked for import
@@ -530,7 +551,7 @@ classdef FLIMXFitResultImport < handle
             this.setTableData4Channel(channel,data);
         end
         
-        function plotProgressbar(this,x,varargin)
+        function plotProgressbar(this,x,text)
             %update progress bar, progress x: 0..1, varargin{1}: title (currently unused), varargin{2}: text on progressbar
             x = max(0,min(100*x,100));
             %             if(~ishandle(this.visHandles.studyMgrFigure))
@@ -538,10 +559,10 @@ classdef FLIMXFitResultImport < handle
             %             end
             xpatch = [0 x x 0];
             set(this.visHandles.patchProgress,'XData',xpatch,'Parent',this.visHandles.axesProgress)
-            if (nargin>0)
+            if(nargin>0)
                 % update waitbar
                 yl = ylim(this.visHandles.axesProgress);
-                set(this.visHandles.textProgress,'Position',[1,yl(2)/2,0],'String',varargin{2},'Parent',this.visHandles.axesProgress);
+                set(this.visHandles.textProgress,'Position',[1,yl(2)/2,0],'String',text,'Parent',this.visHandles.axesProgress);
             end
             drawnow;
         end
@@ -592,16 +613,24 @@ classdef FLIMXFitResultImport < handle
             set(this.visHandles.buttonImport,'Callback',@this.GUI_buttonImport_Callback,'TooltipString','If you are ready, click here to import all selected files from all channels for the selected file stub');
             set(this.visHandles.buttonCancel,'Callback',@this.GUI_buttonCancel_Callback,'TooltipString','Click here for cancel importing result files');
             % checkbox
-            set(this.visHandles.checkSelectAll,'Callback',@this.GUI_checkSelectAll_Callback,'TooltipString','Select all files for import');
+            set(this.visHandles.checkSelectAll,'Callback',@this.GUI_checkSelectAll_Callback,'TooltipString','Select all files for import in the current channel');
+            set(this.visHandles.checkSelectNone,'Callback',@this.GUI_checkSelectNone_Callback,'TooltipString','Deselect all files for import in the current channel');            
             % edit fields
             set(this.visHandles.editPath,'Callback',@this.GUI_editPath_Callback,'TooltipString','Current import folder');
-            set(this.visHandles.editBin,'Callback',@this.GUI_editBin_Callback,'TooltipString','Binning factor must be greater than 0','String','1','Enable','off');
             % mouse
             set(this.visHandles.FLIMXFitResultImportFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
             this.axesMgr = axesWithROI(this.visHandles.axesPreview,this.visHandles.axesCb,this.visHandles.textCbBottom,this.visHandles.textCbTop,[],this.cm);
             this.axesMgr.setColorMapPercentiles(this.FLIMXObj.paramMgr.generalParams.cmPercentileLB,this.FLIMXObj.paramMgr.generalParams.cmPercentileUB);
             this.axesMgr.setReverseYDirFlag(this.FLIMXObj.paramMgr.generalParams.reverseYDir);
             this.mouseOverlay = mouseOverlayBox(this.visHandles.axesPreview);
+            % find jave table handle
+            try
+                sp = findjobj(this.visHandles.tableFiles); %,'persist'
+                components = sp.getComponents;
+                viewport = components(1);
+                curComp = viewport.getComponents;
+                this.myJTableHandle = curComp(1);
+            end
             this.setupGUI();
         end
         
@@ -613,7 +642,7 @@ classdef FLIMXFitResultImport < handle
             else
                 row = eventdata.Indices(1);
             end
-            this.curRow = row;
+            this.currentRow = row;
             this.updateGUI();
         end
         
@@ -624,7 +653,7 @@ classdef FLIMXFitResultImport < handle
             else
                 row = eventdata.Indices(1);
             end
-            this.curRow = row;
+            this.currentRow = row;
             % update GUI
             dataNew = eventdata.Source.Data;
             dataOld = this.getTableData4Channel(this.currentChannel);
@@ -669,6 +698,14 @@ classdef FLIMXFitResultImport < handle
                         end
                     end
                 end
+                %check if an item was enabled for import, which size doesn't match the reference
+                if(newVal)
+                    resList = find(~this.checkImageSizes(this.currentChannel));
+                    if(any(resList == di))
+                        uiwait(warndlg(sprintf('Image size of ''%s'' is different from the reference (x:%d y:%d).\n\nThe image will be rescaled to match the reference!',dataOld{di},this.xRef,this.yRef),...
+                            'FLIMX Result Import: Size Mismatch'));
+                    end
+                end
             end
             dataOld(:,1:5) = dataNew;
             this.setTableData4Channel(this.currentChannel,dataOld);
@@ -689,18 +726,7 @@ classdef FLIMXFitResultImport < handle
                 this.openFolderByStr(path);
             end
         end
-        
-        function GUI_editBin_Callback(this,hObject,eventdata)
-            %change binning factor
-            binFactor = str2double(get(this.visHandles.editBin,'String'));
-            if(isempty(binFactor) || isnan(binFactor))
-                binFactor = 1;
-            end
-            binFactor = round(min(9,max(1,binFactor)));
-            set(this.visHandles.editBin,'String',binFactor);
-            this.binFact = binFactor;
-        end
-        
+                
         % Popup
         function GUI_popupChannel_Callback(this,hObject, eventdata)
             this.updateGUI();
@@ -708,7 +734,7 @@ classdef FLIMXFitResultImport < handle
         
         function GUI_popupFileGroup_Callback(this,hObject, eventdata)
             %change current file group
-            this.curRow = 1;
+            this.currentRow = 1;
             this.currentChannel = 1;
             this.detectFilesInFolder();
             this.setupGUI();
@@ -774,43 +800,6 @@ classdef FLIMXFitResultImport < handle
                             return
                     end
             end
-            resizeNames = {};
-            for chId = 1:length(this.myChannelNrs)
-                data = this.getTableData4Channel(this.myChannelNrs(chId));
-                [resizeItems, xRef, yRef] = this.checkImageSizes(this.myChannelNrs(chId));
-                resizeItems = ~resizeItems & [data{:,5}]';
-                if(any(resizeItems))
-                    resizeNames(end+1:end+sum(resizeItems)) = data(resizeItems,1);
-                end
-            end
-            if(~isempty(resizeNames))
-                choice = questdlg(sprintf('Image size of\n\n%s\n different from the reference (x:%d y:%d)!',sprintf('%s\n',resizeNames{:}),xRef,yRef),...
-                    'FLIMX Result Import: Size Mismatch','Resize','Do not import','Cancel','Resize');
-                switch choice
-                    case 'Cancel'
-                        return
-                    case 'Do not import'
-                        for chId = 1:length(this.myChannelNrs)
-                            data = this.getTableData4Channel(this.myChannelNrs(chId));
-                            resizeItems = this.checkImageSizes(this.myChannelNrs(chId));
-                            resizeItems = ~resizeItems & [data{:,5}]';
-                            tmp = [data{:,5}];
-                            tmp(resizeItems) = false;
-                            data(:,5) = num2cell(tmp);
-                            this.setTableData4Channel(this.myChannelNrs(chId),data);
-                        end
-                    case 'Resize'
-                        for chId = 1:length(this.myChannelNrs)
-                            data = this.getTableData4Channel(this.myChannelNrs(chId));
-                            resizeItems = this.checkImageSizes(this.myChannelNrs(chId));
-                            resizeItems = ~resizeItems & [data{:,5}]';
-                            resizeNames = data(resizeItems,1);
-                            for i = 1:length(resizeNames)
-                                this.myResultStruct(this.myChannelNrs(chId)).results.pixel.(resizeNames{i}) = imresize(this.myResultStruct(this.myChannelNrs(chId)).results.pixel.(resizeNames{i}),[yRef,xRef]);
-                            end
-                        end
-                end
-            end
             %% do actual import
             is = this.FLIMXObj.fdt.getSubject4Import(this.currentStudy,this.currentSubject);
             %update position and scaling if needed
@@ -825,13 +814,25 @@ classdef FLIMXFitResultImport < handle
             %import channels
             for chId = 1:length(this.myChannelNrs)
                 rs = this.myResultStruct(this.myChannelNrs(chId));
-                data = this.getTableData4Channel(this.myChannelNrs(chId));
+                data = this.getTableData4Channel(this.myChannelNrs(chId));                
                 idx = [data{:,5}];
                 names = data(idx,1);
                 fn = fieldnames(rs.results.pixel);
                 names = setdiff(fn,names);
                 rs.results.pixel = rmfield(rs.results.pixel,names);
+                fn = fieldnames(rs.results.pixel);
                 if(~isempty(fieldnames(rs.results.pixel)))
+                    binIds = find([data{idx,4}]);
+                    for i = 1:length(fn)
+                        % resize
+                        if(any([this.yRef,this.xRef] ~= size(rs.results.pixel.(fn{i}))))
+                            rs.results.pixel.(fn{i}) = imresize(rs.results.pixel.(fn{i}),[this.yRef,this.xRef]);
+                        end
+                        %do binning
+                        if(any(binIds == i))
+                            rs.results.pixel.(fn{i}) = FLIMXFitResultImport.binImage(rs.results.pixel.(fn{i}),data{i,4});
+                        end
+                    end
                     is.importResultStruct(rs,this.myChannelNrs(chId),pos,res);
                 end
             end
@@ -842,21 +843,21 @@ classdef FLIMXFitResultImport < handle
         function GUI_checkSelectAll_Callback(this,hObject, eventdata)
             % switch checkbox and select all/deselect all
             data = this.getTableData4Channel(this.currentChannel);
-            if(get(hObject,'Value'))
-                data(:,5) = num2cell(true(size(data,1),1));
-                set(hObject,'String','Deselect all','TooltipString','Click to deselect all files');
-            else
-                data(:,5) = num2cell(false(size(data,1),1));
-                set(hObject,'String','Select all','TooltipString','Click to select all files');
-            end
+            set(hObject,'Value',1)
+            data(:,5) = num2cell(true(size(data,1),1));
             this.setTableData4Channel(this.currentChannel,data);
             this.updateGUI();
         end
         
-        function GUI_checkBin_Callback(this,hObject, eventdata)
-            
+        function GUI_checkSelectNone_Callback(this,hObject, eventdata)
+            % switch checkbox and select all/deselect all
+            data = this.getTableData4Channel(this.currentChannel);
+            set(hObject,'Value',0)
+            data(:,5) = num2cell(false(size(data,1),1));
+            this.setTableData4Channel(this.currentChannel,data);
+            this.updateGUI();
         end
-        
+                
         %radio button
         function GUI_radioStudy_Callback(this,hObject, eventdata)
             %user changed study source
@@ -885,6 +886,18 @@ classdef FLIMXFitResultImport < handle
                 set(this.visHandles.FLIMXFitResultImportFigure,'Pointer','cross');
                 this.mouseOverlay.draw(cp,[{sprintf('x:%d y:%d',cp(1),cp(2))},FLIMXFitGUI.num4disp(ci(cp(2),cp(1)))]);
             end
+        end
+    end
+    
+    methods(Static)
+        
+        function img = binImage(img,binFactor)
+            %perform binning on image using bin factor
+            binFactor = round(binFactor);
+            if(binFactor < 1)
+                return
+            end
+            img = imdilate(img,true(2*binFactor+1));
         end
     end
 end

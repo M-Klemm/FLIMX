@@ -225,11 +225,18 @@ classdef result4Import < resultFile
             end
         end
         
-        function rs = ASCIIFilesInGroup2ResultStruct(path,ext,fileGroupName,subjectName)
+        function rs = ASCIIFilesInGroup2ResultStruct(path,ext,fileGroupName,subjectName,hProgress)
             %convert ASCII parameter files to internal result format            
             if(isempty(fileGroupName))
                 rs = [];
                 return
+            end
+            if(nargin < 5)
+                hProgress = [];
+            end
+            tStart = clock;
+            try
+                hProgress(0.01,'Scanning...');
             end
             %always look for .asc files
             fileExt = {'.asc'};
@@ -251,7 +258,7 @@ classdef result4Import < resultFile
             if(isempty(files))
                 rs = [];
                 return
-            end            
+            end
             rs.results.pixel.Amplitude1 = [];
             for i = 1:length(files)
                 [~,filename,curExt] = fileparts(files(i).name);
@@ -268,24 +275,24 @@ classdef result4Import < resultFile
                 if(isempty(curName) || contains(curName,'[%]') || strcmp(curName,'trace'))
                     %error or amplitude in percent or data trace
                     continue
-                end                               
+                end
                 curNr = [];
                 if(strcmp(curName(1),'a') && sum(isstrprop(curName,'digit')) >= 1 && sum(isstrprop(curName,'digit')) <= 2 && length(curName) <= 3)
                     curNr = str2double(curName(isstrprop(curName,'digit')));
-                    curName = 'Amplitude';                    
+                    curName = 'Amplitude';
                 elseif(strcmp(curName(1),'t') && sum(isstrprop(curName,'digit')) >= 1 && sum(isstrprop(curName,'digit')) <= 2 && length(curName) <= 3)
                     curNr = str2double(curName(isstrprop(curName,'digit')));
-                    curName = 'Tau';                    
+                    curName = 'Tau';
                 else
                     %get datatype from filename; remove not allowed characters
                     curName = studyMgr.checkStructFieldName(curName);
                 end
                 file = fullfile(path,[filename,curExt]);
-                    switch curExt
-                        case '.asc'
-                            data_temp = load(file,'-ASCII');
-                        case {'.bmp', '.tif', '.tiff', '.png'}
-                            try
+                switch curExt
+                    case '.asc'
+                        data_temp = load(file,'-ASCII');
+                    case {'.bmp', '.tif', '.tiff', '.png'}
+                        try
                             data_temp = imread(file);
                             [ym,xm,zm] = size(data_temp);
                             if(zm == 3)
@@ -293,22 +300,26 @@ classdef result4Import < resultFile
                                 map = [0,0,0; 0.1,0.1,0.1];
                                 data_temp = rgb2ind(data_temp,map);
                             end
-                            catch
-                                %reading image failed
-                                %todo: message user
-                                continue
-                            end
-                    end
+                        catch
+                            %reading image failed
+                            %todo: message user
+                            continue
+                        end
+                end
                 %restrict B&H amplitudes to <= 1 and amplify
                 %                 if(strcmp(dType,'Amplitude') && median(data_temp(:)) < 0.5)
                 %                     data_temp(data_temp > 1) = 0;
                 %                     data_temp = data_temp .* 100000;
-                %                 end                
+                %                 end
                 %check if we have that curName already
                 if(length(rs) >= chanNr && any(strcmp(fieldnames(rs(chanNr).results.pixel),curName)))
                     curName = [curName '_' curExt(2:end)];
                 end
                 rs(chanNr).results.pixel.(sprintf('%s%d',curName,curNr)) = data_temp;
+                try
+                    [~, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(files)-i));
+                    hProgress(i/length(files),sprintf('%02.1f%% ETA: %dmin %.0fsec',100*i/length(files),minutes,secs));
+                end
             end
             for ch = 1:length(rs)
                 if(~isempty(rs(ch).results))
@@ -319,9 +330,10 @@ classdef result4Import < resultFile
                     rs(ch).resultType = 'ASCII';
                     rs(ch).about.results_revision = 200;
                 end
-            end                      
+            end
+            try
+                hProgress(0,'');
+            end
         end
-        
-        
     end
 end%classdef
