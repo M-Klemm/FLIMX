@@ -44,6 +44,7 @@ classdef studyMgr < handle
         visHandles = []; %structure to handles in GUI
         myClipboard = []; %Clipboard to copy/insert Subjects between studies
         stop = false;
+        myJTableFiles = [];
         selectedSubjects = [];
         selectedInfoField = [];
     end
@@ -175,6 +176,14 @@ classdef studyMgr < handle
             set(this.visHandles.tableFileData,'CellSelectionCallback',@this.GUI_tableFileDataSel_Callback);
             set(this.visHandles.tableStudyData,'CellEditCallback',@this.GUI_tableStudyDataEdit_Callback);
             set(this.visHandles.tableStudyData,'CellSelectionCallback',@this.GUI_tableStudyDataSel_Callback);
+            %find underlying java object
+            try
+                sp = findjobj(this.visHandles.tableFileData); %,'persist'
+                components = sp.getComponents;
+                viewport = components(1);
+                curComp = viewport.getComponents;
+                this.myJTableFiles = curComp(1);
+            end
         end
         
         function out = isOpenVisWnd(this)
@@ -451,7 +460,10 @@ classdef studyMgr < handle
             end
             this.fdt.checkSubjectFiles(this.curStudyName,'');
             this.updateGUI();
-            %this.setSelectedSubjects(subjects);
+            this.visObj.setupGUI();
+            this.visObj.updateGUI('');
+            this.setSelectedSubjects(subjects);
+            figure(this.visHandles.studyMgrFigure);
         end
         
         %% GUI & menu callbacks
@@ -1214,6 +1226,8 @@ classdef studyMgr < handle
             this.plotProgressbar(0,[],'');
             this.updateGUI();
             this.visObj.setupGUI();
+            this.visObj.updateGUI('');
+            this.setSelectedSubjects(subNrs);
         end
         
         function menuCopyROI2Study_Callback(this,hObject,eventdata)
@@ -1314,18 +1328,22 @@ classdef studyMgr < handle
             end
             ed.Indices(1) = subNrs(1);
             ed.Indices(2) = 1;
-            try
-                sp = findjobj(this.visHandles.tableFileData); %,'persist'
-                components = sp.getComponents;
-                viewport = components(1);
-                curComp = viewport.getComponents;
-                jtable = curComp(1);
-                % jtable.setRowSelectionAllowed(0);
-                % jtable.setColumnSelectionAllowed(0);
-                jtable.changeSelection(ed.Indices(1,:)-1,0, false, false);
-            catch
-                GUI_tableFileDataSel_Callback(this,this.visHandles.tableFileData,ed);
-            end
+            if(~isempty(this.myJTableFiles))
+                this.myJTableFiles.changeSelection(ed.Indices(1)-1,0, false, false);
+            else
+                try
+                    sp = findjobj(this.visHandles.tableFileData); %,'persist'
+                    components = sp.getComponents;
+                    viewport = components(1);
+                    curComp = viewport.getComponents;
+                    jtable = curComp(1);
+                    % jtable.setRowSelectionAllowed(0);
+                    % jtable.setColumnSelectionAllowed(0);
+                    jtable.changeSelection(ed.Indices(1)-1,0, false, false);
+                catch
+                    GUI_tableFileDataSel_Callback(this,this.visHandles.tableFileData,ed);
+                end
+            end            
         end
         
         %% dependent properties
