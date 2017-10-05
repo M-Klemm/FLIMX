@@ -293,12 +293,15 @@ classdef result4Import < resultFile
                         data_temp = load(file,'-ASCII');
                     case {'.bmp', '.tif', '.tiff', '.png'}
                         try
-                            data_temp = imread(file);
-                            [ym,xm,zm] = size(data_temp);
+                            [data_temp,map,transparency] = imread(file);
+                            [~,~,zm] = size(data_temp);
                             if(zm == 3)
                                 %convert image to binary image
                                 map = [0,0,0; 0.1,0.1,0.1];
-                                data_temp = rgb2ind(data_temp,map);
+                                data_temp = rgb2ind(data_temp(:,:,1:3),map);
+                            elseif(zm == 4)
+                                %this is the transparency mask, we use its inverted version
+                                data_temp = ~data_temp(:,:,4) > 0.1;
                             end
                         catch
                             %reading image failed

@@ -236,7 +236,11 @@ classdef FLIMXFitResultImport < handle
                 end
                 %do binning if neccessary
                 img = FLIMXFitResultImport.binImage(img,data{this.currentRow,4});
-                this.axesMgr.setMainData(img);
+                if(islogical(img))
+                    this.axesMgr.setMainData(img,0,1);
+                else
+                    this.axesMgr.setMainData(img);
+                end
                 nCh = sum([data{:,5}]);
                 nAll = 0;
                 for chId = 1:length(this.myChannelNrs)
