@@ -344,6 +344,9 @@ classdef result4Approx < resultFile
         
         function addSingleResult(this,ch,row,col,resultStruct)
             %add single results to our inner results structure
+            if(isempty(resultStruct) || ~isstruct(resultStruct))
+                return
+            end
             if(length(resultStruct) > 1)
                 for ch = 1:length(resultStruct)
                     this.addSingleResult(ch,row,col,resultStruct(ch));
