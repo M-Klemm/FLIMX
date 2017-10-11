@@ -58,6 +58,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         dMaxVal = 1; %max of data
         dMaxPos = 0; %position of data max (index)
         dFWHMPos = 0; %position of full width at half maximum (index)
+        dRisingIDs = []; %positions of data rising edge between 5% and 85%
         time = []; %vector of timepoints
         nScatter = 0;
         basicParams = 0;
@@ -168,6 +169,14 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 this.compSmoothedMaxValues();
             end
             out = this.dataStorage.measurement.FWHMPos;
+        end
+        
+        function out = get.dRisingIDs(this)
+            %get positions of rising edge between 20% and 80% of data max
+            if(isempty(this.dataStorage.measurement.FWHMPos))
+                this.compSmoothedMaxValues();
+            end
+            out = this.dataStorage.measurement.risingIDs;
         end
         
         function out = getIRF(this)
@@ -726,7 +735,6 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         
         function compSmoothedMaxValues(this)
             %compute position and value of data maximum (smoothed data) and full width half maximum position
-            %fi = this.fileInfo;
             dSmooth = this.dataStorage.measurement.raw;
             dSmooth(isnan(dSmooth)) = 0;
             dSmooth = fastsmooth(dSmooth,5,3,0);
@@ -739,7 +747,12 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 this.myStartPos = max(1,this.dataStorage.measurement.maxPos-this.basicParams.tailFitPreMaxSteps-1);
             end
             this.dataStorage.measurement.maxVal = double(maxVal);
-            this.dataStorage.measurement.FWHMPos = find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos),maxVal*0.8),1,'last');
+            this.dataStorage.measurement.FWHMPos = find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos),maxVal*0.6),1,'last');
+            ids = (5:10:85)./100;
+            this.dataStorage.measurement.risingIDs = zeros(size(ids));
+            for i = 1:length(ids)
+                this.dataStorage.measurement.risingIDs(i) = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos) >= double(maxVal)*ids(i),1,'first');
+            end
         end
         
         function compMeasurementZeroMask(this)

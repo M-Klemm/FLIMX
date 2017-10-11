@@ -74,6 +74,7 @@ classdef FLIMX < handle
     methods
         function this = FLIMX()
             %constructor
+            warning('off','MATLAB:rankDeficientMatrix');
             this.splashScreenGUIObj = FLIMXSplashScreen();
             this.updateSplashScreenProgressLong(0.01,'Loading IRFs...');
             %parameters from ini file
@@ -171,6 +172,7 @@ classdef FLIMX < handle
         
         function destroy(this,forceFlag)
             %delete FLIMX object if all windows are closed or if forceFlag == true
+            warning('on','MATLAB:rankDeficientMatrix');
             if(forceFlag || (~this.FLIMFitGUI.isOpenVisWnd() && ~this.FLIMVisGUI.isOpenVisWnd()))
                 %do some cleanup
                 studies = this.fdt.getStudyNames();
@@ -467,8 +469,8 @@ classdef FLIMX < handle
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 262;
-            out.client_revision = 378;
-            out.core_revision = 364;
+            out.client_revision = 379;
+            out.core_revision = 365;
             out.results_revision = 256;
             out.measurement_revision = 204;
         end

@@ -471,16 +471,14 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 %exclude stretched exponentials
                 mask = find(~bp.stretchedExpMask)+bp.nExp;
                 for i = 1:length(mask)-1 %bp.nExp+1 : 2*bp.nExp-1
-                    %idxIgnored(xVecCheck(mask(i),:).*bp.lifetimeGap > xVecCheck(mask(i+1),:)) = true;
-                    tmp = floor(xVecCheck(mask(i+1),:) - xVecCheck(mask(i),:).*bp.lifetimeGap).*-1000;
+                    tmp = floor(xVecCheck(mask(i+1),:) - xVecCheck(mask(i),:).*bp.lifetimeGap).*-1000000;
                     idx = tmp > 0;
                     chi2(idx) = chi2(idx) + tmp(idx);
                 end
                 %ensure tci ordering
                 if(bp.tcOrder)
                     for i = 2*bp.nExp+1 : 2*bp.nExp+sum(bp.tciMask ~= 0)-1
-                        %idxIgnored(xVecCheck(i,:) > xVecCheck(i+1,:)) = true;
-                        tmp = floor(xVecCheck(i+1,:) - xVecCheck(i,:)) .*1000;
+                        tmp = floor(xVecCheck(i+1,:) - xVecCheck(i,:)) .*1000000;
                         idx = tmp > 0;
                         chi2(idx) = chi2(idx) + tmp(idx);
                     end
@@ -488,8 +486,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             end
             amps = zeros(bp.nExp,size(xVec,2));
             scAmps = zeros(this.volatilePixelParams.nScatter,size(xVec,2));
-            oset = zeros(1,size(xVec,2));            
-            %chi2(idxIgnored) = inf;
+            oset = zeros(1,size(xVec,2));
             idxIgnored = logical(chi2)';
             if(all(idxIgnored == true))
                 chi2tail = chi2;
@@ -527,15 +524,23 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %help optimizer to get shift right, if we are too far off             
             %[~, chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,tmp,[false; ~idxIgnored],this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
             if(ch < 4) %only for fluorescence lifetime %bp.approximationTarget == 1 || 
-                %compute model FWHM positions
-                [~,fwhmPos] = max(bsxfun(@gt,model(:,~idxIgnored),max(model(:,~idxIgnored),[],1)*0.8),[],1);
-                d = abs(bsxfun(@minus,fwhmPos,this.myChannels{ch}.dFWHMPos));
+                %compute model positions of the rising edge between 5% and 85%
+                [modelMaxVal,modelMaxPos] = max(model(:,~idxIgnored),[],1);
+                ids = (5:10:85)./100;
+                risingIDs = zeros(sum(~idxIgnored),length(ids));
+                modelIDs = find(~idxIgnored);
+                for i = 1:length(ids)
+                    for m = 1:length(modelIDs)
+                        risingIDs(m,i) = find(model(1:modelMaxPos(m),modelIDs(m)) >= double(modelMaxVal(m))*ids(i),1,'first');
+                    end
+                end
+                %compare them to the data rising edge positions, add penalty to chi² if average difference is more than user defined margin
+                d = mean(abs(risingIDs - this.myChannels{ch}.dRisingIDs),2)';
                 idxHit = d > bp.risingEdgeErrorMargin;
                 if(any(idxHit))
-                    idxNum = find(~idxIgnored);
-                    idxNum = idxNum(idxHit);
-                    idxIgnored(idxNum) = true;
-                    chi2(idxNum) = (d(idxHit)/10+1)*10.*chi2(idxNum); %max(chi2(idxNum)+d(idxHit).*10000,(d(idxHit)/10+1)*10.*chi2(idxNum));
+                    modelIDs = modelIDs(idxHit);
+                    idxIgnored(modelIDs) = true;
+                    chi2(modelIDs) = (d(idxHit)/10+1)*10.*chi2(modelIDs);                   
                 end
                 if(all(idxIgnored == true))
                     chi2tail = chi2;
@@ -545,7 +550,6 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %ensure tci components are earlier on the time axis compared to the other components
             vcp = this.getVolatileChannelParams(ch);
             loopCnt = 0;
-            %idxRemain = true(1,sum(~idx),1);
             for i = find(bp.tciMask)
                 loopCnt = loopCnt + 1;
                 if(~vcp.cMask(2*bp.nExp+loopCnt))
@@ -583,18 +587,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 idxIgnored = false(size(xVec,2),1);
             end
             model = model(:,~idxIgnored);
-            %do computation
-%             switch bp.fitModel
-%                 case {0,2} %tail fit
-%                     [~, ~, chi2(~idxIgnored)] = this.myChannels{ch}.compFigureOfMerit(model,true);
-%                 case 1 %tci fit
-%                     [~, ~, chi2(~idxIgnored)] = this.myChannels{ch}.compFigureOfMerit(model,false);
-%             end
-%             dr = model(this.myChannels{ch}.dMaxPos,:) ./ this.myChannels{ch}.dMaxVal;
-%             drIdx = abs(1-dr(:)) > 0.05;
-%             chi2Tmp = chi2(~idxIgnored);            
-%             chi2Tmp(drIdx) = chi2Tmp(drIdx)*10;
-%             chi2(~idxIgnored) = chi2Tmp;
+            %do extra chi² tail computation
             if(nargout == 5 && bp.fitModel == 1)
                 [~, ~, chi2tail(~idxIgnored)] = this.myChannels{ch}.compFigureOfMerit(model,true);
             elseif(nargout == 5 && bp.fitModel ~= 1)
@@ -1288,14 +1281,12 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             d = min(d,(fwhmPos(tcIdx,:) - lowerBound));
             %check shifted components against data maximum
             d = min(d,upperBounds - fwhmPos(tcIdx,:));
-            %idxHit = d < -5;
             idxHit = d < 0;
             if(any(idxHit))
                 idxNum = find(~idx);
                 idxNum = idxNum(idxHit);
                 idx(idxNum) = true;
-                chi2(idxNum) = (-d(idxHit)/10+1)*10.*chi2(idxNum); %chi2(idxNum)+d(idxHit).*-10000; 
-                %model(:,idxHit) = [];
+                chi2(idxNum) = (-d(idxHit)/10+1)*10.*chi2(idxNum);
                 idxRemain = ~idxHit;
             else
                 idxRemain = true(1,size(exponentials,3));
