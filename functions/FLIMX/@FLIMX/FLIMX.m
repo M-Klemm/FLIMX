@@ -133,6 +133,7 @@ classdef FLIMX < handle
                 end
                 try
                     p = parpool('local',feature('numCores'));
+                    pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
                     this.splashScreenGUIObj.updateProgressShort(1,'Trying to open pool of MATLAB workers - done');
                     %p.IdleTimeout = 0;
                 catch ME

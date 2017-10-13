@@ -58,6 +58,7 @@ if(isdeployed())
         if(isempty(gcp('nocreate')))
             try
                 parpool('local',feature('numCores'));
+                pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
             catch
                 parpool('local');
             end
