@@ -750,8 +750,14 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             this.dataStorage.measurement.FWHMPos = find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos),maxVal*0.6),1,'last');
             ids = (5:10:85)./100;
             this.dataStorage.measurement.risingIDs = zeros(size(ids));
+            minVal = min(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos));
+            dataRange = maxVal-minVal;
             for i = 1:length(ids)
-                this.dataStorage.measurement.risingIDs(i) = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos) >= double(maxVal)*ids(i),1,'first');
+                if(ids(i) > 0.5)
+                    this.dataStorage.measurement.risingIDs(i) = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos) >= double(minVal)+double(dataRange)*ids(i),1,'first');
+                else
+                    this.dataStorage.measurement.risingIDs(i) = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos) <= double(minVal)+double(dataRange)*ids(i),1,'last');
+                end
             end
         end
         

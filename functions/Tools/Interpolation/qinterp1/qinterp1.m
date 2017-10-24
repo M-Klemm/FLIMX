@@ -79,7 +79,6 @@ xi = xi - x(1);      % subtract minimum of x
 %     error('Y may only be one- or two-dimensional');
 % end
 out = NaN(length(xi),size(Y,2));
-out(end,:) = Y(end,:);
 % switch method
 %     case 0 %nearest-neighbor method
 %         rxi = round(xi*ndx)+1;        % indices of nearest-neighbors
@@ -88,21 +87,28 @@ out(end,:) = Y(end,:);
 %         %nflag = ~flag;                % finds indices in bounds
 %         Y(flag) = Y(rxi(flag));
 %     case 1 %linear interpolation method
-        fxi = floor(xi*ndx)+1;          % indices of nearest-lower-neighbors
-        flag = ~(fxi<1 | fxi>length(x)-1 | isnan(xi));
-        % finds indices out of bounds
-        %nflag = ~flag;                  % finds indices in bounds
-        if(optimize4Codegen)
-            %% use this for codegen!
-            for i = 1:size(Y,2)
-                out(flag,i) = (fxi(flag)-xi(flag)*ndx).*Y(fxi(flag),i) + (1-fxi(flag)+xi(flag)*ndx).*Y(fxi(flag)+1,i);
-            end
-        else
-            %% use this for matlab execution
-            if(size(Y,2) == 1)
-                out(flag) = (fxi(flag)-xi(flag)*ndx).*Y(fxi(flag)) + (1-fxi(flag)+xi(flag)*ndx).*Y(fxi(flag)+1);
-            else
-                out(flag,:) = bsxfun(@times,Y(fxi(flag),:),fxi(flag)-xi(flag)*ndx) + bsxfun(@times,Y(fxi(flag)+1,:),1-fxi(flag)+xi(flag)*ndx);
-            end
-        end
+fxi = floor(xi*ndx)+1;          % indices of nearest-lower-neighbors
+flag = ~(fxi<1 | fxi>length(x)-1 | isnan(xi));
+if(~flag(1) && sum(flag) == length(xi)-1)
+    %first element is NaN
+    out(1,:) = Y(1,:);
+elseif(~flag(end) && sum(flag) == length(xi)-1)
+    %last element is NaN
+    out(end,:) = Y(end,:);
+end
+% finds indices out of bounds
+%nflag = ~flag;                  % finds indices in bounds
+if(optimize4Codegen)
+    %% use this for codegen!
+    for i = 1:size(Y,2)
+        out(flag,i) = (fxi(flag)-xi(flag)*ndx).*Y(fxi(flag),i) + (1-fxi(flag)+xi(flag)*ndx).*Y(fxi(flag)+1,i);
+    end
+else
+    %% use this for matlab execution
+    if(size(Y,2) == 1)
+        out(flag) = (fxi(flag)-xi(flag)*ndx).*Y(fxi(flag)) + (1-fxi(flag)+xi(flag)*ndx).*Y(fxi(flag)+1);
+    else
+        out(flag,:) = bsxfun(@times,Y(fxi(flag),:),fxi(flag)-xi(flag)*ndx) + bsxfun(@times,Y(fxi(flag)+1,:),1-fxi(flag)+xi(flag)*ndx);
+    end
+end
 end

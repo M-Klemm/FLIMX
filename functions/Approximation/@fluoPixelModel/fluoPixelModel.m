@@ -522,25 +522,35 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             end
             exponentials(:,:,idxIgnored) = 0;
             %help optimizer to get shift right, if we are too far off             
-            %[~, chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,tmp,[false; ~idxIgnored],this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
+            %[chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,tmp,[false; ~idxIgnored],this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
             if(ch < 4) %only for fluorescence lifetime %bp.approximationTarget == 1 || 
                 %compute model positions of the rising edge between 5% and 85%
-                [modelMaxVal,modelMaxPos] = max(model(:,~idxIgnored),[],1);
-                ids = (5:10:85)./100;
-                risingIDs = zeros(sum(~idxIgnored),length(ids));
                 modelIDs = find(~idxIgnored);
-                for i = 1:length(ids)
-                    for m = 1:length(modelIDs)
-                        risingIDs(m,i) = find(model(1:modelMaxPos(m),modelIDs(m)) >= double(modelMaxVal(m))*ids(i),1,'first');
+                ids = (5:10:85)./100;
+                risingIDs = zeros(sum(~idxIgnored),length(ids));                
+                for m = 1:length(modelIDs)
+                    for i = 1:length(ids)  
+                        [modelMaxVal,modelMaxPos] = max(model(:,modelIDs(m)),[],1);
+                        [modelMinVal,~] = min(model(1:modelMaxPos,modelIDs(m)),[],1);
+                        modelRange = modelMaxVal-modelMinVal;
+                        if(isnan(modelRange) || isinf(modelRange))
+                             risingIDs(m,i) = 1;
+                             continue
+                        end
+                        if(ids(i) > 0.5)
+                            risingIDs(m,i) = find(model(1:modelMaxPos,modelIDs(m)) >= double(modelMinVal)+double(modelRange)*ids(i),1,'first');
+                        else
+                            risingIDs(m,i) = find(model(1:modelMaxPos,modelIDs(m)) <= double(modelMinVal)+double(modelRange)*ids(i),1,'last');
+                        end
                     end
                 end
                 %compare them to the data rising edge positions, add penalty to chi² if average difference is more than user defined margin
-                d = mean(abs(risingIDs - this.myChannels{ch}.dRisingIDs),2)';
+                d = median(abs(risingIDs - this.myChannels{ch}.dRisingIDs),2)';
                 idxHit = d > bp.risingEdgeErrorMargin;
                 if(any(idxHit))
                     modelIDs = modelIDs(idxHit);
                     idxIgnored(modelIDs) = true;
-                    chi2(modelIDs) = (d(idxHit)/10+1)*10.*chi2(modelIDs);                   
+                    chi2(modelIDs) = (d(idxHit)/10+1)*10.*chi2(modelIDs);
                 end
                 if(all(idxIgnored == true))
                     chi2tail = chi2;
@@ -558,7 +568,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     %for multiple tci: remove other tci-components from comparison
                     cIdx = ~bp.tciMask | tcIdx;
                     tcIdx(~tcIdx & ~cIdx) = [];
-                    [~, chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,exponentials(:,cIdx,~idxIgnored),tcIdx,this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
+                    [chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,exponentials(:,cIdx,~idxIgnored),tcIdx,this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
                 end
             end
             %ensure that lens fluorescence is earlier on the time axis compared to the other components          
@@ -567,7 +577,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 tcIdx = false(bp.nExp+size(scAmps,1),1);
                 tcIdx(bp.nExp+1) = true;
                 nzAmpsIdx = scAmps(1,:)' > 0 & ~idxIgnored;
-                [~, chi2New, idxNew] = fluoPixelModel.timeShiftCheck(true,chi2,~nzAmpsIdx,exponentials(:,1:end-1,nzAmpsIdx),tcIdx,this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
+                [chi2New, idxNew] = fluoPixelModel.timeShiftCheck(true,chi2,~nzAmpsIdx,exponentials(:,1:end-1,nzAmpsIdx),tcIdx,this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
                 idxIgnored(nzAmpsIdx) = idxIgnored(nzAmpsIdx) | idxNew(nzAmpsIdx);
                 chi2(nzAmpsIdx) = chi2New(nzAmpsIdx);
             end
@@ -576,7 +586,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 tcIdx = false(bp.nExp+size(scAmps,1),1);
                 tcIdx(end) = true;
                 nzAmpsIdx = scAmps(end,:)' > 0 & ~idxIgnored;
-                [~, chi2New, idxNew] = fluoPixelModel.timeShiftCheck(false,chi2,~nzAmpsIdx,exponentials(:,1:end-1,nzAmpsIdx),tcIdx,this.myChannels{ch}.dMaxPos,this.myChannels{ch}.dMaxPos);
+                [chi2New, idxNew] = fluoPixelModel.timeShiftCheck(false,chi2,~nzAmpsIdx,exponentials(:,1:end-1,nzAmpsIdx),tcIdx,this.myChannels{ch}.dMaxPos,this.myChannels{ch}.dMaxPos);
                 idxIgnored(nzAmpsIdx) = idxIgnored(nzAmpsIdx) | idxNew(nzAmpsIdx);
                 chi2(nzAmpsIdx) = chi2New(nzAmpsIdx);
             end
@@ -1257,10 +1267,9 @@ classdef fluoPixelModel < matlab.mixin.Copyable
     end
     
     methods(Static)
-        function [model, chi2, idx, idxRemain] = timeShiftCheck(force2Edge,chi2,idx,exponentials,tcIdx,lowerBound,upperBounds)
+        function [chi2, idx, idxRemain] = timeShiftCheck(force2Edge,chi2,idx,exponentials,tcIdx,lowerBound,upperBound)
             %check if exponential at tcIdx lies between slopeStartPos and the other exponentials, if not remove them from models, compute a chi2 and save it in index idx
             %find position of rising edge at half maximum
-            model = [];
             exponentials = bsxfun(@minus,exponentials,min(exponentials,[],1));
             if(force2Edge)
                 [~,fwhmPos] = max(bsxfun(@gt,exponentials,max(exponentials(:,tcIdx,:),[],1)/8),[],1);
@@ -1280,7 +1289,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %check shifted components against rising edge position
             d = min(d,(fwhmPos(tcIdx,:) - lowerBound));
             %check shifted components against data maximum
-            d = min(d,upperBounds - fwhmPos(tcIdx,:));
+            d = min(d,upperBound - fwhmPos(tcIdx,:));
             idxHit = d < 0;
             if(any(idxHit))
                 idxNum = find(~idx);

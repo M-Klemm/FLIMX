@@ -83,7 +83,12 @@ else %enough photons
             end            
             %select initialization
             if(optimIter ~= 1 && ~isempty(prevXVec))
-                iVec = prevXVec; %use result from previous optimization as initialization
+                %use result from previous optimization as initialization
+                if(optimizer == 2)
+                    iVec = cat(2,iVec,prevXVec);
+                else
+                    iVec = prevXVec;
+                end
             else
                 if(any(apObj.volatilePixelParams.globalFitMask))
                     tmp = [];
