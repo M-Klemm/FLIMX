@@ -48,6 +48,9 @@ if(nargout == 3)
     roiFull = zeros(roiYLen,roiXLen,zR,'uint32');
     roiFull = reshape(roiFull,roiYLen*roiXLen,1,zR);
 end
+if(targetPhotons < 1)
+    return
+end
 nPixel = roiYLen*roiXLen;
 %calculate coordinates of output grid
 [pxYcoord, pxXcoord] = ind2sub([roiYLen,roiXLen],1:nPixel);
@@ -82,6 +85,10 @@ parfor px = 1:nPixel
     end  
     roiFlat(px) = val;%pxYcoord(px),pxXcoord(px)
     binLevels(px) = binLevel(1);
+    if(~any(idx))
+        %algorithm failed
+        continue
+    end
 %     if(optimize4Codegen)
 %         %% use this for codegen!
 %         [iY,iX] = ind2sub([yR,xR],idx);
