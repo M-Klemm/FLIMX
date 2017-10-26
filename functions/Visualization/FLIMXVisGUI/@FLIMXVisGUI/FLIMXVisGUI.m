@@ -373,7 +373,7 @@ classdef FLIMXVisGUI < handle
                 this.objHandles.(sprintf('%sROI',s)).updateGUI([]);
                 this.objHandles.(sprintf('%sZScale',s)).updateGUI([]);
                 this.objHandles.(sprintf('%sdo',s)).updatePlots();
-                this.objHandles.(sprintf('%sdo',s)).myColorScaleObj.checkCallback();                
+                this.objHandles.(sprintf('%sdo',s)).myColorScaleObj.checkCallback(this.getROIDisplayMode(s) > 1);                
                 if(strcmp(s,'l'))
                     %update cuts
                     this.objHandles.cutx.updateCtrls();
@@ -1127,7 +1127,7 @@ classdef FLIMXVisGUI < handle
                     this.dynParams.mouseButtonDown = false;
                     if(~isempty(cpSupp))
                         %reset color scaling to auto only if click happened inside of axes
-                        this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.forceAutoScale();                        
+                        this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.forceAutoScale(this.getROIDisplayMode(thisSide) > 1);                        
                     end
                     this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
             end
@@ -1220,8 +1220,12 @@ classdef FLIMXVisGUI < handle
             end
             if(this.fdt.getNrSubjects(this.getStudy(s),this.getView(s)) < 1)
                 return
-            end            
-            this.objHandles.(sprintf('%sdo',s)).updatePlots();  
+            end
+            if(this.objHandles.(sprintf('%sdo',s)).myColorScaleObj.check)
+                this.objHandles.(sprintf('%sdo',s)).myColorScaleObj.forceAutoScale(hObject.Value > 1);
+            else
+                this.objHandles.(sprintf('%sdo',s)).updatePlots();
+            end
             %this.updateGUI([]);
         end
         
@@ -1296,7 +1300,7 @@ classdef FLIMXVisGUI < handle
                     this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                 end
             elseif(contains(tag,'check'))
-                this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.checkCallback();
+                this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.checkCallback(this.getROIDisplayMode(thisSide) > 1);
                 if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
                     this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                 end
@@ -1318,13 +1322,13 @@ classdef FLIMXVisGUI < handle
         
         function GUI_roi_Callback(this,hObject,eventdata)
             %change roi size in x, y or z direction
-            s1 = 'r'; %side which activated the control
-            s2 = 'l'; %side we have to update to the new values
+            thisSide = 'r'; %side which activated the control
+            otherSide = 'l'; %side we have to update to the new values
             %find side/axes
             tag = get(hObject,'Tag');
             if(contains(tag,'_l_'))
-                s1 = 'l';
-                s2 = 'r';
+                thisSide = 'l';
+                otherSide = 'r';
             end
             %find dimension
             if(contains(tag,'_x_'))
@@ -1343,19 +1347,19 @@ classdef FLIMXVisGUI < handle
             %find control type
             if(contains(tag,'edit'))
                 if(strcmp(dim,'z'))
-                    this.objHandles.(sprintf('%sZScale',s1)).editCallback(dim,bnd);
+                    this.objHandles.(sprintf('%sZScale',thisSide)).editCallback(dim,bnd);
                 else
-                    this.objHandles.(sprintf('%sROI',s1)).editCallback(dim,bnd);
+                    this.objHandles.(sprintf('%sROI',thisSide)).editCallback(dim,bnd);
                 end
             elseif(length(tag) == 11 && contains(tag,'table'))
-                this.objHandles.(sprintf('%sROI',s1)).tableEditCallback(eventdata);
-                this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
+                this.objHandles.(sprintf('%sROI',thisSide)).tableEditCallback(eventdata);
+                this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
             elseif(contains(tag,'roi_table_clearLast'))
-                this.objHandles.(sprintf('%sROI',s1)).buttonClearLastCallback();
-                this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
+                this.objHandles.(sprintf('%sROI',thisSide)).buttonClearLastCallback();
+                this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
             elseif(contains(tag,'roi_table_clearAll'))
-                this.objHandles.(sprintf('%sROI',s1)).buttonClearAllCallback();
-                this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
+                this.objHandles.(sprintf('%sROI',thisSide)).buttonClearAllCallback();
+                this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
             elseif(contains(tag,'button') && ~contains(tag,'roi_table_clearAll'))
                 if(contains(tag,'_dec_'))
                     target = 'dec';
@@ -1363,9 +1367,9 @@ classdef FLIMXVisGUI < handle
                     target = 'inc';
                 end
                 if(strcmp(dim,'z'))
-                    this.objHandles.(sprintf('%sZScale',s1)).buttonCallback(dim,bnd,target);
+                    this.objHandles.(sprintf('%sZScale',thisSide)).buttonCallback(dim,bnd,target);
                 else
-                    this.objHandles.(sprintf('%sROI',s1)).buttonCallback(dim,bnd,target);
+                    this.objHandles.(sprintf('%sROI',thisSide)).buttonCallback(dim,bnd,target);
                 end
             elseif(contains(tag,'popup'))
                 if(contains(tag,'roi_subtype_'))
@@ -1373,20 +1377,23 @@ classdef FLIMXVisGUI < handle
                 else
                     type = 'sub';
                 end
-                this.objHandles.(sprintf('%sROI',s1)).popupCallback(type);
+                this.objHandles.(sprintf('%sROI',thisSide)).popupCallback(type);
             else %check
-                this.objHandles.(sprintf('%sZScale',s1)).checkCallback(dim);
+                this.objHandles.(sprintf('%sZScale',thisSide)).checkCallback(dim);
+            end
+            if(this.getROIDisplayMode(thisSide) > 1 && this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.check)
+                this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.forceAutoScale(true);
             end
             %update ROI controls on other side
             if(contains(tag,'type_'))
-                this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
+                this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
             else                
                 if(~strcmp(dim,'z'))
-                    this.objHandles.(sprintf('%sROI',s2)).updateGUI([]);
+                    this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
                     %update cuts only for x and y
                     this.objHandles.(sprintf('cut%s',dim)).checkCallback();
                 else
-                    this.objHandles.(sprintf('%sZScale',s2)).updateGUI([]);
+                    this.objHandles.(sprintf('%sZScale',otherSide)).updateGUI([]);
                 end
             end
             %make sure FDisplay rebuild merged statistics

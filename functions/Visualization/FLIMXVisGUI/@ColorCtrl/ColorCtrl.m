@@ -121,10 +121,10 @@ classdef ColorCtrl < handle
             set(this.zoom_out_button,'Enable',argEn,'Visible',argVis);
         end
         
-        function checkCallback(this)
+        function checkCallback(this,isROIFlag)
             %callback function of the check control
             if(this.check)
-                this.updateGUI(this.getAutoScale());
+                this.updateGUI(this.getAutoScale(isROIFlag));
             else
                 this.enDisAble('on','on');
             end
@@ -136,10 +136,10 @@ classdef ColorCtrl < handle
             this.setColorScale(this.getCurCSInfo(),false);
         end
         
-        function forceAutoScale(this)
+        function forceAutoScale(this,isROIFlag)
             %switch on auto scale
             set(this.auto_check,'Value',1);
-            this.checkCallback();
+            this.checkCallback(isROIFlag);
         end
         
         function setLowerBorder(this,val,isHistClassNr)
@@ -221,12 +221,12 @@ classdef ColorCtrl < handle
                     %set GUI items to values from FDTree / FData object
                     hfd = this.myHFD;
                     if(isempty(hfd))
-                        inFunction = [];
+                        %inFunction = [];
                         return
                     end
                     data = hfd.getColorScaling();
                     if(isempty(data) || length(data) ~= 3 || ~any(data(:)))
-                        data = this.getAutoScale();
+                        data = this.getAutoScale(true);
                     end
                 end
                 if(data(1))
@@ -244,18 +244,24 @@ classdef ColorCtrl < handle
             %inFunction = [];
         end
         
-        function out = getAutoScale(this)
+        function out = getAutoScale(this,isROIFlag)
             %compute border for auto scale color
             hfd = this.myHFD;
             out = ones(1,3);
             if(isempty(hfd))                
                 return
             end
-            rc = this.myFDisplay.ROICoordinates;
-            rt = this.myFDisplay.ROIType;
-            rs = this.myFDisplay.ROISubType;
-            ri = this.myFDisplay.ROIInvertFlag;
-            data = hfd.getROIImage(rc,rt,rs,ri);
+            if(isROIFlag)
+                %get ROI image
+                rc = this.myFDisplay.ROICoordinates;
+                rt = this.myFDisplay.ROIType;
+                rs = this.myFDisplay.ROISubType;
+                ri = this.myFDisplay.ROIInvertFlag;
+                data = hfd.getROIImage(rc,rt,rs,ri);
+            else
+                %get full image
+                data = hfd.getROIImage([],0,1,0);
+            end
             if(strcmp(hfd.dType,'Intensity'))
                 out(2) = prctile(data(:),this.visObj.generalParams.cmIntensityPercentileLB);
                 out(3) = prctile(data(:),this.visObj.generalParams.cmIntensityPercentileUB);

@@ -155,6 +155,7 @@ classdef mouseOverlayBox < handle
                 this.myTextBox.String = str;
             end
             this.myVerticalLine(1).XData = [vLinePos vLinePos];
+            this.myHorizontalLine(1).XData = xl; %size of axes might have changed because of zoom in histogram
             this.myHorizontalLine(1).YData = [hLinePos hLinePos];
             %xWidth = xl(2)-xl(1);
             if(any(isnan(this.myTextBox.Position)))

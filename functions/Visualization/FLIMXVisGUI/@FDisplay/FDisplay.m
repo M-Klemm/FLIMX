@@ -169,27 +169,32 @@ classdef FDisplay < handle
             rs = this.ROISubType;
             ri = this.ROIInvertFlag;
             [~, histCenters] = hfd{1}.getCIHist(rc,rt,rs,ri);
-            cs = this.myColorScaleObj.getCurCSInfo();
-            [~,curStartClass] = min(abs(histCenters-cs(2)));
-            [~,curEndClass] = min(abs(histCenters-cs(3)));
+            cs = this.myColorScaleObj.getCurCSInfo();            
+            if(length(histCenters) > 1)
+                classWidth = histCenters(2)-histCenters(1);
+                colorStartClass = round((cs(2)-histCenters(1))./classWidth)+1;
+                colorEndClass = round((cs(3)-histCenters(1))./classWidth)+1;
+                %colorEndClass = round((max(histCenters(end),cs(3))-histCenters(1))./classWidth)+1;                
+            else
+                colorStartClass = 1;
+                colorEndClass = 1;
+            end
             curXlim = xlim(this.h_s_ax);
             curHistRange = curXlim(2) - curXlim(1) +1;
-            curColorRange = (curEndClass-curStartClass)/2;
-            curColorCenter = curStartClass + curColorRange;
+            curColorRange = (colorEndClass-colorStartClass)/2;
+            curColorCenter = colorStartClass + curColorRange;
             if(strcmpi(target,'in'))
                 range = curHistRange*0.5;
             else
                 range = curHistRange*2;
             end
-            lb = max(1,min(curStartClass,floor(curColorCenter-range/2)));
-            ub = min(length(histCenters),max(curEndClass,round(curColorCenter+range/2)));
+            lb = max(-histCenters(1)./classWidth+1,floor(curColorCenter-range/2)); %make sure we don't have negative classes
+            ub = round(curColorCenter+range/2); %min(length(histCenters),max(curEndClass,round(curColorCenter+range/2)));
+            histCenters = (lb-1:ub).*classWidth + histCenters(1); 
             xlim(this.h_s_ax,[lb ub]);
             this.mySuppXZoomScale = [lb ub];
             xtick = get(this.h_s_ax,'XTick');
-            if(xtick(1) == 0)
-                xtick = xtick+1;
-            end
-            set(this.h_s_ax,'XTickLabel',FLIMXFitGUI.num4disp(histCenters(xtick)'));
+            set(this.h_s_ax,'XTickLabel',FLIMXFitGUI.num4disp(histCenters(xtick-lb+1)'));
         end
         
         function out = getDispView(this)
@@ -633,9 +638,9 @@ classdef FDisplay < handle
             end
             dispDim = this.mDispDim;
             sVisParam = this.staticVisParams;
-            if(~this.screenshot)
-                set(hAx,'Fontsize',sVisParam.fontsize);
-            end
+%             if(~this.screenshot)
+%                 set(hAx,'Fontsize',sVisParam.fontsize);
+%             end
             nrFD = length(hfd);            
             ztick = [];
             zticklbl = {};
@@ -1056,9 +1061,9 @@ classdef FDisplay < handle
                 axis(this.h_m_ax,'off');
                 return
             end
-            if(~this.screenshot)
-                set(this.h_m_ax,'Fontsize',this.staticVisParams.fontsize);
-            end
+%             if(~this.screenshot)
+%                 set(this.h_m_ax,'Fontsize',this.staticVisParams.fontsize);
+%             end
             if(this.mDispDim == 1) %2Do
                 xlbl = hfd{1}.getRIXLbl();
                 ylbl = hfd{1}.getRIYLbl();
@@ -1105,24 +1110,25 @@ classdef FDisplay < handle
             if(isempty(cTmp) || length(cTmp) ~= 3)
                 %should not happen
                 error('no auto-scaled color found!');
-            else
-                startClass = cTmp(2);
-                endClass = cTmp(3);
             end
             %fit color scaling to histogram classes            
             rc = this.ROICoordinates;
             rt = this.ROIType;
             rs = this.ROISubType;
             ri = this.ROIInvertFlag;
-            [~, centers] = hfd{1}.getCIHist(rc,rt,rs,ri);
-            [~,startClass] = min(abs(centers-cTmp(2)));
-            [~,endClass] = min(abs(centers-cTmp(3)));
-            %add colorbar either in full axes or at specified location, put it behind the bar
-            if(startClass == -1)
-                xtemp = this.h_s_ax.XLim;
+            [~, centers] = hfd{1}.getCIHist(rc,rt,rs,ri);            
+            if(length(centers) > 1)
+                classWidth = centers(2)-centers(1);
+                colorStartClass = round((cTmp(2)-centers(1))./classWidth)+1;
+                colorEndClass = round((cTmp(3)-centers(1))./classWidth)+1;                
+                %endClass = round((max(centers(end),cTmp(3))-centers(1))./classWidth)+1;
+                %centers = (0:endClass).*classWidth;
             else
-                xtemp = [startClass endClass];
+                colorStartClass = 1;
+                colorEndClass = 1;
             end
+            %add colorbar either in full axes or at specified location, put it behind the bar
+            xtemp = [colorStartClass colorEndClass];
             ytemp = this.h_s_ax.YLim;
             if(strcmp(hfd{1}.dType,'Intensity'))
                 temp = zeros(1,length(this.dynVisParams.cmIntensity), 3);
@@ -1137,7 +1143,7 @@ classdef FDisplay < handle
                     this.h_cmImage = [];
                 end
             end
-            if(abs(startClass - endClass) > eps)
+            if(abs(colorStartClass - colorEndClass) > eps)
                 %draw colormap only if we have at least one class
                 this.h_cmImage = image('XData',xtemp,'YData',ytemp,'CData',temp,'Parent',this.h_s_ax);
                 this.h_s_ax.YLim = ytemp;
@@ -1204,14 +1210,23 @@ classdef FDisplay < handle
                         if(length(histo) > 1)
                             xlim(this.h_s_ax,size(histo));
                         end
-                        if(~isempty(this.mySuppXZoomScale))
-                            xlim(this.h_s_ax,this.mySuppXZoomScale);
+                        if(~this.myColorScaleObj.check && ~isempty(this.mySuppXZoomScale))
+                            lb = this.mySuppXZoomScale(1);
+                            ub = this.mySuppXZoomScale(2);                            
+                            xlim(this.h_s_ax,[lb ub]);
+                        else
+                            lb = this.h_s_ax.XLim(1); 
+                            ub = this.h_s_ax.XLim(2);
                         end
                         xtick = get(this.h_s_ax,'XTick');
                         if(xtick(1) == 0)
                             xtick = xtick+1;
                         end
-                        set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',FLIMXFitGUI.num4disp(centers(xtick)'));                        
+                        if(length(centers) > 1)% && xtick(end) > length(centers))
+                            classWidth = centers(2) - centers(1);
+                            centers = (lb-1:ub).*classWidth + centers(1);
+                        end
+                        set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',FLIMXFitGUI.num4disp(centers(xtick-lb+1)'));
                         this.drawColorbarOnSuppPlot();
                     else %nothing to do
                         cla(this.h_s_ax);
