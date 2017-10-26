@@ -602,8 +602,8 @@ classdef studyIS < handle
             this.setDirty(true);
         end
         
-        function importXLS(this,raw,mode)
-            %import subjects data from excel file, mode 1: delete all old, mode 2: update old & add new            
+        function importStudyInfo(this,raw,mode)
+            %import study info (subject info table) from excel file, mode 1: delete all old, mode 2: update old & add new            
             %get subject and header names
             xlsSubs = raw(2:end,1);
             %make sure we have only strings as subjects
@@ -623,15 +623,19 @@ classdef studyIS < handle
             xlsFile = raw(1,1);
             if(~ischar(xlsFile{1,1}))
                 xlsFile = {'File'};
-            end
-            
+            end            
             switch mode
                 case 1 %Delete Old Info
                     this.infoHeaders = xlsHeads;
-                    %                     this.subjectFilesHeaders = [xlsFile {'Channels'}];
                     this.subjectInfo = cell(0,0);
                     this.subjectInfoCombi = cell(size(this.infoHeaders));
                 case 2 %Update and Add New
+                    %remove existing conditional columns from import
+                    for i = length(xlsHeads):-1:1
+                        if(~isempty(this.getColReference(this.infoHeaderName2idx(xlsHeads{i}))))
+                            xlsHeads(i) = [];
+                        end
+                    end                    
                     %determine already existing info headers
                     newHeads = setdiff(xlsHeads,this.infoHeaders);
                     diff = length(newHeads);
@@ -642,9 +646,7 @@ classdef studyIS < handle
                     end
                     %add new info headers
                     this.infoHeaders(end+1-diff:end,1) = newHeads;
-                    %                     this.subjectFilesHeaders = [xlsFile {'Channels'}];
-            end
-            
+            end            
             %update existing subjects and add new info
             for i = 1:length(this.subjects)
                 idxXls = find(strcmp(this.subjects{i},xlsSubs),1);
@@ -658,12 +660,12 @@ classdef studyIS < handle
                     this.subjectInfo(i,:) = cell(1,length(this.infoHeaders));
                     %add info data for specific subject
                     for j = 1:length(xlsHeads)
-                        idxHead = find(strcmp(xlsHeads{j},this.infoHeaders),1);
-                        this.subjectInfo(i,idxHead) = raw(idxXls+1,j+1);
+                        idxHeadThis = find(strcmp(xlsHeads{j},this.infoHeaders),1);
+                        idxHeadImport = find(strcmp(xlsHeads{j},raw(1,:)),1);
+                        this.subjectInfo(i,idxHeadThis) = raw(idxXls+1,idxHeadImport);
                     end
                 end
-            end
-            
+            end            
             this = studyIS.checkStudyConsistency(this);
             this.sortSubjects();
             this.setDirty(true);
@@ -757,7 +759,7 @@ classdef studyIS < handle
                 %check dimension
                 ex(2:size(this.subjects,2)+1,1) = this.subjects(1,:)';
             else
-                ex(2:size(this.subjects,1)+1,1)=this.subjects(:,1);
+                ex(2:size(this.subjects,1)+1,1) = this.subjects(:,1);
             end            
             %Get Subject Info
             ex(1,2:length(this.infoHeaders)+1) = this.infoHeaders;
@@ -786,7 +788,7 @@ classdef studyIS < handle
                         continue
                     end
                     a = this.infoHeaderName2idx(ref.colA);
-                    if(strcmp(ref.logOp,FDTree.defaultConditionName()))
+                    if(strcmp(ref.logOp,'-no op-'))
                         %second reference is inactive
                         b = 0;
                     else

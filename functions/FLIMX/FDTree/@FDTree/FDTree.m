@@ -484,11 +484,11 @@ classdef FDTree < handle
             end
         end
         
-        function importXLS(this,studyName,file,mode)
-            %
+        function importStudyInfo(this,studyName,file,mode)
+            %import study info (subject info table) from excel file
             study = this.getStudy(studyName);
             if(~isempty(study))
-                study.importXLS(file,mode);
+                study.importStudyInfo(file,mode);
             end
         end
         

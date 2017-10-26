@@ -376,8 +376,8 @@ classdef FStudy < handle
             this.myStudyInfoSet.setSubjectInfoCombi(ref,idx);
         end
         
-        function importXLS(this,file,mode)
-            %import subjects data from excel file, mode 1: delete all old, mode 2: update old & add new
+        function importStudyInfo(this,file,mode)
+            %import study info (subject info table) from excel file, mode 1: delete all old, mode 2: update old & add new
             %check file
             [typ, desc] = xlsfinfo(file);
             if(isempty(typ))
@@ -406,7 +406,7 @@ classdef FStudy < handle
             for i=1:length(newSubs)
                 this.addSubject(newSubs{i});
             end            
-            this.myStudyInfoSet.importXLS(raw,mode);
+            this.myStudyInfoSet.importStudyInfo(raw,mode);
         end
         
 %         function importResultStruct(this,subjectID,result,itemsTarget)

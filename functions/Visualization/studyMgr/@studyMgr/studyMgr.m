@@ -787,7 +787,13 @@ classdef studyMgr < handle
             else
                 opt.cond = true;
                 opt.colA = this.fdt.infoHeaderName2idx(this.curStudyName,ref.colA);
+                if(isempty(opt.colA))
+                    opt.colA = 1;
+                end
                 opt.colB = this.fdt.infoHeaderName2idx(this.curStudyName,ref.colB);
+                if(isempty(opt.colB))
+                    opt.colB = 1;
+                end
                 [~, loc] = ismember(ref.relA,opt.ops);
                 opt.relA = loc-6;
                 opt.valA = ref.valA;
@@ -906,6 +912,11 @@ classdef studyMgr < handle
             %change content of cellarray in StudyData table
             %get new subject info
             new = eventdata.NewData;
+            if(~ischar(new))
+                %conditional column?
+                this.updateGUI();
+                return
+            end
             if(all(isstrprop(new,'digit')))
                 new = str2double(new);
             end
@@ -1277,7 +1288,7 @@ classdef studyMgr < handle
             if ~path ; return ; end
             fn = fullfile(path,file);
             this.lastStudyPath = path;
-            this.fdt.importXLS(this.curStudyName,fn,mode);
+            this.fdt.importStudyInfo(this.curStudyName,fn,mode);
             this.updateGUI;
             figure(this.visHandles.studyMgrFigure);
         end
