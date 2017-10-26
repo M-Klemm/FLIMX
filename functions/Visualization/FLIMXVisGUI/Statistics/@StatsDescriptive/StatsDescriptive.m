@@ -506,13 +506,13 @@ classdef StatsDescriptive < handle
         
         function [result, legend] = makeNormalDistributionTests(this,statsID)
             %test statsID for normal distribution
-            result = []; legend = cell(0,0);
+            result = [ones(3,1), zeros(3,1)]; legend = cell(0,0);
             if(isempty(this.subjectStats) || statsID > length(this.subjectStats))
                 return
             end
             legend = {'Lilliefors';'Shapiro-Wilk';'Kolmogorov-Smirnov'};
             ci = this.subjectStats(:,statsID);
-            if(~any(ci(:)))
+            if(~any(ci(:)) || length(ci(:)) < 4)
                 return
             end
             [result(1,2),result(1,1)] = StatsDescriptive.test4NormalDist('li',ci,this.alpha);
@@ -731,7 +731,7 @@ classdef StatsDescriptive < handle
     methods(Static)
         function [h,p] = test4NormalDist(test,data,alpha)
             %test group data for normal distribution
-            h = []; p = [];
+            h = 0; p = 1;
             data = data(~isnan(data));
             data = data(~isinf(data));
             if(~any(data(:)) || length(data) < 4)
