@@ -76,13 +76,13 @@ classdef FLIMX < handle
             %constructor
             warning('off','MATLAB:rankDeficientMatrix');
             this.splashScreenGUIObj = FLIMXSplashScreen();
-            this.updateSplashScreenProgressLong(0.01,'Loading IRFs...');
+            this.updateSplashScreenProgressLong(0.01,'Load IRFs...');
             %parameters from ini file
             warning('off','parallel:gpu:DeviceCapabiity');
             %make lower level objects
             this.paramMgr = FLIMXParamMgr(this,FLIMX.getVersionInfo());            
             this.irfMgr = IRFMgr(this,fullfile(FLIMX.getWorkingDir(),'data'));
-            this.updateSplashScreenProgressLong(0.3,'Building data tree structure...');
+            this.updateSplashScreenProgressLong(0.3,'Build data tree structure...');
             this.fdt = FDTree(this,FLIMX.getWorkingDir()); %replace with path from config?!
             this.updateSplashScreenProgressShort(0,'');
             fp = this.paramMgr.getParamSection('filtering');
@@ -99,7 +99,7 @@ classdef FLIMX < handle
                 this.paramMgr.generalParams.windowSize = FLIMX.getAutoWindowSize();
             end
             %load a subject
-            this.updateSplashScreenProgressLong(0.5,'Loading first subject...');
+            this.updateSplashScreenProgressLong(0.5,'Load first subject...');
             subs = this.fdt.getSubjectsNames('Default',FDTree.defaultConditionName());
             if(isempty(subs))
                 %todo: generate a dummy subject with simulated data
@@ -107,7 +107,7 @@ classdef FLIMX < handle
             else
                 this.setCurrentSubject('Default',FDTree.defaultConditionName(),subs{1});
             end
-            this.updateSplashScreenProgressLong(0.7,'Opening MATLAB pool...');
+            this.updateSplashScreenProgressLong(0.7,'Open pool of MATLAB workers...');
             this.openMatlabPool();
             this.updateSplashScreenProgressShort(0,'');
         end
@@ -134,13 +134,13 @@ classdef FLIMX < handle
                 try
                     p = parpool('local',feature('numCores'));
                     pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
-                    this.splashScreenGUIObj.updateProgressShort(1,'Trying to open pool of MATLAB workers - done');
+                    this.splashScreenGUIObj.updateProgressShort(1,'Open pool of MATLAB workers - done');
                     %p.IdleTimeout = 0;
                 catch ME
                     if(ishandle(this.splashScreenGUIObj))
-                        this.splashScreenGUIObj.updateProgressShort(1,'Trying to open pool of Matlab workers - failed');
+                        this.splashScreenGUIObj.updateProgressShort(1,'Open pool of MATLAB workers - failed');
                     end
-                    warning('FLIMX:openMatlabPool','Could not open Matlab pool for parallel computations: %s',ME.message);
+                    warning('FLIMX:openMatlabPool','Could not open MATLAB pool for parallel computations: %s',ME.message);
                 end
             end
             if(~isempty(p))

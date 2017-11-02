@@ -71,7 +71,7 @@ catch ME
     clear 'FLIMXObj'
     return
 end
-FLIMXObj.updateSplashScreenProgressLong(0.9,'Opening GUIs...');
+FLIMXObj.updateSplashScreenProgressLong(0.9,'Open GUIs...');
 %open GUI(s)
 if(FLIMXObj.paramMgr.generalParams.openFitGUIonStartup)
     FLIMXObj.openFLIMXFitGUI();
