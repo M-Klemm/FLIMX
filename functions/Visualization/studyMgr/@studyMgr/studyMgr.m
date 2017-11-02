@@ -107,8 +107,8 @@ classdef studyMgr < handle
             %subjects
             set(this.visHandles.menuNewSubject,'Callback',@this.menuNewSubject_Callback);
             set(this.visHandles.menuDeleteSubject,'Callback',@this.menuDeleteSubject_Callback);
-            set(this.visHandles.menuImportSubjectsExcel,'Callback',@this.menuImportExcel_Callback);
-            set(this.visHandles.menuExportSubjectsExcel,'Callback',@this.menuExportExcel_Callback);
+            set(this.visHandles.menuImportSubjectsExcel,'Callback',@this.menuImportStudyInfo_Callback);
+            set(this.visHandles.menuExportSubjectsExcel,'Callback',@this.menuExportStudyInfo_Callback);
             set(this.visHandles.menuCopySubject,'Callback',@this.menuCopySubject_Callback);
             set(this.visHandles.menuCutSubject,'Callback',@this.menuCopySubject_Callback);
             set(this.visHandles.menuPasteSubject,'Callback',@this.menuPasteSubject_Callback);
@@ -912,12 +912,12 @@ classdef studyMgr < handle
             %change content of cellarray in StudyData table
             %get new subject info
             new = eventdata.NewData;
-            if(~ischar(new))
+            if(islogical(new))
                 %conditional column?
                 this.updateGUI();
                 return
             end
-            if(all(isstrprop(new,'digit')))
+            if(~isnumeric(new) && all(isstrprop(new,'digit')))
                 new = str2double(new);
             end
             this.fdt.setSubjectInfo(this.curStudyName,eventdata.Indices(1),eventdata.Indices(2),new);
@@ -1267,10 +1267,12 @@ classdef studyMgr < handle
             this.visObj.updateGUI('');
         end
         
-        function menuImportExcel_Callback(this,hObject,eventdata)
+        function menuImportStudyInfo_Callback(this,hObject,eventdata)
             %import subject info from excel file
             mode = 1;
-            if(~isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())))
+            %if(~isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())))
+            si = cellfun(@isempty,this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfo'));
+            if(~all(si(:)))
                 choice = questdlg(sprintf('Either delete all current subject information for all subjects in study ''%s'' or update existing subject information and add new subjects?',this.curStudyName),'Importing Subject Information from Excel Data','Update and Add New','Delete Old Info','Abort','Update and Add New');
                 switch choice
                     case 'Update and Add New'
@@ -1293,7 +1295,7 @@ classdef studyMgr < handle
             figure(this.visHandles.studyMgrFigure);
         end
         
-        function menuExportExcel_Callback(this,hObject,eventdata)
+        function menuExportStudyInfo_Callback(this,hObject,eventdata)
             %save Subjects and corresponding study data to Excel file
             if(isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())))
                 return
@@ -1303,7 +1305,7 @@ classdef studyMgr < handle
             if ~file ; return ; end
             fn = fullfile(path,file);
             
-            this.fdt.exportXLS(this.curStudyName,fn);
+            this.fdt.exportStudyInfo(this.curStudyName,fn);
         end
         
         function GUI_buttonOK_Callback(this,hObject,eventdata)

@@ -1277,11 +1277,11 @@ classdef FDTree < handle
             close(h_wait);
         end
         
-        function exportXLS(this,studyID,file)
-            %
+        function exportStudyInfo(this,studyID,file)
+            %export study info (subject info table) to excel file
             study = this.getStudy(studyID);
             if(~isempty(study))
-                study.exportXLS(file);
+                study.exportStudyInfo(file);
             end
         end
         

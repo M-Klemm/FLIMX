@@ -396,10 +396,7 @@ classdef FStudy < handle
             %get subject and header names
             xlsSubs = raw(2:end,1);
             %make sure we have only strings as subjects
-            idx = false(length(xlsSubs),1);
-            for i = 1:length(xlsSubs)
-                idx(i) = ischar(xlsSubs{i});
-            end
+            idx = cellfun(@ischar,xlsSubs);
             xlsSubs = xlsSubs(idx);
             newSubs = setdiff(xlsSubs,this.getSubjectsNames(FDTree.defaultConditionName()));            
             %add new subjects
@@ -1341,9 +1338,9 @@ classdef FStudy < handle
             out = this.myStudyInfoSet.getDataFromStudyInfo(descriptor);
         end
         
-        function exportXLS(this,file)
-            %
-            this.myStudyInfoSet.exportXLS(file);
+        function exportStudyInfo(this,file)
+            %export study info (subject info table) to excel file
+            this.myStudyInfoSet.exportStudyInfo(file);
         end
         
         function out = getAllIRFInfo(this)

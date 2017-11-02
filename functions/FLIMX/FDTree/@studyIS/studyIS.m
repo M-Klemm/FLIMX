@@ -468,8 +468,8 @@ classdef studyIS < handle
                 ref.colA = opt.list{opt.colA};      %column A
                 ref.colB = opt.list{opt.colB};      %column B
                 ref.logOp = opt.ops{opt.logOp};     %logical operator
-                ref.relA = opt.ops{opt.relA + 5};   %relational operator of colA
-                ref.relB = opt.ops{opt.relB + 5};   %relational operator of colB
+                ref.relA = opt.ops{opt.relA + 6};   %relational operator of colA
+                ref.relB = opt.ops{opt.relB + 6};   %relational operator of colB
                 ref.valA = opt.valA;                %relation value of colA
                 ref.valB = opt.valB;                %relation value of colB
             end
@@ -607,18 +607,11 @@ classdef studyIS < handle
             %get subject and header names
             xlsSubs = raw(2:end,1);
             %make sure we have only strings as subjects
-            idx = false(length(xlsSubs),1);
-            for i = 1:length(xlsSubs)
-                idx(i) = ischar(xlsSubs{i});
-            end
-            xlsSubs = xlsSubs(idx);
-            
+            idx = cellfun(@ischar,xlsSubs);
+            xlsSubs = xlsSubs(idx);            
             %make sure we have only strings as headers
             xlsHeads = raw(1,2:end);
-            idx = false(length(xlsHeads),1);
-            for i = 1:length(xlsHeads)
-                idx(i) = ischar(xlsHeads{i});
-            end
+            idx = cellfun(@ischar,xlsHeads);
             xlsHeads = xlsHeads(idx);
             xlsFile = raw(1,1);
             if(~ischar(xlsFile{1,1}))
@@ -657,7 +650,7 @@ classdef studyIS < handle
                     elseif(size(this.subjectInfo,2) > length(this.infoHeaders)) %should not happen
                         this.subjectInfo = this.subjectInfo(:,1:length(this.infoHeaders));
                     end
-                    this.subjectInfo(i,:) = cell(1,length(this.infoHeaders));
+                    %this.subjectInfo(i,:) = cell(1,length(this.infoHeaders));
                     %add info data for specific subject
                     for j = 1:length(xlsHeads)
                         idxHeadThis = find(strcmp(xlsHeads{j},this.infoHeaders),1);
@@ -668,6 +661,7 @@ classdef studyIS < handle
             end            
             this = studyIS.checkStudyConsistency(this);
             this.sortSubjects();
+            this.checkConditionRef([]); %update conditional columns
             this.setDirty(true);
         end
         
@@ -738,8 +732,8 @@ classdef studyIS < handle
             export.viewColors = this.viewColors;
         end
         
-        function exportXLS(this,file)
-            %export Subject Data to Excel File
+        function exportStudyInfo(this,file)
+            %export study info (subject info table) to excel file
             if(exist(file,'file') == 2)
                 [~, desc] = xlsfinfo(file);
                 idx = find(strcmp('Subjectinfo',desc),1);
@@ -770,7 +764,7 @@ classdef studyIS < handle
         
         function out = getColReference(this,n)
             %return reference of a conditional column
-            if(~isempty(this.infoHeaders) && length(this.subjectInfoCombi) >= n)
+            if(~isempty(n) && ~isempty(this.infoHeaders) && length(this.subjectInfoCombi) >= n)
                 out = this.subjectInfoCombi{n,1};
             else
                 out = [];
