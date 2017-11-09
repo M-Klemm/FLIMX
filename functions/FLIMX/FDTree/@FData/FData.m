@@ -172,7 +172,7 @@ classdef FData < handle
         function setupXLbl(this,start,tick)
             %set start value and tick (width) for custom x labels
             if(isempty(start) || isempty(tick))
-                tick = 1;
+                tick = this.getDefaultXLblTick();
             else
                 start = start(1);
             end
@@ -448,7 +448,8 @@ classdef FData < handle
             if(~isempty(this.cachedImage.info.XLblStart) && ~isempty(this.rawImgXSz))
                 out = this.xPos2Lbl(1) : this.cachedImage.info.XLblTick : this.xPos2Lbl(this.rawImgXSz(2));
             elseif(isempty(this.cachedImage.info.XLblStart) && ~isempty(this.rawImgXSz))
-                out = 1:1:this.rawImgXSz(2);
+                step = this.getDefaultXLblTick();
+                out = 1*step:step:this.rawImgXSz(2)*step;
             else
                 out = [];
             end            
@@ -482,7 +483,7 @@ classdef FData < handle
                     XSz = ROICoordinates(2,2);
                 end
                 XLblStart = [];
-                XLblTick = 1;
+                XLblTick = this.getDefaultXLblTick();
             else
                 if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag); 
@@ -497,7 +498,7 @@ classdef FData < handle
                 shift = 0;
             end
             if(isempty(XLblStart))
-                out = 1+shift:1:XSz+shift;
+                out = (1+shift)*XLblTick : XLblTick : (XSz+shift)*XLblTick;
             else
                 out = this.xPos2Lbl(1+shift) : XLblTick : this.xPos2Lbl(XSz+shift);
             end
@@ -524,7 +525,7 @@ classdef FData < handle
         function out = getXLblTick(this)
             %get tick (step) size of x axis labels
             if(isempty(this.cachedImage.info.XLblTick))
-                out = 1;
+                out = this.getDefaultXLblTick();
             else
                 out = this.cachedImage.info.XLblTick;
             end
@@ -535,7 +536,8 @@ classdef FData < handle
             if(~isempty(this.cachedImage.info.YLblStart) && ~isempty(this.rawImgYSz))
                 out = this.yPos2Lbl(1) : this.cachedImage.info.YLblTick : this.yPos2Lbl(this.rawImgYSz(2));
             elseif(isempty(this.cachedImage.info.YLblStart) && ~isempty(this.rawImgYSz))
-                out = 1:1:this.rawImgYSz(2);
+                step = this.getDefaultYLblTick();
+                out = 1*step:step:this.rawImgYSz(2)*step;
             else
                 out = [];
             end
@@ -551,10 +553,10 @@ classdef FData < handle
                 if(isempty(ROICoordinates))
                     YSz = this.rawImgYSz(2);
                 else
-                    YSz = ROICoordinates(2,2);
+                    YSz = ROICoordinates(1,2);
                 end
                 YLblStart = [];
-                YLblTick = 1;
+                YLblTick = this.getDefaultYLblTick();
             else
                 if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag); 
@@ -569,7 +571,7 @@ classdef FData < handle
                 shift = 0;
             end
             if(isempty(YLblStart))
-                out = 1+shift:1:YSz+shift;
+                out = (1+shift)*YLblTick : YLblTick : (YSz+shift)*YLblTick;
             else
                 out = this.YPos2Lbl(1+shift) : YLblTick : this.YPos2Lbl(YSz+shift);
             end
@@ -596,7 +598,7 @@ classdef FData < handle
         function out = getYLblTick(this)
             %get tick (step) size of y axis labels
             if(isempty(this.cachedImage.info.YLblTick))
-                out = 1;
+                out = this.getDefaultYLblTick();
             else
                 out = this.cachedImage.info.YLblTick;
             end

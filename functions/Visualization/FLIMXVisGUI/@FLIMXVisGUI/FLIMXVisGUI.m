@@ -177,11 +177,11 @@ classdef FLIMXVisGUI < handle
                     set(this.visHandles.(sprintf('study_%s_pop',s)),'String',studies,'Value',curStudyIdx);
                 end
                 curStudy = this.getStudy(s);
-                %update views
-                views = this.fdt.getStudyViewsStr(this.getStudy(s));
-                set(this.visHandles.(sprintf('view_%s_pop',s)),'String',views,'Value',min(get(this.visHandles.(sprintf('view_%s_pop',s)),'Value'),length(views)));
-                curView = this.getView(s);          %current view name
-                nrSubs = this.fdt.getNrSubjects(curStudy,curView);    %Number of subjects
+                %update conditions
+                conditions = this.fdt.getStudyConditionsStr(this.getStudy(s));
+                set(this.visHandles.(sprintf('view_%s_pop',s)),'String',conditions,'Value',min(get(this.visHandles.(sprintf('view_%s_pop',s)),'Value'),length(conditions)));
+                curCondition = this.getCondition(s);          %current condition name
+                nrSubs = this.fdt.getNrSubjects(curStudy,curCondition);    %Number of subjects
                 if(~nrSubs)
                     this.clearAxes(s);
                     this.updateColorbar();                                                    
@@ -206,7 +206,7 @@ classdef FLIMXVisGUI < handle
                     continue
                 end                               
                 %update subject selection popups
-                dStr = this.fdt.getSubjectsNames(curStudy,curView);
+                dStr = this.fdt.getSubjectsNames(curStudy,curCondition);
                 if(~isempty(dStr))
                     set(this.visHandles.(sprintf('dataset_%s_pop',s)),'String',dStr,'Value',min(get(this.visHandles.(sprintf('dataset_%s_pop',s)),'Value'),nrSubs));
                 else
@@ -258,7 +258,7 @@ classdef FLIMXVisGUI < handle
                             set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
                             set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
-                        case 3 %view clusters
+                        case 3 %condition clusters
                             %show only clusters
                             chObj = MVGroupNames;
                             set(this.visHandles.(sprintf('dataset_%s_pop',s)),'Visible','off');
@@ -338,11 +338,11 @@ classdef FLIMXVisGUI < handle
                     set(this.visHandles.(sprintf('main_axes_%s_pop',s)),'String','params','Value',1);
                 end
                 %set arbitrary initial color value for new study
-                cColor = this.fdt.getViewColor(curStudy,curView);
+                cColor = this.fdt.getConditionColor(curStudy,curCondition);
                 if(isempty(cColor) || length(cColor) ~= 3)
                     newColor = studyIS.makeRndColor();
                     set(this.visHandles.(sprintf('study_color_%s_button',s)),'Backgroundcolor',newColor);
-                    this.fdt.setViewColor(curStudy,curView,newColor);
+                    this.fdt.setConditionColor(curStudy,curCondition,newColor);
                 else
                     set(this.visHandles.(sprintf('study_color_%s_button',s)),'Backgroundcolor',cColor);
                 end
@@ -364,7 +364,7 @@ classdef FLIMXVisGUI < handle
             this.fdt.setCancelFlag(false);
             for j = 1:length(side)                
                 s = side(j);                
-                if(~this.fdt.getNrSubjects(this.getStudy(s),this.getView(s)))
+                if(~this.fdt.getNrSubjects(this.getStudy(s),this.getCondition(s)))
                     continue
                 end
                 %update display objects
@@ -402,7 +402,7 @@ classdef FLIMXVisGUI < handle
                             clf = true;
                         end
                     case 3
-                        %view cluster
+                        %condition cluster
                         clf = true;
                 end
                 if(clf)
@@ -549,7 +549,7 @@ classdef FLIMXVisGUI < handle
         function menuDescriptive_Callback(this,hObject,eventdata)
             %show descriptive statistics tool window
             this.myStatsDescr.checkVisWnd(); 
-            this.myStatsDescr.setCurrentStudy(this.getStudy('l'),this.getView('l'));
+            this.myStatsDescr.setCurrentStudy(this.getStudy('l'),this.getCondition('l'));
         end
         
         function menuHolmWilcoxon_Callback(this,hObject,eventdata)
@@ -707,7 +707,7 @@ classdef FLIMXVisGUI < handle
             list = get(this.visHandles.(sprintf('main_axes_%s_pop',s)),'String');
             ma_pop_sel = get(this.visHandles.(sprintf('main_axes_%s_pop',s)),'Value');
             switch get(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Value')                
-                case {1,3,4} %univariate / view cluster
+                case {1,3,4} %univariate / condition cluster
                     [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(list(ma_pop_sel,:));
                 case 2 %multivariate
                     cMVs = this.fdt.getClusterTargets(this.getStudy(s),list{ma_pop_sel});
@@ -743,9 +743,9 @@ classdef FLIMXVisGUI < handle
         function [name, nr] = getSubject(this,s)
             %get current subject name of side s
             name = [];
-            NrSubs = this.fdt.getNrSubjects(this.getStudy(s),this.getView(s));
+            NrSubs = this.fdt.getNrSubjects(this.getStudy(s),this.getCondition(s));
             if(NrSubs ~= 0)
-                %study/view does contain subjects
+                %study/condition does contain subjects
                 nr = get(this.visHandles.(sprintf('dataset_%s_pop',s)),'Value');
                 subs = get(this.visHandles.(sprintf('dataset_%s_pop',s)),'String');           
                 if(iscell(subs))
@@ -772,8 +772,8 @@ classdef FLIMXVisGUI < handle
             end
         end
         
-        function [name, nr] = getView(this,s)
-            %get name of current view of side s
+        function [name, nr] = getCondition(this,s)
+            %get name of current condition of side s
             nr = get(this.visHandles.(sprintf('view_%s_pop',s)),'Value');
             names = get(this.visHandles.(sprintf('view_%s_pop',s)),'String');
             name = names{nr};
@@ -1147,8 +1147,8 @@ classdef FLIMXVisGUI < handle
             
         end
         
-        function GUI_viewSet_Callback(this,hObject,eventdata)
-            %select view
+        function GUI_conditionSet_Callback(this,hObject,eventdata)
+            %select condition
             s = 'r';
             if(strcmp(get(hObject,'Tag'),'view_l_pop'))                
                 s = 'l';            
@@ -1218,7 +1218,7 @@ classdef FLIMXVisGUI < handle
             if(strcmp(get(hObject,'Tag'),'main_axes_pdim_l_pop'))
                 s = 'l';
             end
-            if(this.fdt.getNrSubjects(this.getStudy(s),this.getView(s)) < 1)
+            if(this.fdt.getNrSubjects(this.getStudy(s),this.getCondition(s)) < 1)
                 return
             end
             if(this.objHandles.(sprintf('%sdo',s)).myColorScaleObj.check)
@@ -1265,7 +1265,7 @@ classdef FLIMXVisGUI < handle
         
         function GUI_cut_Callback(this,hObject,eventdata)
             %access cut controls
-            if(this.fdt.getNrSubjects(this.getStudy('l'),this.getView('l')) < 1)
+            if(this.fdt.getNrSubjects(this.getStudy('l'),this.getCondition('l')) < 1)
                 return
             end
             ax = 'x';
@@ -1479,7 +1479,7 @@ classdef FLIMXVisGUI < handle
             if(~contains(tag,'_l_'))
                 s = 'r';
             end     
-            if(this.fdt.getNrSubjects(this.getStudy(s),this.getView(s)) < 1)
+            if(this.fdt.getNrSubjects(this.getStudy(s),this.getCondition(s)) < 1)
                 return
             end
             %check if button was pressed
@@ -1498,16 +1498,16 @@ classdef FLIMXVisGUI < handle
             this.objHandles.(sprintf('%sdo',s)).updatePlots();
         end 
         
-        function GUI_viewColorSelection_Callback(this,hObject,eventdata)
-            %change study color
+        function GUI_conditionColorSelection_Callback(this,hObject,eventdata)
+            %change study condition color
             s = 'l';
             if(~strcmp(sprintf('study_color_%s_button',s),get(hObject,'Tag')))
                 s = 'r';
             end
-            cs = GUI_Colorselection(this.fdt.getViewColor(this.getStudy(s),this.getView(s)));
+            cs = GUI_Colorselection(this.fdt.getConditionColor(this.getStudy(s),this.getCondition(s)));
             if(length(cs) == 3)
                 %set new color
-                this.fdt.setViewColor(this.getStudy(s),this.getView(s),cs);
+                this.fdt.setConditionColor(this.getStudy(s),this.getCondition(s),cs);
                 this.setupGUI();
                 this.updateGUI([]);
             end
@@ -1630,11 +1630,11 @@ classdef FLIMXVisGUI < handle
             %setup study controls
             set(this.visHandles.study_l_pop,'Callback',@this.GUI_studySet_Callback,'TooltipString','Select current study for the left side');
             set(this.visHandles.study_r_pop,'Callback',@this.GUI_studySet_Callback,'TooltipString','Select current study for the right side');
-            set(this.visHandles.view_l_pop,'Callback',@this.GUI_viewSet_Callback,'TooltipString','Select current condition for the current study on left side');
-            set(this.visHandles.view_r_pop,'Callback',@this.GUI_viewSet_Callback,'TooltipString','Select current condition for the current study on right side');
+            set(this.visHandles.view_l_pop,'Callback',@this.GUI_conditionSet_Callback,'TooltipString','Select current condition for the current study on left side');
+            set(this.visHandles.view_r_pop,'Callback',@this.GUI_conditionSet_Callback,'TooltipString','Select current condition for the current study on right side');
             %study color selection
-            set(this.visHandles.study_color_l_button,'Callback',@this.GUI_viewColorSelection_Callback,'TooltipString','Set color for current condition on the left side (only for scatter plots)');
-            set(this.visHandles.study_color_r_button,'Callback',@this.GUI_viewColorSelection_Callback,'TooltipString','Set color for current condition on the right side (only for scatter plots)');
+            set(this.visHandles.study_color_l_button,'Callback',@this.GUI_conditionColorSelection_Callback,'TooltipString','Set color for current condition on the left side (only for scatter plots)');
+            set(this.visHandles.study_color_r_button,'Callback',@this.GUI_conditionColorSelection_Callback,'TooltipString','Set color for current condition on the right side (only for scatter plots)');
             %progress bars
             set(this.visHandles.cancel_button,'Callback',@this.GUI_cancelButton_Callback,'TooltipString','Stop current operation');
             xpatch = [0 0 0 0];

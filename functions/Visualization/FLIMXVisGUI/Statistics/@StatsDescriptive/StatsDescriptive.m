@@ -419,12 +419,12 @@ classdef StatsDescriptive < handle
                 return
             end
             this.clearResults();
-            %update studies and views
+            %update studies and conditions
             sStr = this.visObj.fdt.getStudyNames();
             set(this.visHandles.popupSelStudy,'String',sStr,'Value',min(length(sStr),get(this.visHandles.popupSelStudy,'Value')));
-            %get views for the selected studies
-            vStr = this.visObj.fdt.getStudyViewsStr(this.study);
-            set(this.visHandles.popupSelCondition,'String',vStr,'Value',min(length(vStr),get(this.visHandles.popupSelCondition,'Value')));
+            %get conditions for the selected studies
+            cStr = this.visObj.fdt.getStudyConditionsStr(this.study);
+            set(this.visHandles.popupSelCondition,'String',cStr,'Value',min(length(cStr),get(this.visHandles.popupSelCondition,'Value')));
             %update channels and parameters
             ds1 = this.visObj.fdt.getSubjectsNames(this.study,this.condition);
             if(~isempty(ds1))

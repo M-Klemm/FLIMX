@@ -48,15 +48,14 @@ classdef StatsGroupComparison < handle
         threshold = []; %threshold for significance
         significance = []; %vector of significant differences
         pIdx = [];
-        dispView = [-10 25];
         rocData = []; %data of ROC
         settings = []; %struct to save visualisation paramters
     end
     properties (Dependent = true)
         study1 = '';
         study2 = '';
-        view1 = '';
-        view2 = '';
+        condition1 = '';
+        condition2 = '';
         currentGrp = '';
         currentGrpIdx = 0;
         currentRowHeaders = cell(0,0);
@@ -406,20 +405,20 @@ classdef StatsGroupComparison < handle
                 return
             end
             this.clearResults();
-            %update studies and views
+            %update studies and conditions
             sStr = this.visObj.fdt.getStudyNames();
             set(this.visHandles.popupSelStudy1,'String',sStr,'Value',min(length(sStr),get(this.visHandles.popupSelStudy1,'Value')));
             set(this.visHandles.popupSelStudy2,'String',sStr,'Value',min(length(sStr),get(this.visHandles.popupSelStudy2,'Value')));
-            %get views for the selected studies
-            vStr1 = this.visObj.fdt.getStudyViewsStr(this.study1);
-            set(this.visHandles.popupSelView1,'String',vStr1,'Value',min(length(vStr1),get(this.visHandles.popupSelView1,'Value')));
-            vStr2 = this.visObj.fdt.getStudyViewsStr(this.study2);
-            set(this.visHandles.popupSelView2,'String',vStr2,'Value',min(length(vStr2),get(this.visHandles.popupSelView2,'Value')));
-            dStr{1} = [this.study1 '_' this.view1];
-            dStr{2} = [this.study2 '_' this.view2];
+            %get conditions for the selected studies
+            cStr1 = this.visObj.fdt.getStudyConditionsStr(this.study1);
+            set(this.visHandles.popupSelView1,'String',cStr1,'Value',min(length(cStr1),get(this.visHandles.popupSelView1,'Value')));
+            cStr2 = this.visObj.fdt.getStudyConditionsStr(this.study2);
+            set(this.visHandles.popupSelView2,'String',cStr2,'Value',min(length(cStr2),get(this.visHandles.popupSelView2,'Value')));
+            dStr{1} = [this.study1 '_' this.condition1];
+            dStr{2} = [this.study2 '_' this.condition2];
             set(this.visHandles.popupDispStudy,'String',dStr,'Value',min(length(dStr),get(this.visHandles.popupDispStudy,'Value')));
             %update channels and parameters
-            ds1 = this.visObj.fdt.getSubjectsNames(this.study1,this.view1);
+            ds1 = this.visObj.fdt.getSubjectsNames(this.study1,this.condition1);
             if(~isempty(ds1))
                 ch1 = this.visObj.fdt.getChStr(this.study1,ds1{1});
                 coStr = this.visObj.fdt.getChObjStr(this.study1,ds1{1},this.ch);
@@ -427,7 +426,7 @@ classdef StatsGroupComparison < handle
                 ch1 = [];
                 coStr = 'param';
             end
-            ds2 = this.visObj.fdt.getSubjectsNames(this.study2,this.view2);
+            ds2 = this.visObj.fdt.getSubjectsNames(this.study2,this.condition2);
             if(~isempty(ds2))
                 ch2 = this.visObj.fdt.getChStr(this.study2,ds2{1});
                 coStr = intersect(coStr,this.visObj.fdt.getChObjStr(this.study2,ds2{1},this.ch));
@@ -795,12 +794,7 @@ classdef StatsGroupComparison < handle
                 end
             end            
             set(this.visHandles.buttonUpdateGUI,'String','Update');
-        end
-                
-        function setDispView(this,val)
-            %set display view to new value
-            this.dispView = val;
-        end
+        end        
         
         function makeROCData(this)
             %compute receiver operating characteristic (roc)
@@ -814,7 +808,7 @@ classdef StatsGroupComparison < handle
                 rocdata(1:size(patients,1),1) = patients(:,histClass);
                 rocdata(1:size(patients,1),2) = ones(size(patients,1),1);
                 rocdata(size(patients,1)+1:end,1) = healthy(:,histClass);
-                stats = this.visObj.fdt.getStudyStatistics(this.study1,this.view1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,false);
+                stats = this.visObj.fdt.getStudyStatistics(this.study1,this.condition1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,false);
                 %we simply use the ROI size of the last subject, which might be wrong, as subjects are not checked to have identical ROI sizes yet
                 %also, it is quite expensive to calculate the study statistics only to get the ROI size
                 this.rocData = roc(rocdata,[],[],false,stats(1,end));
@@ -827,8 +821,8 @@ classdef StatsGroupComparison < handle
             str = get(this.visHandles.popupExtAnalysis,'String');
             str = str{get(this.visHandles.popupExtAnalysis,'Value')};
             if(isempty(this.grpData))                
-                this.grpData{1} = this.visObj.fdt.getStudyPayload(this.study1,this.view1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,str);
-                this.grpData{2} = this.visObj.fdt.getStudyPayload(this.study2,this.view2,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,str);
+                this.grpData{1} = this.visObj.fdt.getStudyPayload(this.study1,this.condition1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,str);
+                this.grpData{2} = this.visObj.fdt.getStudyPayload(this.study2,this.condition2,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,str);
             end
             dataP = this.grpData{1};
             dataC = this.grpData{2};
@@ -894,11 +888,11 @@ classdef StatsGroupComparison < handle
         function makeHistTables(this)
             %make histogram tables
             %first get the centers for all groups
-            centers = unique([this.visObj.fdt.getStudyHistogram(this.study1,this.view1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag)...
-                this.visObj.fdt.getStudyHistogram(this.study2,this.view2,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag)]);
+            centers = unique([this.visObj.fdt.getStudyHistogram(this.study1,this.condition1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag)...
+                this.visObj.fdt.getStudyHistogram(this.study2,this.condition2,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag)]);
             %now insert each histogram table at the correct position
             for j = 1:2
-                [grpCenters, histMerge, histTable, colDescr] = this.visObj.fdt.getStudyHistogram(eval(sprintf('this.study%d',j)),eval(sprintf('this.view%d',j)),this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag);
+                [grpCenters, histMerge, histTable, colDescr] = this.visObj.fdt.getStudyHistogram(eval(sprintf('this.study%d',j)),eval(sprintf('this.condition%d',j)),this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag);
                 if(~isempty(grpCenters))
                     tab = zeros(length(colDescr),length(centers)); %subjects x classes
                     start = find(centers == grpCenters(1));
@@ -1113,7 +1107,7 @@ classdef StatsGroupComparison < handle
             end
         end
         
-        function out = get.view1(this)
+        function out = get.condition1(this)
             out = get(this.visHandles.popupSelView1,'String');
             if(~ischar(out) && ~isempty(out))
                 gNr = get(this.visHandles.popupSelView1,'Value');
@@ -1121,7 +1115,7 @@ classdef StatsGroupComparison < handle
             end
         end
         
-        function out = get.view2(this)
+        function out = get.condition2(this)
             out = get(this.visHandles.popupSelView2,'String');
             if(~ischar(out) && ~isempty(out))
                 gNr = get(this.visHandles.popupSelView2,'Value');

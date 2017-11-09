@@ -48,7 +48,7 @@ classdef studyIS < handle
         allFLIMItems = cell(0,0); %selected FLIM parameters, for each subject and channel
         IRFInfo = []; %information per channel: which IRF was used, sum of IRF
         arithmeticImageInfo = cell(0,2);
-        viewColors = cell(2,0); %colors for views
+        conditionColors = cell(2,0); %colors for conditions
     end
     
     properties (Dependent = true)
@@ -63,8 +63,8 @@ classdef studyIS < handle
             %             this.subjectFilesHeaders = [{'Subject'} {'Channels'}];
             this.infoHeaders(1,1) = {'column 1'};
             this.subjectInfoCombi(1,1) = {[]};
-            this.viewColors(1,1) = {FDTree.defaultConditionName()};
-            this.viewColors(2,1) = {studyIS.makeRndColor()};
+            this.conditionColors(1,1) = {FDTree.defaultConditionName()};
+            this.conditionColors(2,1) = {studyIS.makeRndColor()};
         end
         
         %% input methods
@@ -86,7 +86,7 @@ classdef studyIS < handle
             this.resultCuts = import.resultCuts;
             this.IRFInfo = import.IRFInfo;
             this.arithmeticImageInfo = import.arithmeticImageInfo;
-            this.viewColors = import.viewColors;
+            this.conditionColors = import.conditionColors;
             this.sortSubjects();
             this.setDirty(dirtyFlag);
         end
@@ -575,7 +575,7 @@ classdef studyIS < handle
             %save reference for condition / combination
             n = this.infoHeaderName2idx(opt.name);
             this.subjectInfoCombi{n,1} = ref;
-            this.setViewColor(opt.name,[]);
+            this.setConditionColor(opt.name,[]);
             %update conditions / combinations
             this.checkConditionRef(n);
             this.setDirty(true);
@@ -665,20 +665,20 @@ classdef studyIS < handle
             this.setDirty(true);
         end
         
-        function setViewColor(this,vName,val)
-            %set view color
+        function setConditionColor(this,cName,val)
+            %set condition color
             if(isempty(val) || length(val) ~= 3)
                 val = studyIS.makeRndColor();
             end
-            if(strcmp(vName,FDTree.defaultConditionName()))
-                this.viewColors(2,1) = {val};
+            if(strcmp(cName,FDTree.defaultConditionName()))
+                this.conditionColors(2,1) = {val};
             else
-                idx = find(strcmp(vName,this.viewColors(1,:)), 1);
+                idx = find(strcmp(cName,this.conditionColors(1,:)), 1);
                 if(isempty(idx))
-                    this.viewColors(1,end+1) = {vName};
-                    this.viewColors(2,end) = {val};
+                    this.conditionColors(1,end+1) = {cName};
+                    this.conditionColors(2,end) = {val};
                 else
-                    this.viewColors(2,idx) = {val};
+                    this.conditionColors(2,idx) = {val};
                 end
             end
             this.setDirty(true);
@@ -729,7 +729,7 @@ classdef studyIS < handle
             export.allFLIMItems = this.allFLIMItems(idx,:);
             export.IRFInfo = this.IRFInfo;
             export.arithmeticImageInfo = this.arithmeticImageInfo;
-            export.viewColors = this.viewColors;
+            export.conditionColors = this.conditionColors;
         end
         
         function exportStudyInfo(this,file)
@@ -1144,29 +1144,33 @@ classdef studyIS < handle
             out = this.IRFInfo;
         end
         
-        function out = getAllViewColors(this)
-            %
-            out = this.viewColors;
-        end
+%         function out = getAllConditionColors(this)
+%             %return colors of all conditions
+%             out = this.conditionColors;
+%         end
         
-        function out = getViewColor(this,vName)
-            %returns study view color
-            idx = find(strcmp(vName,this.viewColors(1,:)), 1);
-            if(isempty(idx)) %we don't know that view
+        function out = getConditionColor(this,cName)
+            %returns study condition color
+            if(strcmp(cName,FDTree.defaultConditionName()))
+                idx = 1;
+            else
+                idx = find(strcmp(cName,this.conditionColors(1,:)), 1);
+            end
+            if(isempty(idx)) %we don't know that condition
                 out = studyIS.makeRndColor();
             else
-                out = this.viewColors{2,idx};
+                out = this.conditionColors{2,idx};
             end
         end
         
-        function views = getViewsStr(this)
-            %get conditional columns as views of study
-            views = cell(0,0);
+        function out = getConditionsStr(this)
+            %get conditional columns as conditions of study
+            out = cell(0,0);
             ref = this.getSubjectInfoCombi();
             idx = ~(cellfun('isempty',ref));
-            views(end+1,1) = {FDTree.defaultConditionName()};   %define default 'no view'
+            out(end+1,1) = {FDTree.defaultConditionName()};   %define default 'no condition'
             if(~isempty(this.infoHeaders(idx,1)))
-                views(end+1:end+(sum(idx(:))),1) = this.infoHeaders(idx,1);
+                out(end+1:end+(sum(idx(:))),1) = this.infoHeaders(idx,1);
             end
         end
         
@@ -1235,9 +1239,9 @@ classdef studyIS < handle
                 this.infoHeaders(col,:) = [];
                 this.subjectInfo(:,col) = [];
                 this.subjectInfoCombi(col,:) = [];
-                idx = find(strcmp(colName,this.viewColors(1,:)), 1);
+                idx = find(strcmp(colName,this.conditionColors(1,:)), 1);
                 if(~isempty(idx))
-                    this.viewColors(:,idx) = [];
+                    this.conditionColors(:,idx) = [];
                 end
             end
             this.setDirty(true);
@@ -1524,7 +1528,7 @@ classdef studyIS < handle
             end
             
             if(oldStudy.revision < 12)
-                if(isfield(oldStudy,'color'));
+                if(isfield(oldStudy,'color'))
                     old = oldStudy.color;
                     oldStudy = rmfield(oldStudy,'color');
                 else
@@ -1716,6 +1720,15 @@ classdef studyIS < handle
                     oldStudy.resultColorScaling = cell(size(oldStudy.resultZScaling));
                 end
             end
+            
+            if(oldStudy.revision < 25)
+                %change name of condition color field
+                if(isfield(oldStudy,'viewColors'))
+                    oldStudy.conditionColors = oldStudy.viewColors;
+                    oldStudy = rmfield(oldStudy,'viewColors');
+                end
+            end
+            
             this.setDirty(true);
         end
         
@@ -1825,9 +1838,9 @@ classdef studyIS < handle
                 dirty = true;
             end
             %check subject info data types, logical is allowed only for conditional columns
-            viewCol = cellfun('isempty',testStudy.subjectInfoCombi);
-            for i = 1:length(viewCol)
-                if(viewCol(i)) %normal column
+            conditionCol = cellfun('isempty',testStudy.subjectInfoCombi);
+            for i = 1:length(conditionCol)
+                if(conditionCol(i)) %normal column
                     cellclass = cellfun('isclass',testStudy.subjectInfo(:,i),'char');
                     if(any(cellclass))
                         cTypeDouble = false;
@@ -1976,24 +1989,24 @@ classdef studyIS < handle
             end
             %             [testStudy.allFLIMItems,dTmp] = studyIS.checkFLIMItems(testStudy.allFLIMItems);
             %             dirty = dirty || dTmp;
-            %view colors
-            if(isempty(testStudy.viewColors))
-                %set color for "default" view
-                testStudy.viewColors(1,1) = {FDTree.defaultConditionName()};
-                testStudy.viewColors(2,1) = {studyIS.makeRndColor()};
+            %condition colors
+            if(isempty(testStudy.conditionColors))
+                %set color for "default" condition
+                testStudy.conditionColors(1,1) = {FDTree.defaultConditionName()};
+                testStudy.conditionColors(2,1) = {studyIS.makeRndColor()};
                 dirty = true;
             end
-            newColors = setdiff(testStudy.infoHeaders(~viewCol,1),testStudy.viewColors(1,:));
+            newColors = setdiff(testStudy.infoHeaders(~conditionCol,1),testStudy.conditionColors(1,:));
             for i = 1:length(newColors)
-                testStudy.viewColors(1,end+1) = newColors(i);
-                testStudy.viewColors(2,end) = {studyIS.makeRndColor()};
+                testStudy.conditionColors(1,end+1) = newColors(i);
+                testStudy.conditionColors(2,end) = {studyIS.makeRndColor()};
             end
-            delColors = setdiff(testStudy.viewColors(1,:),testStudy.infoHeaders(~viewCol,1));
+            delColors = setdiff(testStudy.conditionColors(1,:),testStudy.infoHeaders(~conditionCol,1));
             delColors = delColors(~strcmp(delColors,FDTree.defaultConditionName()));
             for i = 1:length(delColors)
-                idx = find(strcmp(delColors{i},testStudy.viewColors(1,:)), 1);
+                idx = find(strcmp(delColors{i},testStudy.conditionColors(1,:)), 1);
                 if(isempty(idx))
-                    testStudy.viewColors(:,idx) = [];
+                    testStudy.conditionColors(:,idx) = [];
                 end
             end
             if(~isempty(newColors) || ~isempty(delColors))

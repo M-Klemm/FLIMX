@@ -35,7 +35,11 @@ classdef FDataScatterPlot < FDataNormal
         ROICoordinates = [];
         ROIType = 0;
         ROISubType = 1;
-        ROIInverFlag = 0;
+        ROIInverFlag = 0;        
+        MSZ = [];
+        MSZMin = [];
+        MSZMax = [];
+        ColorScaling = [];
     end    
     
     methods
@@ -71,6 +75,23 @@ classdef FDataScatterPlot < FDataNormal
         function out = getROIInvertFlag(this)
             %get type of grid roi (number corresponding to type)
             out = this.ROIInvertFlag;
+        end
+        
+        function out = getZScaling(this)
+            %get z scaling parameters
+            out = [double(this.MSZ), this.MSZMin, this.MSZMax];
+        end
+        
+        function out = getColorScaling(this)
+            %get color scaling parameters
+            out = this.ColorScaling;
+        end
+        
+        function setResultColorScaling(this,val)
+            %get color scaling parameters
+            if(length(val) == 3)
+                this.ColorScaling = val;
+            end
         end
         
         function setROICoordinates(this,ROIType,ROICoord)
@@ -110,7 +131,41 @@ classdef FDataScatterPlot < FDataNormal
             this.ROIInvertFlag = val;
         end
         
-    end
+        function setZScaling(this,data)
+            %set z scaling; data = [flag min max]
+            this.MSZ = logical(data(1));
+            if(this.sType == 2)
+                %transform input to log10 space
+                if(data(2) <= 0)
+                    data(2) = 0;
+                else
+                    data(2) = log10(data(2));
+                end
+                if(data(3) <= 0)
+                    data(3) = -Inf;
+                else
+                    data(3) = log10(data(3));
+                end
+            end
+            this.MSZMin = data(2);
+            this.MSZMax = data(3);
+            this.clearCachedImage();
+        end
+        
+        function out = getDefaultXLblTick(this)
+            %return tick step size for x
+            out = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
+        end
+        
+        function out = getDefaultYLblTick(this)
+            %return tick step size for y
+            out = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
+        end  
+    end %methods
+    
+    methods (Access = protected)
+          
+    end%methods(protected)
     
     
 end

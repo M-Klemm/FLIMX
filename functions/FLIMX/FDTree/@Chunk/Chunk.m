@@ -143,14 +143,14 @@ classdef Chunk < handle
                     [cimg, lblx, lbly, cw] = this.myParent.makeCluster(this.dType);
                     this.mySlices.insertID(FDataNormal(this,id,cimg),id,true);
                     h = this.mySlices.getDataByID(id);  
-                    %set labels for view cluster computation
+                    %set labels for condition cluster computation
                     h.setupXLbl(lblx,cw);
                     h.setupYLbl(lbly,cw);
                 else
                     if(isempty(h.getFullImage()))
                         [cimg, lblx, lbly, cw] = this.myParent.makeCluster(this.dType);
                         h.setRawData(cimg);
-                        %set labels for view cluster computation
+                        %set labels for condition cluster computation
                         h.setupXLbl(lblx,cw);
                         h.setupYLbl(lbly,cw);
                     end
@@ -158,10 +158,10 @@ classdef Chunk < handle
             end                        
             
             if(strncmp(this.dType,'ConditionMVGroup',16))
-                %check if view cluster has to be computed
+                %check if condition cluster has to be computed
                 clusterID = this.dType(10:end);
                 if(isempty(h))                                        
-                    [cimg, lblx, lbly, cw] = this.myParent.makeViewCluster(clusterID);
+                    [cimg, lblx, lbly, cw] = this.myParent.makeConditionCluster(clusterID);
                     this.mySlices.insertID(FDataScatterPlot(this,id,cimg),id,true);
                     h = this.mySlices.getDataByID(id);
                     %set labels
@@ -169,7 +169,7 @@ classdef Chunk < handle
                     h.setupYLbl(lbly,cw);
                 else
                     if(isempty(h.getFullImage()))
-                        [cimg, lblx, lbly, cw] = this.myParent.makeViewCluster(clusterID);
+                        [cimg, lblx, lbly, cw] = this.myParent.makeConditionCluster(clusterID);
                         h.setRawData(cimg);
                         %set labels
                         h.setupXLbl(lblx,cw);

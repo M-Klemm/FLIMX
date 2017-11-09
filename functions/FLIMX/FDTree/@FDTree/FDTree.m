@@ -36,7 +36,7 @@ classdef FDTree < handle
         myParent = [];
         myDir = '';             %FStudyMgr's working directory
         myStudies = [];         %list of studies
-        myViewsMerged = [];     %global statistics and global cluster objects
+        myConditionsMerged = [];     %global statistics and global cluster objects
         myClusterTargets = [];  %global cluster targets        
         cancelFlag = false; %flag to stop an operation
         saveMaxMem = false;    %max memory saving flag
@@ -67,7 +67,7 @@ classdef FDTree < handle
             end
             this.myParent = parent;
             this.myStudies = LinkedList();
-            this.myViewsMerged = subjectDS(this,'GlobalMergedSubjects');
+            this.myConditionsMerged = subjectDS(this,'GlobalMergedSubjects');
             this.myClusterTargets = LinkedList();
             this.saveMaxMem = this.getSaveMaxMemFlag();
             %Add default study as container for not assigned subjects
@@ -137,8 +137,8 @@ classdef FDTree < handle
         
         function removeObjMerged(this)
             %remove merged FData objects
-            this.myViewsMerged = [];
-            this.myViewsMerged = subjectDS(this,'GlobalMergedSubjects');
+            this.myConditionsMerged = [];
+            this.myConditionsMerged = subjectDS(this,'GlobalMergedSubjects');
         end
         
         function updateShortProgress(this,prog,text)
@@ -298,12 +298,12 @@ classdef FDTree < handle
         end
         
         function setGlobalClusterTargets(this,clusterID,targets)
-            %set global cluster targets, i.e. selected study views
+            %set global cluster targets, i.e. selected study conditions
             clusterTargets.name = clusterID;
             clusterTargets.targets = targets;
             this.myClusterTargets.insertID(clusterTargets,clusterID);
             %clear old cluster object
-            this.myViewsMerged.clearAllRIs(sprintf('Global%s',clusterID));
+            this.myConditionsMerged.clearAllRIs(sprintf('Global%s',clusterID));
         end
         
         function setClusterName(this,studyID,clusterID,val)
@@ -329,7 +329,7 @@ classdef FDTree < handle
             for i = 1:this.myStudies.queueLen
                 this.myStudies.getDataByPos(i).clearAllCIs(dType);
             end
-            this.myViewsMerged.clearAllCIs(dType);
+            this.myConditionsMerged.clearAllCIs(dType);
         end
         
         function clearAllFIs(this,dType)
@@ -337,7 +337,7 @@ classdef FDTree < handle
             for i = 1:this.myStudies.queueLen
                 this.myStudies.getDataByPos(i).clearAllFIs(dType);
             end
-            this.myViewsMerged.clearAllFIs(dType);
+            this.myConditionsMerged.clearAllFIs(dType);
         end
         
         function clearClusters(this,studyID,subjectID,dType,dTypeNr)
@@ -633,16 +633,16 @@ classdef FDTree < handle
             end
         end
         
-        function setViewColor(this,studyID,vName,val)
-            %set view color in study
+        function setConditionColor(this,studyID,cName,val)
+            %set condition color in study
             study = this.getStudy(studyID);
             if(~isempty(study))
-                study.setViewColor(vName,val);
+                study.setConditionColor(cName,val);
             end
             str = this.getGlobalClustersStr();
             for i = 1:length(str)
                 globalClusterID = sprintf('Global%s',str{i});
-                this.myViewsMerged.clearAllRIs(globalClusterID);
+                this.myConditionsMerged.clearAllRIs(globalClusterID);
             end
         end
         
@@ -717,24 +717,24 @@ classdef FDTree < handle
         
         function out = getGlobalObjMerged(this,chan,dType,id)
             %get merged subjectDS of all studies
-            out = this.myViewsMerged.getFDataObj(chan,dType,id,1);
+            out = this.myConditionsMerged.getFDataObj(chan,dType,id,1);
             if(isempty(out))
                 %try to merge subjects
                 this.makeGlobalObjMerged(chan,dType,id);
-                out = this.myViewsMerged.getFDataObj(chan,dType,id,1);
+                out = this.myConditionsMerged.getFDataObj(chan,dType,id,1);
             end
         end
         
         function out = getGlobalClusterObj(this,chan,dType,sType)
             %get global cluster object
-            out = this.myViewsMerged.getFDataObj(chan,dType,0,sType);
+            out = this.myConditionsMerged.getFDataObj(chan,dType,0,sType);
             if(isempty(out))
                 %try to make global cluster
                 clusterID = dType(7:end);
                 [cimg, lblx, lbly, cw, colors, logColors] = this.makeGlobalCluster(chan,clusterID);
                 %add cluster
-                this.myViewsMerged.addObjID(0,chan,dType,0,cimg);
-                out = this.myViewsMerged.getFDataObj(chan,dType,0,sType);
+                this.myConditionsMerged.addObjID(0,chan,dType,0,cimg);
+                out = this.myConditionsMerged.getFDataObj(chan,dType,0,sType);
                 if(length(lblx) >= 2)
                     out.setupXLbl(lblx(1),lblx(2)-lblx(1));
                 end
@@ -747,21 +747,21 @@ classdef FDTree < handle
             end
         end
         
-        function out = getStudyObjMerged(this,studyID,vName,chan,dType,id,sType)
+        function out = getStudyObjMerged(this,studyID,cName,chan,dType,id,sType)
             %get merged subjectDS of a certain study
             study = this.getStudy(studyID);
             if(~isempty(study))
-                out = study.getFDataMergedObj(vName,chan,dType,id,sType);
+                out = study.getFDataMergedObj(cName,chan,dType,id,sType);
             else
                 out = [];
             end
         end
         
-        %         function out = getStudyObjs(this,studyID,vName,chan,dType,id)
+        %         function out = getStudyObjs(this,studyID,cName,chan,dType,id)
         %             %get all objects of datatype dType from a study
         %             study = this.getStudy(studyID);
         %             if(~isempty(study))
-        %                 out = study.getStudyObjs(vName,chan,dType,id);
+        %                 out = study.getStudyObjs(cName,chan,dType,id);
         %             else
         %                 out = [];
         %             end
@@ -798,14 +798,14 @@ classdef FDTree < handle
             end
         end
         
-        function out = getStudyViewsStr(this,studyID)
-            % get views of study
+        function out = getStudyConditionsStr(this,studyID)
+            % get conditions of study
             study = this.getStudy(studyID);
             if(isempty(studyID))
                 out = FDTree.defaultConditionName();
                 return
             end
-            out = study.getViewsStr();
+            out = study.getConditionsStr();
         end
                 
         function out = getSubjectName(this,studyID,subjectID)
@@ -850,7 +850,7 @@ classdef FDTree < handle
         end
         
         function out = getGlobalClusterTargets(this,clusterID)
-            %get global cluster targets, i.e. selected study views
+            %get global cluster targets, i.e. selected study Conditions
             out = [];
             clusterTargets = this.myClusterTargets.getDataByID(clusterID);
             if(isempty(clusterTargets))
@@ -874,11 +874,11 @@ classdef FDTree < handle
             end
         end
         
-        function nr = getNrSubjects(this,studyID,vName)
+        function nr = getNrSubjects(this,studyID,cName)
             %get number of subjects in study with studyID
             study = this.getStudy(studyID);
             if(~isempty(study))
-                nr = study.getNrSubjects(vName);
+                nr = study.getNrSubjects(cName);
             else
                 nr = [];
             end
@@ -894,11 +894,11 @@ classdef FDTree < handle
             end
         end
         
-        function dStr = getSubjectsNames(this,studyID,vName)
+        function dStr = getSubjectsNames(this,studyID,cName)
             %get a string of all subjects
             study = this.getStudy(studyID);
             if(~isempty(study))
-                dStr = study.getSubjectsNames(vName);
+                dStr = study.getSubjectsNames(cName);
             else
                 dStr = [];
             end
@@ -1006,35 +1006,35 @@ classdef FDTree < handle
             end
         end
         
-        function [centers, histMerge, histTable, colDescription] = getStudyHistogram(this,studyID,vName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
+        function [centers, histMerge, histTable, colDescription] = getStudyHistogram(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
             %combine all histograms of study studyID, channel chan, datatype dType and 'running number' id into a single table
             study = this.getStudy(studyID);
             if(~isempty(study))
                 if(nargout == 2)
-                    [centers, histMerge] = study.getStudyHistogram(vName,chan,dType,id);
+                    [centers, histMerge] = study.getStudyHistogram(cName,chan,dType,id);
                 else
-                    [centers, histMerge, histTable, colDescription] = study.getStudyHistogram(vName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
+                    [centers, histMerge, histTable, colDescription] = study.getStudyHistogram(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
                 end
             else
                 centers = []; histTable = []; histMerge = []; colDescription = cell(0,0);
             end
         end
         
-        function [stats, statsDesc, subjectDesc] = getStudyStatistics(this,studyID,vName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,strictFlag)
-            %get statistics for all subjects in study studyID, view vName and channel chan of datatype dType with 'running number' id
+        function [stats, statsDesc, subjectDesc] = getStudyStatistics(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,strictFlag)
+            %get statistics for all subjects in study studyID, Condition cName and channel chan of datatype dType with 'running number' id
             study = this.getStudy(studyID);
             if(~isempty(study))
-                [stats, statsDesc, subjectDesc] = study.getStudyStatistics(vName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,strictFlag);
+                [stats, statsDesc, subjectDesc] = study.getStudyStatistics(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,strictFlag);
             else
                 stats = []; statsDesc = []; subjectDesc = [];
             end
         end
         
-        function data = getStudyPayload(this,studyID,vName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,dataProc)
+        function data = getStudyPayload(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,dataProc)
             %get merged payload from all subjects of study studyID, channel chan, datatype dType and 'running number' within a study for a certain ROI
             study = this.getStudy(studyID);
             if(~isempty(study))
-                data = study.getStudyPayload(vName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,dataProc);
+                data = study.getStudyPayload(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,dataProc);
             else
                 data = [];
             end            
@@ -1294,12 +1294,12 @@ classdef FDTree < handle
             end
         end
         
-        function out = getViewColor(this,studyID,vName)
-            %get color of view in study
+        function out = getConditionColor(this,studyID,cName)
+            %get color of Condition in study
             study = this.getStudy(studyID);
             out = [];
             if(~isempty(study))
-                out = study.getViewColor(vName);
+                out = study.getConditionColor(cName);
             end
         end
         
@@ -1344,7 +1344,7 @@ classdef FDTree < handle
                 end
             end
             %add subjectDSMerged
-            this.myViewsMerged.addObjMergeID(id,chan,dType,1,ciMerged);
+            this.myConditionsMerged.addObjMergeID(id,chan,dType,1,ciMerged);
         end
         
         function [cimg, lblx, lbly, cw, colorCluster, logColorCluster] = makeGlobalCluster(this,chan,clusterID)
@@ -1353,17 +1353,17 @@ classdef FDTree < handle
             clusterTargets = this.getGlobalClusterTargets(clusterID);
             for i=1:size(clusterTargets,1)
                 study = this.getStudy(clusterTargets{i,1});
-                viewClusterObj = study.getFDataMergedObj(clusterTargets{i,2},chan,sprintf('Condition%s',clusterID),0,1);
-                if(isempty(viewClusterObj) || isempty(viewClusterObj.getROIImage([],0,1,0)))
+                conditionClusterObj = study.getFDataMergedObj(clusterTargets{i,2},chan,sprintf('Condition%s',clusterID),0,1);
+                if(isempty(conditionClusterObj) || isempty(conditionClusterObj.getROIImage([],0,1,0)))
                     continue
                 end
                 %get reference classwidth
                 cMVs = this.getClusterTargets(clusterTargets{i,1},clusterID);
                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
                 cw = getHistParams(this.getStatsParams(),chan,dType{1},dTypeNr(1));
-                %get merged clusters from subjects of view
+                %get merged clusters from subjects of condition
                 %use whole image for scatter plots, ignore any ROIs
-                [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,viewClusterObj.getROIImage([],0,1,0)./viewClusterObj.getCImax([],0,1,0)*1000,viewClusterObj.getCIXLbl([],0,1,0),viewClusterObj.getCIYLbl([],0,1,0),cw);
+                [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,conditionClusterObj.getROIImage([],0,1,0)./conditionClusterObj.getCImax([],0,1,0)*1000,conditionClusterObj.getCIXLbl([],0,1,0),conditionClusterObj.getCIYLbl([],0,1,0),cw);
             end            
             if(isempty(cimg))
                 return
@@ -1371,13 +1371,14 @@ classdef FDTree < handle
             %create colored cluster
             colorCluster = zeros(size(cimg,1),size(cimg,2),3);
             logColorCluster = zeros(size(cimg,1),size(cimg,2),3);
+            cimg = zeros(size(cimg));
             for i=1:size(clusterTargets,1)
                 study = this.getStudy(clusterTargets{i,1});
-                viewClusterObj = study.getFDataMergedObj(clusterTargets{i,2},chan,sprintf('Condition%s',clusterID),0,1);
-                curImg = mergeScatterPlotData(cimg,lblx,lbly,viewClusterObj.getROIImage([],0,1,0),viewClusterObj.getCIXLbl([],0,1,0),viewClusterObj.getCIYLbl([],0,1,0),cw);
+                conditionClusterObj = study.getFDataMergedObj(clusterTargets{i,2},chan,sprintf('Condition%s',clusterID),0,1);
+                curImg = mergeScatterPlotData(cimg,lblx,lbly,conditionClusterObj.getROIImage([],0,1,0),conditionClusterObj.getCIXLbl([],0,1,0),conditionClusterObj.getCIYLbl([],0,1,0),cw);
                 curImg = curImg/(max(curImg(:))-min(curImg(:)))*(size(this.getColorMap(),1)-1)+1;
                 %prepare cluster coloring
-                color = study.getViewColor(clusterTargets{i,2});
+                color = study.getConditionColor(clusterTargets{i,2});
                 cm = repmat([0:1/(size(this.getColorMap(),1)-1):1]',1,3);
                 cm = [cm(:,1).*color(1) cm(:,2).*color(2) cm(:,3).*color(3)];                
                 %get merged colors
@@ -1474,14 +1475,14 @@ classdef FDTree < handle
                 if(strncmp(dType,'MVGroup',7))
                     %clear corresponding global cluster object
                     globalClusterID = sprintf('Global%s',dType);
-                    this.myViewsMerged.clearAllRIs(globalClusterID);
+                    this.myConditionsMerged.clearAllRIs(globalClusterID);
                 end
             end
         end
         
         function clearGlobalObjMerged(this,dType)
             %clear global cluster object and statistics
-            this.myViewsMerged.clearAllRIs(dType);
+            this.myConditionsMerged.clearAllRIs(dType);
         end
         
         function checkConditionRef(this,studyID,colN)

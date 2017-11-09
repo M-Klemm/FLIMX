@@ -740,7 +740,6 @@ classdef FLIMXFitResultImport < handle
             %change current file group
             this.currentRow = 1;
             this.currentChannel = 1;
-            this.detectFilesInFolder();
             this.setupGUI();
             this.updateGUI();
         end

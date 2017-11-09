@@ -38,7 +38,7 @@ classdef FStudy < handle
         revision = [];          %revision of the study code/dataformat
         mySubjects = [];        %subjects in study
         myStudyInfoSet = [];    %subject info in study
-        myViewStatistics = [];  %merged objects to save statistics
+        myConditionStatistics = [];  %merged objects to save statistics
         IRFInfo = [];           %struct to save information on the used IRF
         isDirty = false;        %flag if something of the study was changed
     end
@@ -51,11 +51,11 @@ classdef FStudy < handle
             % Constructor for FStudy.
             this.myParent = parent;
             this.name = name;
-            this.revision = 24;
+            this.revision = 25;
             this.myDir = sDir;
             this.mySubjects = LinkedList();
             this.myStudyInfoSet = studyIS(this);
-            this.myViewStatistics = LinkedList();
+            this.myConditionStatistics = LinkedList();
         end
         
         function load(this)
@@ -189,13 +189,13 @@ classdef FStudy < handle
                     subject.setdType(clusterID,val);
                 end
             end
-            %set name of view cluster objects
-            viewStr = this.getViewsStr();
-            viewClusterID = sprintf('Condition%s',clusterID);
-            for i=1:length(viewStr)
-                view = this.getViewObj(viewStr{i});
-                if(~isempty(view))
-                    view.setdType(viewClusterID,sprintf('Condition%s',val));
+            %set name of condition cluster objects
+            conditionStr = this.getConditionsStr();
+            conditionClusterID = sprintf('Condition%s',clusterID);
+            for i=1:length(conditionStr)
+                condition = this.getConditionObj(conditionStr{i});
+                if(~isempty(condition))
+                    condition.setdType(conditionClusterID,sprintf('Condition%s',val));
                 end
             end
             %set name in study info set
@@ -224,8 +224,8 @@ classdef FStudy < handle
                 this.mySubjects.getDataByPos(i).clearAllCIs(dType);
             end
             %clear current images of datatype dType in all merged subjects
-            for i = 1:this.myViewStatistics.queueLen
-                this.myViewStatistics.getDataByPos(i).clearAllCIs(dType);
+            for i = 1:this.myConditionStatistics.queueLen
+                this.myConditionStatistics.getDataByPos(i).clearAllCIs(dType);
             end
         end
         
@@ -235,8 +235,8 @@ classdef FStudy < handle
                 this.mySubjects.getDataByPos(i).clearAllFIs(dType);
             end
             %clear filtered raw images of datatype dType in all merged subjects
-            for i = 1:this.myViewStatistics.queueLen
-                this.myViewStatistics.getDataByPos(i).clearAllFIs(dType);
+            for i = 1:this.myConditionStatistics.queueLen
+                this.myConditionStatistics.getDataByPos(i).clearAllFIs(dType);
             end
         end
         
@@ -245,10 +245,10 @@ classdef FStudy < handle
             for i = 1:this.mySubjects.queueLen
                 this.mySubjects.getDataByPos(i).clearAllRIs(dType);
                 if(strncmp(dType,'MVGroup',7))
-                    %clear corresponding view cluster object
-                    viewClusterID = sprintf('Condition%s',dType);
-                    for j=1:this.myViewStatistics.queueLen
-                        this.myViewStatistics.getDataByPos(j).clearAllRIs(viewClusterID);
+                    %clear corresponding condition cluster object
+                    conditionClusterID = sprintf('Condition%s',dType);
+                    for j=1:this.myConditionStatistics.queueLen
+                        this.myConditionStatistics.getDataByPos(j).clearAllRIs(conditionClusterID);
                     end
                 end
             end
@@ -350,16 +350,16 @@ classdef FStudy < handle
         end
         
         function setSubjectInfoHeaders(this,subjectInfoHeaders,idx)
-            %set info header and change view name if required
+            %set info header and change condition name if required
             %check if idx is a conditional column
-            views = this.getViewsStr();
+            conditions = this.getConditionsStr();
             headers = this.getSubjectInfoHeaders();
             colName = headers{idx};
-            if(ismember(colName,views))
-                view = this.getViewObj(colName);
-                if(~isempty(view))
-                    %we have this view in FDtree, change name of view
-                    view.setSubjectName(subjectInfoHeaders);
+            if(ismember(colName,conditions))
+                condition = this.getConditionObj(colName);
+                if(~isempty(condition))
+                    %we have this condition in FDtree, change name of condition
+                    condition.setSubjectName(subjectInfoHeaders);
                 end
             end
             %set info header in study info data
@@ -514,9 +514,9 @@ classdef FStudy < handle
             this.myStudyInfoSet.setArithmeticImageInfo(aiName,aiParam);
         end
         
-        function setViewColor(this,vName,val)
-            %set view color
-            this.myStudyInfoSet.setViewColor(vName,val);
+        function setConditionColor(this,cName,val)
+            %set condition color
+            this.myStudyInfoSet.setConditionColor(cName,val);
         end
         
         %% removing functions
@@ -600,15 +600,15 @@ classdef FStudy < handle
                     end
                 end
             end
-            %delete view cluster objects
-            viewStr = this.getViewsStr();
-            viewClusterID = sprintf('Condition%s',clusterID);
-            for i=1:length(viewStr)
-                view = this.getViewObj(viewStr{i});
-                if(~isempty(view))
-                    [~, chNrs] = view.getChStr();
+            %delete condition cluster objects
+            conditionStr = this.getConditionsStr();
+            conditionClusterID = sprintf('Condition%s',clusterID);
+            for i=1:length(conditionStr)
+                condition = this.getConditionObj(conditionStr{i});
+                if(~isempty(condition))
+                    [~, chNrs] = condition.getChStr();
                     for j=1:length(chNrs)
-                        view.removeObj(chNrs(j),viewClusterID,0);
+                        condition.removeObj(chNrs(j),conditionClusterID,0);
                     end
                 end
             end
@@ -619,26 +619,26 @@ classdef FStudy < handle
         
         function clearObjMerged(this,chan,dType,id)
             %clear merged FData objects, force to rebuild statistics
-            for i = 1:this.myViewStatistics.queueLen
+            for i = 1:this.myConditionStatistics.queueLen
                 switch nargin
                     case 4
                         %clear specific object
-                        hfd = this.myViewStatistics.getDataByPos(i).getFDataObj(chan,dType,id,1);
+                        hfd = this.myConditionStatistics.getDataByPos(i).getFDataObj(chan,dType,id,1);
                         if(~isempty(hfd))
                             hfd.clearCachedImage();
                         end
                     case 3
                         %clear all objects of dType
-                        this.myViewStatistics.getDataByPos(i).clearAllCIs(dType);
+                        this.myConditionStatistics.getDataByPos(i).clearAllCIs(dType);
                     otherwise
                         %clear all objects
-                        this.myViewStatistics.getDataByPos(i).clearAllCIs([]);
+                        this.myConditionStatistics.getDataByPos(i).clearAllCIs([]);
                 end
             end
         end
         
         function clearClusters(this,subjectID,dType,dTypeNr)
-            %clear local and view clusters
+            %clear local and condition clusters
             clusterStr = this.getStudyClustersStr(1);
             subject = this.getSubject(subjectID);
             if(isempty(subject))
@@ -646,17 +646,17 @@ classdef FStudy < handle
             end
             if(strncmp('MVGroup',dType,7))
                 %ROI of cluster was changed
-                for i = 1:this.myViewStatistics.queueLen
-                    subStr = this.getSubjectsNames(this.myViewStatistics.getDataByPos(i).name);
+                for i = 1:this.myConditionStatistics.queueLen
+                    subStr = this.getSubjectsNames(this.myConditionStatistics.getDataByPos(i).name);
                     if(ismember(subjectID,subStr))
-                        %view contains subject
-                        this.myViewStatistics.getDataByPos(i).clearAllRIs(sprintf('Condition%s',dType));
+                        %condition contains subject
+                        this.myConditionStatistics.getDataByPos(i).clearAllRIs(sprintf('Condition%s',dType));
                     end
                 end
                 this.myParent.clearGlobalObjMerged(sprintf('Global%s',dType));
             elseif(strncmp('ConditionMVGroup',dType,16))
-                for i = 1:this.myViewStatistics.queueLen
-                    this.myViewStatistics.getDataByPos(i).clearAllRIs(dType);
+                for i = 1:this.myConditionStatistics.queueLen
+                    this.myConditionStatistics.getDataByPos(i).clearAllRIs(dType);
                 end
                 this.myParent.clearGlobalObjMerged(sprintf('Global%s',dType(5:end)));
             elseif(strncmp('GlobalMVGroup',dType,13))
@@ -672,12 +672,12 @@ classdef FStudy < handle
                     if(ismember(tmp,cMVs.x) || ismember(tmp,cMVs.y) || curGS && cGS)
                         %clear local clusters
                         subject.clearAllRIs(clusterStr{i})
-                        %clear view clusters
-                        for j = 1:this.myViewStatistics.queueLen
-                            subStr = this.getSubjectsNames(this.myViewStatistics.getDataByPos(j).name);
+                        %clear condition clusters
+                        for j = 1:this.myConditionStatistics.queueLen
+                            subStr = this.getSubjectsNames(this.myConditionStatistics.getDataByPos(j).name);
                             if(ismember(subjectID,subStr))
-                                %view contains subject
-                                this.myViewStatistics.getDataByPos(j).clearAllRIs(sprintf('Condition%s',clusterStr{i}));
+                                %condition contains subject
+                                this.myConditionStatistics.getDataByPos(j).clearAllRIs(sprintf('Condition%s',clusterStr{i}));
                             end
                         end
                         this.myParent.clearGlobalObjMerged(sprintf('Global%s',clusterStr{i}));
@@ -687,7 +687,7 @@ classdef FStudy < handle
         end
         
         function removeColumn(this,colName)
-            %reomve column in study data and view if required
+            %reomve column in study data and condition if required
             cond = this.myStudyInfoSet.getColConditions(colName);
             if(~isempty(cond))
                 %we have a reference column
@@ -703,7 +703,7 @@ classdef FStudy < handle
                 end
             end
             %remove it from merged objects
-            this.myViewStatistics.removeID(colName);
+            this.myConditionStatistics.removeID(colName);
             this.myStudyInfoSet.removeColumn(colName);
         end
         
@@ -861,12 +861,12 @@ classdef FStudy < handle
 % %             end
 %         end
         
-        function out = getStudyObjs(this,vName,chan,dType,id,sType)
+        function out = getStudyObjs(this,cName,chan,dType,id,sType)
             %get all fData objects of datatype dType and with id from a study
             out = cell(0,0);
             tStart = clock;
             persistent lastUpdate                
-            if(strcmp(vName,FDTree.defaultConditionName()))
+            if(strcmp(cName,FDTree.defaultConditionName()))
                 %get all objects
                 for i=1:this.mySubjects.queueLen
                     %try to get data
@@ -885,8 +885,8 @@ classdef FStudy < handle
                     end
                 end
             else
-                %get only objects of the selected view vName
-                subjectNames = this.getSubjectsNames(vName);
+                %get only objects of the selected condition cName
+                subjectNames = this.getSubjectsNames(cName);
                 for i=1:length(subjectNames)
                     %try to get data
                     fData = this.getFDataObj(subjectNames{i},chan,dType,id,sType);
@@ -907,29 +907,29 @@ classdef FStudy < handle
             this.updateLongProgress(0,'');
         end
         
-        function out = getFDataMergedObj(this,vName,chan,dType,id,sType,ROIType,ROISubType,ROIInvertFlag)
+        function out = getFDataMergedObj(this,cName,chan,dType,id,sType,ROIType,ROISubType,ROIInvertFlag)
             %get merged subjectDS for histogram and statistics
-            view = this.getViewObj(vName);
-            if(isempty(view) || isempty(view.getFDataObj(chan,dType,id,sType)))
-                %distinguish between merged statistics and view clusters
+            condition = this.getConditionObj(cName);
+            if(isempty(condition) || isempty(condition.getFDataObj(chan,dType,id,sType)))
+                %distinguish between merged statistics and condition clusters
                 if(strncmp(dType,'ConditionMVGroup',16))
-                    %add view object
-                    view = subjectDS(this,vName);
-                    this.myViewStatistics.insertEnd(view,vName);
-                    %make view cluster
+                    %add condition object
+                    condition = subjectDS(this,cName);
+                    this.myConditionStatistics.insertEnd(condition,cName);
+                    %make condition cluster
                     clusterID = dType(10:end);
-                    [cimg, lblx, lbly, cw] = this.makeViewCluster(vName,chan,clusterID);
-                    %add view cluster
-                    view.addObjID(0,chan,dType,0,cimg);
-                    out = view.getFDataObj(chan,dType,id,sType);
+                    [cimg, lblx, lbly, cw] = this.makeConditionCluster(cName,chan,clusterID);
+                    %add condition cluster
+                    condition.addObjID(0,chan,dType,0,cimg);
+                    out = condition.getFDataObj(chan,dType,id,sType);
                     out.setupXLbl(lblx,cw);
                     out.setupYLbl(lbly,cw);
                     return
                 else
                     %make merged subjects
-                    this.makeObjMerged(vName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
-                    view = this.getViewObj(vName);
-                    if(isempty(view))
+                    this.makeObjMerged(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
+                    condition = this.getConditionObj(cName);
+                    if(isempty(condition))
                         %still empty, something went wrong
                         out = [];
                         return
@@ -937,34 +937,34 @@ classdef FStudy < handle
                 end
             end
             %try to get data
-            out = view.getFDataObj(chan,dType,id,sType);
+            out = condition.getFDataObj(chan,dType,id,sType);
             if(~strncmp(dType,'ConditionMVGroup',16))
                 if(isempty(out) || out.isEmptyStat)
                     %rebuild merged subjects
-                    this.makeObjMerged(vName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
-                    out = view.getFDataObj(chan,dType,id,sType);
+                    this.makeObjMerged(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
+                    out = condition.getFDataObj(chan,dType,id,sType);
                 end
             end
         end
         
-        function views = getViewsStr(this)
-            %get conditional columns as views of study
-            views = this.myStudyInfoSet.getViewsStr();
+        function out = getConditionsStr(this)
+            %get conditional columns as conditions of study
+            out = this.myStudyInfoSet.getConditionsStr();
         end
         
-        function out = getViewName(this,vNr)
-            %get name of view out of study data
-            if(vNr == 1)
+        function out = getConditionName(this,cNr)
+            %get name of condition out of study data
+            if(cNr == 1)
                 %all subjects
                 out = FDTree.defaultConditionName();
                 return
             end
             subjectInfoHeaders = this.getSubjectInfoHeaders();
-            if(vNr > length(subjectInfoHeaders))
+            if(cNr > length(subjectInfoHeaders))
                 out = [];
                 return
             end
-            out = subjectInfoHeaders{vNr};
+            out = subjectInfoHeaders{cNr};
         end
         
         
@@ -979,15 +979,15 @@ classdef FStudy < handle
             out = subject.getSubjectName();
         end
         
-        function [view, viewPos] = getViewObj(this,vName)
-            %check if vName is in myViewStatistics and return the view object
-            view = [];
-            viewPos = [];
-            if(ischar(vName))
-                [view, viewPos] = this.myViewStatistics.getDataByID(vName);
-            elseif(isnumeric(vName) && vName <= this.myViewStatistics.queueLen)
-                viewPos = vName;
-                view = this.myViewStatistics.getDataByPos(viewPos);
+        function [condition, conditionPos] = getConditionObj(this,cName)
+            %check if cName is in myConditionStatistics and return the condition object
+            condition = [];
+            conditionPos = [];
+            if(ischar(cName))
+                [condition, conditionPos] = this.myConditionStatistics.getDataByID(cName);
+            elseif(isnumeric(cName) && cName <= this.myConditionStatistics.queueLen)
+                conditionPos = cName;
+                condition = this.myConditionStatistics.getDataByPos(conditionPos);
             end
         end
         
@@ -1007,35 +1007,35 @@ classdef FStudy < handle
             out = this.myStudyInfoSet.getClusterTargets(clusterID);
         end
         
-        function nr = getNrSubjects(this,vName)
-            %get number of subjects in study with view vName
-            if(strcmp(vName,FDTree.defaultConditionName()))
-                %no view
+        function nr = getNrSubjects(this,cName)
+            %get number of subjects in study with condition cName
+            if(strcmp(cName,FDTree.defaultConditionName()))
+                %no condition
                 nr = this.mySubjects.queueLen;
             else
                 %get number according to conditional column
-                idx = this.myStudyInfoSet.infoHeaderName2idx(vName);
+                idx = this.myStudyInfoSet.infoHeaderName2idx(cName);
                 subjectInfo = this.myStudyInfoSet.getSubjectInfo([]);
                 col = cell2mat(subjectInfo(:,idx));
                 nr = sum(col);
             end
         end
         
-        function dStr = getSubjectsNames(this,vName)
+        function dStr = getSubjectsNames(this,cName)
             %get a string of all subjects in the study
             dStr = cell(0,0);
             for i=1:this.mySubjects.queueLen
                 dStr(i,1) = {this.mySubjects.getDataByPos(i).getSubjectName};
             end
-            if(strcmp(vName,FDTree.defaultConditionName()))
-                %no view selected, show all subjects
+            if(strcmp(cName,FDTree.defaultConditionName()))
+                %no condition selected, show all subjects
 %                 %make sure no suject name is empty
 %                 idx = cellfun('isempty',dStr);
 %                 dStr = dStr(~idx);
                 return
             end
             %show only subjects which fullfil the conditional column
-            idx = this.myStudyInfoSet.infoHeaderName2idx(vName);
+            idx = this.myStudyInfoSet.infoHeaderName2idx(cName);
             subjectInfo = this.myStudyInfoSet.getSubjectInfo([]);
             col = cell2mat(subjectInfo(:,idx));
             dStr = dStr(col);
@@ -1150,9 +1150,9 @@ classdef FStudy < handle
             [MSY MSYMin MSYMax] = subject.getMSY();
         end
         
-        function data = getStudyPayload(this,vName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,dataProc)
+        function data = getStudyPayload(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,dataProc)
             %get merged payload from all subjects of channel chan, datatype dType and 'running number' within a study for a certain ROI
-            hg = this.getStudyObjs(vName,chan,dType,id,1);
+            hg = this.getStudyObjs(cName,chan,dType,id,1);
             if(isempty(hg))
                 return
             end
@@ -1171,15 +1171,15 @@ classdef FStudy < handle
             end
         end
         
-        function [centers, histMerge, histTable, colDescription] = getStudyHistogram(this,vName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
+        function [centers, histMerge, histTable, colDescription] = getStudyHistogram(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
             %combine all histograms of channel chan, datatype dType and 'running number' within a study
-            hg = this.getFDataMergedObj(vName,chan,dType,id,1,ROIType,ROISubType,ROIInvertFlag);
+            hg = this.getFDataMergedObj(cName,chan,dType,id,1,ROIType,ROISubType,ROIInvertFlag);
             if(~isempty(hg))
                 if(nargout > 2)
 %                     centers = hg.getCIHistCentersStrict();
 %                     histMerge = hg.getCIHist();
 %                     [~, histMerge, centers]= hg.makeStatistics(ROIType,ROISubType,true);
-                    hg = this.getStudyObjs(vName,chan,dType,id,1);
+                    hg = this.getStudyObjs(cName,chan,dType,id,1);
                     if(isempty(hg))
                         return
                     end
@@ -1236,10 +1236,10 @@ classdef FStudy < handle
             end
         end
         
-        function [stats, statsDesc, subjectDesc] = getStudyStatistics(this,vName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,strictFlag)
-            %get statistics for all subjects in study studyID, view vName and channel chan of datatype dType with 'running number' id
+        function [stats, statsDesc, subjectDesc] = getStudyStatistics(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,strictFlag)
+            %get statistics for all subjects in study studyID, condition cName and channel chan of datatype dType with 'running number' id
             stats = []; statsDesc = []; subjectDesc = [];
-            hg = this.getStudyObjs(vName,chan,dType,id,1);
+            hg = this.getStudyObjs(cName,chan,dType,id,1);
             if(isempty(hg))
                 return
             end
@@ -1373,9 +1373,9 @@ classdef FStudy < handle
             [aiStr, aiParam] = this.myStudyInfoSet.getArithmeticImageInfo();
         end
         
-        function out = getViewColor(this,vName)
-            %get color of view
-            out = this.myStudyInfoSet.getViewColor(vName);
+        function out = getConditionColor(this,cName)
+            %get color of condition
+            out = this.myStudyInfoSet.getConditionColor(cName);
         end
         
         function out = isMember(this,subjectID,chan,dType)
@@ -1406,10 +1406,10 @@ classdef FStudy < handle
         end
         
         %% compute functions and other methods                        
-        function [cimg, lblx, lbly, cw] = makeViewCluster(this,vName,chan,clusterID)
-            %make merged clusters for a study view
+        function [cimg, lblx, lbly, cw] = makeConditionCluster(this,cName,chan,clusterID)
+            %make merged clusters for a study condition
             cimg = []; lblx = []; lbly = [];
-            clusterObjs = this.getStudyObjs(vName,chan,clusterID,0,1);            
+            clusterObjs = this.getStudyObjs(cName,chan,clusterID,0,1);            
             cMVs = this.getClusterTargets(clusterID);
             if(isempty(cMVs.x) || isempty(cMVs.y))
                 return
@@ -1417,7 +1417,7 @@ classdef FStudy < handle
             %get reference classwidth
             [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
             cw = getHistParams(this.getStatsParams(),chan,dType{1},dTypeNr(1));            
-            %get merged clusters from subjects of view
+            %get merged clusters from subjects of condition
             for i=1:length(clusterObjs)
                 %use whole image for scatter plots, ignore any ROIs
                 [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,clusterObjs{i}.getROIImage([],0,1,0),clusterObjs{i}.getCIXLbl([],0,1,0),clusterObjs{i}.getCIYLbl([],0,1,0),cw);
@@ -1429,10 +1429,10 @@ classdef FStudy < handle
             [cimg lblx lbly colors logColors] = this.myParent.makeGlobalCluster(chan,clusterID);
         end
         
-        function makeObjMerged(this,vName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
+        function makeObjMerged(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
             %compute and save merged subjectDS for statistics
             %get subjects
-            hg = this.getStudyObjs(vName,chan,dType,id,1);
+            hg = this.getStudyObjs(cName,chan,dType,id,1);
             if(isempty(hg))
                 return
             end
@@ -1443,13 +1443,13 @@ classdef FStudy < handle
                 ciMerged = [ciMerged; ci(:);];
             end
             %add subjectDSMerged
-            view = this.getViewObj(vName);
-            if(isempty(view))
-                %add view to list
-                view = subjectDS(this,vName);
-                this.myViewStatistics.insertEnd(view,vName);
+            condition = this.getConditionObj(cName);
+            if(isempty(condition))
+                %add condition to list
+                condition = subjectDS(this,cName);
+                this.myConditionStatistics.insertEnd(condition,cName);
             end
-            view.addObjMergeID(id,chan,dType,1,ciMerged);
+            condition.addObjMergeID(id,chan,dType,1,ciMerged);
         end
         
         function [subject, subjectPos] = getSubject(this,subjectID)

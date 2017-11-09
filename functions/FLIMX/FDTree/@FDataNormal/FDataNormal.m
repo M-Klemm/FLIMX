@@ -194,9 +194,9 @@ classdef FDataNormal < FData
             end %limit z
             [info.YSz, info.XSz] = size(ci);
             info.XLblStart = [];
-            info.XLblTick = 1;
+            info.XLblTick = this.getDefaultXLblTick();
             info.YLblStart = [];
-            info.YLblTick = 1;            
+            info.YLblTick = this.getDefaultYLblTick();            
             %make sure current cuts are not beyond current image
             this.cutX = min(this.cutX,info.XSz);
             this.cutY = min(this.cutY,info.YSz);
@@ -213,7 +213,7 @@ classdef FDataNormal < FData
                 %save current image in FData Object
 %             end
             out = ci;
-        end         
+        end
  
         function out = checkClasswidth(this,currentImage)
             %check if current classwidth is within bounds
@@ -250,10 +250,19 @@ classdef FDataNormal < FData
 %                     cw_old,this.dType,this.id,nc_old,cw),'Error Classwidth');
             end                      
         end
- 
+        
+        function out = getDefaultXLblTick(this)
+            %return tick step size for x
+            out = 1;
+        end
+        
+        function out = getDefaultYLblTick(this)
+            %return tick step size for y
+            out = 1;
+        end
     end %methods
     methods (Access = protected)
-    
+          
     end%methods(protected)
     methods(Static)
         

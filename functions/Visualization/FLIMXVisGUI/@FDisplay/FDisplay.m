@@ -540,7 +540,7 @@ classdef FDisplay < handle
                 case 3  %view clusters
                     %get merged view cluster object
                     clusterID = sprintf('Condition%s',dType{1});
-                    hfd{1} = this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),this.visObj.getView(this.mySide),this.visObj.getChannel(this.mySide),clusterID,dTypeNr(1),scale);
+                    hfd{1} = this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),clusterID,dTypeNr(1),scale);
                 case 4 %global clusters
                     clusterID = sprintf('Global%s',dType{1});
                     hfd{1} = this.visObj.fdt.getGlobalClusterObj(this.visObj.getChannel(this.mySide),clusterID,scale);
@@ -556,7 +556,7 @@ classdef FDisplay < handle
                     case 2 %study view histogram
                         if(~(dTypeNr == 0))
                             this.sethfdSupp(this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
-                                this.visObj.getView(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1));
+                                this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1));
                         else
                             this.sethfdSupp({[]});
                         end
@@ -716,7 +716,7 @@ classdef FDisplay < handle
                     colors = min(colors,256);
                     if(strncmp(hfd{i}.dType,'MVGroup',7)  || strncmp(hfd{i}.dType,'ConditionMVGroup',16))
                         cm = repmat([0:1/(size(cm,1)-1):1]',1,3);
-                        conditionColor = this.visObj.fdt.getViewColor(this.visObj.getStudy(this.mySide),this.visObj.getView(this.mySide));
+                        conditionColor = this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide));
                         cm = [cm(:,1).*conditionColor(1) cm(:,2).*conditionColor(2) cm(:,3).*conditionColor(3)];
                         colors = cm(round(reshape(colors,[],1)),:);
                         alphaData = ceil(sum(colors,2));
@@ -789,6 +789,13 @@ classdef FDisplay < handle
                                 end
                             end
                         end
+                        %make labels
+%                         if(strncmp(hfd{i}.dType,'MVGroup',7) || strncmp(hfd{i}.dType,'ConditionMVGroup',16) || strncmp(hfd{i}.dType,'GlobalMVGroup',13))
+%                             xLbl = hfd{i}.getCIXLbl(rc,rt,rs,ri);
+%                             yLbl = hfd{i}.getCIYLbl(rc,rt,rs,ri);
+%                             hAx.XTickLabel = xLbl(hAx.XTick);
+%                             hAx.YTickLabel = yLbl(hAx.YTick);
+%                         end
                         %save for export
                     case 3 %3D plot
                         if(sVisParam.offset_m3d && nrFD > 1)
@@ -1184,7 +1191,7 @@ classdef FDisplay < handle
                                 typeSel = get(this.h_m_p,'Value');
                                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(char(list(typeSel,:)));
                                 [centers, histo] = this.visObj.fdt.getStudyHistogram(...
-                                    this.visObj.getStudy(this.mySide),this.visObj.getView(this.mySide),...
+                                    this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),...
                                     this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1));
                             case 3 %global histogram
                                 list = get(this.h_m_p,'String');
@@ -1225,8 +1232,10 @@ classdef FDisplay < handle
                         if(length(centers) > 1)% && xtick(end) > length(centers))
                             classWidth = centers(2) - centers(1);
                             centers = (lb-1:ub).*classWidth + centers(1);
-                        end
-                        set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',FLIMXFitGUI.num4disp(centers(xtick-lb+1)'));
+                            set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',FLIMXFitGUI.num4disp(centers(xtick-lb+1)'));
+                        else
+                            set(this.h_s_ax,'color',this.staticVisParams.supp_plot_bg_color,'XTickLabel',centers(1));
+                        end                        
                         this.drawColorbarOnSuppPlot();
                     else %nothing to do
                         cla(this.h_s_ax);

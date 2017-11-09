@@ -706,14 +706,14 @@ classdef subjectDS < handle
             end
         end
         
-        function [cimg lblx cw lbly] = makeViewCluster(this,chan,clusterID)
-            %make view cluster for a spectral channel
-            [cimg lblx cw lbly] = this.myParent.makeViewCluster(this.name,chan,clusterID);
+        function [cimg, lblx, cw, lbly] = makeConditionCluster(this,chan,clusterID)
+            %make condition cluster for a spectral channel
+            [cimg, lblx, cw, lbly] = this.myParent.makeConditionCluster(this.name,chan,clusterID);
         end
         
-        function [cimg lblx lbly cw colors logColors] = makeGlobalCluster(this,chan,clusterID)
+        function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalCluster(this,chan,clusterID)
             %make global cluster for a spectral channel
-            [cimg lblx lbly cw colors logColors] = this.myParent.makeGlobalCluster(chan,clusterID);
+            [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(chan,clusterID);
         end
         
         function flag = eq(ds1,ds2)

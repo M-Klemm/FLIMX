@@ -171,17 +171,17 @@ classdef FLIMXFitGUI < handle
             else
                 set(this.visHandles.popupStudy,'String',studies,'Value',curStudyIdx);
             end
-            views = this.FLIMXObj.fdt.getStudyViewsStr(this.currentStudy);
+            conditions = this.FLIMXObj.fdt.getStudyConditionsStr(this.currentStudy);
             oldVStr = get(this.visHandles.popupCondition,'String');
             if(iscell(oldVStr))
                 oldVStr = oldVStr(get(this.visHandles.popupCondition,'Value'));
             end
             %try to find oldPStr in new pstr
-            idx = find(strcmp(oldVStr,views),1);
-            if(isempty(idx) || isempty(this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,views{idx})))
-                idx = 1;%choose FDTree.defaultConditionName() view
+            idx = find(strcmp(oldVStr,conditions),1);
+            if(isempty(idx) || isempty(this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,conditions{idx})))
+                idx = 1;%choose FDTree.defaultConditionName() condition
             end
-            set(this.visHandles.popupCondition,'String',views,'Value',idx);
+            set(this.visHandles.popupCondition,'String',conditions,'Value',idx);
             %update subject controls
             subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentCondition);
             curSubjectIdx = find(strcmp(this.currentSubject,subjects),1);
@@ -474,7 +474,7 @@ classdef FLIMXFitGUI < handle
         end
         
         function out = get.currentCondition(this)
-            %get current view name from GUI
+            %get current condition name from GUI
             out = FDTree.defaultConditionName();
             if(~this.isOpenVisWnd())
                 return;
@@ -1248,15 +1248,15 @@ classdef FLIMXFitGUI < handle
         end
         
         function GUI_popupCondition_Callback(this,hObject,eventdata)
-            %callback to change the current view
+            %callback to change the current condition
             subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentCondition);
             if(~isempty(subjects) && iscell(subjects))
                 idx = find(strcmp(subjects,this.currentSubject), 1);
                 if(~isempty(idx))
-                    %last subject is also a member of the new view -> just update the GUI controls
+                    %last subject is also a member of the new condition -> just update the GUI controls
                     this.setupGUI();
                 else
-                    %last subject is not a member of the new view -> choose a different subject
+                    %last subject is not a member of the new condition -> choose a different subject
                     this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentCondition,subjects{min(get(this.visHandles.popupSubject,'Value'),length(subjects))});
                 end
             end

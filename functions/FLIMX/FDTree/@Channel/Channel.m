@@ -221,7 +221,7 @@ classdef Channel < handle
             if(isempty(chunk))
                 if(strncmp(dType,'MVGroup',7) || strncmp(dType,'ConditionMVGroup',16)...
                         || strncmp(dType,'MVGroupGlobal',13))
-                    %add (view) cluster chunk
+                    %add (condition) cluster chunk
                     chunk = this.addChunk(dType,nr);
                     h = chunk.getFDataObj(nr,sType);                    
                 else
@@ -434,9 +434,9 @@ classdef Channel < handle
             end
         end       
         
-        function [cimg, lblx, lbly, cw] = makeViewCluster(this,clusterID)
-            %make view cluster for current channel
-            [cimg, lblx, lbly, cw] = this.myParent.makeViewCluster(this.getMyChannelNr,clusterID);
+        function [cimg, lblx, lbly, cw] = makeConditionCluster(this,clusterID)
+            %make condition cluster for current channel
+            [cimg, lblx, lbly, cw] = this.myParent.makeConditionCluster(this.getMyChannelNr,clusterID);
         end        
         
         function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalCluster(this,clusterID)

@@ -339,7 +339,7 @@ classdef FLIMX < handle
             end
         end        
         
-        function success = setCurrentSubject(this,study,view,subject)
+        function success = setCurrentSubject(this,study,condition,subject)
             %set the current subject
             success = true;            
             studyPos = find(strcmp(study,this.fdt.getStudyNames()),1);
@@ -350,7 +350,7 @@ classdef FLIMX < handle
             if(isempty(subject))
                 this.curSubject = this.fdt.getSubject4Import(study,'example_subject');
             else
-                subjectPos = find(strcmp(subject,this.fdt.getSubjectsNames(study,view)),1);
+                subjectPos = find(strcmp(subject,this.fdt.getSubjectsNames(study,condition)),1);
                 if(~isempty(subjectPos) && isempty(this.curSubject) || (~strcmp(this.curSubject.getStudyName(),study) || ~strcmp(this.curSubject.getDatasetName(),subject)))
                     %save old result
                     if(~isempty(this.curSubject) && any(this.curSubject.resultIsDirty))
@@ -470,7 +470,7 @@ classdef FLIMX < handle
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 262;
-            out.client_revision = 381;
+            out.client_revision = 382;
             out.core_revision = 366;
             out.results_revision = 256;
             out.measurement_revision = 204;

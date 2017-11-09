@@ -297,12 +297,12 @@ classdef result4Import < resultFile
                             [~,~,zm] = size(data_temp);
                             if(zm == 3)
                                 %convert image to binary image
-                                map = [0,0,0; 0.1,0.1,0.1];
-                                data_temp = rgb2ind(data_temp(:,:,1:3),map);
+                                data_temp = rgb2ind(data_temp(:,:,1:3),0.1);
                             elseif(zm == 4)
                                 %this is the transparency mask, we use its inverted version
                                 data_temp = ~data_temp(:,:,4) > 0.1;
                             end
+                            data_temp = flipud(data_temp);
                         catch
                             %reading image failed
                             %todo: message user

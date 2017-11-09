@@ -40,8 +40,8 @@ classdef StatsMVGroupMgr < handle
         cwY = [];                   %classwidth of selected target on y axis
         oldMVs = [];
         curAxis = [];               %indicates axis for target selection (x or y)
-        viewSelectionTableIdx = []; %current selection in view table
-        studyViewTableIdx = [];     %current selection in study view table
+        conditionSelectionTableIdx = []; %current selection in condition table
+        studyConditionTableIdx = [];     %current selection in study condition table
         lLB = [];
         xLB = [];
         yLB = [];
@@ -68,8 +68,8 @@ classdef StatsMVGroupMgr < handle
             set(this.visHandles.buttonSelectX,'Callback',@this.addMVCallback);
             set(this.visHandles.buttonSelectY,'Callback',@this.addMVCallback);
             set(this.visHandles.buttonDeselect,'Callback',@this.removeMVCallback);
-            set(this.visHandles.buttonSelectView,'Callback',@this.addViewCallback);
-            set(this.visHandles.buttonDeselectView,'Callback',@this.removeViewCallback);
+            set(this.visHandles.buttonSelectView,'Callback',@this.addConditionCallback);
+            set(this.visHandles.buttonDeselectView,'Callback',@this.removeConditionCallback);
             %popups
             set(this.visHandles.popupStudies,'Callback',@this.GUI_popupStudiesCallback,'String', this.visObj.fdt.getStudyNames(),'Value',1);
             set(this.visHandles.popupMVGroups,'Callback',@this.GUI_popupMVGroupsCallback);
@@ -77,8 +77,8 @@ classdef StatsMVGroupMgr < handle
             set(this.visHandles.listboxSelectedX,'Callback',@this.selectAxisCallback);
             set(this.visHandles.listboxSelectedY,'Callback',@this.selectAxisCallback);
             %table
-            set(this.visHandles.tableSelectedViews,'CellSelectionCallback',@this.tableSelectedViewsCallback);
-            set(this.visHandles.tableStudyViews,'CellSelectionCallback',@this.tableStudyViewsCallback);
+            set(this.visHandles.tableSelectedViews,'CellSelectionCallback',@this.tableSelectedConditionsCallback);
+            set(this.visHandles.tableStudyViews,'CellSelectionCallback',@this.tableStudyConditionsCallback);
             %ROI handling
             set(this.visHandles.popupROIType,'Callback',@this.GUI_ROICallback);
             set(this.visHandles.popupROISubType,'Callback',@this.GUI_ROICallback);
@@ -234,38 +234,38 @@ classdef StatsMVGroupMgr < handle
                 set(this.visHandles.tableSelectedViews,'Data',[],'Enable','Off');
                 set(this.visHandles.buttonSelectView,'Enable','Off');
                 set(this.visHandles.buttonDeselectView,'Enable','Off');
-                set(this.visHandles.textGlobalClusterViews,'String','Selected Views:');
+                set(this.visHandles.textGlobalClusterViews,'String','Selected Conditions:');
                 return
             end
             set(this.visHandles.tableStudyViews,'Enable','On');
-            selectedViews = this.visObj.fdt.getGlobalClusterTargets(this.curMVGroupName);
-            set(this.visHandles.tableSelectedViews,'Data',selectedViews,'Enable','On');
+            selectedConditions = this.visObj.fdt.getGlobalClusterTargets(this.curMVGroupName);
+            set(this.visHandles.tableSelectedViews,'Data',selectedConditions,'Enable','On');
             studyStr = this.visObj.fdt.getStudyNames();
             tableData = cell(0,2);
-            if(~isempty(selectedViews))
+            if(~isempty(selectedConditions))
                 %show name of global cluster
-                set(this.visHandles.textGlobalClusterViews,'String',sprintf('Selected Views (%s):',this.curMVGroupName));
-                %show views of all studies
+                set(this.visHandles.textGlobalClusterViews,'String',sprintf('Selected Conditions (%s):',this.curMVGroupName));
+                %show conditions of all studies
                 for i = 1:length(studyStr)
-                    studyViews = this.visObj.fdt.getStudyViewsStr(studyStr{i});
-                    for j = 1:length(studyViews)
+                    studyConditions = this.visObj.fdt.getStudyConditionsStr(studyStr{i});
+                    for j = 1:length(studyConditions)
                         tableData(end+1,1) = studyStr(i);
-                        tableData(end,2) = studyViews(j);
+                        tableData(end,2) = studyConditions(j);
                     end
                 end
             else
-                %show only views of currently selected study (initial case)
-                set(this.visHandles.textGlobalClusterViews,'String','Selected Views:');
+                %show only conditions of currently selected study (initial case)
+                set(this.visHandles.textGlobalClusterViews,'String','Selected Conditions:');
                 studyNr = get(this.visHandles.popupStudies,'Value');
-                studyViews = this.visObj.fdt.getStudyViewsStr(studyStr{studyNr});
-                for j = 1:length(studyViews)
+                studyConditions = this.visObj.fdt.getStudyConditionsStr(studyStr{studyNr});
+                for j = 1:length(studyConditions)
                     tableData(end+1,1) = studyStr(studyNr);
-                    tableData(end,2) = studyViews(j);
+                    tableData(end,2) = studyConditions(j);
                 end
             end
             idx = false(size(tableData,1),1);
-            if(~isempty(selectedViews))
-                %do not show already selected views
+            if(~isempty(selectedConditions))
+                %do not show already selected conditions
                 %                 for i = 1:size(tableData,2)
                 %                     [tf, loc] = ismember(tableData(i,2),selectedViews(:,1));
                 %                     if(any(tf))
@@ -274,17 +274,17 @@ classdef StatsMVGroupMgr < handle
                 %                         end
                 %                     end
                 %                 end
-                tf1 = ismember(tableData(:,1),selectedViews(:,1));
-                tf2 = ismember(tableData(:,2),selectedViews(:,2));
+                tf1 = ismember(tableData(:,1),selectedConditions(:,1));
+                tf2 = ismember(tableData(:,2),selectedConditions(:,2));
                 idx = tf1 & tf2;
                 set(this.visHandles.buttonDeselectView,'Enable','On');
             else
                 set(this.visHandles.buttonDeselectView,'Enable','Off');
             end
-            %show selectable study views
+            %show selectable study conditions
             tableData = tableData(~idx,:);
             set(this.visHandles.tableStudyViews,'Data',tableData,'Enable','On');
-            if(~isempty(studyViews))
+            if(~isempty(studyConditions))
                 set(this.visHandles.buttonSelectView,'Enable','On');
             else
                 set(this.visHandles.buttonSelectView,'Enable','Off');
@@ -498,58 +498,57 @@ classdef StatsMVGroupMgr < handle
             this.updateGUI();
         end
         
-        function addViewCallback(this,hObject,eventdata)
-            %add study view to global cluster selection
-            if(isempty(this.studyViewTableIdx))
+        function addConditionCallback(this,hObject,eventdata)
+            %add study condition to global cluster selection
+            if(isempty(this.studyConditionTableIdx))
                 return
             end
-            studyViews = get(this.visHandles.tableStudyViews,'Data'); %study views and corresponding studies
+            studyConditions = get(this.visHandles.tableStudyViews,'Data'); %study views and corresponding studies
             %check if cluster is available yet in selected study
-            clusterStr = this.visObj.fdt.getStudyClustersStr(studyViews{this.studyViewTableIdx,1},0);
+            clusterStr = this.visObj.fdt.getStudyClustersStr(studyConditions{this.studyConditionTableIdx,1},0);
             if(isempty(clusterStr) || ~ismember(this.curMVGroupName,clusterStr))
                 choice = questdlg(sprintf('%s is not available in %s. Add the selected cluster to this study?',...
-                    this.curMVGroupName,studyViews{this.studyViewTableIdx,1}),'Cluster not available','Yes','No','Yes');
+                    this.curMVGroupName,studyConditions{this.studyConditionTableIdx,1}),'Cluster not available','Yes','No','Yes');
                 switch choice
                     case 'No'
                         return
-                end
-                
+                end                
                 %add current cluster to study
                 cMVs = this.visObj.fdt.getClusterTargets(this.curStudyName,this.curMVGroupName);
-                this.visObj.fdt.setClusterTargets(studyViews{this.studyViewTableIdx,1},this.curMVGroupName,cMVs);
+                this.visObj.fdt.setClusterTargets(studyConditions{this.studyConditionTableIdx,1},this.curMVGroupName,cMVs);
             end
-            selectedViews = this.visObj.fdt.getGlobalClusterTargets(this.curMVGroupName);
-            if(isempty(selectedViews))
-                selectedViews = cell(0,2);
+            selectedConditions = this.visObj.fdt.getGlobalClusterTargets(this.curMVGroupName);
+            if(isempty(selectedConditions))
+                selectedConditions = cell(0,2);
             end
-            selectedViews(end+1,:) = cell(1,2);
-            selectedViews(end,:) = studyViews(this.studyViewTableIdx,:);
-            this.visObj.fdt.setGlobalClusterTargets(this.curMVGroupName,selectedViews);
+            selectedConditions(end+1,:) = cell(1,2);
+            selectedConditions(end,:) = studyConditions(this.studyConditionTableIdx,:);
+            this.visObj.fdt.setGlobalClusterTargets(this.curMVGroupName,selectedConditions);
             this.updateGlobalCtrls();
             this.visObj.setupGUI();
             this.visObj.updateGUI([]);
         end
         
-        function removeViewCallback(this,hObject,eventdata)
-            %remove study view from global cluster selection
-            if(~isempty(this.viewSelectionTableIdx))
-                selectedViews = this.visObj.fdt.getGlobalClusterTargets(this.curMVGroupName);
-                selectedViews(this.viewSelectionTableIdx,:) = [];
-                this.visObj.fdt.setGlobalClusterTargets(this.curMVGroupName,selectedViews);
+        function removeConditionCallback(this,hObject,eventdata)
+            %remove study condition from global cluster selection
+            if(~isempty(this.conditionSelectionTableIdx))
+                selectedConditions = this.visObj.fdt.getGlobalClusterTargets(this.curMVGroupName);
+                selectedConditions(this.conditionSelectionTableIdx,:) = [];
+                this.visObj.fdt.setGlobalClusterTargets(this.curMVGroupName,selectedConditions);
             end
             this.updateGlobalCtrls();
             this.visObj.setupGUI();
             this.visObj.updateGUI([]);
         end
         
-        function tableSelectedViewsCallback(this,hObject,eventdata)
-            %set current indices of study view in selection table
-            this.viewSelectionTableIdx = eventdata.Indices(:,1);
+        function tableSelectedConditionsCallback(this,hObject,eventdata)
+            %set current indices of study condition in selection table
+            this.conditionSelectionTableIdx = eventdata.Indices(:,1);
         end
         
-        function tableStudyViewsCallback(this,hObject,eventdata)
-            %set current indices of selectable study views
-            this.studyViewTableIdx = eventdata.Indices(:,1);
+        function tableStudyConditionsCallback(this,hObject,eventdata)
+            %set current indices of selectable study conditions
+            this.studyConditionTableIdx = eventdata.Indices(:,1);
         end
         
         function closeCallback(this,hObject,eventdata)
