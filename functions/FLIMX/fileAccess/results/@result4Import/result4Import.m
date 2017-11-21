@@ -120,7 +120,7 @@ classdef result4Import < resultFile
 %         end
         
         function importResultStruct(this,rs,ch,position,scaling)
-            %import a result struct into this object
+            %import a result struct into this object, the result struct must have the same format as a result file
             %make sure version is correct
             rs = resultFile.updateFitResultsStruct(rs,this.paramMgrObj.getDefaults().about);
             rs.auxiliaryData.fileInfo.position = position;
@@ -134,6 +134,21 @@ classdef result4Import < resultFile
                     this.setDirty(i,true);
                 end
             end
+        end
+        
+        function addFLIMItems(this,ch,itemsStruct)
+            %add FLIM items to our inner results structure, here: FLIM items do not need to be allocated previously!
+            tmp = this.getPixelResult(ch);
+            fn = fieldnames(itemsStruct);
+            for l = 1:length(fn)
+                if(all(size(itemsStruct.(fn{l})) == this.resultSize))
+                    tmp.(fn{l}) = itemsStruct.(fn{l});
+                end
+            end
+            this.results.pixel{ch,1} = tmp;
+            this.pixelApproximated(ch) = true;
+            this.setDirty(ch,true);
+            this.loadedChannels(ch,1) = true;
         end
         
     end%methods
@@ -295,14 +310,15 @@ classdef result4Import < resultFile
                         try
                             [data_temp,map,transparency] = imread(file);
                             [~,~,zm] = size(data_temp);
-                            if(zm == 3)
+                            if(zm == 1 && length(unique(data_temp)) < 3)
+                                data_temp = logical(data_temp);                            
+                            elseif(zm == 3)
                                 %convert image to binary image
                                 data_temp = rgb2ind(data_temp(:,:,1:3),0.1);
                             elseif(zm == 4)
                                 %this is the transparency mask, we use its inverted version
                                 data_temp = ~data_temp(:,:,4) > 0.1;
                             end
-                            data_temp = flipud(data_temp);
                         catch
                             %reading image failed
                             %todo: message user

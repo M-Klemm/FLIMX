@@ -172,7 +172,7 @@ classdef measurementInFDTree < measurementFile
             end
         end
         
-        function success = loadFileInfo(this,ch)
+        function success = loadFileInfo(this)
             %load file info for all measurement channels
             success = false;
             for ch = 1:length(this.filesOnHDD)
@@ -224,7 +224,7 @@ classdef measurementInFDTree < measurementFile
                 if(isempty(ch))
                     ch = this.nonEmptyChannelList(1);
                 end
-                this.loadFileInfo(ch);
+                this.loadFileInfo();
             end
             fileInfo = getFileInfoStruct@measurementFile(this,ch);
         end

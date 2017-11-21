@@ -688,8 +688,9 @@ classdef fluoSubject < handle
                     [i1,i2] = ind2sub(siz,i);
                     out(i1,i2) = mean(i4(i1,i2,max(1,m1(i1,i2)):min(tMax,m1(i1,i2)+2)));
                 end
-                rs.AnisotropyQuick = out;
-                this.myResult.addResultStruct(ch,rs);
+                %rs.AnisotropyQuick = out;
+                %this.myResult.addFLIMItems(ch,rs);
+                this.myResult.setPixelFLIMItem(ch,'AnisotropyQuick',out);                
                 %optional: select only one pixel
                 if(nargin == 5 && ~isempty(out))
                     out = squeeze(out(max(1,min(size(out,1),y)),max(1,min(size(out,2),x)),:));

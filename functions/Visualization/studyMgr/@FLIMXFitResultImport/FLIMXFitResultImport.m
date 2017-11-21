@@ -39,7 +39,6 @@ classdef FLIMXFitResultImport < handle
     
     properties(GetAccess = protected, SetAccess = protected)
         visHandles = [];
-        allFileNames = [];
         allFiles = cell(0,0);
         myFileTypes = {'.bmp', '.tif', '.tiff', '.png'};
         myFileGroups = {};
@@ -66,6 +65,7 @@ classdef FLIMXFitResultImport < handle
         currentFileInfo = [];
         currentFileGroup = '';
         currentFileFilter = 1;
+        numberOfAllImports = 0;
     end
     
     methods
@@ -91,6 +91,14 @@ classdef FLIMXFitResultImport < handle
             try
                 close(this.visHandles.FLIMXFitResultImportFigure);
             end
+            %delete old info
+            this.allFiles = cell(0,0);
+            this.myFileGroups = {};
+            this.myFileGroupsCounts = [];
+            this.myResultStruct = [];
+            this.myJTableHandle = [];
+            this.myChannelNrs = [];
+            this.currentRow = 1;
         end %closeVisWnd
         
         function setSubject(this,study,subject)
@@ -193,7 +201,7 @@ classdef FLIMXFitResultImport < handle
             end
             if(~isempty(this.allFiles))
                 data = this.getTableData4Channel(this.currentChannel);
-                data(:,5) = num2cell(this.checkImageSizes(this.currentChannel) & [data{:,5}]');
+                data(:,6) = num2cell(this.checkImageSizes(this.currentChannel) & [data{:,6}]');
                 this.setTableData4Channel(this.currentChannel,data);
             end
         end
@@ -205,7 +213,7 @@ classdef FLIMXFitResultImport < handle
             end
             % selected channel in uitable
             data = this.getTableData4Channel(this.currentChannel);
-            set(this.visHandles.tableFiles,'Data',data(:,1:5));
+            set(this.visHandles.tableFiles,'Data',data(:,1:6));
             if(isempty(this.currentRow))
                 %clear table selection
                 ed.Indices(1) = 0;
@@ -235,18 +243,18 @@ classdef FLIMXFitResultImport < handle
                     img = imresize(img,[this.yRef,this.xRef]);
                 end
                 %do binning if neccessary
-                img = FLIMXFitResultImport.binImage(img,data{this.currentRow,4});
+                img = FLIMXFitResultImport.binImage(img,data{this.currentRow,3});
+                %flip up/down
+                if(data{this.currentRow,4})
+                    img = flipud(img);
+                end
                 if(islogical(img))
                     this.axesMgr.setMainData(img,0,1);
                 else
                     this.axesMgr.setMainData(img);
-                end
-                nCh = sum([data{:,5}]);
-                nAll = 0;
-                for chId = 1:length(this.myChannelNrs)
-                    data = this.getTableData4Channel(this.myChannelNrs(chId));
-                    nAll = nAll + sum([data{:,5}]);
-                end
+                end                               
+                nCh = sum([data{:,6}]);
+                nAll = this.numberOfAllImports;
             else
                 nCh = 0;
                 nAll = 0;
@@ -258,7 +266,7 @@ classdef FLIMXFitResultImport < handle
         function out = getTableData4Channel(this,ch)
             %get data from our struct as a cell array
             if(isempty(this.allFiles))
-                out = cell(0,6);
+                out = cell(0,7);
             else
                 out = this.allFiles{ch};
             end
@@ -266,7 +274,7 @@ classdef FLIMXFitResultImport < handle
         
         function setTableData4Channel(this,ch,data)
             %set cell data in our struct
-            if(size(data,2) == 6)
+            if(size(data,2) == 7)
                 this.allFiles(ch) = {data};
             end
         end
@@ -391,6 +399,17 @@ classdef FLIMXFitResultImport < handle
             out = this.visHandles.popupFilter.Value;
         end
         
+        function out = get.numberOfAllImports(this)
+            %return the total number of imported items
+            out = 0;
+            for chId = 1:length(this.myChannelNrs)
+                data = this.getTableData4Channel(this.myChannelNrs(chId));
+                if(~isempty(data) && size(data,2) >= 6)
+                    out = out + sum([data{:,6}]);
+                end
+            end
+        end
+        
         function set.currentChannel(this,val)
             if(~this.isOpenVisWnd)% || ~ischar(val))
                 return
@@ -417,7 +436,6 @@ classdef FLIMXFitResultImport < handle
         function openFolderByStr(this,path)
             %open a new folder
             %clear old data
-            this.allFileNames = [];
             this.allFiles = cell(0,0);
             this.myFileGroups = cell(0,0);
             this.myFileGroupsCounts = [];
@@ -432,14 +450,34 @@ classdef FLIMXFitResultImport < handle
             %read info from disk
             [this.myFileGroups, this.myFileGroupsCounts] = result4Import.detectFileGroups(this.currentPath,this.myFileTypes);
             rs = result4Import.ASCIIFilesInGroup2ResultStruct(this.currentPath,this.myFileTypes,this.currentFileGroup,this.currentSubject,@this.plotProgressbar);
-            %check if there are too many channels
             rsChNrs = length(rs);
+            [~, existingChs] = this.FLIMXObj.fdt.getSubjectFilesStatus(this.currentStudy,this.currentSubject);
+            choice = '';
+            chs = intersect(existingChs,1:rsChNrs);
+            if(any(chs))
+                %some or all channels exist already in current subject
+                choice = questdlg(sprintf('Channels ''%s'' already have results in subject ''%s''!',num2str(chs),this.currentSubject),...
+                    'FLIMX Result Import: Existing Result Channel(s)','Keep existing results and add new items','Delete all existing results and import new channel(s)','Abort','Keep existing results and add new items');
+            end
+            switch choice
+                case 'Abort'
+                    %skip
+                    this.closeVisWnd();
+                    return
+                case 'Keep existing results and add new items'                    
+                case 'Delete all existing results and import new channel(s)'
+                    %clear old result data and add new channel(s)
+                    this.FLIMXObj.fdt.removeChannel(this.currentStudy,this.currentSubject,[]);
+                    this.FLIMXObj.fdt.clearSubjectFiles(this.currentStudy,this.currentSubject);
+                otherwise                    
+            end            
+            %check if there are too many channels            
             maxChNr = this.FLIMXObj.irfMgr.getSpectralChNrs([],'',[]);
             if(rsChNrs > maxChNr)
                 removeChs = maxChNr+1 : rsChNrs;
                 %remove the channels
                 rs = rs(1:maxChNr);
-                %display into to user
+                %display it to to user
                 warndlg(sprintf('Detected the following channel numbers: %s\nMaximum number of known IRF channels is %d.\nChannel(s) %s have been removed from this import. To import those channels add the corresponding IRF channels using the IRF manager.',num2str(rsChNrs),maxChNr,num2str(removeChs)),'FLIMX Result Import: Too Many Channels');
             end
             this.myResultStruct = rs;
@@ -453,21 +491,27 @@ classdef FLIMXFitResultImport < handle
             end
             for chId = 1:length(this.myChannelNrs)
                 fn = fieldnames(rs(this.myChannelNrs(chId)).results.pixel);
-                af = cell(length(fn),6);
+                af = cell(length(fn),7);
                 for i = 1:length(fn)
                     [sy, sx, sz] = size(rs(this.myChannelNrs(chId)).results.pixel.(fn{i}));
                     af(i,1) = {fn{i}};
-                    af(i,2) = {this.myChannelNrs(chId)};
-                    af(i,3) = {sprintf('%dx%d',sx,sy)};
-                    af(i,4) = {0};
-                    af(i,5) = {true};
-                    af(i,6) = {[sy, sx, sz]};
+                    af(i,2) = {sprintf('%dx%d',sx,sy)}; %size
+                    af(i,3) = {0}; %binning
+                    af(i,4) = {false}; %flip up/down flag
+                    af(i,5) = {false}; %exist flag
+                    af(i,6) = {true}; %import flag
+                    af(i,7) = {[sy, sx, sz]};
                 end
                 this.allFiles(this.myChannelNrs(chId)) = {af};
-                af(:,5) = num2cell(this.checkImageSizes(this.myChannelNrs(chId)));
+                if(chId == 1)
+                    [this.xRef,this.yRef] = this.getRefImageSize();
+                end
+                existing = this.checkExistingFLIMItems(this.myChannelNrs(chId));
+                sizeFit = this.checkImageSizes(this.myChannelNrs(chId));
+                af(:,5) = num2cell(existing);
+                af(:,6) = num2cell(~existing & sizeFit);
                 this.allFiles(this.myChannelNrs(chId)) = {af};
-            end
-            [this.xRef,this.yRef] = this.getRefImageSize();
+            end            
             this.setupGUI();
             this.updateGUI();
         end
@@ -479,8 +523,24 @@ classdef FLIMXFitResultImport < handle
                 return
             end
             af = this.allFiles{ch};
-            sz = vertcat(af{:,6});
+            sz = vertcat(af{:,7});
             out = sz(:,2) == this.xRef & sz(:,1) == this.yRef;
+        end
+        
+        function out = checkExistingFLIMItems(this,ch)
+            %check if subject already has results
+            af = this.allFiles{ch};
+            out = false(size(af,1),1);
+            subject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudy,this.currentSubject);
+            if(isempty(subject))
+                return
+            end
+            if(subject.isPixelResult(ch,[],[],false))
+                existingFLIMItems = subject.getResultNames(ch,false);
+                for i = 1:length(out)
+                    out(i) = any(strcmp(af{i,1},existingFLIMItems));
+                end
+            end
         end
         
         function [xRef,yRef] = getRefImageSize(this)
@@ -495,7 +555,7 @@ classdef FLIMXFitResultImport < handle
                     %no reference, nothing to do
                     return
                 end
-                sz = vertcat(afRef{:,6});
+                sz = vertcat(afRef{:,7});
                 xRef = sz(idx,2);
                 yRef = sz(idx,1);
             else
@@ -661,10 +721,10 @@ classdef FLIMXFitResultImport < handle
             % update GUI
             dataNew = eventdata.Source.Data;
             dataOld = this.getTableData4Channel(this.currentChannel);
-            di = find([dataOld{:,5}] - [dataNew{:,5}],1);
+            di = find(~[dataOld{:,5}] & [dataOld{:,6}] - [dataNew{:,6}],1);
             if(~isempty(di))
                 %check if change is an amplitude or a tau
-                newVal = dataNew{di,5};
+                newVal = dataNew{di,6};
                 str = dataOld{di,1};
                 if(sum(isstrprop(str,'alpha')) == 9 && strncmp(str,'Amplitude',9))
                     otherParam = 'Tau';
@@ -678,7 +738,7 @@ classdef FLIMXFitResultImport < handle
                     nrThis = str2double(str(isstrprop(str,'digit')));
                     if(~isempty(nrThis) && nrThis == 1 && ~newVal)
                         %prohibit deselection of amp1/tau1
-                        dataNew{di,5} = true;
+                        dataNew{di,6} = true;
                     elseif(~isempty(nrThis) && nrThis > 1)
                         %find corresponding otherParam
                         ids = find(strncmp(dataOld(:,1),otherParam,length(otherParam)));
@@ -691,14 +751,14 @@ classdef FLIMXFitResultImport < handle
                             end
                             nrT = str2double(str(isstrprop(str,'digit')));
                             if(nrThis == nrT)
-                                dataNew{ids(i),5} = newVal;
+                                dataNew{ids(i),6} = newVal;
                                 hit = true;
                                 break
                             end
                         end
                         if(~hit && newVal)
                             %user selected an amp/tau but its corresponding tau/amp is missing -> revert that click
-                            dataNew{di,5} = false;
+                            dataNew{di,6} = false;
                         end
                     end
                 end
@@ -710,8 +770,10 @@ classdef FLIMXFitResultImport < handle
                             'FLIMX Result Import: Size Mismatch'));
                     end
                 end
+            else
+                dataNew(:,6) = dataOld(:,6);
             end
-            dataOld(:,1:5) = dataNew;
+            dataOld(:,1:6) = dataNew;
             this.setTableData4Channel(this.currentChannel,dataOld);
             % select/deselect matching files
             if(isequal(5,eventdata.Indices(2)))
@@ -733,6 +795,7 @@ classdef FLIMXFitResultImport < handle
                 
         % Popup
         function GUI_popupChannel_Callback(this,hObject, eventdata)
+            this.currentRow = min(this.currentRow,size(this.allFiles{this.currentChannel},1));
             this.updateGUI();
         end
         
@@ -771,37 +834,23 @@ classdef FLIMXFitResultImport < handle
         
         function GUI_buttonImport_Callback(this,hObject, eventdata)
             %import selected results to subject
-            %check if current subject already has result channel(s)
-            [~, resultChs] = this.FLIMXObj.fdt.getSubjectFilesStatus(this.currentStudy,this.currentSubject);
-            choice = '';
-            chs = intersect(resultChs,this.myChannelNrs);
-            if(any(chs))
-                %some or all channels exist already
-                choice = questdlg(sprintf('Channels ''%s'' already have results in subject ''%s''!',num2str(chs),this.currentSubject),...
-                    'FLIMX Result Import: Existing Result Channel(s)','Overwrite existing results channel(s)','Delete all existing results and import new channel(s)','Abort','Overwrite existing results channel(s)');
+            %check if something is selected
+            if(this.numberOfAllImports == 0)
+                choice = questdlg('No items are selected for import. Select items or close the FLIMX Result Import Wizard?','FLIMX Result Import: Nothing selected','Select Items','Close','Select Items');
+                switch choice
+                    case 'Select Items'
+                        return
+                    case 'Close'
+                        this.closeVisWnd();
+                        return
+                end
             end
+            %confirm that user wants to import
+            choice = questdlg(sprintf('Do you want to import all selected items into subject ''%s'' in study ''%s''?', this.currentSubject,this.currentStudy),'FLIMX Result Import: Confirmation','Yes','No','No');
             switch choice
-                case 'Abort'
-                    %skip
+                case 'No'
                     this.closeVisWnd();
                     return
-                case 'Overwrite existing results channel(s)'
-                    %overwrite selected channel
-                    for chIds = 1:length(resultChs)
-                        this.FLIMXObj.fdt.removeChannel(this.currentStudy,this.currentSubject,resultChs(chIds));
-                    end
-                case 'Delete all existing results and import new channel(s)'
-                    %clear old result data and add new channel(s)
-                    this.FLIMXObj.fdt.removeChannel(this.currentStudy,this.currentSubject,[]);
-                    this.FLIMXObj.fdt.clearSubjectFiles(this.currentStudy,this.currentSubject);
-                otherwise
-                    %no conflicts with existing result channel(s)
-                    choice = questdlg(sprintf('Do you want to import all selected files for subject ''%s'' in study ''%s''?', this.currentSubject,this.currentStudy),'FLIMX Result Import: Confirmation','Yes','No','No');
-                    switch choice
-                        case 'No'
-                            this.closeVisWnd();
-                            return
-                    end
             end
             %% do actual import
             is = this.FLIMXObj.fdt.getSubject4Import(this.currentStudy,this.currentSubject);
@@ -817,29 +866,40 @@ classdef FLIMXFitResultImport < handle
             %import channels
             for chId = 1:length(this.myChannelNrs)
                 rs = this.myResultStruct(this.myChannelNrs(chId));
-                data = this.getTableData4Channel(this.myChannelNrs(chId));                
-                idx = [data{:,5}];
+                data = this.getTableData4Channel(this.myChannelNrs(chId));
+                idx = [data{:,6}];
                 names = data(idx,1);
                 fn = fieldnames(rs.results.pixel);
                 names = setdiff(fn,names);
                 rs.results.pixel = rmfield(rs.results.pixel,names);
                 fn = fieldnames(rs.results.pixel);
                 if(~isempty(fieldnames(rs.results.pixel)))
-                    binIds = find([data{idx,4}]);
+                    binIds = find([data{idx,3}]);
+                    flipIds = find([data{idx,4}]);
                     for i = 1:length(fn)
-                        % resize
+                        %resize
                         if(any([this.yRef,this.xRef] ~= size(rs.results.pixel.(fn{i}))))
                             rs.results.pixel.(fn{i}) = imresize(rs.results.pixel.(fn{i}),[this.yRef,this.xRef]);
                         end
                         %do binning
                         if(any(binIds == i))
-                            rs.results.pixel.(fn{i}) = FLIMXFitResultImport.binImage(rs.results.pixel.(fn{i}),data{i,4});
+                            rs.results.pixel.(fn{i}) = FLIMXFitResultImport.binImage(rs.results.pixel.(fn{i}),data{i,3});
+                        end
+                        %flip up/down
+                        if(any(flipIds == i))
+                            rs.results.pixel.(fn{i}) = flipud(rs.results.pixel.(fn{i}));
                         end
                     end
-                    is.importResultStruct(rs,this.myChannelNrs(chId),pos,res);
+                    if(any([data{:,5}])) 
+                        %we have existing results
+                        is.addFLIMItems(this.myChannelNrs(chId),rs.results.pixel);
+                    else
+                        %the subject does not have any results
+                        is.importResultStruct(rs,this.myChannelNrs(chId),pos,res);
+                    end
                 end
             end
-            this.closeVisWnd();
+            this.closeVisWnd();            
         end
         
         % checkbox

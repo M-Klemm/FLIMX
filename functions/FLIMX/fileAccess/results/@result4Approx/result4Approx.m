@@ -52,27 +52,27 @@ classdef result4Approx < resultFile
             this.setDirty(ch,true);
         end
         
-        function addResultStruct(this,ch,resultStruct)
-            %add single results to our inner results structure
-            if(isempty(resultStruct))
-                return
-            end
-            tmp = this.getPixelResult(ch);
-            pn = fieldnames(tmp);
-            fn = fieldnames(resultStruct);
-            for l = 1:length(fn)
-                idx = strncmpi(pn,fn{l},length(fn{l}));
-                if(any(idx(:)))
-                    if(size(resultStruct.(fn{l})) == size(resultStruct.(pn{idx})))
-                        tmp.(fn{l}) = resultStruct.(fn{l});
-                    end
-                end
-            end
-            this.results.pixel{ch,1} = tmp;
-            this.pixelApproximated(ch) = true;
-            this.loadedChannels(ch,1) = true;
-            this.setDirty(ch,true);
-        end
+%         function addFLIMItems(this,ch,resultStruct)
+%             %add FLIM items to our inner results structure, FLIM items must have been allocated previously!
+%             if(isempty(resultStruct))
+%                 return
+%             end
+%             tmp = this.getPixelResult(ch);
+%             pn = fieldnames(tmp);
+%             fn = fieldnames(resultStruct);
+%             for l = 1:length(fn)
+%                 idx = strncmpi(pn,fn{l},length(fn{l}));
+%                 if(any(idx(:)))
+%                     if(all(size(resultStruct.(fn{l})) == size(tmp.(pn{idx}))))
+%                         tmp.(fn{l}) = resultStruct.(fn{l});
+%                     end
+%                 end
+%             end
+%             this.results.pixel{ch,1} = tmp;
+%             this.pixelApproximated(ch) = true;
+%             this.loadedChannels(ch,1) = true;
+%             this.setDirty(ch,true);
+%         end
         
         function addResultRow(this,ch,row,resultStruct)
             %add complete results row from a cell array to our inner results structure

@@ -76,6 +76,15 @@ classdef subject4Import < fluoSubject
             end
         end
         
+        function addFLIMItems(this,ch,itemsStruct)
+            %import (additional) FLIM items to this result
+            this.myResult.addFLIMItems(ch,itemsStruct);
+            idx = find(this.resultIsDirty);
+            for i = 1:length(idx)
+                this.updateSubjectChannel(idx(i),'result');
+            end
+        end
+        
         function init(this)
             %init measurement and result objects
             this.myMeasurement = measurement4Import(this);

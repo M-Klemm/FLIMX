@@ -80,6 +80,9 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
         function addSingleResult(this,ch,row,col,resultStruct)
             %add single results to our inner results structure
             this.myResult.addSingleResult(ch,row,col,resultStruct);
+            if(isempty(this.myResult.getPixelFLIMItem(ch,'Intensity')))
+                this.setPixelFLIMItem(ch,'Intensity',this.getROIDataFlat(ch,false));
+            end
         end
         
         function addMultipleResults(this,ch,indices,resultStruct)

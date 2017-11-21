@@ -258,6 +258,8 @@ classdef resultFile < handle
             else
                 error('fluoDecayFitResult:setPixelFLIMItem','Size of pixelFLIMItem (%d, %d) does not match ROI size (%d, %d)',y,x,this.resultSize(1),this.resultSize(2));
             end
+            this.pixelApproximated(ch) = true;
+            this.loadedChannels(ch,1) = true;
             this.setDirty(ch,true);
         end        
         
@@ -369,11 +371,27 @@ classdef resultFile < handle
                 end
             elseif(initFit)
                 if(this.isInitResult(ch) && this.results.init{ch,1}.chi2(y,x))
-                    out = true;
+                    if(~isempty(y) && ~isempty(x))
+                        %check specific pixel
+                        if(y <= size(this.results.init{ch,1}.chi2,1) && x <= size(this.results.init{ch,1}.chi2,2) && this.results.init{ch,1}.chi2(y,x))
+                            out = true;
+                        end
+                    else
+                        %user did not ask for specific pixel
+                        out = true;
+                    end
                 end
             else
-                if(this.isPixelResult(ch) && this.results.pixel{ch,1}.chi2(y,x))
-                    out = true;
+                if(this.isPixelResult(ch))
+                    if(~isempty(y) && ~isempty(x) )
+                        %check specific pixel
+                        if(y <= size(this.results.pixel{ch,1}.chi2,1) && x <= size(this.results.pixel{ch,1}.chi2,2) && this.results.pixel{ch,1}.chi2(y,x))
+                            out = true;
+                        end
+                    else
+                        %user did not ask for specific pixel
+                        out = true;
+                    end
                 end
             end
         end

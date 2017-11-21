@@ -74,8 +74,13 @@ classdef measurement4Import < measurementInFDTree & measurementReadRawData
                 if(isempty(channel))
                     channel = this.nonEmptyChannelList(1);
                 end
-                %read fileinfo from sdt file
-                this.readFluoFileInfo();
+                if(~isempty(this.filesOnHDD) && any(this.filesOnHDD))
+                    %we already have imported measurement files -> get fileinfo from those
+                    this.loadFileInfo();
+                else
+                    %read fileinfo from sdt file
+                    this.readFluoFileInfo();
+                end
             end
             fileInfo = getFileInfoStruct@measurementFile(this,channel);
         end

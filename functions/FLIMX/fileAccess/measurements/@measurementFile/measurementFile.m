@@ -1226,7 +1226,7 @@ classdef measurementFile < handle
             %return number of spectral channels, in case of anisotropy: 4
             out = this.fileInfo.nrSpectralChannels;
             if(this.paramMgrObj.basicParams.approximationTarget == 2)
-                out=4;
+                out = 4;
             end
         end
     end %methods (Access = protected)
