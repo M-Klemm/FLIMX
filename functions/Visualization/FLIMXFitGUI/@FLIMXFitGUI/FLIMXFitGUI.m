@@ -2425,6 +2425,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.menuOpenFLIMXVis,'Callback',@this.menuOpenFLIMXVis_Callback);
             
             this.axesRawMgr = axesWithROI(this.visHandles.axesRaw,this.visHandles.axesCbRaw,this.visHandles.textCbRawBottom,this.visHandles.textCbRawTop,this.visHandles.editCPRaw,this.dynVisParams.cmIntensity);
+            this.axesRawMgr.setROILineColor('r');
             this.axesROIMgr = axesWithROI(this.visHandles.axesSupp,this.visHandles.axesCbSupp,this.visHandles.textCbSuppBottom,this.visHandles.textCbSuppTop,this.visHandles.editCPSupp,this.dynVisParams.cm);
             this.mouseOverlayBoxMain = mouseOverlayBox(this.visHandles.axesMain);
             this.mouseOverlayBoxMain.setVerticalBoxPositionMode(0);

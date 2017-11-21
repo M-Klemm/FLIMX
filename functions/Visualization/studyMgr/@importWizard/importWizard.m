@@ -391,6 +391,7 @@ classdef importWizard < handle
             end
             this.axesMgr = axesWithROI(this.visHandles.axesROI,this.visHandles.axesCb,this.visHandles.textCbBottom,this.visHandles.textCbTop,[],cm);
             this.axesMgr.setColorMapPercentiles(this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileLB,this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileUB);
+            this.axesMgr.setROILineColor('r');
             this.mouseOverlay = mouseOverlayBox(this.visHandles.axesROI);
         end
         

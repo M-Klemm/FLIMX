@@ -172,7 +172,7 @@ classdef FDisplay < handle
             rs = this.ROISubType;
             ri = this.ROIInvertFlag;
             [~, histCenters] = hfd{1}.getCIHist(rc,rt,rs,ri);
-            if(~ischar(target) && isvector(target) && length(target) == 2)
+            if(~ischar(target) && isnumeric(target) && length(target) == 2)
                 %we've got zoom borders
                 lb = target(1);
                 ub = target(2);

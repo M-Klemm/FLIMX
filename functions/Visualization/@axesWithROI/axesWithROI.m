@@ -31,7 +31,7 @@ classdef axesWithROI < handle
     %
     % @brief    A class to paint a 2D axes with an ROI and a point
     %
-    properties(GetAccess = public, SetAccess = protected)
+    properties(GetAccess = protected, SetAccess = protected)
         myMainAxes = [];
         myCBAxes = [];
         myCBLblLow = -1;
@@ -48,6 +48,8 @@ classdef axesWithROI < handle
         ROIBottomLine = -1;
         ROILeftLine = -1;
         ROIRightLine = -1;
+        ROILineColor = 'w';
+        
         CPXLine = -1; %current point x line
         CPYLine = -1; %current point y line    
         
@@ -99,7 +101,7 @@ classdef axesWithROI < handle
             %set a new colormap
             if(size(data,2) == 3)
                 this.myCM = data;
-                this.drawColorBar;
+                this.drawColorBar();
             end
         end
         
@@ -108,6 +110,13 @@ classdef axesWithROI < handle
             if(~isnan(lb) && ~isnan(ub) && lb < ub && ub-lb >= 1 && lb >= 0 && ub <= 100)
                 this.myCMPercentileLB = lb;
                 this.myCMPercentileUB = ub;
+            end
+        end
+        
+        function setROILineColor(this,val)
+            %set color of ROI lines
+            if(ischar(val) && any(strncmp(val,{'y','m','c','r','g','b','w','k'},1)) || isnumeric(val) && length(val) == 3)
+                this.ROILineColor = val;
             end
         end
         
@@ -184,25 +193,25 @@ classdef axesWithROI < handle
                     delete(this.ROITopLine(ishandle(this.ROITopLine)));
                     this.ROITopLine = -1;
                 end
-                this.ROITopLine = line('XData',[coord(1) coord(2)],'YData',[coord(4) coord(4)],'Color','w','LineWidth',2,'LineStyle','-','Parent',this.myMainAxes);
+                this.ROITopLine = line('XData',[coord(1) coord(2)],'YData',[coord(4) coord(4)],'Color',this.ROILineColor,'LineWidth',2,'LineStyle','-','Parent',this.myMainAxes);
                 %bottom
                 if(ishandle(this.ROIBottomLine))
                     delete(this.ROIBottomLine);
                     this.ROIBottomLine = -1;
                 end
-                this.ROIBottomLine = line('XData',[coord(2) coord(1)],'YData',[coord(3) coord(3)],'Color','w','LineWidth',2,'LineStyle','-','Parent',this.myMainAxes);
+                this.ROIBottomLine = line('XData',[coord(2) coord(1)],'YData',[coord(3) coord(3)],'Color',this.ROILineColor,'LineWidth',2,'LineStyle','-','Parent',this.myMainAxes);
                 %left
                 if(ishandle(this.ROILeftLine))
                     delete(this.ROILeftLine);
                     this.ROILeftLine = -1;
                 end
-                this.ROILeftLine = line('XData',[coord(1) coord(1)],'YData',[coord(3) coord(4)],'Color','w','LineWidth',2,'LineStyle','-','Parent',this.myMainAxes);
+                this.ROILeftLine = line('XData',[coord(1) coord(1)],'YData',[coord(3) coord(4)],'Color',this.ROILineColor,'LineWidth',2,'LineStyle','-','Parent',this.myMainAxes);
                 %right
                 if(ishandle(this.ROIRightLine))
                     delete(this.ROIRightLine);
                     this.ROIRightLine = -1;
                 end
-                this.ROIRightLine = line('XData',[coord(2) coord(2)],'YData',[coord(4) coord(3)],'Color','w','LineWidth',2,'LineStyle','-','Parent',this.myMainAxes);
+                this.ROIRightLine = line('XData',[coord(2) coord(2)],'YData',[coord(4) coord(3)],'Color',this.ROILineColor,'LineWidth',2,'LineStyle','-','Parent',this.myMainAxes);
             end
         end
         
