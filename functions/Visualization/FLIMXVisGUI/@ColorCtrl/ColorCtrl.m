@@ -145,10 +145,19 @@ classdef ColorCtrl < handle
         function setLowerBorder(this,val,isHistClassNr)
             %set lower border
             if(isHistClassNr)
-                centers = this.curHistCenters;
-                val = centers(max(1,min(length(centers),val)));
+                %val = centers(max(1,min(length(centers),val)));
+                val = this.histogramClassNr2Value(val);
             end
             set(this.low_edit,'String',FLIMXFitGUI.num4disp(val));
+            this.editCallback();
+        end
+        
+        function setUpperBorder(this,val,isHistClassNr)
+            %set upper border
+            if(isHistClassNr)
+                val = this.histogramClassNr2Value(val);
+            end
+            set(this.high_edit,'String',FLIMXFitGUI.num4disp(val));
             this.editCallback();
         end
         
@@ -156,13 +165,23 @@ classdef ColorCtrl < handle
             %set color scaling to new value and update GUI
             cs = single(cs);
             if(isHistClassNr)
-                centers = single(this.curHistCenters);
-                cs(2) = centers(max(1,min(length(centers),cs(2))));
-                cs(3) = centers(max(1,min(length(centers),cs(3))));
+                cs(2) = this.histogramClassNr2Value(cs(2)); %centers(max(1,min(length(centers),cs(2))));
+                cs(3) = this.histogramClassNr2Value(cs(3));
             end
             cs(2:3) = sort(cs(2:3));
             this.updateGUI(cs);
             this.save();
+        end
+        
+        function out = histogramClassNr2Value(this,val)
+            %convert a histogram class number to a real value            
+            centers = this.curHistCenters;
+            if(length(centers) <= 1)
+                out = [];
+            else
+                cw = centers(2)-centers(1);
+                out = centers(1)+(val-1)*cw;
+            end
         end
         
         function buttonCallback(this,target)

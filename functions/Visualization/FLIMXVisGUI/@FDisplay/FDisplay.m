@@ -40,6 +40,10 @@ classdef FDisplay < handle
         mainExportXls = [];
         mainExportColors = [];
         suppExport = [];
+        colorStartClass = 0;
+        colorEndClass = 0;
+        colorClassWidth = 0;
+        mySuppXZoomScale = [];
     end
     properties(GetAccess = protected, SetAccess = protected)
         visObj = [];
@@ -61,8 +65,7 @@ classdef FDisplay < handle
         zoomAnchor = [1; 1];
         zoomFactor = 1;
         mouseOverlayBoxMain = [];
-        mouseOverlayBoxSupp = [];
-        mySuppXZoomScale = [];
+        mouseOverlayBoxSupp = [];        
     end
     properties (Dependent = true)
         ROICoordinates = [];
@@ -169,28 +172,35 @@ classdef FDisplay < handle
             rs = this.ROISubType;
             ri = this.ROIInvertFlag;
             [~, histCenters] = hfd{1}.getCIHist(rc,rt,rs,ri);
-            cs = this.myColorScaleObj.getCurCSInfo();            
-            if(length(histCenters) > 1)
-                classWidth = histCenters(2)-histCenters(1);
-                colorStartClass = round((cs(2)-histCenters(1))./classWidth)+1;
-                colorEndClass = round((cs(3)-histCenters(1))./classWidth)+1;
-                %colorEndClass = round((max(histCenters(end),cs(3))-histCenters(1))./classWidth)+1;                
+            if(~ischar(target) && isvector(target) && length(target) == 2)
+                %we've got zoom borders
+                lb = target(1);
+                ub = target(2);
             else
-                colorStartClass = 1;
-                colorEndClass = 1;
+                %zoom in or out                
+                %             cs = this.myColorScaleObj.getCurCSInfo();
+                %             if(length(histCenters) > 1)
+                %                 classWidth = histCenters(2)-histCenters(1);
+                %                 colorStartClass = round((cs(2)-histCenters(1))./classWidth)+1;
+                %                 colorEndClass = round((cs(3)-histCenters(1))./classWidth)+1;
+                %                 %colorEndClass = round((max(histCenters(end),cs(3))-histCenters(1))./classWidth)+1;
+                %             else
+                %                 colorStartClass = 1;
+                %                 colorEndClass = 1;
+                %             end
+                curXlim = xlim(this.h_s_ax);
+                curHistRange = curXlim(2) - curXlim(1) +1;
+                curColorRange = (this.colorEndClass-this.colorStartClass)/2;
+                curColorCenter = this.colorStartClass + curColorRange;
+                if(strcmpi(target,'in'))
+                    range = curHistRange*0.5;
+                else
+                    range = curHistRange*2;
+                end
+                lb = max(-histCenters(1)./this.colorClassWidth+1,floor(curColorCenter-range/2)); %make sure we don't have negative classes
+                ub = round(curColorCenter+range/2); %min(length(histCenters),max(curEndClass,round(curColorCenter+range/2)));            
             end
-            curXlim = xlim(this.h_s_ax);
-            curHistRange = curXlim(2) - curXlim(1) +1;
-            curColorRange = (colorEndClass-colorStartClass)/2;
-            curColorCenter = colorStartClass + curColorRange;
-            if(strcmpi(target,'in'))
-                range = curHistRange*0.5;
-            else
-                range = curHistRange*2;
-            end
-            lb = max(-histCenters(1)./classWidth+1,floor(curColorCenter-range/2)); %make sure we don't have negative classes
-            ub = round(curColorCenter+range/2); %min(length(histCenters),max(curEndClass,round(curColorCenter+range/2)));
-            histCenters = (lb-1:ub).*classWidth + histCenters(1); 
+            histCenters = (lb-1:ub).*this.colorClassWidth + histCenters(1); 
             xlim(this.h_s_ax,[lb ub]);
             this.mySuppXZoomScale = [lb ub];
             xtick = get(this.h_s_ax,'XTick');
@@ -1126,16 +1136,20 @@ classdef FDisplay < handle
             [~, centers] = hfd{1}.getCIHist(rc,rt,rs,ri);            
             if(length(centers) > 1)
                 classWidth = centers(2)-centers(1);
-                colorStartClass = round((cTmp(2)-centers(1))./classWidth)+1;
-                colorEndClass = round((cTmp(3)-centers(1))./classWidth)+1;                
+                cStartClass = round((cTmp(2)-centers(1))./classWidth)+1;
+                cEndClass = round((cTmp(3)-centers(1))./classWidth)+1;                
                 %endClass = round((max(centers(end),cTmp(3))-centers(1))./classWidth)+1;
                 %centers = (0:endClass).*classWidth;
             else
-                colorStartClass = 1;
-                colorEndClass = 1;
+                cStartClass = 1;
+                cEndClass = 1;
+                classWidth = 0;
             end
+            this.colorStartClass = cStartClass;
+            this.colorEndClass = cEndClass;
+            this.colorClassWidth = classWidth;            
             %add colorbar either in full axes or at specified location, put it behind the bar
-            xtemp = [colorStartClass colorEndClass];
+            xtemp = [cStartClass cEndClass];
             ytemp = this.h_s_ax.YLim;
             if(strcmp(hfd{1}.dType,'Intensity'))
                 temp = zeros(1,length(this.dynVisParams.cmIntensity), 3);
@@ -1150,7 +1164,7 @@ classdef FDisplay < handle
                     this.h_cmImage = [];
                 end
             end
-            if(abs(colorStartClass - colorEndClass) > eps)
+            if(abs(cStartClass - cEndClass) > eps)
                 %draw colormap only if we have at least one class
                 this.h_cmImage = image('XData',xtemp,'YData',ytemp,'CData',temp,'Parent',this.h_s_ax);
                 this.h_s_ax.YLim = ytemp;

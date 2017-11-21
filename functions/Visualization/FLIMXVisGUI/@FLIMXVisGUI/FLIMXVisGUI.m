@@ -891,11 +891,23 @@ classdef FLIMXVisGUI < handle
             end
             %% cursor
             if(~isempty(cpMain) && this.getROIDisplayMode(thisSide) < 3 || ~isempty(cpSupp))
-                set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
+                if(~isempty(cpSupp))
+                    cs = this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.getCurCSInfo();
+                    cStartClass = this.objHandles.(sprintf('%sdo',thisSide)).colorStartClass;
+                    cEndClass = this.objHandles.(sprintf('%sdo',thisSide)).colorEndClass;
+                    %cClassWidth = this.objHandles.(sprintf('%sdo',thisSide)).colorClassWidth;
+                    if(~(cs(1)) && (cStartClass == cpSupp(1) || cEndClass == cpSupp(1)))
+                        set(this.visHandles.FLIMXVisGUIFigure,'Pointer','right');
+                    else
+                        set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
+                    end
+                else
+                    set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
+                end
             elseif(isempty(cpMain) && isempty(cpSupp))
-                set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow'); 
+                set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
             end
-            %% main axes           
+            %% main axes
             thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
             otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
             if(~isempty(cpMain) && this.getROIDisplayMode(thisSide) < 3)
@@ -921,7 +933,7 @@ classdef FLIMXVisGUI < handle
                                 %move ROI also on the other side
                                 this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),ROICoord(:,3:end),ROICoord(:,2),false);
                             end
-                        end                    
+                        end
                     end
                 end
                 %draw mouse overlay on this side in main axes
@@ -941,13 +953,21 @@ classdef FLIMXVisGUI < handle
             if(~isempty(cpSupp) && this.visHandles.(sprintf('supp_axes_%s_pop',thisSide)).Value >= 2)
                 %in supp axes and either histogram or cross-section is shown
                 if(this.visHandles.(sprintf('supp_axes_%s_pop',thisSide)).Value == 2 && this.dynParams.mouseButtonDown)
-                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 this.dynParams.mouseButtonDownCoord(1) cpSupp(1)]),true);
+                    %new color scaling by mouse move while left button down
+                    switch this.dynParams.mouseButtonDown
+                        case 1
+                            this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 this.dynParams.mouseButtonDownCoord(1) cpSupp(1)]),true);
+                        case 2
+                            this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setLowerBorder(cpSupp(1),true);
+                        case 3
+                            this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setUpperBorder(cpSupp(1),true);
+                    end
                     [thisDType, thisDTypeNr] = this.getFLIMItem(thisSide);
                     [otherDType, otherDTypeNr] = this.getFLIMItem(otherSide);
                     if(strcmp(thisDType,otherDType) && thisDTypeNr == otherDTypeNr && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)))
                         this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                     end
-                end  
+                end
             else
                 %we are not inside of supp axes -> this will clear a possible invalid mouse overlay
                 cpSupp = [];
@@ -957,7 +977,7 @@ classdef FLIMXVisGUI < handle
             %clear mous overlay on the other side in the support axes
             this.objHandles.(sprintf('%sdo',otherSide)).drawCPSupp([]);
             %% enable callback
-            inFunction = [];            
+            inFunction = [];
         end
         
         function GUI_mouseButtonDown_Callback(this,hObject,eventdata)
@@ -1030,10 +1050,25 @@ classdef FLIMXVisGUI < handle
             end
             switch get(hObject,'SelectionType')
                 case 'normal'
-                    this.dynParams.mouseButtonDown = true;
+                    cStartClass = this.objHandles.(sprintf('%sdo',thisSide)).colorStartClass;
+                    cEndClass = this.objHandles.(sprintf('%sdo',thisSide)).colorEndClass;
                     this.dynParams.mouseButtonUp = false;
-                    this.dynParams.mouseButtonDownCoord = cpSupp;
-                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setLowerBorder(cpSupp(1),true);
+                    if(cpSupp(1) == cEndClass)
+                        %user clicked at right border
+                        this.dynParams.mouseButtonDown = 3;
+                        this.dynParams.mouseButtonDownCoord = cStartClass;
+                        this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setUpperBorder(cpSupp(1),true);
+                    elseif(cpSupp(1) == cStartClass)
+                        %user clicked at left border
+                        this.dynParams.mouseButtonDown = 2;
+                        this.dynParams.mouseButtonDownCoord = cEndClass;
+                        this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setLowerBorder(cpSupp(1),true);
+                    else
+                        %user clicked not at a border to start a whole new color scaling
+                        this.dynParams.mouseButtonDown = 1;
+                        this.dynParams.mouseButtonDownCoord = cpSupp;
+                        this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setLowerBorder(cpSupp(1),true);
+                    end
                     this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                     this.objHandles.(sprintf('%sdo',thisSide)).drawCPSupp(cpSupp);
                     this.objHandles.(sprintf('%sdo',otherSide)).drawCPSupp([]);
@@ -1073,7 +1108,7 @@ classdef FLIMXVisGUI < handle
             end
             %% main axes
             %draw mouse overlay in both main axes (empty cp deletes old overlays)
-            if(this.getROIDisplayMode(thisSide) < 3)                               
+            if(this.getROIDisplayMode(thisSide) < 3)
                 if(isempty(cpSupp) && this.getROIType(thisSide) >= 1 && get(this.visHandles.enableMouse_check,'Value'))
                     thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
                     otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
@@ -1092,7 +1127,7 @@ classdef FLIMXVisGUI < handle
                     otherROIObj.updateGUI([]);
                     this.myStatsGroupComp.clearResults();
                     this.objHandles.rdo.updatePlots();
-                    this.objHandles.ldo.updatePlots();                    
+                    this.objHandles.ldo.updatePlots();
                     %draw mouse overlay on this side in main axes
                     this.objHandles.(sprintf('%sdo',thisSide)).drawCPMain(cpMain);
                     if(this.getROIDisplayMode(thisSide) == 1 && this.getROIDisplayMode(otherSide) == 1 || this.getROIDisplayMode(thisSide) == 2 && this.getROIDisplayMode(otherSide) == 2 && thisROIObj.ROIType == otherROIObj.ROIType)
@@ -1101,11 +1136,11 @@ classdef FLIMXVisGUI < handle
                         %other side displays something else, clear possible invalid mouse overlay
                         this.objHandles.(sprintf('%sdo',otherSide)).drawCPMain([]);
                     end
-                    this.dynParams.mouseButtonDown = false;
+                    this.dynParams.mouseButtonDown = 0;
                     this.dynParams.mouseButtonDownCoord = [];
                     this.dynParams.mouseButtonDownROI = [];
-                end                
-            end                        
+                end
+            end
             %% supp axes
             if(~isempty(cpMain) || this.visHandles.(sprintf('supp_axes_%s_pop',thisSide)).Value ~= 2)
                 this.dynParams.mouseButtonUp = false;
@@ -1116,15 +1151,22 @@ classdef FLIMXVisGUI < handle
                     if(this.dynParams.mouseButtonDown)
                         if(~isempty(cpSupp))
                             %we only have a valid current point inside of axes, if mouse button is released outside, the last valid cp from mouseMotion is used
-                            this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 this.dynParams.mouseButtonDownCoord(1) cpSupp(1)]),true);
+                            switch this.dynParams.mouseButtonDown
+                                case 1 %whole new color scaling
+                                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 this.dynParams.mouseButtonDownCoord(1) cpSupp(1)]),true);
+                                case 2 %user moved start class
+                                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 cpSupp(1) this.dynParams.mouseButtonDownCoord(1)]),true);
+                                case 3 %user moved end class
+                                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 this.dynParams.mouseButtonDownCoord(1) cpSupp(1)]),true);
+                            end
                         end
                         this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                         this.dynParams.mouseButtonDownCoord = [];
-                        this.dynParams.mouseButtonDown = false;
+                        this.dynParams.mouseButtonDown = 0;
                     end
                 case 'alt'                    
                     this.dynParams.mouseButtonDownCoord = [];
-                    this.dynParams.mouseButtonDown = false;
+                    this.dynParams.mouseButtonDown = 0;
                     if(~isempty(cpSupp))
                         %reset color scaling to auto only if click happened inside of axes
                         this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.forceAutoScale(this.getROIDisplayMode(thisSide) > 1);                        
@@ -1301,19 +1343,20 @@ classdef FLIMXVisGUI < handle
                 end
             elseif(contains(tag,'check'))
                 this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.checkCallback(this.getROIDisplayMode(thisSide) > 1);
-                if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
+                %if(isequal(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}, this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1}))
+                    this.objHandles.(sprintf('%sdo',thisSide)).updatePlots();
                     this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
-                end
+                %end
             elseif(contains(tag,'button'))
                 if(contains(tag,'in'))
                     this.objHandles.(sprintf('%sdo',thisSide)).zoomSuppXScale('in');
-                    if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
-                        this.objHandles.(sprintf('%sdo',otherSide)).zoomSuppXScale('in');
+                    if(isequal(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}, this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1}))
+                        this.objHandles.(sprintf('%sdo',otherSide)).zoomSuppXScale(this.objHandles.(sprintf('%sdo',thisSide)).mySuppXZoomScale);
                     end
                 else
                     this.objHandles.(sprintf('%sdo',thisSide)).zoomSuppXScale('out');
-                    if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
-                        this.objHandles.(sprintf('%sdo',otherSide)).zoomSuppXScale('out');
+                    if(isequal(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}, this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1}))
+                        this.objHandles.(sprintf('%sdo',otherSide)).zoomSuppXScale(this.objHandles.(sprintf('%sdo',thisSide)).mySuppXZoomScale);
                     end
                 end
                 return
