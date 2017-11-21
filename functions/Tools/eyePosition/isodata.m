@@ -53,6 +53,7 @@ i=i+1;
 T(i)=round((MAT+MBT)/2);
 
 % STEP 3 to n: repeat step 2 if T(i)~=T(i-1)
+Threshold=T(i);
 while abs(T(i)-T(i-1))>=1
     mu2=cumsum(counts(1:T(i)));
     MBT=sum(N(1:T(i)).*counts(1:T(i)))/mu2(end);
