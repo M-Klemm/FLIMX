@@ -197,7 +197,7 @@ classdef FDisplay < handle
                 else
                     range = curHistRange*2;
                 end
-                lb = max(-histCenters(1)./this.colorClassWidth+1,floor(curColorCenter-range/2)); %make sure we don't have negative classes
+                lb = round(max(-histCenters(1)./this.colorClassWidth+1,floor(curColorCenter-range/2))); %make sure we don't have negative classes
                 ub = round(curColorCenter+range/2); %min(length(histCenters),max(curEndClass,round(curColorCenter+range/2)));            
             end
             histCenters = (lb-1:ub).*this.colorClassWidth + histCenters(1); 
