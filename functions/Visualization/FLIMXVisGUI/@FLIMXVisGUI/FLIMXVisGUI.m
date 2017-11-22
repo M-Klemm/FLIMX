@@ -896,7 +896,7 @@ classdef FLIMXVisGUI < handle
                     cStartClass = this.objHandles.(sprintf('%sdo',thisSide)).colorStartClass;
                     cEndClass = this.objHandles.(sprintf('%sdo',thisSide)).colorEndClass;
                     %cClassWidth = this.objHandles.(sprintf('%sdo',thisSide)).colorClassWidth;
-                    if(~(cs(1)) && (cStartClass == cpSupp(1) || cEndClass == cpSupp(1)))
+                    if(~(cs(1)) && (abs(cStartClass-cpSupp(1)) <= cEndClass*0.005 || abs(cEndClass-cpSupp(1)) <= cEndClass*0.005))
                         set(this.visHandles.FLIMXVisGUIFigure,'Pointer','right');
                     else
                         set(this.visHandles.FLIMXVisGUIFigure,'Pointer','cross');
@@ -1053,12 +1053,12 @@ classdef FLIMXVisGUI < handle
                     cStartClass = this.objHandles.(sprintf('%sdo',thisSide)).colorStartClass;
                     cEndClass = this.objHandles.(sprintf('%sdo',thisSide)).colorEndClass;
                     this.dynParams.mouseButtonUp = false;
-                    if(cpSupp(1) == cEndClass)
+                    if(abs(cEndClass-cpSupp(1)) <= cEndClass*0.005)
                         %user clicked at right border
                         this.dynParams.mouseButtonDown = 3;
                         this.dynParams.mouseButtonDownCoord = cStartClass;
                         this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setUpperBorder(cpSupp(1),true);
-                    elseif(cpSupp(1) == cStartClass)
+                    elseif(abs(cStartClass-cpSupp(1)) <= cEndClass*0.005)
                         %user clicked at left border
                         this.dynParams.mouseButtonDown = 2;
                         this.dynParams.mouseButtonDownCoord = cEndClass;
