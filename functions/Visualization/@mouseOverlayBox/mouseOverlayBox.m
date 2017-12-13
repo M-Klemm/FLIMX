@@ -104,7 +104,7 @@ classdef mouseOverlayBox < handle
         
         function setLineColor(this,color)
             %set color of cursor lines
-            if(length(color) >= 3 && length(color) <= 4)
+            if(ischar(color) && any(strncmp(color,{'y','m','c','r','g','b','w','k'},1)) || isnumeric(color) && length(color) == 3)
                 this.myLineColor = color;
                 if(ishghandle(this.myVerticalLine))
                     this.myVerticalLine(1).Color = color;

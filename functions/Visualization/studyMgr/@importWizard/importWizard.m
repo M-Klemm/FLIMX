@@ -34,7 +34,8 @@ classdef importWizard < handle
     properties(GetAccess = protected, SetAccess = private)
         FLIMXObj = [];
         visHandles = [];
-        buttonDown = false; %flags if mouse button is pressed
+        mouseButtonDown = false; %flags if mouse button is pressed
+        mouseButtonDownROI = [];
         finalROIVec = [];
         measurementObj = [];
         axesMgr = [];
@@ -67,6 +68,7 @@ classdef importWizard < handle
         
         function closeCallback(this)
             %executed when figure should be closed
+            this.finalROIVec = [];
             if(this.isOpenVisWnd())
                 delete(this.visHandles.importWizardFigure);
             end
@@ -112,9 +114,9 @@ classdef importWizard < handle
                 %get full roi
                 ROIVec = [1 this.myMeasurement.getRawXSz() 1 this.myMeasurement.getRawYSz()];
                 %ROIVec = importWizard.getAutoROI(this.measurementObj.getRawDataFlat(ch),this.measurementObj.roiStaticBinningFactor);
-                if(ROIVec(1) > 5 || ROIVec(3) > 5 || ROIVec(2) < this.myMeasurement.rawXSz-5 || ROIVec(4) < this.myMeasurement.rawYSz-5)
-                    this.finalROIVec = ROIVec;
-                end
+                %if(ROIVec(1) > 5 || ROIVec(3) > 5 || ROIVec(2) < this.myMeasurement.rawXSz-5 || ROIVec(4) < this.myMeasurement.rawYSz-5)
+                this.finalROIVec = ROIVec;
+                %end
                 this.isDirty(1) = true; %flags which part was changed, 1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo
                 this.myMeasurement.setROICoord(this.finalROIVec);
                 x = this.myMeasurement.rawXSz;
@@ -383,7 +385,8 @@ classdef importWizard < handle
             %set initial study
             this.setSubject('','');            
             this.finalROIVec = this.editFieldROIVec;
-            this.buttonDown = false;
+            this.mouseButtonDown = false;
+            this.mouseButtonDownROI = [];
             %create axes object
             cm = this.FLIMXObj.FLIMFitGUI.dynVisParams.cmIntensity;
             if(isempty(cm))
@@ -496,8 +499,14 @@ classdef importWizard < handle
         end
         
         function updateGUI(this)
-            %update GUI            
-            this.axesMgr.setMainData(this.myMeasurement.getRawDataFlat(this.currentChannel));
+            %update GUI
+            img = this.myMeasurement.getRawDataFlat(this.currentChannel);
+            if(median(img(:)) < 0.5*max(img(:)))
+                this.mouseOverlay.setLineColor('w');
+            else
+                this.mouseOverlay.setLineColor('k');
+            end
+            this.axesMgr.setMainData(img);
             this.updateROIControls([]);
         end
         
@@ -742,7 +751,8 @@ classdef importWizard < handle
             end
             set(this.visHandles.textXL,'String',round(abs(cp(1))));
             set(this.visHandles.textYL,'String',round(abs(cp(2))));
-            this.buttonDown = true;
+            this.mouseButtonDown = true;
+            this.mouseButtonDownROI = [round(abs(cp(1))) round(abs(cp(2)))];
         end
         
         function GUI_mouseMotion_Callback(this, hObject, eventdata)
@@ -752,12 +762,13 @@ classdef importWizard < handle
             if(cp(1) >= 1 && cp(1) <= this.myMeasurement.getRawYSz() && cp(2) >= 1 && cp(2) <= this.myMeasurement.getRawXSz())
                 %inside axes
                 set(this.visHandles.importWizardFigure,'Pointer','cross');
-                if(this.buttonDown)
-                    set(this.visHandles.textXH,'String',round(abs(cp(1))));
-                    set(this.visHandles.textYH,'String',round(abs(cp(2))));
-                    roi = [str2double(get(this.visHandles.textXL,'String')), cp(1),...
-                        str2double(get(this.visHandles.textYL,'String')), cp(2)];
-                    this.updateROIControls(roi);
+                if(this.mouseButtonDown)
+                    cXl = this.mouseButtonDownROI(1);
+                    cXu = round(abs(cp(1)));
+                    cYl = this.mouseButtonDownROI(2);
+                    cYu = round(abs(cp(2)));
+                    this.editFieldROIVec = [min(cXl,cXu), max(cXl,cXu), min(cYl,cYu), max(cYl,cYu)];
+                    this.updateROIControls(this.editFieldROIVec);
                 else
                     set(this.visHandles.textXL,'String',round(abs(cp(1))));
                     set(this.visHandles.textYL,'String',round(abs(cp(2))));
@@ -786,14 +797,15 @@ classdef importWizard < handle
             cp = cp(logical([1 1 0; 0 0 0]));
             if(any(cp(:) < 0))
                 return;
-            end
-            this.buttonDown = false;
-            cXl = str2double(get(this.visHandles.textXL,'String'));
+            end            
+            cXl = this.mouseButtonDownROI(1);
             cXu = round(abs(cp(1)));
-            cYl = str2double(get(this.visHandles.textYL,'String'));
+            cYl = this.mouseButtonDownROI(2);
             cYu = round(abs(cp(2)));
             this.editFieldROIVec = [min(cXl,cXu), max(cXl,cXu), min(cYl,cYu), max(cYl,cYu)];
             this.finalROIVec = this.editFieldROIVec;
+            this.mouseButtonDown = false;
+            this.mouseButtonDownROI = [];
             this.isDirty(1) = true; %flags which part was changed, 1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo
             this.updateROIControls([]);
         end

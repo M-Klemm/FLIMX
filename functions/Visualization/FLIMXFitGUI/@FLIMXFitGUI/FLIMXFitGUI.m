@@ -360,6 +360,12 @@ classdef FLIMXFitGUI < handle
                 end
             end
             roi = this.FLIMXObj.curSubject.ROICoordinates;
+            if(all(roi == [1 this.FLIMXObj.curSubject.getRawXSz 1 this.FLIMXObj.curSubject.getRawYSz]'))
+                %ROI is same as raw (measurement) data size 
+                this.axesRawMgr.setROILineStyle('none');
+            else
+                this.axesRawMgr.setROILineStyle('-');
+            end
             this.axesRawMgr.drawROIBox(roi);
             this.axesRawMgr.drawCP([this.currentY+roi(3)-1 this.currentX+roi(1)-1]);
             this.axesROIMgr.drawCP([this.currentY this.currentX]);

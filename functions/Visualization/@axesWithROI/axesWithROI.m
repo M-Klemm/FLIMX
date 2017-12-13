@@ -43,12 +43,15 @@ classdef axesWithROI < handle
         
         myCMPercentileLB = 0;
         myCMPercentileUB = 1;
+        myROIRectangle = -1;
         
-        ROITopLine = -1;
-        ROIBottomLine = -1;
-        ROILeftLine = -1;
-        ROIRightLine = -1;
+%         ROITopLine = -1;
+%         ROIBottomLine = -1;
+%         ROILeftLine = -1;
+%         ROIRightLine = -1;
         ROILineColor = 'w';
+        ROILineWidth = 2;
+        ROILineStyle = '-';
         
         CPXLine = -1; %current point x line
         CPYLine = -1; %current point y line    
@@ -120,6 +123,20 @@ classdef axesWithROI < handle
             end
         end
         
+        function setROILineWidth(this,val)
+            %set width of ROI lines
+            if(isnumeric(val) && length(val) == 1)
+                this.ROILineWidth = val;
+            end
+        end
+        
+        function setROILineStyle(this,val)
+            %set style of ROI lines
+            if(ischar(val) && any(strncmp(val,{'-','--',':','_.','none'},1)))
+                this.ROILineStyle = val;
+            end
+        end
+        
         %% drawing methods
         function drawMain(this,lb,ub)
             %draw main axes, delete ROI box and current point
@@ -162,14 +179,19 @@ classdef axesWithROI < handle
             yCell = cell(length(ytick),1);
             yCell(idx) = num2cell(ylbl(pos));
             set(this.myMainAxes,'XTickLabel',xCell,'YTickLabel',yCell);            
-            
-            this.ROITopLine = -1;
-            this.ROIBottomLine = -1;
-            this.ROILeftLine = -1;
-            this.ROIRightLine = -1;
-            this.CPXLine = -1;
-            this.CPYLine = -1; 
-            
+            %delete old ROI and current point lines
+            if(ishandle(this.myROIRectangle))
+                delete(this.myROIRectangle);
+                this.myROIRectangle = -1;
+            end
+            if(ishandle(this.CPXLine))
+                delete(this.CPXLine);
+                this.CPXLine = -1;
+            end
+            if(ishandle(this.CPYLine))
+                delete(this.CPYLine);
+                this.CPYLine = -1;
+            end            
             %update colorbar labels
             if(ishandle(this.myCBLblLow))                
                 if(this.shortNumbers)
@@ -187,31 +209,12 @@ classdef axesWithROI < handle
         
         function drawROIBox(this,coord)
             %draw an ROI box on top of the main axes at coord = [y, x]
-            if(~isempty(coord))
-                %top
-                if(ishandle(this.ROITopLine))
-                    delete(this.ROITopLine(ishandle(this.ROITopLine)));
-                    this.ROITopLine = -1;
+            if(~isempty(coord) && coord(2)-coord(1) > 0 && coord(4)-coord(3) > 0)
+                if(ishandle(this.myROIRectangle))
+                    set(this.myROIRectangle,'Position',[coord(1),coord(3),coord(2)-coord(1),coord(4)-coord(3)],'LineWidth',this.ROILineWidth,'LineStyle',this.ROILineStyle);
+                else
+                    this.myROIRectangle = rectangle('Position',[coord(1),coord(3),coord(2)-coord(1),coord(4)-coord(3)],'LineWidth',this.ROILineWidth,'LineStyle',this.ROILineStyle,'Parent',this.myMainAxes,'EdgeColor',this.ROILineColor);%,'FaceColor',fc
                 end
-                this.ROITopLine = line('XData',[coord(1) coord(2)],'YData',[coord(4) coord(4)],'Color',this.ROILineColor,'LineWidth',2,'LineStyle','-','Parent',this.myMainAxes);
-                %bottom
-                if(ishandle(this.ROIBottomLine))
-                    delete(this.ROIBottomLine);
-                    this.ROIBottomLine = -1;
-                end
-                this.ROIBottomLine = line('XData',[coord(2) coord(1)],'YData',[coord(3) coord(3)],'Color',this.ROILineColor,'LineWidth',2,'LineStyle','-','Parent',this.myMainAxes);
-                %left
-                if(ishandle(this.ROILeftLine))
-                    delete(this.ROILeftLine);
-                    this.ROILeftLine = -1;
-                end
-                this.ROILeftLine = line('XData',[coord(1) coord(1)],'YData',[coord(3) coord(4)],'Color',this.ROILineColor,'LineWidth',2,'LineStyle','-','Parent',this.myMainAxes);
-                %right
-                if(ishandle(this.ROIRightLine))
-                    delete(this.ROIRightLine);
-                    this.ROIRightLine = -1;
-                end
-                this.ROIRightLine = line('XData',[coord(2) coord(2)],'YData',[coord(4) coord(3)],'Color',this.ROILineColor,'LineWidth',2,'LineStyle','-','Parent',this.myMainAxes);
             end
         end
         
