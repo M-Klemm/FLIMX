@@ -123,6 +123,12 @@ classdef measurementFile < handle
             %set coordinates for roi coord(x_low, x_high, y_low, y_high)
             if(length(coord) == 4 && isempty(this.ROICoord) || (~isempty(this.ROICoord) && any(coord(:) - this.ROICoord(:))))
                 this.clearROIData();
+                if(~isempty(this.rawXSz))
+                    coord(2) = min(coord(2),this.rawXSz);
+                end
+                if(~isempty(this.rawYSz))
+                    coord(4) = min(coord(4),this.rawYSz);
+                end
                 this.ROICoord = coord(:);
                 this.setDirtyFlags([],4,true);
             end
