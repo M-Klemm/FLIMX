@@ -1047,8 +1047,8 @@ classdef FData < handle
             Xm = int32(xCord(rows,cols));
             mask = mask(rows,cols);
             %move mask to coordinates of pixel position
-            Ym(:) = Ym(:) + coord(1,1);
-            Xm(:) = Xm(:) + coord(2,1);
+            Ym(:) = Ym(:) + int32(coord(1,1));
+            Xm(:) = Xm(:) + int32(coord(2,1));
             %coordinates must be between 1 and size of the data matrix
             mask = mask & Ym <= y & Ym > 0 & Xm <= x & Xm > 0;
             %there might new unused pixels -> cut them off
