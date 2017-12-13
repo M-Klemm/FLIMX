@@ -38,8 +38,7 @@ I = im2uint8(I(:));
 [counts,N]=imhist(I);
 i=1;
 mu=cumsum(counts);
-T(i)=(sum(N.*counts))/mu(end);
-T(i)=round(T(i));
+T(i)=max(1,round((sum(N.*counts))/mu(end)));
 
 % STEP 2: compute Mean above T (MAT) and Mean below T (MBT) using T from
 % step 1
@@ -50,7 +49,7 @@ mu3=cumsum(counts(T(i):end));
 MAT=sum(N(T(i):end).*counts(T(i):end))/mu3(end);
 i=i+1;
 % new T = (MAT+MBT)/2
-T(i)=round((MAT+MBT)/2);
+T(i)=max(1,round((MAT+MBT)/2));
 
 % STEP 3 to n: repeat step 2 if T(i)~=T(i-1)
 Threshold=T(i);
