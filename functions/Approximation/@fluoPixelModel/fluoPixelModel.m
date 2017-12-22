@@ -545,12 +545,12 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     end
                 end
                 %compare them to the data rising edge positions, add penalty to chi² if average difference is more than user defined margin
-                d = median(abs(risingIDs - this.myChannels{ch}.dRisingIDs),2)';
+                d = max(abs(risingIDs - this.myChannels{ch}.dRisingIDs),[],2)';
                 idxHit = d > bp.risingEdgeErrorMargin;
                 if(any(idxHit))
                     modelIDs = modelIDs(idxHit);
                     idxIgnored(modelIDs) = true;
-                    chi2(modelIDs) = (d(idxHit)/10+1)*10.*chi2(modelIDs);
+                    chi2(modelIDs) = (d(idxHit)+1)*100.*chi2(modelIDs);
                 end
                 if(all(idxIgnored == true))
                     chi2tail = chi2;
@@ -797,7 +797,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     end
                     if(~isempty(this.basicParams.scatterStudy)) 
                         if(~isempty(idxSc))
-                            scShifts(1) = (idxData - idxSc(1))*this.getFileInfo(chList(chIdx)).timeChannelWidth; %+hShift
+                            scShifts(1) = (idxData - idxSc(1))*this.getFileInfo(chList(chIdx)).timeChannelWidth + tciGuess; %+hShift
                         end
                     end
 %                     if(this.basicParams.scatterIRF)
@@ -1271,10 +1271,16 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %check if exponential at tcIdx lies between slopeStartPos and the other exponentials, if not remove them from models, compute a chi2 and save it in index idx
             %find position of rising edge at half maximum
             exponentials = bsxfun(@minus,exponentials,min(exponentials,[],1));
-            if(force2Edge)
-                [~,fwhmPos] = max(bsxfun(@gt,exponentials,max(exponentials(:,tcIdx,:),[],1)/8),[],1);
-            else
-                [~,fwhmPos] = max(bsxfun(@gt,exponentials,max(exponentials,[],1)/8),[],1);                
+            [expMax,expMaxPos] = max(exponentials);
+            fwhmPos = zeros(size(exponentials,2),1);
+            for i = 1:size(exponentials,2)
+                if(force2Edge)
+                    fwhmPos(i) = find(exponentials(1:expMaxPos(i),i) <= expMax(tcIdx)/8,1,'last');
+                    %[~,fwhmPos] = max(bsxfun(@gt,exponentials,max(exponentials(:,tcIdx,:),[],1)/8),[],1);
+                else
+                    fwhmPos(i) = find(exponentials(1:expMaxPos(i),i) <= expMax(i)/8,1,'last');
+                    %[~,fwhmPos] = max(bsxfun(@gt,exponentials,max(exponentials,[],1)/8),[],1);
+                end
             end
             fwhmPos = squeeze(fwhmPos);
             if(isvector(fwhmPos))
@@ -1284,7 +1290,8 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             if(force2Edge)
                 d = min(bsxfun(@minus,fwhmPos(~tcIdx,:),fwhmPos(tcIdx,:)),[],1);
             else
-                d = inf;
+                %d = inf;
+                d = min(bsxfun(@minus,fwhmPos(~tcIdx,:),fwhmPos(tcIdx,:)),[],1);
             end
             %check shifted components against rising edge position
             d = min(d,(fwhmPos(tcIdx,:) - lowerBound));
@@ -1295,7 +1302,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 idxNum = find(~idx);
                 idxNum = idxNum(idxHit);
                 idx(idxNum) = true;
-                chi2(idxNum) = (-d(idxHit)/10+1)*10.*chi2(idxNum);
+                chi2(idxNum) = chi2(idxNum)+-d(idxHit)*100;
                 idxRemain = ~idxHit;
             else
                 idxRemain = true(1,size(exponentials,3));

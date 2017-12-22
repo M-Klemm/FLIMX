@@ -76,7 +76,7 @@ for j = 1:size(expModels,3)
         end
         for i = 1:length(tciFlags)
             if(abs(tciHShiftFine(tciFlags(i),j)) > eps)
-                expModels(:,tciFlags(i),j) = qinterp1(t,expModels(:,tciFlags(i),j),t + (tcis(tciFlags(i),j) + tciHShiftFine(tciFlags(i),j)).*t(2,1),optimize4CodegenFlag);
+                expModels(:,tciFlags(i),j) = qinterp1(t,expModels(:,tciFlags(i),j),t + tciHShiftFine(tciFlags(i),j).*t(2,1),optimize4CodegenFlag);
             end
         end
     end    
