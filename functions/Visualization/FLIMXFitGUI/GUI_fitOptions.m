@@ -588,6 +588,10 @@ set(handles.fitOptionsFigure,'userdata',rdh);
 function checkScatterEnable_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
 rdh.basic.scatterEnable = get(hObject,'Value');
+if(rdh.basic.scatterEnable && ~isempty(rdh.basic.scatterStudy))
+    %if user switches scatter light contriubtion on, force usage of all time points
+    rdh.basic.fitModel = 1;
+end
 rdh.isDirty(1) = 1;
 [rdh.volatilePixel, rdh.volatileChannel{get(handles.popupChannel,'Value')}] = paramMgr.makeVolatileParams(rdh.basic,2);
 set(handles.fitOptionsFigure,'userdata',rdh);
@@ -720,6 +724,10 @@ function radioTailFit_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
 rdh.basic.fitModel = 0;
 rdh.basic.tciMask = zeros(size(rdh.basic.tciMask));
+if(~isempty(rdh.basic.scatterStudy))
+    rdh.basic.scatterEnable = 0;
+    [rdh.volatilePixel, rdh.volatileChannel{get(handles.popupChannel,'Value')}] = paramMgr.makeVolatileParams(rdh.basic,2);
+end
 %rdh.basic.stretchedExpMask = zeros(size(rdh.basic.stretchedExpMask));
 rdh.isDirty(1) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
@@ -911,6 +919,8 @@ if(val == 1)
     str = '';
 elseif(~isempty(str) && iscell(str))
     str = str{val};
+    %if user switches scatter light contriubtion on, force usage of all time points
+    rdh.basic.fitModel = 1;
 % elseif(ischar(str))
 %     str = str;
 end
