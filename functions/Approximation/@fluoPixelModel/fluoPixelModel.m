@@ -426,17 +426,11 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     case 5
                         for j = 1:this.nrChannels
                             [chi2(j,:), amps((j-1)*this.basicParams.nExp+1:(j)*this.basicParams.nExp,:), scAmps((j-1)*this.volatilePixelParams.nScatter+1:(j)*this.volatilePixelParams.nScatter,:), oset(j,:), chi2tail(j,:)] = this.computeChannel(j,squeeze(xArray(:,j,:)));
-%                             if(any(isinf(chi2(j,:))))
-%                                 break
-%                             end
                         end
                         chi2tail = sum(chi2tail,1);
                     otherwise
                         for j = 1:this.nrChannels
                             [chi2(j,:), amps((j-1)*this.basicParams.nExp+1:(j)*this.basicParams.nExp,:), scAmps((j-1)*this.volatilePixelParams.nScatter+1:(j)*this.volatilePixelParams.nScatter,:), oset(j,:)] = this.computeChannel(j,squeeze(xArray(:,j,:)));
-%                             if(any(isinf(chi2(j,:))))
-%                                 break
-%                             end
                         end
                 end
                 chi2 = sum(chi2.^2,1);
@@ -463,8 +457,11 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %compute model and get chi� of a single channel
             %% check for correct parameters
             xVecCheck = this.getFullXVec(ch,xVec);
-            %idxIgnored = false(size(xVec,2),1);
             bp = this.basicParams;
+            %initialize output variables
+            amps = zeros(bp.nExp,size(xVec,2));
+            scAmps = zeros(this.volatilePixelParams.nScatter,size(xVec,2));
+            oset = zeros(1,size(xVec,2));
             chi2 = zeros(1,size(xVec,2));
             if(~(bp.approximationTarget == 2 && (ch == 2 || bp.anisotropyR0Method == 3 && ch == 4)))
                 %ensure tau ordering
@@ -484,9 +481,6 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     end
                 end
             end
-            amps = zeros(bp.nExp,size(xVec,2));
-            scAmps = zeros(this.volatilePixelParams.nScatter,size(xVec,2));
-            oset = zeros(1,size(xVec,2));
             idxIgnored = logical(chi2)';
             if(all(idxIgnored == true))
                 chi2tail = chi2;
@@ -521,36 +515,42 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 end
             end
             exponentials(:,:,idxIgnored) = 0;
-            %help optimizer to get shift right, if we are too far off             
-            %[chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,tmp,[false; ~idxIgnored],this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
+            %help optimizer to get shift right, very coarse!
+            % increase chi� depending on distance if difference of model and data is beyond the allowed error margin (configured by user
             if(ch < 4) %only for fluorescence lifetime %bp.approximationTarget == 1 || 
                 %compute model positions of the rising edge between 5% and 85%
                 modelIDs = find(~idxIgnored);
-                ids = (5:10:85)./100;
-                risingIDs = zeros(sum(~idxIgnored),length(ids));                
+                risingIDsTargets = (5:10:85)./100;
+                usedRisingIDs = ones(size(risingIDsTargets)); %default: use all points; reduce in case of tail fit
+                measurementRisingIDs = this.myChannels{ch}.dRisingIDs;
                 for m = 1:length(modelIDs)
-                    for i = 1:length(ids)  
+                    risingIDs = zeros(1,length(risingIDsTargets));
+                    for i = 1:length(risingIDsTargets)  
                         [modelMaxVal,modelMaxPos] = max(model(:,modelIDs(m)),[],1);
                         [modelMinVal,~] = min(model(1:modelMaxPos,modelIDs(m)),[],1);
                         modelRange = modelMaxVal-modelMinVal;
                         if(isnan(modelRange) || isinf(modelRange))
-                             risingIDs(m,i) = 1;
+                             risingIDs(i) = 1;
                              continue
                         end
-                        if(ids(i) > 0.5)
-                            risingIDs(m,i) = find(model(1:modelMaxPos,modelIDs(m)) >= double(modelMinVal)+double(modelRange)*ids(i),1,'first');
+                        if(risingIDsTargets(i) > 0.5)
+                            risingIDs(i) = find(model(1:modelMaxPos,modelIDs(m)) >= double(modelMinVal)+double(modelRange)*risingIDsTargets(i),1,'first');
                         else
-                            risingIDs(m,i) = find(model(1:modelMaxPos,modelIDs(m)) <= double(modelMinVal)+double(modelRange)*ids(i),1,'last');
+                            risingIDs(i) = find(model(1:modelMaxPos,modelIDs(m)) <= double(modelMinVal)+double(modelRange)*risingIDsTargets(i),1,'last');
                         end
                     end
-                end
-                %compare them to the data rising edge positions, add penalty to chi� if average difference is more than user defined margin
-                d = max(abs(risingIDs - this.myChannels{ch}.dRisingIDs),[],2)';
-                idxHit = d > bp.risingEdgeErrorMargin;
-                if(any(idxHit))
-                    modelIDs = modelIDs(idxHit);
-                    idxIgnored(modelIDs) = true;
-                    chi2(modelIDs) = (d(idxHit)+1)*100.*chi2(modelIDs);
+                    %in case of a tail fit, use only user set data points of the rising edge (at least the 85% mark)
+                    if(bp.fitModel == 0 || bp.fitModel == 2)
+                        usedRisingIDs = risingIDs >= (modelMaxPos - bp.tailFitPreMaxSteps);
+                        %keep at least the 85% mark
+                        usedRisingIDs(end) = true;                        
+                    end
+                    %compare them to the data rising edge positions, add penalty to chi� if average difference is more than user defined margin                    
+                    d = max(abs(risingIDs(usedRisingIDs) - measurementRisingIDs(usedRisingIDs)));
+                    if(d > bp.risingEdgeErrorMargin)
+                        idxIgnored(modelIDs(m)) = true;
+                        chi2(modelIDs(m)) = (d+1)*100.*chi2(modelIDs(m));
+                    end
                 end
                 if(all(idxIgnored == true))
                     chi2tail = chi2;
@@ -1270,42 +1270,45 @@ classdef fluoPixelModel < matlab.mixin.Copyable
         function [chi2, idx, idxRemain] = timeShiftCheck(force2Edge,chi2,idx,exponentials,tcIdx,lowerBound,upperBound)
             %check if exponential at tcIdx lies between slopeStartPos and the other exponentials, if not remove them from models, compute a chi2 and save it in index idx
             %find position of rising edge at half maximum
-            exponentials = bsxfun(@minus,exponentials,min(exponentials,[],1));
+            idxNum = find(~idx);
+            idxRemain = true(1,size(exponentials,3));
+            exponentials = bsxfun(@minus,exponentials,exponentials(lowerBound,:,:));%min(exponentials,[],1));
             [expMax,expMaxPos] = max(exponentials);
             fwhmPos = zeros(size(exponentials,2),1);
-            for i = 1:size(exponentials,2)
-                if(force2Edge)
-                    fwhmPos(i) = find(exponentials(1:expMaxPos(i),i) <= expMax(tcIdx)/8,1,'last');
-                    %[~,fwhmPos] = max(bsxfun(@gt,exponentials,max(exponentials(:,tcIdx,:),[],1)/8),[],1);
-                else
-                    fwhmPos(i) = find(exponentials(1:expMaxPos(i),i) <= expMax(i)/8,1,'last');
-                    %[~,fwhmPos] = max(bsxfun(@gt,exponentials,max(exponentials,[],1)/8),[],1);
+            for m = 1:size(exponentials,3)
+                for i = 1:size(exponentials,2)
+                    if(force2Edge)
+                        tmp = find(exponentials(1:expMaxPos(i),i,m) <= expMax(1,tcIdx,m)/8,1,'last');                        
+                        %[~,fwhmPos] = max(bsxfun(@gt,exponentials,max(exponentials(:,tcIdx,:),[],1)/8),[],1);
+                    else
+                        tmp = find(exponentials(1:expMaxPos(i),i) <= expMax(i)/8,1,'last');
+                        %[~,fwhmPos] = max(bsxfun(@gt,exponentials,max(exponentials,[],1)/8),[],1);
+                    end
+                    if(isempty(tmp))
+                        tmp = 1;
+                    end
+                    fwhmPos(i) = tmp;
                 end
-            end
-            fwhmPos = squeeze(fwhmPos);
-            if(isvector(fwhmPos))
-                fwhmPos = fwhmPos(:);
-            end
-            %compare "normal" component against shifted (by tci) components
-            if(force2Edge)
-                d = min(bsxfun(@minus,fwhmPos(~tcIdx,:),fwhmPos(tcIdx,:)),[],1);
-            else
-                %d = inf;
-                d = min(bsxfun(@minus,fwhmPos(~tcIdx,:),fwhmPos(tcIdx,:)),[],1);
-            end
-            %check shifted components against rising edge position
-            d = min(d,(fwhmPos(tcIdx,:) - lowerBound));
-            %check shifted components against data maximum
-            d = min(d,upperBound - fwhmPos(tcIdx,:));
-            idxHit = d < 0;
-            if(any(idxHit))
-                idxNum = find(~idx);
-                idxNum = idxNum(idxHit);
-                idx(idxNum) = true;
-                chi2(idxNum) = chi2(idxNum)+-d(idxHit)*100;
-                idxRemain = ~idxHit;
-            else
-                idxRemain = true(1,size(exponentials,3));
+                fwhmPos = squeeze(fwhmPos);
+                if(isvector(fwhmPos))
+                    fwhmPos = fwhmPos(:);
+                end
+                %compare "normal" component against shifted (by tci) components
+                if(force2Edge)
+                    d = min(bsxfun(@minus,fwhmPos(~tcIdx,:),fwhmPos(tcIdx,:)),[],1);
+                else
+                    %d = inf;
+                    d = min(bsxfun(@minus,fwhmPos(~tcIdx,:),fwhmPos(tcIdx,:)),[],1);
+                end
+                %check shifted components against rising edge position
+                d = min(d,(fwhmPos(tcIdx,:) - lowerBound));
+                %check shifted components against data maximum
+                d = min(d,upperBound - fwhmPos(tcIdx,:));                
+                if(d < 0)
+                    idx(idxNum(m)) = true;
+                    chi2(idxNum(m)) = chi2(idxNum(m))+-d*100;
+                    idxRemain(m) = false;
+                end
             end            
         end
         
