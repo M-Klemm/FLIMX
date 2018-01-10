@@ -102,6 +102,11 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
         
         
         %% output
+        function out = getApproximationPixelIDs(this,ch)
+            %return indices of all pixels in channel ch which have the min. required number of photons
+            out = find(this.getROIDataFlat(ch,false) >= this.basicParams.photonThreshold);            
+        end
+        
         function [parameterCell, idx] = getApproxParamCell(this,ch,pixelPool,fitDim,initFit,optimizationParams,aboutInfo)
             %put all data needed for approximation in a cell array (corresponds to makePixelFit interface)
             if(initFit)

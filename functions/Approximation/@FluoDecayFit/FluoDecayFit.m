@@ -138,11 +138,6 @@ classdef FluoDecayFit < handle
             %% assemble cell
             parameterCell(1) = {apObjs};
             parameterCell(2) = {this.optimizationParams};
-%             if(initFit)
-%                 parameterCell(3) = {initVec};
-%             else
-%                 parameterCell(3) = {initVec(:,1:length(pixelPool))};
-%             end
             parameterCell(3) = {this.aboutInfo};
         end
         
@@ -318,16 +313,32 @@ classdef FluoDecayFit < handle
                 end
                 break
             end
-            tStart = clock;
             this.parameters.stopOptimization = false;
-            madeInitFit = false;
+            if(isempty(ch))
+                %fit all channels
+                if(this.FLIMXObj.curSubject.basicParams.approximationTarget == 2 && this.FLIMXObj.curSubject.basicFit.anisotropyR0Method == 2)
+                    %in case of anisotropy compute channel 3 (sum of ch1 and ch2) first
+                    chList = [3,1,2,4];
+                else
+                    chList = 1:this.FLIMXObj.curSubject.nrSpectralChannels;
+                end
+                for ch = 1:length(chList)
+                    this.FLIMXObj.FLIMFitGUI.currentChannel = chList(ch); %switch GUI to current channel
+                    msg = this.startFitProcess(chList(ch),[],[]); %do the computation
+                    if(isempty(msg) || this.parameters.stopOptimization)
+                        %fit was aborted
+                        break
+                    end
+                end
+                return
+            end            
+            tStart = clock;            
             %% initialization fit
             if((this.basicParams.optimizerInitStrategy == 2 || ~isempty(this.basicParams.fix2InitTargets)) && ~this.FLIMXObj.curSubject.isInitResult(ch))                
                 this.updateProgressLong(0.01,'Approximate Initialization...');
                 stratStr = this.computeMultipleFits(ch,1:this.initFitParams.gridSize^2,true);
                 this.updateProgressLong(0.25,'Cleanup Initialization Approximation...');
                 this.makeCleanUpFit(ch,true);
-                madeInitFit = true;
                 if(~isempty(xPos) && ~isempty(yPos) && xPos == 0 && yPos == 0)
                     %init (merged ROI) fit only
                     this.updateProgressShort(0,'');
@@ -355,19 +366,7 @@ classdef FluoDecayFit < handle
                 this.updateProgressLong(0,'');
                 return
             end
-            %if we want to fit the whole channel but user had previously fitted single pixels (and therefor did the init fit) - keep it?
-            if(this.FLIMXObj.curSubject.isInitResult(ch) && ~madeInitFit && isempty(xPos) && isempty(yPos))                
-%                 button = questdlg(sprintf('Previous initialization fit result found.\n\nDo you want to continue the fitting process with the current solution or do the initialization fit again?'),...
-%                     'Initialization solution found!','Continue','Fit Again','Abort','Continue');
-%                 switch button
-%                     case 'Abort'
-%                         return
-%                     case 'Fit Again'
-%                         this.FLIMXObj.curResultObj.allocInitResult(ch);
-%                         goOn = this.startFitProcess(ch,0,0);
-%                 end
-            end
-            %% we got all we need to fit a single pixel or the current channel
+            %% we've got all we need to fit a single pixel or the current channel
             if(~(isempty(xPos) && isempty(yPos)))
                 %single pixel
                 this.FLIMXObj.curSubject.addSingleResult(ch,yPos,xPos,this.makeSingleCurveFit(ch,yPos,xPos,[]));
@@ -376,11 +375,11 @@ classdef FluoDecayFit < handle
                 return
             end            
             %fit current channel
-            totalPixel = this.FLIMXObj.curSubject.getROIXSz() * this.FLIMXObj.curSubject.getROIYSz();
+            totalPixelIDs = this.FLIMXObj.curSubject.getApproximationPixelIDs(ch); %this.FLIMXObj.curSubject.getROIXSz() * this.FLIMXObj.curSubject.getROIYSz();
             %make ROI first
             this.FLIMXObj.curSubject.getROIData(ch,[],[]);
             this.updateProgressLong(0.5,'Approximate Pixels...');
-            stratStr = this.computeMultipleFits(ch,1:1:totalPixel,false); %user aborted if stratStr is empty            
+            stratStr = this.computeMultipleFits(ch,totalPixelIDs,false); %user aborted if stratStr is empty            
             %clean up stage
             if(~isempty(stratStr) && this.cleanupFitParams.enable > 0)
                 %update FLIMXFitGUI
@@ -414,9 +413,9 @@ classdef FluoDecayFit < handle
         function goOn = computeMultipleFits(this,ch,pixelPool,initFit)
             %compute approximations of multiple pixels
             persistent lastUpdate            
-            totalPixel = length(pixelPool);
+            totalPixels = length(pixelPool);
             goOn = 'yes'; %todo
-            if(totalPixel <1)
+            if(totalPixels <1)
                 %nothing to do
                 goOn = '';
                 return
@@ -461,36 +460,22 @@ classdef FluoDecayFit < handle
                 mcSettings.useWaitbar        = 1;
                 %                 if(this.computationParams.useDistComp == 2 || this.computationParams.useMatlabDistComp)
                 %use parfor or run on LSF (and use parfor anyway)
-                if(totalPixel <= 5*this.computationParams.mcTargetPixelPerWU) %at least 5 WUs
+                if(totalPixels <= 5*this.computationParams.mcTargetPixelPerWU) %at least 5 WUs
                     atOncePixel = 8; %max(1,floor(totalPixel/4)); %make 4 workunits
                     %                 elseif(totalPixel > 32 && totalPixel <= 64)
                     %                     atOncePixel = max(1,floor(totalPixel/8)); %make 8 workunits
                 else % > 4*24 = 96 pixel, = 24/48/96/... pixel/wu -> >= 8 wu
-                    atOncePixel = this.computationParams.mcTargetPixelPerWU*ceil(max(1,round(totalPixel/this.computationParams.mcTargetNrWUs))/this.computationParams.mcTargetPixelPerWU);                    
+                    atOncePixel = this.computationParams.mcTargetPixelPerWU*ceil(max(1,round(totalPixels/this.computationParams.mcTargetNrWUs))/this.computationParams.mcTargetPixelPerWU);                    
                 end
                 mcSettings.maxEvalTimeSingle = atOncePixel*2/8; %= guess 2s per pixel, running on 8 cores in parallel; todo
-                %                 else
-                %                     %don't use parfor
-                %                     if(fitDim == 2)
-                %                         %fit along x axis
-                %                         atOncePixel = y;
-                %                         mcSettings.nrOfEvalsAtOnce   = max(1,min(200,round(x/this.computationParams.mcTargetNrWUs))); %this.computationParams.mcTargetNrWUs WUs desired, max 200
-                %                         mcSettings.maxEvalTimeSingle = y*60; %= guess 60s per pixel
-                %                     else %(fitDim == 3)
-                %                         %fit along y axis
-                %                         atOncePixel = x;
-                %                         mcSettings.nrOfEvalsAtOnce   = max(1,min(200,round(y/this.computationParams.mcTargetNrWUs))); %this.computationParams.mcTargetNrWUs WUs desired, max 200
-                %                         mcSettings.maxEvalTimeSingle = x*60; %5*inIdx*this.results.init.Time/this.results.init.Iterations; %= 5x cpu time of the master per pixel!
-                %                     end
-                %                 end
-                iter = ceil(totalPixel/atOncePixel);
+                iter = ceil(totalPixels/atOncePixel);
                 parameterCell = cell(1,iter);
                 idxCell = cell(1,iter);
                 iter = 0;
                 %sub = copy(this.FLIMXObj.curSubject);
-                for i = 1:atOncePixel:totalPixel
+                for i = 1:atOncePixel:totalPixels
                     iter = iter+1;
-                    subPool = pixelPool(i:min(totalPixel,i+atOncePixel-1));
+                    subPool = pixelPool(i:min(totalPixels,i+atOncePixel-1));
                     nPixel = length(subPool);
                     parameterCell{iter} = {@this.getApproxParamCell,ch,subPool,fitDim,initFit};
                     %parameterCell{iter} = {@sub.getApproxParamCell,ch,subPool,fitDim,initFit,this.optimizationParams,this.aboutInfo};
@@ -517,7 +502,7 @@ classdef FluoDecayFit < handle
                     %something went wrong
                     %todo: error message, cleanup
                     this.parameters.stopOptimization = true;
-                    warning('FluoDecayFit:makeDistCompFit','Approximation process yielded empty or corrupt results - aborting...');
+                    warning('FluoDecayFit:computeMultipleFits','Approximation process yielded empty or corrupt results - aborting...');
                     goOn = '';                    
                 end
             else
@@ -536,14 +521,14 @@ classdef FluoDecayFit < handle
                     %oldstyle singlethreaded
                     atOncePixel = 1;
                 end
-                for i = 1:atOncePixel:totalPixel
+                for i = 1:atOncePixel:totalPixels
                     if(this.parameters.stopOptimization)
                         %user wants to stop
                         this.parameters.stopOptimization = false;
                         goOn = '';
                         break;
                     end
-                    [parameterCell, idx] = this.getApproxParamCell(ch,pixelPool(i:min(totalPixel,i+atOncePixel-1)),fitDim,initFit);
+                    [parameterCell, idx] = this.getApproxParamCell(ch,pixelPool(i:min(totalPixels,i+atOncePixel-1)),fitDim,initFit);
                     if(isempty(parameterCell) || isempty(idx))
                         goOn = '';
                         break
@@ -561,7 +546,7 @@ classdef FluoDecayFit < handle
                     if(initFit)
                         this.FLIMXObj.curSubject.addInitResult(ch,idx,resultStruct);
                         %update waitbar
-                        this.updateProgressShort(i/totalPixel,sprintf('Initialization: %02.1f%%',i/totalPixel*100));
+                        this.updateProgressShort(i/totalPixels,sprintf('Initialization: %02.1f%%',i/totalPixels*100));
                     else
                         this.FLIMXObj.curSubject.addMultipleResults(ch,idx,resultStruct);
                         %display results
@@ -570,8 +555,8 @@ classdef FluoDecayFit < handle
                             lastUpdate = clock;
                         end
                         %update waitbar
-                        [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(totalPixel-i)); %mean cputime for finished runs * cycles left
-                        this.updateProgressShort(i/totalPixel,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',i/totalPixel*100,hours,minutes,secs));
+                        [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(totalPixels-i)); %mean cputime for finished runs * cycles left
+                        this.updateProgressShort(i/totalPixels,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',i/totalPixels*100,hours,minutes,secs));
                     end
                 end %for i = 1:atOncePixel:totalPixel
             end            

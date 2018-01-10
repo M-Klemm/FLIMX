@@ -2137,20 +2137,8 @@ classdef FLIMXFitGUI < handle
             %load all channels incase user has to specify borders, reflection mask, ...            
             for ch = 1:this.FLIMXObj.curSubject.nrSpectralChannels
                 this.currentChannel = ch; 
-            end            
-            if(this.FLIMXObj.curSubject.basicParams.approximationTarget == 2 && this.FLIMXObj.curSubject.basicFit.anisotropyR0Method == 2)
-                %incase of anisotropy compute channel 3 (sum of ch1 and ch2) first
-                chList = [3,1,2,4];
-            else
-                chList = 1:this.FLIMXObj.curSubject.nrSpectralChannels;
             end
-            for ch = 1:length(chList)
-                this.currentChannel = chList(ch);
-                if(isempty(this.FLIMXObj.FLIMFit.startFitProcess(chList(ch),[],[])))
-                    %fit was aborted
-                    break
-                end
-            end
+            this.FLIMXObj.FLIMFit.startFitProcess([],[],[]);            
             this.FLIMXObj.FLIMVisGUI.updateGUI('');
             this.setButtonStopSpinning(false);
             this.setupGUI();
