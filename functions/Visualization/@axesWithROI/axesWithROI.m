@@ -136,6 +136,11 @@ classdef axesWithROI < handle
                 this.ROILineStyle = val;
             end
         end
+        %% output methods
+        function out = getMyData(this)
+            %return the data used to draw the axes
+            out = this.myData;
+        end
         
         %% drawing methods
         function drawMain(this,lb,ub)

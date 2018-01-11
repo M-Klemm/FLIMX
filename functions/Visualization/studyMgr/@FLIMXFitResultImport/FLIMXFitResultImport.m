@@ -939,7 +939,7 @@ classdef FLIMXFitResultImport < handle
             %executes on mouse move in window
             cp = get(this.visHandles.axesPreview,'CurrentPoint');
             cp = round(cp(logical([1 1 0; 0 0 0])));
-            ci = this.axesMgr.myData;
+            ci = this.axesMgr.getMyData();
             if(cp(1) < this.visHandles.axesPreview.XLim(1) || cp(1) > this.visHandles.axesPreview.XLim(2) || cp(2) < this.visHandles.axesPreview.YLim(1) || cp(2) > this.visHandles.axesPreview.YLim(2) || isempty(ci))
                 %we are outside axes - nothing to do
                 this.mouseOverlay.clear();
