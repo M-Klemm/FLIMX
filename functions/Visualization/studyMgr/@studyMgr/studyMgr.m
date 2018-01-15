@@ -88,7 +88,6 @@ classdef studyMgr < handle
             this.visHandles.patchProgress = patch(xpatch,ypatch,'r','EdgeColor','r','Parent',this.visHandles.axesProgress);%,'EraseMode','normal'
             this.visHandles.textProgress = text(1,0,'','Parent',this.visHandles.axesProgress);
             set(this.visHandles.studyMgrFigure,'CloseRequestFcn',@this.menuExit_Callback);
-            set(this.visHandles.menuExit,'Callback',@this.menuExit_Callback);
             %menus & buttons
             %study
             set(this.visHandles.menuNewStudy,'Callback',@this.menuNewStudy_Callback);
@@ -142,7 +141,7 @@ classdef studyMgr < handle
             set(this.visHandles.buttonMoveColBegin,'Callback',@this.contextMoveColBegin_Callback);
             set(this.visHandles.menuMoveColEnd,'Callback',@this.contextMoveColEnd_Callback);
             set(this.visHandles.buttonMoveColEnd,'Callback',@this.contextMoveColEnd_Callback);
-            %contect menus subjects
+            %context menus subjects
             set(this.visHandles.contextNewSubject,'Callback',@this.menuNewSubject_Callback);
             set(this.visHandles.contextDeleteSubject,'Callback',@this.menuDeleteSubject_Callback);
             set(this.visHandles.contextCopySubject,'Callback',@this.menuCopySubject_Callback);
@@ -153,11 +152,13 @@ classdef studyMgr < handle
             set(this.visHandles.contextChangeSubjectFileInfo,'Callback',@this.menuChangeSubjectFileInfo_Callback);
             set(this.visHandles.contextDeleteSubjectResult,'Callback',@this.menuDeleteSubjectResult_Callback);
             set(this.visHandles.contextCopyROI2Study,'Callback',@this.menuCopyROI2Study_Callback);
-            %other
+            set(this.visHandles.contextImportMeasurement,'Callback',@this.menuImportMeasurementSingle_Callback);
+            set(this.visHandles.contextImportResult,'Callback',@this.menuImportResultSelSub_Callback);
+            %menu import
             set(this.visHandles.menuImportResultSel,'Callback',@this.menuImportResultSelSub_Callback);
-            set(this.visHandles.menuImportResultAll,'Callback',@this.menuImportResultAll_Callback);
             set(this.visHandles.menuImportMeasurementSingle,'Callback',@this.menuImportMeasurementSingle_Callback);
             set(this.visHandles.menuImportMeasurementFolder,'Callback',@this.menuImportMeasurementFolder_Callback);
+            %other
             set(this.visHandles.buttonOK,'Callback',@this.GUI_buttonOK_Callback);
             set(this.visHandles.buttonStop,'Callback',@this.GUI_buttonStop_Callback);
             %context menus subject info

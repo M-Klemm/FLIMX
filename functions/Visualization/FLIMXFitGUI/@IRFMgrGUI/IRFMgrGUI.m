@@ -158,6 +158,18 @@ classdef IRFMgrGUI < handle
         end
         
         function GUI_popupCurrentIRF_Callback(this,hObject,eventdata)
+            %change currently selected IRF
+            try
+                sp = findjobj(this.visHandles.tableIRFSel); %,'persist'
+                components = sp.getComponents;
+                viewport = components(1);
+                curComp = viewport.getComponents;
+                jtable = curComp(1);
+                % jtable.setRowSelectionAllowed(0);
+                % jtable.setColumnSelectionAllowed(0);
+                jtable.changeSelection(hObject.Value-1,0, false, false);
+            catch
+            end
             this.updateGUI();
         end
                 
@@ -254,7 +266,7 @@ classdef IRFMgrGUI < handle
                 semilogy(this.visHandles.axesIRFView,tVec,irf,'Color',[0 0 0]);
                 xlim(this.visHandles.axesIRFView,[tVec(1) tVec(end)]);
             end
-            xlabel(this.visHandles.axesIRFView,'Time in ps');
+            xlabel(this.visHandles.axesIRFView,'Time (ns)');
             %grid(this.visHandles.axesIRFView,'on');
             set(this.visHandles.axesIRFView,'color',[1 0.95 0.9]);
             for i = 1:length(IRFNames)
@@ -292,6 +304,22 @@ classdef IRFMgrGUI < handle
                 out = str;
                 out = str2double(out);
             end
+        end
+        
+        function set.currentTimePoints(this,val)
+            %set current number of time points
+            str = this.visHandles.popupTimeRes.String;
+            timePoints = [];
+            if(~isempty(str) && iscell(str))
+                timePoints = cellfun(@str2double,str);
+            elseif(ischar(str))
+                timePoints = str2double(str);
+            end
+            hit = find(timePoints == val);
+            if(~isempty(hit))
+                this.visHandles.popupTimeRes.Value = hit;
+            end
+            this.updateGUI();
         end
         
         function out = get.currentSpectralCh(this)

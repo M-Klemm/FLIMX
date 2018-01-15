@@ -68,6 +68,7 @@ classdef importWizard < handle
         
         function closeCallback(this)
             %executed when figure should be closed
+            this.measurementObj = [];
             this.finalROIVec = [];
             if(this.isOpenVisWnd())
                 delete(this.visHandles.importWizardFigure);
@@ -586,7 +587,7 @@ classdef importWizard < handle
                     end
                 end
                 subject.importMeasurementObj(this.measurementObj);
-                this.measurementObj = [];
+                %this.measurementObj = [];
                 this.FLIMXObj.FLIMFitGUI.setupGUI();
                 this.FLIMXObj.studyMgrGUI.updateGUI();
             else                

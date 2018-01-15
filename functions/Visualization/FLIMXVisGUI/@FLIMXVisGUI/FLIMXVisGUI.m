@@ -659,6 +659,16 @@ classdef FLIMXVisGUI < handle
             GUI_versionInfo(this.FLIMXObj.paramMgr.getParamSection('about'),this.FLIMXObj.curSubject.aboutInfo());
         end
         
+        function menuUserGuide_Callback(this,hObject,eventdata)
+            %
+            FLIMX.openFLIMXUserGuide();
+        end
+        
+        function menuWebsite_Callback(this,hObject,eventdata)
+            %
+            FLIMX.openFLIMXWebSite();
+        end
+        
         
         %% dependent properties
         function out = get.fdt(this)
@@ -1640,7 +1650,6 @@ classdef FLIMXVisGUI < handle
                 set(this.visHandles.(sprintf('colormap_zoom_out_%s_button',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Zoom out of histogram');
             end
             %menu
-            set(this.visHandles.menuExit,'Callback',@this.menuExit_Callback);
             set(this.visHandles.FLIMXVisGUIFigure,'CloseRequestFcn',@this.menuExit_Callback);
             set(this.visHandles.menuFilterOptions,'Callback',@this.menuFiltOpt_Callback);
             set(this.visHandles.menuStatisticsOptions,'Callback',@this.menuStatOpt_Callback);
@@ -1661,6 +1670,8 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.menuXlsBR,'Callback',@this.menuExportExcel_Callback);
             set(this.visHandles.menuOpenFLIMXFit,'Callback',@this.menuOpenFLIMXFit_Callback);
             set(this.visHandles.menuAbout,'Callback',@this.menuAbout_Callback);
+            set(this.visHandles.menuUserGuide,'Callback',@this.menuUserGuide_Callback);
+            set(this.visHandles.menuWebsite,'Callback',@this.menuWebsite_Callback);
             %intensity overlay
             set(this.visHandles.IO_l_check,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Enable or disable overlay of the intensity image on the left side');
             set(this.visHandles.IO_r_check,'Callback',@this.GUI_intOverlay_Callback,'TooltipString','Enable or disable overlay of the intensity image on the right side');

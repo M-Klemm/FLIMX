@@ -470,7 +470,7 @@ classdef FLIMX < handle
             %get version numbers of FLIMX
             %set current revisions HERE!
             out.config_revision = 262;
-            out.client_revision = 385;
+            out.client_revision = 386;
             out.core_revision = 368;
             out.results_revision = 256;
             out.measurement_revision = 204;
@@ -495,6 +495,24 @@ classdef FLIMX < handle
                 parfor i = 1:10
                     y(i) = sin(i);
                 end
+            end
+        end
+        
+        function openFLIMXUserGuide()
+            %try to open the FLIMX user guide (pdf file)
+            try
+                open(fullfile(FLIMX.getWorkingDir(),'doc','FLIMX_User_Guide.pdf'));
+            catch ME
+                %todo: message user or do something else if pdf is not found/can't be opened
+            end
+        end
+        
+        function openFLIMXWebSite()
+            %try to open www.flimx.de in system webbrower
+            status = web('www.flimx.de','-browser');
+            if(status ~= 0)
+                %failed, try Matlab webbrowser
+                web('www.flimx.de');
             end
         end
         

@@ -305,7 +305,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.buttonLeft,'Enable','on');
             set(this.visHandles.buttonUp,'Enable','on');
             set(this.visHandles.buttonDown,'Enable','on');
-            set(this.visHandles.toggleShowMerge,'Enable','on');
+            set(this.visHandles.toggleShowInitialization,'Enable','on');
             set(this.visHandles.buttonStop,'Enable','on');            
 %             if(any(this.volatilePixelParams.globalFitMask))
 %                 flag = 'off';
@@ -537,7 +537,7 @@ classdef FLIMXFitGUI < handle
         
         function out = get.showInitialization(this)
             %return flag to show init (true) or pixel (false)
-            out = get(this.visHandles.toggleShowMerge,'Value');
+            out = get(this.visHandles.toggleShowInitialization,'Value');
         end
         
         function out = get.about(this)
@@ -1467,11 +1467,10 @@ classdef FLIMXFitGUI < handle
             this.visCurFit(this.currentChannel,this.currentY,this.currentX);
         end
         
-        function GUI_showMerge_Callback(this,hObject,eventdata)
+        function GUI_showInitialization_Callback(this,hObject,eventdata)
             %toggle between merge display and pixel display
             this.setupGUI();
             this.updateGUI(true);
-%             this.visCurFit(this.currentChannel,this.currentY,this.currentX);
         end
         
         function GUI_popupChannel_Callback(this,hObject,eventdata)
@@ -1873,6 +1872,7 @@ classdef FLIMXFitGUI < handle
         function menuIRFMgr_Callback(this,hObject,eventdata)
             %open tool to manage IRFs
             this.FLIMXObj.irfMgrGUI.checkVisWnd();
+            this.FLIMXObj.irfMgrGUI.currentTimePoints = this.FLIMXObj.curSubject.getFileInfoStruct(this.currentChannel).nrTimeChannels;
         end
                         
         function menuExit_Callback(this,hObject,eventdata)
@@ -1903,6 +1903,16 @@ classdef FLIMXFitGUI < handle
                 data.EffectiveTime = this.FLIMXObj.curSubject.getPixelFLIMItem(this.currentChannel,'EffectiveTime');
                 GUI_compInfo(data);
             end
+        end
+        
+        function menuUserGuide_Callback(this,hObject,eventdata)
+            %
+            FLIMX.openFLIMXUserGuide();
+        end
+        
+        function menuWebsite_Callback(this,hObject,eventdata)
+            %
+            FLIMX.openFLIMXWebSite();
         end
         
         function menuInfoPreProcessOpt_Callback(this,hObject,eventdata)
@@ -2339,8 +2349,8 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.buttonLeft,'String',char(172),'Callback',@this.GUI_buttonLeft_Callback,'TooltipString','Go to pixel to the left');
             set(this.visHandles.buttonUp,'String',char(173),'Callback',@this.GUI_buttonUp_Callback,'TooltipString','Go to pixel above');
             set(this.visHandles.buttonDown,'String',char(175),'Callback',@this.GUI_buttonDown_Callback,'TooltipString','Go to pixel below');
-            set(this.visHandles.buttonFitCurrentPixel,'Callback',@this.menuFitPixel_Callback,'TooltipString','Fit current pixel');
-            set(this.visHandles.toggleShowMerge,'Callback',@this.GUI_showMerge_Callback,'TooltipString','Run initialization fit');
+            set(this.visHandles.buttonFitCurrentPixel,'Callback',@this.menuFitPixel_Callback,'TooltipString','Approximate current pixel');
+            set(this.visHandles.toggleShowInitialization,'Callback',@this.GUI_showInitialization_Callback,'TooltipString','Show initialization of fluorescence lifetime approimation');
             set(this.visHandles.buttonStop,'Callback',@this.GUI_buttonStop_Callback,'TooltipString','Stop current computation');
             set(this.visHandles.buttonResScalDec,'String',char(172),'Callback',@this.GUI_buttonResScal_Callback,'TooltipString','Decrease residuum scaling limit');
             set(this.visHandles.buttonResScalInc,'String',char(174),'Callback',@this.GUI_buttonResScal_Callback,'TooltipString','Increase residuum scaling limit');
@@ -2354,7 +2364,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.buttonCountsScalEndInc,'String',char(174),'Callback',@this.GUI_buttonCountsScal_Callback,'TooltipString','Increase upper limit of custom intensity / anisotropy scaling');
             
             %checkbox
-            set(this.visHandles.checkAutoFitPixel,'Callback',@this.GUI_checkAutoFitPixel_Callback,'TooltipString','Automatically fit current pixel on mouse click (may be slow!)');
+            set(this.visHandles.checkAutoFitPixel,'Callback',@this.GUI_checkAutoFitPixel_Callback,'TooltipString','Automatically approximate current pixel on mouse click (may be slow!)');
             
             %radio
             set(this.visHandles.radioResScalAuto,'Callback',@this.GUI_radioResScal_Callback,'TooltipString','Automatic residuum scaling');
@@ -2371,9 +2381,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select a channel');
             set(this.visHandles.popupROI,'Callback',@this.GUI_popupROI_Callback,'TooltipString','Select FLIM parameter to display');
             
-            %menu
-            set(this.visHandles.menuExit,'Callback',@this.menuExit_Callback);
-            
+            %menu            
             set(this.visHandles.menuROIRedefine,'Callback',@this.menuROIRedefine_Callback);
             
             set(this.visHandles.menuExportShot,'Callback',@this.menuExportScreenshot_Callback);
@@ -2385,6 +2393,8 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.menuIRFMgr,'Callback',@this.menuIRFMgr_Callback);
             
             set(this.visHandles.menuVersionInfo,'Callback',@this.menuVersionInfo_Callback);
+            set(this.visHandles.menuUserGuide,'Callback',@this.menuUserGuide_Callback);
+            set(this.visHandles.menuWebsite,'Callback',@this.menuWebsite_Callback);
             set(this.visHandles.menuCompInfo,'Callback',@this.menuCompInfo_Callback);
             set(this.visHandles.menuInfoPreProcessOpt,'Callback',@this.menuInfoPreProcessOpt_Callback);
             set(this.visHandles.menuInfoFitOpt,'Callback',@this.menuInfoFitOpt_Callback);
@@ -2408,7 +2418,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.menuFitChannel,'Callback',@this.menuFitChannel_Callback);
             set(this.visHandles.menuFitAll,'Callback',@this.menuFitAll_Callback);
             set(this.visHandles.menuCleanUpFit,'Callback',@this.menuCleanUpFit_Callback);
-            %batch manager
+            %batch job manager
             set(this.visHandles.menuOpenBatchJobMgr,'Callback',@this.menuOpenBatchJobMgr_Callback);
             set(this.visHandles.menuBatchSubjectCurCh,'Callback',@this.menuBatchSubject_Callback);
             set(this.visHandles.menuBatchSubjectAllCh,'Callback',@this.menuBatchSubject_Callback);
