@@ -161,15 +161,16 @@ classdef batchJobMgrGUI < handle
             if(isempty(this.mySelJobs))
                 return
             end
+            oldStr = hObject.String;
             try
-                set(hObject,'String',sprintf('<html><img src="file:/%s"/> Running</html>',FLIMX.getAnimationPath()));
+                hObject.String = sprintf('<html><img src="file:/%s"/> Running</html>',FLIMX.getAnimationPath());
                 drawnow;
             end
             this.batchJobMgr.runSelectedJobs(this.mySelJobs,this.deleteFinishedJobs);
             this.updateGUI();
             this.updateProgressbar(0,'');
-            set(hObject,'String','Run selected');
-            set(this.visHandles.buttonStop,'String','Stop');
+            hObject.String = oldStr;
+            this.visHandles.buttonStop.String = Stop';
         end
         
         function GUI_buttonRunAll_Callback(this,hObject,eventdata)
@@ -178,21 +179,22 @@ classdef batchJobMgrGUI < handle
             if(nrJobs == 0)
                 return
             end
+            oldStr = hObject.String;
             try
-                set(hObject,'String',sprintf('<html><img src="file:/%s"/> Running</html>',FLIMX.getAnimationPath()));
+                hObject.String = sprintf('<html><img src="file:/%s"/> Running</html>',FLIMX.getAnimationPath());
                 drawnow;
             end
             this.batchJobMgr.runAllJobs(this.deleteFinishedJobs);                       
             this.updateGUI();
             this.updateProgressbar(0,'');
-            set(hObject,'String','Run all');
-            set(this.visHandles.buttonStop,'String','Stop');
+            hObject.String = oldStr;
+            this.visHandles.buttonStop.String = 'Stop';
         end
         
         function GUI_buttonStop_Callback(this,hObject,eventdata)
             %stop after current operation
             try
-                set(hObject,'String',sprintf('<html><img src="file:/%s"/> Stop</html>',FLIMX.getAnimationPath()));
+                hObject.String = sprintf('<html><img src="file:/%s"/> Stop</html>',FLIMX.getAnimationPath());
                 drawnow;
             end
             this.batchJobMgr.setStop(true);
