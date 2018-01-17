@@ -1548,6 +1548,35 @@ classdef FLIMXFitGUI < handle
             this.visCurFit(this.currentChannel,this.currentY,this.currentX);
         end
         
+        function cp = getCPFromAxes(this,axName)
+            %get current point
+            cp = [];
+            if(~any(strcmp(axName,{'axesMain','axesSupp','axesRaw','axesRes'})))
+                return
+            end
+            cp = get(this.visHandles.(axName),'CurrentPoint');
+            cp = cp(logical([1 1 0; 0 0 0]));
+            xl = this.visHandles.(axName).XLim;
+            yl = this.visHandles.(axName).YLim;
+            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))                
+                return
+            else
+                cp = [];
+            end
+        end
+        
+        function [cp,axesName] = getCP(this)
+            %get current point and its axes name 
+            axNames = {'axesMain','axesSupp','axesRaw','axesRes'};
+            for i = 1:length(axNames)
+                axesName = axNames{i};
+                cp = getCPFromAxes(this,axesName);
+                if(~isempty(cp))
+                    return
+                end
+            end
+        end
+        
         function GUI_mouseMotion_Callback(this,hObject,eventdata)
             %executes on mouse move in window
             %             if(isMultipleCall)
@@ -1568,90 +1597,86 @@ classdef FLIMXFitGUI < handle
                 inFunction = [];  %enable callback
                 return;
             end
-            lastUpdate = tNow;            
-            %% main axes
-            cpMain = get(this.visHandles.axesMain,'CurrentPoint');
-            cpMain = cpMain(logical([1 1 0; 0 0 0]));
-            xl = this.visHandles.axesMain.XLim;
-            yl = this.visHandles.axesMain.YLim;
-            if(cpMain(1) >= xl(1) && cpMain(1) <= xl(2) && cpMain(2) >= yl(1) && cpMain(2) <= yl(2) && ~isempty(this.currentDecayData) && this.visualizationParams.plotCurLinesAndText)
-                %inside main axes
-                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
-                yVal = this.currentDecayData;
-                %xPos = mouse coordinates transformed to dimension of YData
-                tVec = abs(this.FLIMXObj.curSubject.timeVector - cpMain(1));
-                [~,xPos] = min(tVec(:));
-                if(abs(xPos - this.dynVisParams.timeScalingStart) >= 10 && xPos > this.dynVisParams.timeScalingStart)
-                    %at least 10 time channels difference
-                    this.visHandles.editTimeScalEnd.String = num2str(xPos .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
-                end
-                %cursorline for axesres
-                if(~ishghandle(this.visHandles.cursorLineResiduum))
-                    this.visHandles.cursorLineResiduum = line([NaN NaN], ylim(this.visHandles.axesRes),'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesRes, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth);
-                end
-                this.visHandles.cursorLineResiduum.XData = [cpMain(1) cpMain(1)];
-                if(xPos > 0 && xPos <= length(yVal) && ~isempty(this.currentDecayData))
-                    this.mouseOverlayBoxMain.draw(cpMain,{sprintf('Time: %04.2fns',xPos.*this.FLIMXObj.curSubject.timeChannelWidth/1000), sprintf('Counts: %d',yVal(xPos))},yVal(xPos));
-                end
-                %draw zoom area when mouse button down
-                if(ishghandle(this.visHandles.scaleZoomRectangle))
-                    this.visHandles.scaleZoomRectangle.Position(3) = max(cpMain(1)-this.visHandles.scaleZoomRectangle.Position(1),10*this.FLIMXObj.curSubject.timeVector(2));
-                    this.mouseOverlayBoxMain.displayBoxOnTop();
-                end
-                %clear other mouse overs
-                this.mouseOverlayBoxSupp.clear();
-                this.mouseOverlayBoxRaw.clear();
+            lastUpdate = tNow;
+            %% coordinates
+            [cp,axesName] = this.getCP();
+            if(isempty(cp))
+                %mouse pointer is not over an axes
+                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
+                inFunction = []; %enable callback
+                return
             else
-                cpMain = [];
-                this.mouseOverlayBoxMain.clear();
-                if(ishghandle(this.visHandles.cursorLineResiduum))
-                    this.visHandles.cursorLineResiduum.XData = [NaN NaN];
-                end
-                %% support axes
-                cpSupp = get(this.visHandles.axesSupp,'CurrentPoint');
-                cpSupp = round(cpSupp(logical([1 1 0; 0 0 0])));
-                xl = this.visHandles.axesSupp.XLim;
-                yl = this.visHandles.axesSupp.YLim;
-                if(cpSupp(1) >= xl(1) && cpSupp(1) <= xl(2) && cpSupp(2) >= yl(1) && cpSupp(2) <= yl(2))
-                    %inside support axes
-                    set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
+                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
+            end
+            switch axesName
+                case {'axesMain','axesRes'}                    
+                    %% main or residuum axes
+                    if(~isempty(this.currentDecayData) && this.visualizationParams.plotCurLinesAndText) 
+                        yVal = this.currentDecayData;
+                        %xPos = mouse coordinates transformed to dimension of YData
+                        tVec = abs(this.FLIMXObj.curSubject.timeVector - cp(1));
+                        [~,xPos] = min(tVec(:));                        
+                        %cursorline for axesres
+                        if(~ishghandle(this.visHandles.cursorLineResiduum))
+                            this.visHandles.cursorLineResiduum = line([NaN NaN], ylim(this.visHandles.axesRes),'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesRes, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth);
+                        end
+                        this.visHandles.cursorLineResiduum.XData = [cp(1) cp(1)];
+                        if(strcmp(axesName,'axesMain'))
+                            %inside main axes
+                            if(abs(xPos - this.dynVisParams.timeScalingStart) >= 10 && xPos > this.dynVisParams.timeScalingStart)
+                                %at least 10 time channels difference
+                                this.visHandles.editTimeScalEnd.String = num2str(xPos .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
+                            end
+                            if(xPos > 0 && xPos <= length(yVal) && ~isempty(this.currentDecayData))
+                                %this.mouseOverlayBoxMain.setVerticalBoxPositionMode(0);
+                                this.mouseOverlayBoxMain.draw(cp,{sprintf('Time: %04.2fns',xPos.*this.FLIMXObj.curSubject.timeChannelWidth/1000), sprintf('Counts: %d',yVal(xPos))},yVal(xPos));
+                            end
+                            %draw zoom area when mouse button down
+                            if(ishghandle(this.visHandles.scaleZoomRectangle))
+                                this.visHandles.scaleZoomRectangle.Position(3) = max(cp(1)-this.visHandles.scaleZoomRectangle.Position(1),10*this.FLIMXObj.curSubject.timeVector(2));
+                                this.mouseOverlayBoxMain.displayBoxOnTop();
+                            end
+                        else
+                            %inside residuum axes
+                            if(xPos > 0 && xPos <= length(yVal) && ~isempty(this.currentDecayData))
+                                %this.mouseOverlayBoxMain.setVerticalBoxPositionMode(1);
+                                this.mouseOverlayBoxMain.draw([cp(1),yVal(xPos)],{sprintf('Time: %04.2fns',xPos.*this.FLIMXObj.curSubject.timeChannelWidth/1000), sprintf('Counts: %d',yVal(xPos))},yVal(xPos));
+                            end
+                        end                        
+                    else
+                        %we are inside the main or residdum axes but there is no data to display
+                        this.mouseOverlayBoxMain.clear();
+                        if(ishghandle(this.visHandles.cursorLineResiduum))
+                            this.visHandles.cursorLineResiduum.XData = [NaN NaN];
+                        end
+                    end
+                    %clear other mouse overs
+                        this.mouseOverlayBoxSupp.clear();
+                        this.mouseOverlayBoxRaw.clear();
+                case 'axesSupp'
+                    %% supper (ROI) axes
+                    cp = round(cp);
                     data = this.axesSuppData;
                     if(~isempty(data))
-                        str = FLIMXFitGUI.num4disp(data(min(size(data,1),cpSupp(2)),min(size(data,2),cpSupp(1))));
-                        this.mouseOverlayBoxSupp.draw(cpSupp,[sprintf('x:%d y:%d',cpSupp(1),cpSupp(2));str]);
+                        str = FLIMXFitGUI.num4disp(data(min(size(data,1),cp(2)),min(size(data,2),cp(1))));
+                        this.mouseOverlayBoxSupp.draw(cp,[sprintf('x:%d y:%d',cp(1),cp(2));str]);
                         this.mouseOverlayBoxSupp.displayBoxOnTop();
                     end
                     %clear other mouse overs
                     this.mouseOverlayBoxMain.clear();
                     this.mouseOverlayBoxRaw.clear();
-                else
-                    cpSupp = [];
-                    this.mouseOverlayBoxSupp.clear();
+                case 'axesRaw'
                     %% raw intensity axes
-                    cpRaw = get(this.visHandles.axesRaw,'CurrentPoint');
-                    cpRaw = round(cpRaw(logical([1 1 0; 0 0 0])));
-                    xl = this.visHandles.axesRaw.XLim;
-                    yl = this.visHandles.axesRaw.YLim;
-                    if(cpRaw(1) >= xl(1) && cpRaw(1) <= xl(2) && cpRaw(2) >= yl(1) && cpRaw(2) <= yl(2))
-                        %inside raw intensity axes
-                        set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
-                        data = this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel);
-                        if(~isempty(data))
-                            str = FLIMXFitGUI.num4disp(data(min(size(data,1),cpRaw(2)),min(size(data,2),cpRaw(1))));
-                            this.mouseOverlayBoxRaw.draw(cpRaw,[sprintf('x:%d y:%d',cpRaw(1),cpRaw(2));str]);
-                            this.mouseOverlayBoxRaw.displayBoxOnTop();
-                        end
-                        %clear other mouse overs
-                        this.mouseOverlayBoxMain.clear();
-                        this.mouseOverlayBoxSupp.clear();
-                    else
-                        cpRaw = [];
-                        this.mouseOverlayBoxRaw.clear();
+                    cp = round(cp);
+                    data = this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel);
+                    if(~isempty(data))
+                        str = FLIMXFitGUI.num4disp(data(min(size(data,1),cp(2)),min(size(data,2),cp(1))));
+                        this.mouseOverlayBoxRaw.draw(cp,[sprintf('x:%d y:%d',cp(1),cp(2));str]);
+                        this.mouseOverlayBoxRaw.displayBoxOnTop();
                     end
-                end
-            end
-            if(isempty(cpMain) && isempty(cpSupp) && isempty(cpRaw))
-                set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
+                    %clear other mouse overs
+                    this.mouseOverlayBoxMain.clear();
+                    this.mouseOverlayBoxSupp.clear();
             end
             inFunction = []; %enable callback
         end
