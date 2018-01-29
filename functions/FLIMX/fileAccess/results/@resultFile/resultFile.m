@@ -110,6 +110,19 @@ classdef resultFile < handle
             if(isempty(this.loadedChannelList))
                 %this is the first result we load from this subject -> load used parameters
                 if(isfield(rs,'parameters'))
+                    %make parameter structure flat
+                    if(isfield(rs.parameters,'bounds'))
+                        fn = fieldnames(rs.parameters.bounds);
+                        for i = 1:length(fn)
+                            rs.parameters.(fn{i}) = rs.parameters.bounds.(fn{i});
+                        end
+                    end
+                    if(isfield(rs.parameters,'optimization'))
+                        fn = fieldnames(rs.parameters.optimization);
+                        for i = 1:length(fn)
+                            rs.parameters.(fn{i}) = rs.parameters.optimization.(fn{i});
+                        end
+                    end
                     parameters = checkStructConsistency(rs.parameters,this.paramMgrObj.getDefaults());
                 else
                     parameters = this.paramMgrObj.getDefaults();
