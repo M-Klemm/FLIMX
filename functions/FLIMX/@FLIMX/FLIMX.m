@@ -500,10 +500,16 @@ classdef FLIMX < handle
         
         function openFLIMXUserGuide()
             %try to open the FLIMX user guide (pdf file)
+            myDir = fullfile(FLIMX.getWorkingDir(),'doc','FLIMX_User_Guide.pdf');
             try
-                open(fullfile(FLIMX.getWorkingDir(),'doc','FLIMX_User_Guide.pdf'));
+                open(myDir);
             catch ME
                 %todo: message user or do something else if pdf is not found/can't be opened
+                try
+                    %try webbrowser
+                    web(myDir,'-browser');
+                catch ME2 
+                end
             end
         end
         
