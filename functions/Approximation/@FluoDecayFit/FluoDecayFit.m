@@ -450,7 +450,7 @@ classdef FluoDecayFit < handle
             tStart = clock;
             this.updateProgressShort(0.001,'0.0% - Time left: n/a');
             %check if we should run the computation locally or distributed
-            if(this.computationParams.useDistComp == 1 && length(pixelPool) > 2*nWorkers)
+            if(this.computationParams.useDistComp == 1 && length(pixelPool) > nWorkers)
                 %use multicore package
                 %prep multicore
                 mcSettings.multicoreDir      = this.computationParams.mcShare;
