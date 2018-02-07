@@ -113,7 +113,8 @@ end
 
 function updateGUI(handles,data)
 %
-if(isempty(data.hostname{1,1}))
+hn = cellfun(@isempty,data.hostname);
+if(~any(hn(:)))
     return;
 end
     
