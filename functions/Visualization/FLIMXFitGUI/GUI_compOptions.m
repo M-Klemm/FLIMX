@@ -54,7 +54,7 @@ function varargout = GUI_compOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_compOptions
 
-% Last Modified by GUIDE v2.5 10-Oct-2013 16:15:01
+% Last Modified by GUIDE v2.5 06-Feb-2018 19:47:41
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -134,6 +134,7 @@ set(handles.editMCWUs,'String',num2str(data.computation.mcTargetNrWUs),'Enable',
 set(handles.textMCPixelPerWU,'Enable',flag);
 set(handles.textMCWUs,'Enable',flag);
 set(handles.checkMCWorkLocal,'Value',data.computation.mcWorkLocal,'Enable',flag);
+set(handles.checkMCComputeJobHash,'Value',data.computation.mcComputeJobHash,'Enable',flag);
 set(handles.editMCPath,'String',data.computation.mcShare,'Enable',flag);
 set(handles.checkMatlabDistComp,'Value',logical(data.computation.useMatlabDistComp));
 set(handles.checkMatlabGPU,'Value',logical(data.computation.useGPU));
@@ -146,6 +147,13 @@ set(handles.checkMatlabGPU,'Value',logical(data.computation.useGPU));
 function checkMCWorkLocal_Callback(hObject, eventdata, handles)
 rdh = get(handles.compOptionsFigure,'userdata');
 rdh.computation.mcWorkLocal = get(hObject,'Value');
+set(handles.compOptionsFigure,'userdata',rdh);
+updateGUI(handles, rdh);
+
+% --- Executes on button press in checkMCComputeJobHash.
+function checkMCComputeJobHash_Callback(hObject, eventdata, handles)
+rdh = get(handles.compOptionsFigure,'userdata');
+rdh.computation.mcComputeJobHash = get(hObject,'Value');
 set(handles.compOptionsFigure,'userdata',rdh);
 updateGUI(handles, rdh);
 

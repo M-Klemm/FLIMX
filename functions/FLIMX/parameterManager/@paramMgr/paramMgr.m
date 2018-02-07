@@ -214,6 +214,7 @@ classdef paramMgr < handle
             def.computation.mcTargetPixelPerWU  =   84;
             def.computation.mcShare             =   'W:';
             def.computation.mcWorkLocal         =	0;
+            def.computation.mcComputeJobHash    =   0;
             def.computation.useGPU              =	0; %use matlab gpu accelaration
             
             def.basic_fit.approximationTarget   =   1; %1: lifetime; 2: anisotropy
@@ -287,8 +288,7 @@ classdef paramMgr < handle
             def.basic_fit.timeInterpMethod      =   'linear';
             def.basic_fit.scatterEnable         =   0;
             def.basic_fit.scatterStudy          =   '';
-            def.basic_fit.scatterIRF            =   0;
-            
+            def.basic_fit.scatterIRF            =   0;            
             
             def.cleanup_fit.enable      =   1;
             def.cleanup_fit.filterType  =   2; %1: mean; 2: median

@@ -50,11 +50,17 @@ end
 
 % initialize variables
 lastEvalEndClock = clock;
-lastParPoolRefresh = clock; %MKlemm
 lastWarnClock    = clock;
 firstRun         = true;
 curWarnTime      = firstWarnTime;
 curWaitTime      = startWaitTime;
+%MKlemm
+lastParPoolRefresh = clock; 
+try
+    hashEngine = java.security.MessageDigest.getInstance('MD5');
+catch
+    hashEngine = [];
+end
 
 while 1
     % find current working dir
@@ -108,12 +114,23 @@ while 1
         sem = setfilesemaphore(parameterFileName);
         loadSuccessful = true;
         parameters = [];
+        parametersHash = 0;
         if existfile(parameterFileName)
             % try to load the parameters
             lastwarn('');
             lasterror('reset');
             try
-                load(parameterFileName, 'functionHandles', 'parameters'); %% file access %%
+                load(parameterFileName, 'functionHandles', 'parameters', 'parametersHash'); %% file access %%
+                if(any(parametersHash) && ~isempty(hashEngine))
+                    %we do have a parameter hash -> compute the hash to check if parameters are ok
+                    hashEngine.reset();
+                    hashEngine.update(getByteStreamFromArray(parameters));
+                    myParamHash = typecast(hashEngine.digest, 'uint8');
+                    if(length(myParamHash(:)) ~= length(parametersHash(:)) || ~all(myParamHash(:) == parametersHash(:)))
+                        loadSuccessful = false;
+                        fprintf('Warning: Parameter file %s was ignored because hash value did not match.\n', parameterFileName);
+                    end
+                end
             catch
                 loadSuccessful = false;
                 if showWarnings
@@ -140,7 +157,17 @@ while 1
                     %->wait and try again
                     pause(0.5);
                     try
-                        load(parameterFileName, 'functionHandles', 'parameters'); %% file access %%
+                        load(parameterFileName, 'functionHandles', 'parameters', 'parametersHash'); %% file access %%
+                        if(any(parametersHash) && ~isempty(hashEngine))
+                            %we do have a parameter hash -> compute the hash to check if parameters are ok
+                            hashEngine.reset();
+                            hashEngine.update(getByteStreamFromArray(parameters));
+                            myParamHash = typecast(hashEngine.digest, 'uint8');
+                            if(length(myParamHash(:)) ~= length(parametersHash(:)) || ~all(myParamHash(:) == parametersHash(:)))
+                                loadSuccessful = false;
+                                fprintf('Warning: Parameter file %s was ignored because hash value did not match.\n', parameterFileName);
+                            end
+                        end
                     catch
                         loadSuccessful = false;
                         if showWarnings
@@ -270,9 +297,8 @@ while 1
             %save(strrep(parameterFileName, 'parameters', 'error_param'),'parameters');
             % remove working file
             mbdelete(workingFile, showWarnings); %% file access %%
-            % Save result. Use file semaphore of the parameter file to reduce the
-            % overhead.
-        elseif(exist(multicoreDir, 'dir')) %do nothing if multicore dir has been removed
+            % Save result. Use file semaphore of the parameter file to reduce the overhead.
+        elseif(exist(multicoreDir, 'dir') && exist(workingFile, 'file')) %do nothing if multicore dir or working file have been removed
             sem = setfilesemaphore(parameterFileName);
             resultFileName = strrep(parameterFileName, 'parameters', 'result');
             try

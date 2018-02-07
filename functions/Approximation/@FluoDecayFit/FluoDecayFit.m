@@ -458,6 +458,7 @@ classdef FluoDecayFit < handle
                 mcSettings.nrOfEvalsAtOnce   = 1;
                 %mcSettings.maxEvalTimeSingle = this.optimizationParams.options_de.maxiter*this.optimizationParams.options_de.NP*this.volatilePixelParams.nModelParamsPerCh*0.5;
                 mcSettings.useWaitbar        = 1;
+                mcSettings.computeJobHash    = this.computationParams.mcComputeJobHash;
                 %                 if(this.computationParams.useDistComp == 2 || this.computationParams.useMatlabDistComp)
                 %use parfor or run on LSF (and use parfor anyway)
                 if(totalPixels <= 5*this.computationParams.mcTargetPixelPerWU) %at least 5 WUs

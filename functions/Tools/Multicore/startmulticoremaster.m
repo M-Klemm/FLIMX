@@ -90,6 +90,7 @@ settingsDefault.maxEvalTimeSingle = 60;
 settingsDefault.masterIsWorker    = 1;
 settingsDefault.useWaitbar        = 0;
 settingsDefault.postProcessHandle = '';
+settingsDefault.computeJobHash    = 0;
 
 if debugMode
     fprintf('*********** Start of function %s **********\n', mfilename);
@@ -176,6 +177,16 @@ end
 clear multicoreWaitbar
 if settings.useWaitbar
     multicoreWaitbar('init0', @multicoreCancel1);
+end
+
+% initialize hash engine
+hashEngine = [];
+if(settings.computeJobHash)
+    try
+        hashEngine = java.security.MessageDigest.getInstance('MD5');
+    catch
+        hashEngine = [];
+    end
 end
 
 % compute the maximum waiting time for a complete job
@@ -1029,7 +1040,7 @@ end
             %             else
             %                 parameters      = parameterCell(parIndex); %#ok
             %             end
-            parameters = cell(0,0);
+            parameters = cell(0,0);            
             for idx = 1:length(parIndex)
                 params = getWUParameters(parIndex(idx));
                 if(isempty(params))
@@ -1037,10 +1048,20 @@ end
                     break
                 end
                 parameters{idx} = params;
+                                
             end
             if(isempty(parameters))
                 %throw warning or error?!
                 continue
+            end
+            parametersHash = zeros(1,16,'uint8');
+            if(settings.computeJobHash && ~isempty(hashEngine))
+                try
+                    hashEngine.reset();
+                    hashEngine.update(getByteStreamFromArray(parameters));
+                    parametersHash(1,:) = typecast(hashEngine.digest, 'uint8');
+                    %parametersHash(1,:) = DataHash(getByteStreamFromArray(parameters),struct('Format', 'uint8', 'Method', 'MD5'));
+                end
             end
             %         end
             functionHandles = functionHandleCell(parIndex);
@@ -1051,7 +1072,7 @@ end
                 mySem = setfilesemaphore(parameterFileName);
                 if debugMode, setTime = setTime + now - t1; end
                 try
-                    save(parameterFileName, 'functionHandles', 'parameters'); %% file access %%
+                    save(parameterFileName, 'functionHandles', 'parameters', 'parametersHash'); %% file access %%
                     if debugMode
                         disp(sprintf('Parameter file nr %d generated.', f));
                     end
@@ -1073,7 +1094,7 @@ end
                 fileStatus(f,2) = now;
                 multicoreWaitbar('update1', nrOfFiles, f,fBps);                
             else
-                f(abs(f-nrOfFiles-1)) = parfeval(p,@savewrap,1,parameterFileName,functionHandles,parameters);
+                f(abs(f-nrOfFiles-1)) = parfeval(p,@savewrap,1,parameterFileName,functionHandles,parameters,parametersHash);
                 if(etime(clock, lastUpdate) > 2)
                     bytes = 0;
                     idx = 0;
@@ -1119,13 +1140,13 @@ end
 end % function startmulticoremaster
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function out = savewrap(fileName,functionHandles,parameters)
+function out = savewrap(fileName,functionHandles,parameters,parametersHash)
 %wrapper for save function
 out.bytes = 0;
 out.message = '';
 sem = setfilesemaphore(fileName);
 try
-    save(fileName,'functionHandles','parameters');
+    save(fileName,'functionHandles','parameters','parametersHash');
     fInfo = dir(fileName);
     if(~isempty(fInfo))
         out.bytes = fInfo.bytes;
