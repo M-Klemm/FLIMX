@@ -286,8 +286,14 @@ classdef FLIMXFitGUI < handle
                 this.dynVisParams.timeScalingEnd = max(2,min(this.dynVisParams.timeScalingEnd,this.FLIMXObj.curSubject.nrTimeChannels));
                 this.dynVisParams.timeScalingStart = max(min(this.dynVisParams.timeScalingStart,this.dynVisParams.timeScalingEnd-1),1);
             end
-            set(this.visHandles.editTimeScalStart,'String',num2str(this.dynVisParams.timeScalingStart*this.FLIMXObj.curSubject.timeChannelWidth,'%.02f'));
-            set(this.visHandles.editTimeScalEnd,'String',num2str(this.dynVisParams.timeScalingEnd*this.FLIMXObj.curSubject.timeChannelWidth,'%.02f'));
+            cw = this.FLIMXObj.curSubject.timeChannelWidth;
+            if(isempty(cw))
+                set(this.visHandles.editTimeScalStart,'String',num2str(1,'%.02f'));
+                set(this.visHandles.editTimeScalEnd,'String',num2str(2,'%.02f'));
+            else
+                set(this.visHandles.editTimeScalStart,'String',num2str(this.dynVisParams.timeScalingStart*cw,'%.02f'));
+                set(this.visHandles.editTimeScalEnd,'String',num2str(this.dynVisParams.timeScalingEnd*cw,'%.02f'));
+            end
             %counts edits
 %             tmp = this.currentDecayData;            
 %             if(~isempty(tmp))
