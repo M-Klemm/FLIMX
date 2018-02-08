@@ -58,7 +58,7 @@ classdef batchJob < handle
             %this.saveInfoToDisk();
         end
         
-        function [success pos] = loadInfoFromDisk(this)
+        function [success, pos] = loadInfoFromDisk(this)
             %load job from disk
             pos = 0;
             success = false;
@@ -165,7 +165,11 @@ classdef batchJob < handle
             %return picture of the job
             raw = this.myRawPicture;
             co = this.myROI;
-            roi = raw(co(3):co(4),co(1):co(2));
+            if(isempty(raw) || isempty(co))
+                roi = raw;
+            else
+                roi = raw(co(3):co(4),co(1):co(2));
+            end
         end 
         
         function out = getUID(this)

@@ -275,15 +275,18 @@ classdef batchJobMgrGUI < handle
                 rawPic = []; roiPic = [];
             end
             if(isempty(rawPic))
-                cla(this.visHandles.axesROI)
-                cla(this.visHandles.axesRaw)
+                cla(this.visHandles.axesROI);
+                cla(this.visHandles.axesRaw);
+                set(this.visHandles.textCbROITop,'String','');
+                set(this.visHandles.textCbROIBottom,'String','');
+                set(this.visHandles.textCbRawTop,'String','');
+                set(this.visHandles.textCbRawBottom,'String','');
             else
                 %raw
                 lb = prctile(rawPic(:),this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileLB);
                 ub = prctile(rawPic(:),this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileUB);
                 img = image2ColorMap(rawPic,this.FLIMXObj.FLIMFitGUI.dynVisParams.cmIntensity,lb,ub);
-                image(img,'Parent',this.visHandles.axesRaw);                
-%                 imagesc(rawPic,'Parent',this.visHandles.axesRaw);
+                image(img,'Parent',this.visHandles.axesRaw);
                 [r, c] = size(rawPic);
                 if(~isnan(r) && ~isnan(c) && size(rawPic,1) > 1 && size(rawPic,2) > 1)
                     xlim(this.visHandles.axesRaw,[1 size(rawPic,2)]);
@@ -312,7 +315,6 @@ classdef batchJobMgrGUI < handle
                 set(this.visHandles.axesROI,'YDir','normal');
                 set(this.visHandles.textCbROITop,'String',max(roiPic(:)));
                 set(this.visHandles.textCbROIBottom,'String',min(roiPic(:)));
-                %this.FLIMXObj.FLIMFitGUI.plotSuppData(this.visHandles.axesROI,roiPic);
             end
             this.makeColorbars();
         end
