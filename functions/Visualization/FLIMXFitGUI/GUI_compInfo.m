@@ -113,8 +113,9 @@ end
 
 function updateGUI(handles,data)
 %
-hn = cellfun(@isempty,data.hostname);
+hn = ~cellfun(@isempty,data.hostname);
 if(~any(hn(:)))
+    %not a single valid hostname -> no valid result
     return;
 end
     
