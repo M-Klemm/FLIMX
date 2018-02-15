@@ -102,7 +102,6 @@ classdef studyMgr < handle
             set(this.visHandles.menuImportStudy,'Callback',@this.menuImportStudy_Callback);
             set(this.visHandles.menuRenameStudy,'Callback',@this.menuRenameStudy_Callback);
             set(this.visHandles.buttonRenameStudy,'Callback',@this.menuRenameStudy_Callback);
-            set(this.visHandles.menuChangeStudyFileInfo,'Callback',@this.menuChangeStudyFileInfo_Callback);
             %subjects
             set(this.visHandles.menuNewSubject,'Callback',@this.menuNewSubject_Callback);
             set(this.visHandles.menuDeleteSubject,'Callback',@this.menuDeleteSubject_Callback);
@@ -1128,11 +1127,6 @@ classdef studyMgr < handle
             this.FLIMXObj.FLIMFitGUI.updateGUI(true);
             this.selectedSubjects = newSubNrs;
             this.checkVisWnd();
-        end
-        
-        function menuChangeStudyFileInfo_Callback(this,hObject,eventdata)
-            %change file info (only resolution) for each subject in a study
-            
         end
         
         function menuChangeSubjectFileInfo_Callback(this,hObject,eventdata)
