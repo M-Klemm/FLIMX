@@ -213,11 +213,15 @@ classdef result4Import < resultFile
                     idx = strncmp(fnTmp,fileGroups{i},length(fileGroups{i}));
                     fnTmp(idx) = [];
                 end
-                %now look underscores and find similar strings in file names
+                %now look for underscores and find similar strings in file names
                 fileStub = {};
-                while ~isempty(fnTmp)
+                while any(~cellfun(@isempty,fnTmp))
                     stub = fnTmp{1};
                     id_ = strfind(stub,'_');
+                    if(isempty(id_))
+                        fnTmp(1) = [];
+                        continue
+                    end
                     for i = length(id_):-1:1
                         idx = strncmp(fnTmp,stub,id_(i));
                         if(sum(idx(:)) > 1)
@@ -341,6 +345,13 @@ classdef result4Import < resultFile
                 end
             end
             for ch = 1:length(rs)
+                %remove empty fields
+                fn = fieldnames(rs(ch).results.pixel);
+                for i = 1:length(fn)
+                    if(isempty(rs(ch).results.pixel.(fn{i})))
+                        rs(ch).results.pixel = rmfield(rs(ch).results.pixel,fn{i});
+                    end
+                end
                 if(~isempty(rs(ch).results))
                     rs(ch).results.pixel = orderfields(rs(ch).results.pixel);
                     rs(ch).roiCoordinates = [];

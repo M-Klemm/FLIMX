@@ -173,11 +173,11 @@ classdef FLIMXFitResultImport < handle
                 set(this.visHandles.popupSubjectSel,'Visible','off');
                 set(this.visHandles.editSubjectName,'Visible','on');
             end
-            this.visHandles.popupFileGroup.String = this.myFileGroups;
-            if(~isempty(this.myFileGroupsCounts))
-                [~,lg] = max(this.myFileGroupsCounts);
-                this.visHandles.popupFileGroup.Value = lg;
-            end
+%             this.visHandles.popupFileGroup.String = this.myFileGroups;
+%             if(~isempty(this.myFileGroupsCounts))
+%                 [~,lg] = max(this.myFileGroupsCounts);
+%                 this.visHandles.popupFileGroup.Value = lg;
+%             end
             if(length(this.myFileGroups) == 1)
                 this.visHandles.textFileGroup.Enable = 'Off';
                 this.visHandles.popupFileGroup.Enable = 'Off';
@@ -239,7 +239,7 @@ classdef FLIMXFitResultImport < handle
             if(~isempty(data) || size(data,1) >= this.currentRow || size(data,2) < 8)
                 img = this.myResultStruct(this.currentChannel).results.pixel.(this.currentItem);
                 %resize if neccessary
-                if(any([this.yRef,this.xRef] ~= size(img)))
+                if(~isempty(this.yRef) && ~isempty(this.xRef) && any([this.yRef,this.xRef] ~= size(img)))
                     img = imresize(img,[this.yRef,this.xRef]);
                 end
                 %do binning if neccessary
@@ -287,6 +287,9 @@ classdef FLIMXFitResultImport < handle
             end
             nr = max(1,this.visHandles.popupChannel.Value);
             str = this.visHandles.popupChannel.String;
+            if(iscell(str))
+                nr = min(nr,length(str));
+            end
             if(iscell(str) && ~isempty(str))
                 out = str2double(str{nr});
             elseif(ischar(str))
@@ -449,7 +452,20 @@ classdef FLIMXFitResultImport < handle
             this.currentPath = path;
             %read info from disk
             [this.myFileGroups, this.myFileGroupsCounts] = result4Import.detectFileGroups(this.currentPath,this.myFileTypes);
-            rs = result4Import.ASCIIFilesInGroup2ResultStruct(this.currentPath,this.myFileTypes,this.currentFileGroup,this.currentSubject,@this.plotProgressbar);
+            %setup fileGroup popup
+            this.visHandles.popupFileGroup.String = this.myFileGroups;
+            if(~isempty(this.myFileGroupsCounts))
+                [~,lg] = max(this.myFileGroupsCounts);
+                this.visHandles.popupFileGroup.Value = lg;
+            end
+            this.switchFileGroup(this.currentFileGroup);
+        end
+        
+        function switchFileGroup(this,fileGroup)
+            %load data of a certain filegroup
+            this.currentRow = 1;
+            %this.currentChannel = 1;
+            rs = result4Import.ASCIIFilesInGroup2ResultStruct(this.currentPath,this.myFileTypes,fileGroup,this.currentSubject,@this.plotProgressbar);
             rsChNrs = length(rs);
             [~, existingChs] = this.FLIMXObj.fdt.getSubjectFilesStatus(this.currentStudy,this.currentSubject);
             choice = '';
@@ -803,8 +819,9 @@ classdef FLIMXFitResultImport < handle
             %change current file group
             this.currentRow = 1;
             this.currentChannel = 1;
-            this.setupGUI();
-            this.updateGUI();
+            this.switchFileGroup(this.currentFileGroup);
+%             this.setupGUI();
+%             this.updateGUI();
         end
         
         function GUI_popupFilter_Callback(this,hObject, eventdata)
@@ -878,7 +895,7 @@ classdef FLIMXFitResultImport < handle
                     flipIds = find([data{idx,4}]);
                     for i = 1:length(fn)
                         %resize
-                        if(any([this.yRef,this.xRef] ~= size(rs.results.pixel.(fn{i}))))
+                        if(~isempty(this.yRef) && ~isempty(this.xRef) && any([this.yRef,this.xRef] ~= size(rs.results.pixel.(fn{i}))))
                             rs.results.pixel.(fn{i}) = imresize(rs.results.pixel.(fn{i}),[this.yRef,this.xRef]);
                         end
                         %do binning
