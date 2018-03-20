@@ -404,10 +404,11 @@ classdef StatsDescriptive < handle
         
         function clearPlots(this)
             %clear 3D plot and table
-            if(~this.isOpenVisWnd())
+            if(this.isOpenVisWnd())
                 cla(this.visHandles.axesBar);
                 cla(this.visHandles.axesBoxplot);
                 set(this.visHandles.tableSubjectStats,'ColumnName','','RowName','','Data',[],'ColumnEditable',[]);
+                set(this.visHandles.tableGroupStats,'ColumnName','','RowName','','Data',[],'ColumnEditable',[]);
                 set(this.visHandles.tableNormalTests,'Data',[]);
             end
         end
