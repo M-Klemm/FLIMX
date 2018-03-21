@@ -43,7 +43,7 @@ classdef FDataMerge < FData
     
     methods
         function this = FDataMerge(parent,id,data)
-            %
+            %constructor of FDataMerge class
             this = this@FData(parent,id,data);
             this.ROICoordinates = zeros(7,3,2,'int16');
             this.updateCIStats([],0,0,0);

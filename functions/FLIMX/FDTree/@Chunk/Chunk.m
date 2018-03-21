@@ -54,12 +54,12 @@ classdef Chunk < handle
         end
         
         function addObj(this,data)            
-            %just add at the end
+            %add an object to FDTree and generate id (running number) automatically
             this.mySlices.insertEnd(FDataNormal(this,this.mySlices.queueLen+1,data));            
         end
         
         function addObjID(this,id,data)            
-            %insert with specific ID
+            %add an object to FDTree with specific id (running number)
             h = this.getFDataObj(id,1);
             if(isempty(h))
                 %add FData object
@@ -103,10 +103,10 @@ classdef Chunk < handle
             end
         end
         
-        function setCutVec(this,dim,cutVec)
-            %set the cut vector for dimension dim
+        function setResultCrossSection(this,dim,csDef)
+            %set the cross section for dimension dim
             for i = 1:this.mySlices.queueLen
-                this.mySlices.getDataByPos(i).setCutVec(dim,cutVec);
+                this.mySlices.getDataByPos(i).setResultCrossSection(dim,csDef);
             end
         end
         
@@ -329,24 +329,7 @@ classdef Chunk < handle
         function out = get.FLIMXParamMgrObj(this)
             %get handle to parameter manager object
             out = this.myParent.FLIMXParamMgrObj;
-        end
-        
-        %% compute functions  
-        function [data, ids] = getPerData(this)
-            %pa1 = a1*100/(a1+a2+a3)            
-            %compute denominator
-            lower = 0;
-            ids = this.getMyIDs();
-            for i = 1:length(ids)
-                lower = lower + this.getFDataObj(ids(i),1).rawImage;
-            end
-            %now make percentage for each element
-            [y, x] = size(lower);
-            data = zeros(i,y,x);
-            for i = 1:length(ids)
-                data(i,:,:) = this.getFDataObj(ids(i),1).rawImage./lower*100;
-            end
-        end               
+        end                      
     end
     
     methods(Static)

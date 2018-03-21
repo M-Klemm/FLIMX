@@ -42,7 +42,6 @@ classdef FData < handle
         rawImgXSz = [];
         rawImgYSz = [];  
         rawImgZSz = [];
-        %MSZ = false;
     end
     properties(Dependent = true, SetAccess = public,GetAccess = public) 
         dType = [];
@@ -55,18 +54,16 @@ classdef FData < handle
     end
     properties(SetAccess = protected,GetAccess = protected)
         myParent = [];
-        %MSZMin = [];
-        %MSZMax = [];
         cachedImage = [];
         maxHistClasses = 5000;
     end
     
     methods
-        function this = FData(parent,id,rawImage)
-            %  
+        function this = FData(parent,nr,rawImage)
+            %constructor of the FData class
             this.uid = datenum(clock);
-            this.id = id;            
-            this.sType = 1;         %default to linear data
+            this.id = nr;            
+            this.sType = 1; %default to linear data scaling
             this.myParent = parent;
             this.setRawData(rawImage); 
             this.clearCachedImage();
@@ -111,25 +108,24 @@ classdef FData < handle
            
         %% input functions
         function setRawData(this,val)
-            %
+            %set the raw data, clears cached data
             this.rawImage = single(val);
             this.color_data = [];
             this.logColor_data = [];
-%             this.curImgColors = [];
+            % this.curImgColors = [];
             this.setRawDataXSz([]);
-            this.setRawDataYSz([]);  
+            this.setRawDataYSz([]);
             this.setRawDataZSz([]);
             this.rawImgFilt = [];
             this.clearCachedImage();
-            if(isempty(val))                
-                return;                
+            if(isempty(val))
+                return;
             end
             [y, x] = size(val);
             this.setRawDataXSz([1 x]);
             this.setRawDataYSz([1 y]);
             %val = this.getFullImage(); %expensive but correct
-            this.setRawDataZSz([FData.getNonInfMinMax(1,val) FData.getNonInfMinMax(2,val)]);            
-            %this.clearCachedImage();
+            this.setRawDataZSz([FData.getNonInfMinMax(1,val) FData.getNonInfMinMax(2,val)]);
         end
         
         function setColor_data(this,val,valLog)
@@ -153,11 +149,6 @@ classdef FData < handle
             %set rawImgZSz property
             this.rawImgZSz = val;  
         end
-        
-%         function setCIROICoordinates(this,val)
-%             %set coordinates of cached ROI
-%             this.cachedImage.ROI.ROICoordinates = val;
-%         end
         
         function setCIROIType(this,val)
             %set type of cached ROI
@@ -192,23 +183,14 @@ classdef FData < handle
         end
         
         function setSType(this,val)
-            %set sType (lin=1,log=2 perc=3)
+            %set sType (lin=1,log=2)
             if(this.sType == val)
                 %check if new scale type differs from old one
                 return
             end
             this.sType = val;
             tmp = this.getFullImage();
-            this.rawImgZSz = [FData.getNonInfMinMax(1,tmp) FData.getNonInfMinMax(2,tmp)];
-%             if(val == 2)                
-%                 %set init-values borders for log scaling                
-%                 this.MSZMin = log10(this.MSZMin);
-%                 this.MSZMax = log10(this.MSZMax);
-%             else
-%                 %set init-values for linear scaling
-%                 this.MSZMin = 10^this.MSZMin;
-%                 this.MSZMax = 10^this.MSZMax;
-%             end                        
+            this.rawImgZSz = [FData.getNonInfMinMax(1,tmp) FData.getNonInfMinMax(2,tmp)];                       
             this.clearCachedImage();
         end          
         
@@ -224,12 +206,12 @@ classdef FData < handle
         end        
                 
         function nr = get.channel(this)
-            %
+            %get my channel number
             nr = this.myParent.getMyChannelNr();
         end
         
         function nr = get.subjectName(this)
-            %
+            %get my subject name
             nr = this.myParent.getMySubjectName();
         end
         
@@ -270,7 +252,7 @@ classdef FData < handle
         end
         
         function out = get.isEmptyStat(this)
-            %
+            %returns true, if descripte statistics of the cached data are empty (not yet computed)
             out = isempty(this.cachedImage.statistics.descriptive);
         end
         
@@ -354,26 +336,11 @@ classdef FData < handle
             if(isempty(ROICoordinates))
                 ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
             end
-%             if(~isempty(ROIType) && ROIType >= 1)
-                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
-                    %we've got this image segment already
-                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
-                end
-                out = this.cachedImage.data;
-%             elseif(~isempty(ROIType) && ROIType == 0)
-%                 out = this.getFullImage();
-%                 if(this.MSZ)
-%                     cim = FData.getNonInfMinMax(1,out);
-%                     %set possible "-inf" in ci to "cim"
-%                     out(out < cim) = cim;
-%                     zlim_min = this.getZlimMin(cim);
-%                     zlim_max = this.MSZMax;
-%                     out(out < zlim_min) = NaN;%zlim_min;
-%                     out(out > zlim_max) = NaN;%zlim_max;
-%                 end
-%             else
-%                 out = [];
-%             end            
+            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
+                %we've got this image segment already
+                this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+            end
+            out = this.cachedImage.data;
         end
         
         function out = getCIColor(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
@@ -659,20 +626,15 @@ classdef FData < handle
         end
         
         function out = getLinData(this)
-            %
+            %set the data scaling to linear
             this.setSType(1);
             out = this;
         end
         
         function out = getLogData(this)
-            %        
+            %set the data scaling to log10
             this.setSType(2);
             out = this;
-        end
-        
-        function out = getPerData(this)
-            %
-            out = this.myParent.getPerData();
         end
         
         function out = getSaveMaxMemFlag(this)
@@ -709,11 +671,7 @@ classdef FData < handle
             %             6 %outer superior
             %             7 %outer nasal
             %             8 %outer inferior
-            %             9 %outer temporal 
-%             out = [];
-%             if(ROIType < 1)
-%                 return
-%             end
+            %             9 %outer temporal
             ri = this.getFullImage();
             out = zeros(9,1);
             for i = 1:9
@@ -733,7 +691,7 @@ classdef FData < handle
                     case 'mean'
                         out(i,1) = mean(ci(:));
                     case 'median'
-                        out(i,1) = median(ci(:));    
+                        out(i,1) = median(ci(:));
                     case 'SD'
                         out(i,1) = std(ci(:));
                     case 'CV'
@@ -766,14 +724,6 @@ classdef FData < handle
         function [histogram, centers] = makeHist(this,imageData,strictFlag)
             %make histogram for display puposes
             ci = imageData(~(isnan(imageData(:)) | isinf(imageData(:))));
-            %ci = ci(~isinf(ci(:)));
-%             %if z scaled, remove cut of values
-%             if(this.MSZ)          
-%                 zlim_min = this.getZlimMin(this.getNonInfMin(2,imageData));
-%                 zlim_max = this.MSZMax;
-%                 ci(ci == zlim_min) = [];
-%                 ci(ci == zlim_max) = [];
-%             end
             [cw,lim,c_min,c_max] = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
             if(lim)
                 ci = ci(ci >= c_min & ci <= c_max);               
@@ -822,7 +772,7 @@ classdef FData < handle
     
     methods (Access = protected)
         function zl_min = getZlimMin(this,cim)
-            %
+            %get data minimum which is not -inf with respect to scaling
             zVec = this.getZScaling();
             if(length(zVec) ~= 3 || (length(zVec) == 3 && ~zVec(1)))
                 zl_min = cim;
@@ -843,7 +793,7 @@ classdef FData < handle
         end
         
         function [lblMin, lblMax] = makeZlbls(this,dMin,dMax)
-            %
+            %compute min and max labels for z axis with respect to scaling
             if(this.sType == 2)
                 %log10-scaling
                 lblMin = 10^dMin;

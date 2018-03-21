@@ -32,58 +32,58 @@ classdef FDataNormal < FData
     % @brief    A class to represent a "normal" fluorescence lifetime parameter.  
     %
     properties(SetAccess = protected,GetAccess = protected)
-        cutX = false;
-        cutXVal = 0;
-        cutXInv = false;
-        cutY = false;
-        cutYVal = 0;
-        cutYInv = false;
+        crossSectionX = false;
+        crossSectionXVal = 0;
+        crossSectionXInv = false;
+        crossSectionY = false;
+        crossSectionYVal = 0;
+        crossSectionYInv = false;
     end
     
     
     methods
         function this = FDataNormal(parent,id,rawImage)
-            %
+            %constructor of FDataNormal class
             this = this@FData(parent,id,rawImage);
-            this.cutX = 0;
-            this.cutXInv = 0;
-            this.cutY = 0;
-            this.cutYInv = 0;
+            this.crossSectionX = 0;
+            this.crossSectionXInv = 0;
+            this.crossSectionY = 0;
+            this.crossSectionYInv = 0;
         end
            
         %% input functions        
-        function setCutVec(this,dim,cutVec)
-            %set the cut vector for dimension dim
-            if(length(cutVec) ~= 3)
+        function setResultCrossSection(this,dim,csDef)
+            %set the cross section for dimension dim
+            if(length(csDef) ~= 3)
                 return
             end
             switch upper(dim)
                 case 'X'
-                    this.cutX = logical(cutVec(1));
-                    this.cutXVal = max(min(cutVec(2),this.rawImgXSz(2)),1);
-                    this.cutXInv = logical(cutVec(3));
+                    this.crossSectionX = logical(csDef(1));
+                    this.crossSectionXVal = max(min(csDef(2),this.rawImgXSz(2)),1);
+                    this.crossSectionXInv = logical(csDef(3));
                 case 'Y'
-                    this.cutY = logical(cutVec(1));
-                    this.cutYVal = max(min(cutVec(2),this.rawImgYSz(2)),1);
-                    this.cutYInv = logical(cutVec(3));
+                    this.crossSectionY = logical(csDef(1));
+                    this.crossSectionYVal = max(min(csDef(2),this.rawImgYSz(2)),1);
+                    this.crossSectionYInv = logical(csDef(3));
             end
             end
         
         %% output functions                        
-        function out = getCutX(this)
-            %get enable/disable flag for cut of x axis
-            out = this.cutX;
+        function out = getCrossSectionX(this)
+            %get enable/disable flag for crossSection of x axis
+            out = this.crossSectionX;
         end
         
-        function [minVal, maxVal] = getCutXBorders(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
-            %get borders for x cut (minVal = 0 if cut disabled)
+        function [minVal, maxVal] = getCrossSectionXBorders(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+            %get borders for x crossSection (minVal = 0 if crossSection disabled)
             lbl = this.getCIXLbl(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
             minVal = lbl(1);
             maxVal = lbl(end);
         end
         
-        function out = getCutXVal(this,isRelative,isMatrixPos,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
-            %get current cut position of x axis
+        function out = getCrossSectionXVal(this,isRelative,isMatrixPos,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+            %get current crossSection position of x axis
             if(isRelative && ROIType ~= 0) %val is relative to roi
                 switch ROIType
                     case 1
@@ -99,34 +99,34 @@ classdef FDataNormal < FData
                         %todo
                         xMin = 0;
                 end
-                out = max(0,this.cutXVal - xMin +1);
+                out = max(0,this.crossSectionXVal - xMin +1);
             else
-                out = max(1,this.cutXVal);
+                out = max(1,this.crossSectionXVal);
             end
             if(~isRelative && ~isMatrixPos)
                 out = this.xPos2Lbl(out);
             end
         end
         
-        function out = getCutXInv(this)
-            %get current inv flag for cut of x axis
-            out = this.cutXInv;
+        function out = getCrossSectionXInv(this)
+            %get current inv flag for crossSection of x axis
+            out = this.crossSectionXInv;
         end
         
-        function out = getCutY(this)
-            %get enable/disable flag for cut of y axis
-            out = this.cutY;
+        function out = getCrossSectionY(this)
+            %get enable/disable flag for crossSection of y axis
+            out = this.crossSectionY;
         end
         
-        function [minVal, maxVal] = getCutYBorders(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
-            %get borders for y cut (minVal = 0 if cut disabled)
+        function [minVal, maxVal] = getCrossSectionYBorders(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+            %get borders for y crossSection (minVal = 0 if crossSection disabled)
             lbl = this.getCIYLbl(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
             minVal = lbl(1);
             maxVal = lbl(end);
         end
         
-        function out = getCutYVal(this,isRelative,isMatrixPos,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
-            %get current cut position of y axis
+        function out = getCrossSectionYVal(this,isRelative,isMatrixPos,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+            %get current crossSection position of y axis
             if(isRelative && ROIType ~= 0) %val is relative to roi
                 switch ROIType
                     case 1
@@ -142,18 +142,18 @@ classdef FDataNormal < FData
                         %todo
                         yMin = 0;
                 end
-                out = max(0,this.cutYVal - yMin +1);
+                out = max(0,this.crossSectionYVal - yMin +1);
             else
-                out = max(1,this.cutYVal);
+                out = max(1,this.crossSectionYVal);
             end
             if(~isRelative && ~isMatrixPos)
                 out = this.yPos2Lbl(out);
             end
         end
         
-        function out = getCutYInv(this)
-            %set current inv flag for cut of y axis
-            out = this.cutYInv;
+        function out = getCrossSectionYInv(this)
+            %set current inv flag for crossSection of y axis
+            out = this.crossSectionYInv;
         end
 
         %% compute functions         
@@ -197,9 +197,9 @@ classdef FDataNormal < FData
             info.XLblTick = this.getDefaultXLblTick();
             info.YLblStart = [];
             info.YLblTick = this.getDefaultYLblTick();            
-            %make sure current cuts are not beyond current image
-            this.cutX = min(this.cutX,info.XSz);
-            this.cutY = min(this.cutY,info.YSz);
+            %make sure current crossSections are not beyond current image
+            this.crossSectionX = min(this.crossSectionX,info.XSz);
+            this.crossSectionY = min(this.crossSectionY,info.YSz);
             this.cachedImage.info = info;
             this.cachedImage.data = ci;
             ROI.ROICoordinates = ROICoordinates;

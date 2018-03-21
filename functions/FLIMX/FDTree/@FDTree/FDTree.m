@@ -374,11 +374,11 @@ classdef FDTree < handle
             end
         end
         
-        function setCutVec(this,studyName,subjectID,dim,cutVec)
-            %set the cut vector for study studyName at subject subjectID and dimension dim
+        function setResultCrossSection(this,studyName,subjectID,dim,csDef)
+            %set the cross section for study studyName at subject subjectID and dimension dim
             study = this.getStudy(studyName);
             if(~isempty(study))
-                study.setCutVec(subjectID,dim,cutVec);
+                study.setResultCrossSection(subjectID,dim,csDef);
             end
         end
                 
@@ -393,16 +393,16 @@ classdef FDTree < handle
             this.myStudies.changeID(studyID,newStudyName);
         end
         
-        function insertColumnHeaders(this,destination,origin)
-            %insert column headers from origin in destination study
-            destStudy = this.getStudy(destination);
-            originStudy = this.getStudy(origin);
+        function addSubjectInfoColumnNames(this,destinationStudyName,originStudyName)
+            %add column names from origin to destination study
+            destStudy = this.getStudy(destinationStudyName);
+            originStudy = this.getStudy(originStudyName);
             if(~isempty(destStudy) && ~isempty(originStudy))
                 %check and update conditional columns
-                infoCombi = originStudy.getSubjectInfoCombi();
-                oldInfoCombi = destStudy.getSubjectInfoCombi();
-                orgInfoHeads = originStudy.getSubjectInfoHeaders();
-                destInfoHeads = destStudy.getSubjectInfoHeaders();                
+                newInfoCombi = originStudy.getSubjectInfoConditionalColumnDefinitions();
+                oldInfoCombi = destStudy.getSubjectInfoConditionalColumnDefinitions();
+                orgInfoHeads = originStudy.getDataFromStudyInfo('subjectInfoAllColumnNames');
+                destInfoHeads = destStudy.getDataFromStudyInfo('subjectInfoAllColumnNames');                
                 %check subjectInfoHeaders and add new
                 newHeaders = setdiff(orgInfoHeads,destInfoHeads);
                 if(~isempty(newHeaders))
@@ -410,25 +410,36 @@ classdef FDTree < handle
                     for i = 1:length(newHeaders)
                         destStudy.addColumn(newHeaders{i});
                     end
-                end                
+                end
+                overWriteAllFlag = false;
                 for i = 1:length(orgInfoHeads)
-                    str = orgInfoHeads{i};
-                    [tf, idx] = ismember(str,destInfoHeads);
+                    condName = orgInfoHeads{i};
+                    [tf, idx] = ismember(condName,destInfoHeads);
                     if(tf && ~isempty(oldInfoCombi{idx}))
-                        choice = questdlg(sprintf('Do you want to overwrite the condition of "%s"?',...
-                            str),'Inserting Conditional Column','OK','Cancel','OK');
-                        switch choice
-                            case 'Cancel'
-                                %keep old condition
-                                infoCombi(i) = oldInfoCombi(idx);
+                        %a condition matches -> check if the definition is identical
+                        newCol = newInfoCombi{i};
+                        oldCol = oldInfoCombi{idx};
+                        identFlag = strcmp(newCol.colA,oldCol.colA) && strcmp(newCol.colB,oldCol.colB) && strcmp(newCol.logOp,oldCol.logOp)...
+                            && strcmp(newCol.relA,oldCol.relA) && strcmp(newCol.relB,oldCol.relB)...
+                            && newCol.valA == oldCol.valA && newCol.valB == oldCol.valB;
+                        if(~identFlag && ~overWriteAllFlag)
+                            choice = questdlg(sprintf('Condition ''%s'' already exists in study ''%s'' but is different from study ''%s''.\n\nDo you want to overwrite the definition in study ''%s''?',...
+                                condName,destinationStudyName,originStudyName,destinationStudyName),'Inserting Conditional Column','Yes','All','No','Yes');
+                            switch choice
+                                case 'All'
+                                    overWriteAllFlag = true;
+                                case 'No'
+                                    %keep old condition
+                                    newInfoCombi(i) = oldInfoCombi(idx);
+                            end
                         end
                     end
                 end
                 %set merged conditional columns
                 for i = 1:length(orgInfoHeads)
-                    str = orgInfoHeads{i};
-                    [~, idx] = ismember(str,destStudy.getSubjectInfoHeaders());
-                    destStudy.setSubjectInfoCombi(infoCombi(i),idx);
+                    condName = orgInfoHeads{i};
+                    [~, idx] = ismember(condName,destStudy.getDataFromStudyInfo('subjectInfoAllColumnNames'));
+                    destStudy.setSubjectInfoConditionalColumnDefinition(newInfoCombi(i),idx);
                 end
             end
         end
@@ -476,11 +487,11 @@ classdef FDTree < handle
             end
         end
         
-        function setSubjectInfoHeaders(this,studyID,subjectInfoHeaders,idx)
-            %
+        function setSubjectInfoColumnName(this,studyID,newColumnName,idx)
+            %give column at idx in study a new name
             study = this.getStudy(studyID);
             if(~isempty(study))
-                study.setSubjectInfoHeaders(subjectInfoHeaders,idx);
+                study.setSubjectInfoColumnName(newColumnName,idx);
             end
         end
         
@@ -585,19 +596,19 @@ classdef FDTree < handle
             end
         end
         
-        function addCondColumn(this,studyID,opt)
-            %add new conditional column
+        function addConditionalColumn(this,studyID,val)
+            %add new conditional column with definition val
             study = this.getStudy(studyID);
             if(~isempty(study))
-                study.addCondColumn(opt);
+                study.addConditionalColumn(val);
             end
         end
         
-        function setCondColumn(this,studyID,colName,opt)
-            %
+        function setConditionalColumnDefinition(this,studyID,colName,val)
+            %set definition for conditional column in study
             study = this.getStudy(studyID);
             if(~isempty(study))
-                study.setCondColumn(colName,opt);
+                study.setConditionalColumnDefinition(colName,val);
             end
         end
         
@@ -805,7 +816,7 @@ classdef FDTree < handle
                 out = FDTree.defaultConditionName();
                 return
             end
-            out = study.getConditionsStr();
+            out = [{FDTree.defaultConditionName()}; study.getDataFromStudyInfo('subjectInfoConditionalColumnNames');];
         end
                 
         function out = getSubjectName(this,studyID,subjectID)
@@ -1054,7 +1065,7 @@ classdef FDTree < handle
 %             %get subject info headers from study data
 %             study = this.getStudy(studyID);
 %             if(~isempty(study))
-%                 out = study.myStudyInfoSet.getSubjectInfoHeaders();
+%                 out = study.myStudyInfoSet.getDataFromStudyInfo('subjectInfoAllColumnNames');
 %             else
 %                 out = [];
 %             end
@@ -1101,7 +1112,9 @@ classdef FDTree < handle
 %         end
         
         function out = getStudyClustersStr(this,studyID,mode)
-            %
+            %get list of clusters in study
+            %mode 0 - get all subject clusters
+            %mode 1 - get only calculable clusters
             study = this.getStudy(studyID);
             if(~isempty(study))
                 out = study.getStudyClustersStr(mode);
@@ -1110,11 +1123,11 @@ classdef FDTree < handle
             end
         end
         
-%         function out = getSubjectInfoCombi(this,studyID)
+%         function out = getSubjectInfoConditionalColumnDefinitions(this,studyID)
 %             %get subject info combi from study data
 %             study = this.getStudy(studyID);
 %             if(~isempty(study))
-%                 out = study.getSubjectInfoCombi();
+%                 out = study.getSubjectInfoConditionalColumnDefinitions();
 %             else
 %                 out = [];
 %             end
@@ -1160,31 +1173,40 @@ classdef FDTree < handle
 %             end
 %         end
         
-        function out = getDataFromStudyInfo(this,studyID,descriptor)
+        function out = getDataFromStudyInfo(this,studyID,descriptor,subName,colName)
             %get data from study info defined by descriptor
             study = this.getStudy(studyID);
             if(~isempty(study))
-                out = study.getDataFromStudyInfo(descriptor);
+                switch nargin
+                case 3
+                    out = study.getDataFromStudyInfo(descriptor);
+                case 4
+                    out = study.getDataFromStudyInfo(descriptor,subName);
+                case 5
+                    out = study.getDataFromStudyInfo(descriptor,subName,colName);
+                otherwise
+                    out = [];
+                end
             else
                 out = [];
             end
         end
         
-        function out = getColReference(this,studyID,idx)
-            %
+        function out = getConditionalColumnDefinition(this,studyID,idx)
+            %return definition of a conditional column with index idx in study
             study = this.getStudy(studyID);
             if(~isempty(studyID))
-                out = study.getColReference(idx);
+                out = study.getConditionalColumnDefinition(idx);
             else
                 out = [];
             end
         end
         
-        function idx = infoHeaderName2idx(this,studyID,iHName)
-            %
+        function idx = subjectInfoColumnName2idx(this,studyID,columnName)
+            %get the index of a subject info column or check if index is valid
             study = this.getStudy(studyID);
             if(~isempty(study))
-                idx = study.infoHeaderName2idx(iHName);
+                idx = study.subjectInfoColumnName2idx(columnName);
             end
         end
         
@@ -1502,7 +1524,7 @@ classdef FDTree < handle
         end
         
         function checkSubjectFiles(this,studyID,subjectID)
-            %
+            %check the data files on disk in a study for a specific subject or all subjects (subjectID = []) and update internal structs
             study = this.getStudy(studyID);
             if(~isempty(study))
                 study.checkSubjectFiles(subjectID);

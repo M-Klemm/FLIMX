@@ -177,6 +177,11 @@ classdef AICtrl < handle
             end
             set(this.chA,'String',chStr,'Value',chNr+1);
             chObj = this.visObj.fdt.getChObjStr(this.curStudy,subject,max(1,chNr));
+            subjectInfoColumns = this.visObj.fdt.getDataFromStudyInfo(this.curStudy,'subjectInfoRegularNumericColumnNames');
+            for i = 1:length(subjectInfoColumns)
+                subjectInfoColumns{i} = sprintf('subjectInfo->%s',subjectInfoColumns{i});
+            end
+            chObj = [chObj; subjectInfoColumns];
             %remove current arithmetic image from channel objects
             chObj = chObj(~strcmp(chObj,this.curAIName));
             %second flim item channel
@@ -202,6 +207,7 @@ classdef AICtrl < handle
             set(this.FLIMItemA,'String',chObj,'Value',fiNr);
             %second flim item channel
             chObj = this.visObj.fdt.getChObjStr(this.curStudy,subject,max(1,chNr));
+            chObj = [chObj; subjectInfoColumns];
             %remove current arithmetic image from channel objects
             chObj = chObj(~strcmp(chObj,this.curAIName));
             fiNr = find(strcmp(aiParam{idx}.FLIMItemB,chObj));

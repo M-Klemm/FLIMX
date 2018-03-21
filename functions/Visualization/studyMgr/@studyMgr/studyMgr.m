@@ -212,7 +212,7 @@ classdef studyMgr < handle
             else
                 set(this.visHandles.popupStudySelection,'String',sStr,'Value',min(length(sStr),get(this.visHandles.popupStudySelection,'Value')));
             end
-            infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'infoHeaders');
+            infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoAllColumnNames');
             if(~isempty(this.selectedInfoField))
                 curColumn = get(this.visHandles.popupColumnSelection,'String'); %current column name and index
                 if(iscell(curColumn))
@@ -234,7 +234,7 @@ classdef studyMgr < handle
                 set(this.visHandles.popupColumnSelection,'String','-');
                 set(this.visHandles.popupColumnSelection,'Value',1);
             end            
-            subjectInfo = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfo');
+            subjectInfo = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoData');
             subjectFilesData = this.fdt.getSubjectFilesData(this.curStudyName);
             set(this.visHandles.tableStudyData,'Data',subjectInfo,'ColumnEditable',true(1,size(subjectInfo,2))); 
             if(~isempty(subjectFilesData))
@@ -328,51 +328,6 @@ classdef studyMgr < handle
             out = sn;
         end
         
-        function out = getChNo(this,subName)
-            % input dialog for channel number
-            options.Resize='on';
-            options.WindowStyle='modal';
-            options.Interpreter='none';
-            id = this.fdt.getSubjectNr(this.curStudyName,subName);
-            subjectFiles = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectFiles');
-            if(isempty(max([subjectFiles{id,:}])))
-                ch = 1;
-            else
-                ch = max([subjectFiles{id,:}])+1;
-            end            
-            while(true)
-                sn=inputdlg('Enter a new channel number:','Adding new channel',1,{sprintf('%d',ch)},options);
-                if(isempty(sn))
-                    out = [];
-                    return
-                end                
-                sn = str2double(sn);                
-                if(isempty(sn))
-                    choice = questdlg(sprintf('This is not a valid channel identification! Please choose another name.'),...
-                        'Error adding channel','Choose new name','Cancel','Choose new name');
-                    switch choice
-                        case 'Cancel'
-                            return
-                    end
-                    continue;
-                end                
-                check = intersect(sn,[subjectFiles{id,:}]);
-                if(~isempty(check))
-                    choice = questdlg(sprintf('This channel identification is already assigned! Please choose another channel.'),...
-                        'Error adding channel','Choose new channel','Cancel','Choose new channel');
-                    switch choice
-                        case 'Cancel'
-                            return
-                    end
-                    continue;
-                else
-                    %we have a unique name
-                    break;
-                end
-            end %
-            out = sn;
-        end
-        
         function add2Clipboard(this,val)
             %add something to Clipboard
             %First Element: Mode 1: Copy / Mode 2: Cut
@@ -384,12 +339,12 @@ classdef studyMgr < handle
             this.myClipboard = cell(0,0);
         end
         
-        function insertSubjects(this,destination)
+        function insertSubjects(this,destinationStudyName)
             %insert subject in destination study
             %used by the operations copy/move and the study duplication
             
             %check and insert column headers with conditions
-            this.fdt.insertColumnHeaders(destination,this.myClipboard{2});            
+            this.fdt.addSubjectInfoColumnNames(destinationStudyName,this.myClipboard{2});            
             queue = [];
             nSubjects = length(this.myClipboard)-2;
             tStart = clock;
@@ -397,7 +352,7 @@ classdef studyMgr < handle
                 %copy Subject Data for StudyMgr
                 subName = this.fdt.getSubjectName(this.myClipboard{2},this.myClipboard{i});
                 %check subject
-                this.fdt.copySubject(this.myClipboard{2},subName,destination,subName);                
+                this.fdt.copySubject(this.myClipboard{2},subName,destinationStudyName,subName);                
                 %update progress bar
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/(i-2)*(nSubjects-(i-2))); %mean cputime for finished runs * cycles left
                 this.plotProgressbar((i-2)/nSubjects,[],...
@@ -422,7 +377,7 @@ classdef studyMgr < handle
                 this.fdt.checkStudyFiles(this.myClipboard{2});
                 this.fdt.saveStudy(this.myClipboard{2});
             end
-            this.fdt.checkConditionRef(destination,[]);
+            this.fdt.checkConditionRef(destinationStudyName,[]);
             this.plotProgressbar(0,'','');
         end
         
@@ -456,7 +411,7 @@ classdef studyMgr < handle
                 opt.position = fi.position;
                 opt.pixelResolution = fi.pixelResolution;
                 this.FLIMXObj.importResultGUI.openFolderByGUI(this.curStudyName,subName);
-                waitfor(this.FLIMXObj.importResultGUI,'isOpenVisWnd',false);
+                waitfor(this.FLIMXObj.importResultGUI,'isOpenVisWnd',false);                
             end
             this.fdt.checkSubjectFiles(this.curStudyName,'');
             this.updateGUI();
@@ -499,7 +454,7 @@ classdef studyMgr < handle
         end
         
         function menuSaveStudy_Callback(this,hObject,eventdata)
-            %
+            %save changes to current study to disk
             try
                 set(hObject,'String',sprintf('<html><img src="file:/%s"/> Save</html>',FLIMX.getAnimationPath()));
                 drawnow;
@@ -637,7 +592,7 @@ classdef studyMgr < handle
                 end
                 %update progress bar
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(studyNames)-i)); %mean cputime for finished runs * cycles left
-                this.plotProgressbar(i/(length(studyNames)),[],sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec - Importing study ''%s''',100*i/length(studyNames),hours,minutes,secs,newStudyNames{i}));
+                this.plotProgressbar((i-1)/(length(studyNames)),[],sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec - Importing study ''%s''. This may take a few minutes!',100*(i-1)/length(studyNames),hours,minutes,secs,newStudyNames{i}));
                 %check for additional files on disk
                 fn = rdir(fullfile(path,sprintf('%s~FLIMX~%s*.flimxstudy',userNames{i},studyNames{i})));
                 if(~isempty(fn))
@@ -730,7 +685,7 @@ classdef studyMgr < handle
         
         function contextNewColumn_Callback(this,hObject,eventdata)
             %Create new conditional column
-            infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'infoHeaders');
+            infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoAllColumnNames');
             infoHeaders(end+1,1) = {FDTree.defaultConditionName()};
             %init GUI with arbitrary start values
             opt.list = infoHeaders;
@@ -751,7 +706,7 @@ classdef studyMgr < handle
                 if(~opt.cond)
                     this.fdt.addColumn(this.curStudyName,opt.name);
                 else
-                    this.fdt.addCondColumn(this.curStudyName,opt);
+                    this.fdt.addConditionalColumn(this.curStudyName,opt);
                     if(strcmp(this.FLIMXObj.curSubject.myParent.name,this.curStudyName))
                         this.FLIMXObj.FLIMFitGUI.setupGUI();
                     end
@@ -770,8 +725,8 @@ classdef studyMgr < handle
                 return
             end
             %check if conditional column and enable context menu
-            ref = this.fdt.getColReference(this.curStudyName,this.selectedInfoField(2));
-            infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'infoHeaders');
+            ref = this.fdt.getConditionalColumnDefinition(this.curStudyName,this.selectedInfoField(2));
+            infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoAllColumnNames');
             opt.list = infoHeaders;
             opt.ops = {'-no op-','AND','OR','!AND','!OR','XOR','<','>','<=','>=','==','!='};
             opt.name = infoHeaders{this.selectedInfoField(2)};
@@ -786,11 +741,11 @@ classdef studyMgr < handle
                 opt.logOp = 1;
             else
                 opt.cond = true;
-                opt.colA = this.fdt.infoHeaderName2idx(this.curStudyName,ref.colA);
+                opt.colA = this.fdt.subjectInfoColumnName2idx(this.curStudyName,ref.colA);
                 if(isempty(opt.colA))
                     opt.colA = 1;
                 end
-                opt.colB = this.fdt.infoHeaderName2idx(this.curStudyName,ref.colB);
+                opt.colB = this.fdt.subjectInfoColumnName2idx(this.curStudyName,ref.colB);
                 if(isempty(opt.colB))
                     opt.colB = 1;
                 end
@@ -808,14 +763,14 @@ classdef studyMgr < handle
             opt = GUI_conditionalCol(opt);
             if(~isempty(opt))
                 %modify conditional column
-                this.fdt.setSubjectInfoHeaders(this.curStudyName,opt.name,this.selectedInfoField(2));
+                this.fdt.setSubjectInfoColumnName(this.curStudyName,opt.name,this.selectedInfoField(2));
                 if(opt.cond)
                     %set or update condition
-                    this.fdt.setCondColumn(this.curStudyName,opt.name,opt);
+                    this.fdt.setConditionalColumnDefinition(this.curStudyName,opt.name,opt);
                 else
                     if(~isempty(ref))
                         %delete old condition and reset table values
-                        this.fdt.setCondColumn(this.curStudyName,opt.name,[]);
+                        this.fdt.setConditionalColumnDefinition(this.curStudyName,opt.name,[]);
                     end
                 end
                 this.updateGUI();
@@ -852,7 +807,7 @@ classdef studyMgr < handle
         
         function contextMoveColEnd_Callback(this,hObject,eventdata)
             %move selected column to end
-            headers = this.fdt.getDataFromStudyInfo(this.curStudyName,'infoHeaders');
+            headers = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoAllColumnNames');
             col = this.selectedInfoField(2);
             while(col < length(headers))
                 this.fdt.swapColumn(this.curStudyName,col,1);
@@ -865,13 +820,13 @@ classdef studyMgr < handle
         function contextDelColumn_Callback(this,hObject,eventdata)
             %delete selected column
             col=this.selectedInfoField(2);
-            infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'infoHeaders');
+            infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoAllColumnNames');
             if(col > size(infoHeaders,1))
                 %if index is greater than column number (i.e. table is empty or
                 %user deleted a column at the end without selecting new cell)
                 col = size(infoHeaders,1);
             end
-            if(col>0);
+            if(col>0)
                 choice = questdlg(sprintf('Do you really want to delete Column "%s" ?',...
                     infoHeaders{col,1}),'Delete Column','Yes','Cancel','Yes');
                 %Handle response
@@ -916,17 +871,14 @@ classdef studyMgr < handle
                 %conditional column?
                 this.updateGUI();
                 return
-            end
-            if(~isnumeric(new) && all(isstrprop(new,'digit')))
-                new = str2double(new);
-            end
+            end    
             this.fdt.setSubjectInfo(this.curStudyName,eventdata.Indices(1),eventdata.Indices(2),new);
             this.updateGUI();
         end
         
         function GUI_studySelPop_Callback(this,hObject,eventdata)
             %select a study
-            if(~isempty(this.fdt.getDataFromStudyInfo(this.curStudyName,'infoHeaders')))
+            if(~isempty(this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoAllColumnNames')))
                 %select first column
                 this.selectedInfoField = [1 1];
             end
@@ -1018,8 +970,7 @@ classdef studyMgr < handle
                 this.add2Clipboard(2);  %Clipboard-Mode: Cut
             else
                 this.add2Clipboard(1);  %Clipboard-Mode: Copy
-            end
-            
+            end            
             %Second element: Study Number
             this.add2Clipboard(this.curStudyName);
             %Other elements: Subject Numbers
@@ -1033,31 +984,33 @@ classdef studyMgr < handle
             %Insert Subject from Clipboard in current Study
             if(isempty(this.myClipboard))
                 return
-            end
-            
+            end            
             if(this.fdt.checkStudyDirtyFlag(this.curStudyName))
                 %warning dialog
-                choice = questdlg(sprintf('All changes in study ''%s'' will be saved. Do you want to continue?',this.curStudyName),...
-                    'Inserting Subjects','Yes','Abort','Abort');
-                switch choice
-                    case 'Yes'
-                        %
-                    case 'Abort'
-                        return
-                end %end switch
-            end %end if
-            
+                if(this.fdt.checkStudyDirtyFlag(this.curStudyName))
+                    choice = questdlg(sprintf('All changes in study ''%s'' will be saved. Do you want to continue?',this.curStudyName),...
+                        'Inserting Subjects','Yes','Abort','Abort');
+                    switch choice
+                        case 'Yes'
+                            this.fdt.saveStudy(this.curStudyName);
+                        case 'Abort'
+                            return
+                    end %end switch
+                end
+            end            
             %Subject in Clipboard is from current Study
             if(this.curStudyNr == this.myClipboard{2})
                 errordlg('You can not copy a Subject to itself! Please select another Study!',...
                     'Error inserting Subject');
                 return
             end
-            
             %insert subjects
             this.insertSubjects(this.curStudyName);
             this.fdt.saveStudy(this.curStudyName);
             this.updateGUI();
+            this.visObj.setupGUI();
+            this.FLIMXObj.FLIMFitGUI.setupGUI();
+            this.FLIMXObj.FLIMFitGUI.updateGUI(true);
         end
         
         function menuDuplicateSubject_Callback(this,hObject,eventdata)
@@ -1068,7 +1021,7 @@ classdef studyMgr < handle
                     'Inserting Subjects','Yes','Abort','Abort');
                 switch choice
                     case 'Yes'
-                        %
+                        this.fdt.saveStudy(this.curStudyName);
                     case 'Abort'
                         return
                 end %end switch
@@ -1266,7 +1219,7 @@ classdef studyMgr < handle
             %import subject info from excel file
             mode = 1;
             %if(~isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())))
-            si = cellfun(@isempty,this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfo'));
+            si = cellfun(@isempty,this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoData'));
             if(~all(si(:)))
                 choice = questdlg(sprintf('Either delete all current subject information for all subjects in study ''%s'' or update existing subject information and add new subjects?',this.curStudyName),'Importing Subject Information from Excel Data','Update and Add New','Delete Old Info','Abort','Update and Add New');
                 switch choice

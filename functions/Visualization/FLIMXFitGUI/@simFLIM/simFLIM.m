@@ -79,12 +79,6 @@ classdef simFLIM < handle
             %create a new simSubject based on sdc
             out = subject4Sim(this.currentStudy,sdc,this.FLIMXObj.paramMgr,this.FLIMXObj.irfMgr);
             out.update();
-%             if(~isempty(sdc))
-%                 this.mySimSubject.setTacRange(sdc.tacRange);
-%                 this.mySimSubject.setNrTimeChannels(sdc.nrTimeChannels);
-%                 this.mySimSubject.setNrSpectralChannels(sdc.nrSpectralChannels);
-                %this.mySimSubject.getSEPosRM(sdc.channelNr); %make start/end positions + reflection mask                
-%             end
             out.updatebasicParams(sdc);            
             out.preProcessParams.roiBinning = 0;
             out.preProcessParams.roiAdaptiveBinEnable = 0;

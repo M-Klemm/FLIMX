@@ -52,7 +52,7 @@ classdef subjectDS < handle
         end
         
         function addObj(this,chan,dType,gScale,data)
-            %
+            %add an object to FDTree and generate id (running number) automatically
             if(isempty(dType))
                 %add only empty channel
                 this.myChannels.insertID(Channel(this),chan);
@@ -81,12 +81,11 @@ classdef subjectDS < handle
         end
         
         function addObjID(this,nr,chan,dType,gScale,data)
-            %
+            %add an object to FDTree with specific id (running number)
             %save size of data for whole subject if it is globally scaled
             if(gScale && isempty(this.width))
                 [this.height, this.width] = size(data);
-            end
-            
+            end            
             if(gScale)
                 %check if size of current data matches subject size
                 [y, x, z] = size(data);
@@ -105,8 +104,7 @@ classdef subjectDS < handle
         end
         
         function addObjMergeID(this,nr,chan,dType,gScale,data)
-            %add merged FData object
-            
+            %add merged FData object            
             %insert data in specific channel
             chObj = this.myChannels.getDataByID(chan);
             if(isempty(chObj))
@@ -239,7 +237,7 @@ classdef subjectDS < handle
                 end
                 this.myFileInfo{chan,1} = resultObj.getFileInfoStruct(chan);
                 newItems = removeNonVisItems(allItems,this.FLIMXParamMgrObj.generalParams.flimParameterView);
-                cutVec = this.myParent.getResultCuts(this.name);
+                csDef = this.myParent.getResultCrossSection(this.name);
                 %we may update an exiting subject -> remove unwanted items
                 chObj = this.myChannels.getDataByID(chan);
                 if(~isempty(chObj))
@@ -327,12 +325,17 @@ classdef subjectDS < handle
                         this.addObjID(0,chan,'Intensity',1,resultObj.getPixelFLIMItem(chan,'Intensity'));
                     end
                 end
-                %make arithmetic images
-                this.myParent.clearArithmeticRIs();
-                if(~isempty(cutVec) && length(cutVec) == 6)
+%                 %make arithmetic images
+%                 aiNames = this.myParent.getArithmeticImage();
+%                 for j = 1:length(aiNames)
+%                     if(~isempty(aiNames{j}))
+%                         this.clearAllRIs(aiNames{j});
+%                     end
+%                 end
+                if(~isempty(csDef) && length(csDef) == 6)
                     %set cuts for new items
-                    this.setCutVec('X',cutVec(1:3));
-                    this.setCutVec('Y',cutVec(4:6));
+                    this.setResultCrossSection('X',csDef(1:3));
+                    this.setResultCrossSection('Y',csDef(4:6));
                 end
                 %this.updateShortProgress(1,sprintf('Finished. (Ch %s)',num2str(chan)));
                 this.updateShortProgress(0,'');
@@ -358,10 +361,10 @@ classdef subjectDS < handle
             end
         end
         
-        function setCutVec(this,dim,cutVec)
-            %set the cut vector for dimension dim
+        function setResultCrossSection(this,dim,csDef)
+            %set the cross section for dimension dim
             for i = 1:this.myChannels.queueLen
-                this.myChannels.getDataByPos(i).setCutVec(dim,cutVec);
+                this.myChannels.getDataByPos(i).setResultCrossSection(dim,csDef);
             end
         end
         
@@ -429,7 +432,7 @@ classdef subjectDS < handle
             end
             out.x = cell(0,0);
             out.y = cell(0,0);
-            if(~isstruct(gMVs) || isstruct(gMVs) && ~all(isfield(gMVs,{'x','y','ROI'})));
+            if(~isstruct(gMVs) || isstruct(gMVs) && ~all(isfield(gMVs,{'x','y','ROI'})))
                 %we did not get cluster targets
                 warning('subjectDS:getClusterTargets','Could not get cluster targets for subject ''%s'' in study ''%s''',this.name,this.myParent.name);
                 return
@@ -498,12 +501,12 @@ classdef subjectDS < handle
             end
         end
         
-        function out = getCutX(this)
+        function out = getCrossSectionX(this)
             %get current cut position of x axis in subject
             out = this.cut_x;
         end
         
-        function out = getCutXInv(this)
+        function out = getCrossSectionXInv(this)
             %get current inv flag for cut of x axis in subject
             out = this.cut_x_inv;
         end
@@ -616,8 +619,7 @@ classdef subjectDS < handle
             %compute arithmetic images (all if aiName is empty)
             if(isempty(aiName) || isempty(aiParams))
                 return
-            end
-            [dTypeA, dTypeANr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
+            end            
             %check for which channels the arithmetic image should be built
             [~, totalCh] = this.myParent.getChStr(this.name);
             if(aiParams.chA == 0 || aiParams.chB == 0)
@@ -635,16 +637,22 @@ classdef subjectDS < handle
             else
                 chBList = repmat(aiParams.chB,1,nCh);
             end
+            
             %loop over channels
             for chIdx = 1:nCh
-                %make sure channel was loaded from disk
-                this.loadChannelResult(chAList(chIdx));
-                %ask study for FData object, if this is an arithmetic image, study will buld it if needed
-                fd = this.myParent.getFDataObj(this.name,chAList(chIdx),dTypeA{1},dTypeANr(1),1);
-                if(isempty(fd))
-                    continue
+                if(strncmp(aiParams.FLIMItemA,'subjectInfo->',13))
+                    %get data from subject info
+                    colName = aiParams.FLIMItemA(14:end);
+                    dataA = this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,colName);
+                else
+                    [dTypeA, dTypeANr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
+                    %ask study for FData object, if this is an arithmetic image, study will build it if needed
+                    fd = this.myParent.getFDataObj(this.name,chAList(chIdx),dTypeA{1},dTypeANr(1),1);
+                    if(isempty(fd))
+                        continue
+                    end
+                    dataA = fd.getFullImage();
                 end
-                dataA = fd.getFullImage();
                 if(isempty(dataA))
                     continue
                 end
@@ -665,15 +673,19 @@ classdef subjectDS < handle
                         eval(sprintf('data = %s(data %s (dataA %s %f));',neg,op,aiParams.opB,single(aiParams.valB)));
                     end
                 else %compare against another FLIMItem
-                    [dTypeB, dTypeBNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemB);
-                    %make sure channel was loaded from disk
-                    this.loadChannelResult(chBList(chIdx));
-                    %ask study for FData object, if this is an arithmetic image, study will buld it if needed
-                    fd = this.myParent.getFDataObj(this.name,chBList(chIdx),dTypeB{1},dTypeBNr(1),1);
-                    if(isempty(fd))
-                        continue
+                    if(strncmp(aiParams.FLIMItemB,'subjectInfo->',13))
+                        %get data from subject info
+                        colName = aiParams.FLIMItemB(14:end);
+                        dataB = this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,colName);
+                    else
+                        [dTypeB, dTypeBNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemB);
+                        %ask study for FData object, if this is an arithmetic image, study will build it if needed
+                        fd = this.myParent.getFDataObj(this.name,chBList(chIdx),dTypeB{1},dTypeBNr(1),1);
+                        if(isempty(fd))
+                            continue
+                        end
+                        dataB = fd.getFullImage();
                     end
-                    dataB = fd.getFullImage();
                     if(isempty(dataB))
                         continue
                     end
@@ -698,11 +710,11 @@ classdef subjectDS < handle
                 %save arithmetic image
                 this.addObjID(0,chAList(chIdx),aiName,1,data);
             end
-            cutVec = this.myParent.getResultCuts(this.name);
-            if(~isempty(cutVec) && length(cutVec) == 6)
-                %set cuts for new items
-                this.setCutVec('X',cutVec(1:3));
-                this.setCutVec('Y',cutVec(4:6));
+            csDef = this.myParent.getResultCrossSection(this.name);
+            if(~isempty(csDef) && length(csDef) == 6)
+                %set cross sections for new items
+                this.setResultCrossSection('X',csDef(1:3));
+                this.setResultCrossSection('Y',csDef(4:6));
             end
         end
         

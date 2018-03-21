@@ -74,6 +74,7 @@ classdef subject4Import < fluoSubject
             for i = 1:length(idx)
                 this.updateSubjectChannel(idx(i),'result');
             end
+            this.myParent.clearArithmeticRIs(); %not sure if needed here
         end
         
         function addFLIMItems(this,ch,itemsStruct)
@@ -83,6 +84,9 @@ classdef subject4Import < fluoSubject
             for i = 1:length(idx)
                 this.updateSubjectChannel(idx(i),'result');
             end
+            %we might overwrite something that is used for an arithmetic image -> clear them 
+            %(we don't have a method to clear only a specific subject, thus clear the whole study)
+            this.myParent.clearArithmeticRIs();
         end
         
         function init(this)

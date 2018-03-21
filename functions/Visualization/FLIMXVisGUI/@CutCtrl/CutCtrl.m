@@ -131,14 +131,14 @@ classdef CutCtrl < handle
                 minVal = tmp(1);
                 maxVal = tmp(2);
             else
-                [minVal, maxVal] = hfd.(sprintf('getCut%sBorders',upper(this.myAxis)))(this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag);
+                [minVal, maxVal] = hfd.(sprintf('getCrossSection%sBorders',upper(this.myAxis)))(this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag);
             end
             minVal = double(minVal);
             maxVal = double(maxVal);
             step = hfd.(sprintf('get%sLblTick',upper(this.myAxis)));
-            eFlag = hfd.(sprintf('getCut%s',upper(this.myAxis)));
-            iFlag = hfd.(sprintf('getCut%sInv',upper(this.myAxis)));
-            cur = hfd.(sprintf('getCut%sVal',upper(this.myAxis)))(false,false,this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag);
+            eFlag = hfd.(sprintf('getCrossSection%s',upper(this.myAxis)));
+            iFlag = hfd.(sprintf('getCrossSection%sInv',upper(this.myAxis)));
+            cur = hfd.(sprintf('getCrossSection%sVal',upper(this.myAxis)))(false,false,this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag);
             %check borders
             cur = max(min(cur,maxVal),minVal);
         end
@@ -177,9 +177,9 @@ classdef CutCtrl < handle
             %make sure cut value is a matrix position
             val = hfd.(sprintf('%sLbl2Pos',this.myAxis))(round(get(this.slider,'Value')));
             if(hfd.globalScale)
-                this.visObj.fdt.setCutVec(this.visObj.getStudy('l'),this.visObj.getSubject('l'),this.myAxis,[get(this.check,'Value') val get(this.inv,'Value')]);
+                this.visObj.fdt.setResultCrossSection(this.visObj.getStudy('l'),this.visObj.getSubject('l'),this.myAxis,[get(this.check,'Value') val get(this.inv,'Value')]);
             else
-                hfd.setCutVec(this.myAxis,[get(this.check,'Value') val get(this.inv,'Value')]);
+                hfd.setResultCrossSection(this.myAxis,[get(this.check,'Value') val get(this.inv,'Value')]);
                 end
             end
                 

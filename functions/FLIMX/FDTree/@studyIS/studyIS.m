@@ -32,16 +32,16 @@ classdef studyIS < handle
     % @brief    A class to represent info data of a study
     %
     properties(GetAccess = protected, SetAccess = private)
-        myParent = [];      %handle to study
-        subjects = cell(0,0); %list of subject names
-        infoHeaders = cell(0,0); %descriptions of patient data columns
+        myParent = []; %handle to study
+        subjectNames = cell(0,0); %list of subject names
+        subjectInfoColumnNames = cell(0,0); %descriptions of patient data columns
         filesHeaders = {'Subject' 'Meas. Chs' 'Result Chs'}; %descriptions of channel data columns
-        subjectInfo =  cell(0,0);%additional patient data
-        subjectInfoCombi = cell(0,0); %condition / combination between patient data
+        subjectInfo = cell(0,0); %additional patient data
+        subjectInfoConditionDefinition = cell(0,0); %condition / combination between patient data
         resultFileChs = cell(0,0); %result channels of each subject
         measurementFileChs = cell(0,0); %measurement channels of each subject
         studyClusters = cell(0,0); %cluster parameters for this study
-        resultCuts = cell(0,0); %cuts for each subject
+        resultCrossSection = cell(0,0); %cross sections for each subject
         resultROICoordinates = cell(0,0); %rois for each subject  
         resultZScaling = cell(0,0); %z scaling for each subject
         resultColorScaling = cell(0,0); %color scaling for each subject
@@ -61,8 +61,8 @@ classdef studyIS < handle
             %constructor for studyIS
             this.myParent = parent;
             %             this.subjectFilesHeaders = [{'Subject'} {'Channels'}];
-            this.infoHeaders(1,1) = {'column 1'};
-            this.subjectInfoCombi(1,1) = {[]};
+            this.subjectInfoColumnNames(1,1) = {'column 1'};
+            this.subjectInfoConditionDefinition(1,1) = {[]};
             this.conditionColors(1,1) = {FDTree.defaultConditionName()};
             this.conditionColors(2,1) = {studyIS.makeRndColor()};
         end
@@ -71,11 +71,11 @@ classdef studyIS < handle
         function loadStudyIS(this,import)
             %load study info set
             [import,dirtyFlag] = studyIS.checkStudyConsistency(import);            
-            this.subjects = import.subjects;
-            this.infoHeaders = import.infoHeaders;
+            this.subjectNames = import.subjectNames;
+            this.subjectInfoColumnNames = import.subjectInfoColumnNames;
             %             this.subjectFilesHeaders = import.subjectFilesHeaders;
             this.subjectInfo = import.subjectInfo;
-            this.subjectInfoCombi = import.subjectInfoCombi;
+            this.subjectInfoConditionDefinition = import.subjectInfoConditionDefinition;
             this.allFLIMItems = import.allFLIMItems;
             this.resultFileChs = import.resultFileChs;
             this.measurementFileChs = import.measurementFileChs;
@@ -83,7 +83,7 @@ classdef studyIS < handle
             this.resultROICoordinates = import.resultROICoordinates;
             this.resultZScaling = import.resultZScaling;
             this.resultColorScaling = import.resultColorScaling;
-            this.resultCuts = import.resultCuts;
+            this.resultCrossSection = import.resultCrossSection;
             this.IRFInfo = import.IRFInfo;
             this.arithmeticImageInfo = import.arithmeticImageInfo;
             this.conditionColors = import.conditionColors;
@@ -91,47 +91,47 @@ classdef studyIS < handle
             this.setDirty(dirtyFlag);
         end
         
-        function setSubjects(this,subjects,idx)
+        function setSubjectName(this,subjects,idx)
             %set list of subjects or single subject
             if(isempty(idx))
                 %set all subjects (initial cas)
-                this.subjects = [];
-                this.subjects = subjects;
+                this.subjectNames = [];
+                this.subjectNames = subjects;
             else
                 %set a single subject
-                this.subjects(idx,1) = {subjects};
+                this.subjectNames(idx,1) = {subjects};
                 this.setDirty(true);
             end
         end
         
-        function setSubjectInfoHeaders(this,infoHeaders,idx)
-            %set subjectInfoHeader(s)
+        function setSubjectInfoColumnName(this,newColumnName,idx)
+            %give column at idx a new name
             if(isempty(idx))
-                %set all infoHeaders (initial case)
-                this.infoHeaders = infoHeaders;
+                %set all subjectInfoColumnNames (initial case)
+                this.subjectInfoColumnNames = newColumnName;
             else
                 %set a single subjectInfoHeader
-                oldName = this.infoHeaders{idx,1};
-                %check if renamed colum is a reference for a combination
-                for i=1:length(this.infoHeaders)
-                    ref = this.subjectInfoCombi{i,1};
+                oldName = this.subjectInfoColumnNames{idx,1};
+                %check if renamed colum is a reference for a conditional column
+                for i=1:length(this.subjectInfoColumnNames)
+                    ref = this.subjectInfoConditionDefinition{i,1};
                     if(isempty(ref))
-                        %column is not a combination
+                        %column is not a conditional column
                         continue
                     end
                     if(strcmp(ref.colA,oldName))
                         %reference found
-                        ref.colA = infoHeaders;
-                        this.subjectInfoCombi{i,1} = ref;
+                        ref.colA = newColumnName;
+                        this.subjectInfoConditionDefinition{i,1} = ref;
                     end
                     if(strcmp(ref.colB,oldName))
                         %reference found
-                        ref.colB = infoHeaders;
-                        this.subjectInfoCombi{i,1} = ref;
+                        ref.colB = newColumnName;
+                        this.subjectInfoConditionDefinition{i,1} = ref;
                     end
                 end
-                %set new header
-                this.infoHeaders{idx,1} = infoHeaders;
+                %set new column name
+                this.subjectInfoColumnNames{idx,1} = newColumnName;
                 this.setDirty(true);
             end
         end
@@ -149,15 +149,11 @@ classdef studyIS < handle
             end
         end
         
-        function setSubjectInfoCombi(this,ref,idx)
-            %set subjectInfoCombi
-            if(isempty(idx))
-                %set all subjectInfoCombi (initial case)
-                this.subjectInfoCombi = [];
-                this.subjectInfoCombi = ref;
-            else
-                %set single subjectInfoCombi
-                this.subjectInfoCombi(idx,1) = ref;
+        function setSubjectInfoConditionalColumnDefinition(this,ref,idx)
+            %set definition def of a conditional column with the index idx
+            if(idx <= size(this.subjectInfoConditionDefinition,1))
+                %set single definition
+                this.subjectInfoConditionDefinition(idx,1) = ref;
                 this.setDirty(true);
             end
         end
@@ -211,7 +207,7 @@ classdef studyIS < handle
             %reset ROI for subject
             if(isempty(idx))
                 this.resultROICoordinates = [];
-                this.resultROICoordinates = cell(size(this.subjects));
+                this.resultROICoordinates = cell(size(this.subjectNames));
             else
                 %set single value
                 idx = this.subName2idx(idx);
@@ -226,7 +222,7 @@ classdef studyIS < handle
             %reset z scaling for subject
             if(isempty(idx))
                 this.resultZScaling = [];
-                this.resultZScaling = cell(size(this.subjects));
+                this.resultZScaling = cell(size(this.subjectNames));
             else
                 %set single value
                 idx = this.subName2idx(idx);
@@ -241,7 +237,7 @@ classdef studyIS < handle
             %reset color scaling for subject
             if(isempty(idx))
                 this.resultColorScaling = [];
-                this.resultColorScaling = cell(size(this.subjects));
+                this.resultColorScaling = cell(size(this.subjectNames));
             else
                 %set single value
                 idx = this.subName2idx(idx);
@@ -252,15 +248,15 @@ classdef studyIS < handle
             end
         end
         
-        function clearCuts(this,idx)
+        function clearCrossSections(this,idx)
             %reset cross sections
             if(isempty(idx))
-                this.resultCuts = cell(size(this.subjects));
+                this.resultCrossSection = cell(size(this.subjectNames));
             else
                 %set single value
                 idx = this.subName2idx(idx);
                 if(~isempty(idx))
-                    this.resultCuts(idx) = cell(1,1);
+                    this.resultCrossSection(idx) = cell(1,1);
                     this.setDirty(true);
                 end
             end
@@ -289,7 +285,15 @@ classdef studyIS < handle
         end
         
         function setSubjectInfo(this,irow,icol,newData)
-            %set new value of subjectInfo in table studyData
+            %set data in subject info at specific row and column
+            idx = find(~cellfun(@isempty,this.subjectInfo(:,icol)));
+            if(isempty(idx) && (~isnumeric(newData) && all(isstrprop(newData,'digit')) || ischar(newData) && length(newData) >= 2 && strcmp(newData(1),'-') && all(isstrprop(newData(2:end),'digit'))))
+                %the subject info column is empty and the data seems to be numeric -> convert it
+                newData = str2double(newData);
+            elseif(~isempty(idx) && ~isnumeric(newData) && isnumeric(this.subjectInfo{idx(1),icol}))
+                %there is old data, which is numeric -> also convert the new data (if this is a string it will become NaN)
+                newData = str2double(newData);
+            end
             this.subjectInfo(irow,icol) = {newData};
             this.checkConditionRef([]);
             this.setDirty(true);
@@ -428,21 +432,21 @@ classdef studyIS < handle
             this.setDirty(true);
         end
         
-        function setCutVec(this,subName,dim,cutVec)
-            %set the cut vector for subject subName
+        function setResultCrossSection(this,subName,dim,csDef)
+            %set the cross section for subject subName
             idx = this.subName2idx(subName);
-            if(isempty(idx) || length(cutVec) ~= 3)
-                %subject not in study or cutVec size is wrong
+            if(isempty(idx) || length(csDef) ~= 3)
+                %subject not in study or csDef size is wrong
                 return
             end
-            tmp = this.resultCuts{idx};
+            tmp = this.resultCrossSection{idx};
             switch upper(dim)
                 case 'X'
-                    tmp(1:3) = cutVec;
+                    tmp(1:3) = csDef;
                 case 'Y'
-                    tmp(4:6) = cutVec;
+                    tmp(4:6) = csDef;
             end
-            this.resultCuts(idx) = {tmp};
+            this.resultCrossSection(idx) = {tmp};
             this.setDirty(true);
         end
         
@@ -457,25 +461,24 @@ classdef studyIS < handle
             this.setDirty(true);
         end
                 
-        function setCondColumn(this,colName,opt)
-            %edit existing conditional column
-            n = this.infoHeaderName2idx(colName);
-            if(isempty(opt))
+        function setConditionalColumnDefinition(this,colName,val)
+            %set definition for conditional column
+            n = this.subjectInfoColumnName2idx(colName);
+            if(isempty(val))
                 %delete condition
                 ref = [];
                 this.subjectInfo(:,n) = cell(this.nrSubjects,1);
             else
-                ref.colA = opt.list{opt.colA};      %column A
-                ref.colB = opt.list{opt.colB};      %column B
-                ref.logOp = opt.ops{opt.logOp};     %logical operator
-                ref.relA = opt.ops{opt.relA + 6};   %relational operator of colA
-                ref.relB = opt.ops{opt.relB + 6};   %relational operator of colB
-                ref.valA = opt.valA;                %relation value of colA
-                ref.valB = opt.valB;                %relation value of colB
+                ref.colA = val.list{val.colA};      %column A
+                ref.colB = val.list{val.colB};      %column B
+                ref.logOp = val.ops{val.logOp};     %logical operator
+                ref.relA = val.ops{val.relA + 6};   %relational operator of colA
+                ref.relB = val.ops{val.relB + 6};   %relational operator of colB
+                ref.valA = val.valA;                %relation value of colA
+                ref.valB = val.valB;                %relation value of colB
             end
             %save new reference for condition / combination
-            this.subjectInfoCombi{n,1} = ref;
-            
+            this.subjectInfoConditionDefinition{n,1} = ref;            
             %update conditions / combinations
             this.checkConditionRef([]);
             this.setDirty(true);
@@ -531,51 +534,43 @@ classdef studyIS < handle
                 %this is already subject
                 return
             end
-            this.subjects(end+1,1) = {subName};
+            this.subjectNames(end+1,1) = {subName};
             this.resultFileChs(end+1,:) = cell(1,max(1,size(this.resultFileChs,2)));
             this.measurementFileChs(end+1,:) = cell(1,max(1,size(this.measurementFileChs,2)));
             this.subjectInfo(end+1,:) = cell(1,max(1,size(this.subjectInfo,2)));
             this.resultROICoordinates(end+1) = cell(1,1);
             this.resultZScaling(end+1) = cell(1,1);
             this.resultColorScaling(end+1) = cell(1,1);
-            this.resultCuts(end+1) = cell(1,1);
+            this.resultCrossSection(end+1) = cell(1,1);
             this.allFLIMItems(end+1,:) = cell(1,max(1,size(this.resultFileChs,2)));
             %sort subjects
             this.sortSubjects();
             this.checkConditionRef([]);
             this.setDirty(true);
         end
-        
-        function addSubjectInfoHeader(this,name)
-            %add subjectInfoHeader at the end of the table
-            this.infoHeaders(size(this.infoHeaders,2)+1,1) = {name};
-            this.subjectInfo(:,size(this.infoHeaders,2)) = cell(size(this.subjectInfo,1),1);
-            this.subjectInfoCombi(size(this.infoHeaders,2),1) = cell(1,1);
-            this.setDirty(true);
-        end
-        
+                       
         function addColumn(this,name)
             %insert new column at the end of the table            
-            this.infoHeaders(end+1,1)= {name};
+            this.subjectInfoColumnNames(end+1,1)= {name};
             this.subjectInfo(:,end+1)= cell(max(1,size(this.subjectInfo,1)),1);
-            this.subjectInfoCombi(end+1,1) = cell(1,1);
+            this.subjectInfoConditionDefinition(end+1,1) = cell(1,1);
             this.setDirty(true);
         end
         
-        function addCondColumn(this,opt)
+        function addConditionalColumn(this,val)
             %create a new conditional column out of two existing columns
-            ref.colA = opt.list{opt.colA};      %column A
-            ref.colB = opt.list{opt.colB};      %column B
-            ref.logOp = opt.ops{opt.logOp};     %logical operator
-            ref.relA = opt.ops{opt.relA + 6};   %relational operator of colA
-            ref.relB = opt.ops{opt.relB + 6};   %relational operator of colB
-            ref.valA = opt.valA;                %relation value of colA
-            ref.valB = opt.valB;                %relation value of colB            
-            this.addColumn(opt.name);
+            ref.colA = val.list{val.colA};      %column A
+            ref.colB = val.list{val.colB};      %column B
+            ref.logOp = val.ops{val.logOp};     %logical operator
+            ref.relA = val.ops{val.relA + 6};   %relational operator of colA
+            ref.relB = val.ops{val.relB + 6};   %relational operator of colB
+            ref.valA = val.valA;                %relation value of colA
+            ref.valB = val.valB;                %relation value of colB            
+            this.addColumn(val.name);
             %save reference for condition / combination
-            n = this.infoHeaderName2idx(opt.name);
-            this.subjectInfoCombi{n,1} = ref;
-            this.setConditionColor(opt.name,[]);
+            n = this.subjectInfoColumnName2idx(val.name);
+            this.subjectInfoConditionDefinition{n,1} = ref;
+            this.setConditionColor(val.name,[]);
             %update conditions / combinations
             this.checkConditionRef(n);
             this.setDirty(true);
@@ -590,15 +585,15 @@ classdef studyIS < handle
             this.allFLIMItems(subjectPos,1:length(data.allFLIMItems)) = data.allFLIMItems;
             
             %fill subject info fields with data
-            for i = 1:length(data.infoHeaders)
-                str = data.infoHeaders{i,1};
-                [~, idx] = ismember(str,this.infoHeaders);
+            for i = 1:length(data.subjectInfoColumnNames)
+                str = data.subjectInfoColumnNames{i,1};
+                [~, idx] = ismember(str,this.subjectInfoColumnNames);
                 this.subjectInfo(subjectPos,idx) = data.subjectInfo(1,i);
             end
             this.resultROICoordinates(subjectPos) = data.resultROICoordinates;
             this.resultZScaling(subjectPos) = data.resultZScaling;
             this.resultColorScaling(subjectPos) = data.resultColorScaling;
-            this.resultCuts(subjectPos) = data.resultCuts;
+            this.resultCrossSection(subjectPos) = data.resultCrossSection;
             this.setDirty(true);
         end
         
@@ -619,41 +614,41 @@ classdef studyIS < handle
             end            
             switch mode
                 case 1 %Delete Old Info
-                    this.infoHeaders = xlsHeads;
+                    this.subjectInfoColumnNames = xlsHeads;
                     this.subjectInfo = cell(0,0);
-                    this.subjectInfoCombi = cell(size(this.infoHeaders));
+                    this.subjectInfoConditionDefinition = cell(size(this.subjectInfoColumnNames));
                 case 2 %Update and Add New
                     %remove existing conditional columns from import
                     for i = length(xlsHeads):-1:1
-                        if(~isempty(this.getColReference(this.infoHeaderName2idx(xlsHeads{i}))))
+                        if(~isempty(this.getConditionalColumnDefinition(this.subjectInfoColumnName2idx(xlsHeads{i}))))
                             xlsHeads(i) = [];
                         end
                     end                    
                     %determine already existing info headers
-                    newHeads = setdiff(xlsHeads,this.infoHeaders);
+                    newHeads = setdiff(xlsHeads,this.subjectInfoColumnNames);
                     diff = length(newHeads);
                     if(diff > 0) %add new info columns
-                        this.infoHeaders(end+1:end+diff,1) = cell(diff,1);
+                        this.subjectInfoColumnNames(end+1:end+diff,1) = cell(diff,1);
                         this.subjectInfo(:,end+1:end+diff) = cell(size(this.subjectInfo,1),diff);
-                        this.subjectInfoCombi(end+1:end+diff,1) = cell(diff,1);
+                        this.subjectInfoConditionDefinition(end+1:end+diff,1) = cell(diff,1);
                     end
                     %add new info headers
-                    this.infoHeaders(end+1-diff:end,1) = newHeads;
+                    this.subjectInfoColumnNames(end+1-diff:end,1) = newHeads;
             end            
             %update existing subjects and add new info
-            for i = 1:length(this.subjects)
-                idxXls = find(strcmp(this.subjects{i},xlsSubs),1);
+            for i = 1:length(this.subjectNames)
+                idxXls = find(strcmp(this.subjectNames{i},xlsSubs),1);
                 if(~isempty(idxXls)) %should not be empty...
-                    if(size(this.subjectInfo,2) < length(this.infoHeaders))
-                        diff = length(this.infoHeaders) - size(this.subjectInfo,2);
+                    if(size(this.subjectInfo,2) < length(this.subjectInfoColumnNames))
+                        diff = length(this.subjectInfoColumnNames) - size(this.subjectInfo,2);
                         this.subjectInfo(:,end+1:end+diff) = cell(size(this.subjectInfo,1),diff);
-                    elseif(size(this.subjectInfo,2) > length(this.infoHeaders)) %should not happen
-                        this.subjectInfo = this.subjectInfo(:,1:length(this.infoHeaders));
+                    elseif(size(this.subjectInfo,2) > length(this.subjectInfoColumnNames)) %should not happen
+                        this.subjectInfo = this.subjectInfo(:,1:length(this.subjectInfoColumnNames));
                     end
-                    %this.subjectInfo(i,:) = cell(1,length(this.infoHeaders));
+                    %this.subjectInfo(i,:) = cell(1,length(this.subjectInfoColumnNames));
                     %add info data for specific subject
                     for j = 1:length(xlsHeads)
-                        idxHeadThis = find(strcmp(xlsHeads{j},this.infoHeaders),1);
+                        idxHeadThis = find(strcmp(xlsHeads{j},this.subjectInfoColumnNames),1);
                         idxHeadImport = find(strcmp(xlsHeads{j},raw(1,:)),1);
                         this.subjectInfo(i,idxHeadThis) = raw(idxXls+1,idxHeadImport);
                     end
@@ -707,25 +702,18 @@ classdef studyIS < handle
             if(isempty(idx))
                 idx = ':';
             end
-%             data.resultFileChs = this.resultFileChs(idx,:);
-%             data.measurementFileChs = this.measurementFileChs(idx,:);
-%             data.resultROI = this.resultROI(idx);
-%             data.resultCuts = this.resultCuts(idx);
-%             data.subjectInfo = this.subjectInfo(idx,:);
-%             data.infoHeaders = this.infoHeaders;
-%             data.allFLIMItems = this.allFLIMItems(idx,:);
-            export.subjects = this.subjects(idx,:);
-            export.infoHeaders = this.infoHeaders;
+            export.subjectNames = this.subjectNames(idx,:);
+            export.subjectInfoColumnNames = this.subjectInfoColumnNames;
             %             export.subjectFilesHeaders = this.subjectFilesHeaders;
             export.subjectInfo = this.subjectInfo(idx,:);
-            export.subjectInfoCombi = this.subjectInfoCombi;
+            export.subjectInfoConditionDefinition = this.subjectInfoConditionDefinition;
             export.resultFileChs = this.resultFileChs(idx,:);
             export.measurementFileChs = this.measurementFileChs(idx,:);
             export.studyClusters = this.studyClusters;
             export.resultROICoordinates = this.resultROICoordinates(idx);
             export.resultZScaling = this.resultZScaling(idx);
             export.resultColorScaling = this.resultColorScaling(idx);
-            export.resultCuts = this.resultCuts(idx);
+            export.resultCrossSection = this.resultCrossSection(idx);
             export.allFLIMItems = this.allFLIMItems(idx,:);
             export.IRFInfo = this.IRFInfo;
             export.arithmeticImageInfo = this.arithmeticImageInfo;
@@ -749,56 +737,56 @@ classdef studyIS < handle
             end            
             %Get Subjects
             ex(1,1) = this.filesHeaders(1,1);
-            if(size(this.subjects,1)<size(this.subjects,2))
+            if(size(this.subjectNames,1)<size(this.subjectNames,2))
                 %check dimension
-                ex(2:size(this.subjects,2)+1,1) = this.subjects(1,:)';
+                ex(2:size(this.subjectNames,2)+1,1) = this.subjectNames(1,:)';
             else
-                ex(2:size(this.subjects,1)+1,1) = this.subjects(:,1);
+                ex(2:size(this.subjectNames,1)+1,1) = this.subjectNames(:,1);
             end            
             %Get Subject Info
-            ex(1,2:length(this.infoHeaders)+1) = this.infoHeaders;
-            ex(2:size(this.subjectInfo,1)+1,2:length(this.infoHeaders)+1) = this.subjectInfo;
+            ex(1,2:length(this.subjectInfoColumnNames)+1) = this.subjectInfoColumnNames;
+            ex(2:size(this.subjectInfo,1)+1,2:length(this.subjectInfoColumnNames)+1) = this.subjectInfo;
             %Save to file
             exportExcel(file,ex,'','','Subjectinfo','');
         end
         
-        function out = getColReference(this,n)
-            %return reference of a conditional column
-            if(~isempty(n) && ~isempty(this.infoHeaders) && length(this.subjectInfoCombi) >= n)
-                out = this.subjectInfoCombi{n,1};
+        function out = getConditionalColumnDefinition(this,idx)
+            %return definition of a conditional column with index idx
+            if(~isempty(idx) && ~isempty(this.subjectInfoColumnNames) && length(this.subjectInfoConditionDefinition) >= idx)
+                out = this.subjectInfoConditionDefinition{idx,1};
             else
                 out = [];
             end
         end
         
-        function out = getColConditions(this,column)
-            %return names of all conditions which use column as a reference
-            if(~isempty(this.infoHeaders))
+        function out = getColumnDependencies(this,columnName)
+            %return names of all conditions which use columnName as a reference
+            if(~isempty(this.subjectInfoColumnNames))
                 out = cell(0,0);
-                n = this.infoHeaderName2idx(column);
-                for i=1:length(this.infoHeaders)
-                    ref = this.getColReference(i);
+                n = this.subjectInfoColumnName2idx(columnName);
+                for i=1:length(this.subjectInfoColumnNames)
+                    ref = this.getConditionalColumnDefinition(i);
                     if(isempty(ref))
                         continue
                     end
-                    a = this.infoHeaderName2idx(ref.colA);
+                    a = this.subjectInfoColumnName2idx(ref.colA);
                     if(strcmp(ref.logOp,'-no op-'))
                         %second reference is inactive
                         b = 0;
                     else
-                        b = this.infoHeaderName2idx(ref.colB);
+                        b = this.subjectInfoColumnName2idx(ref.colB);
                     end
                     if((a == n) || (b == n))
                         %column n is a reference column
-                        out(end+1) = this.infoHeaders(i,1);
+                        out(end+1) = this.subjectInfoColumnNames(i,1);
                     end
                 end
             end
         end
         
-        function out = getAllSubjectsStr(this)
-            %get all subjects of this study as cell array of string
-            out = this.subjects;
+        function out = getAllSubjectNames(this)
+            %get all subjects of this study as cell array of strings
+            out = this.subjectNames;
         end
         
         function out = getResultFileChs(this,subName)
@@ -850,10 +838,10 @@ classdef studyIS < handle
             end
         end
         
-        function out = getStudyClusters(this)
-            %
-            out = this.studyClusters;
-        end
+%         function out = getStudyClusters(this)
+%             %get study clusters
+%             out = this.studyClusters;
+%         end
         
         function out = getStudyClustersStr(this,mode)
             %get string of study clusters
@@ -893,19 +881,9 @@ classdef studyIS < handle
                 out = targets;
             end
         end
-        
-        function out = getSubjectInfoHeaders(this)
-            %
-            out = this.infoHeaders;
-        end
-        
-%         function out = getSubjectFilesHeaders(this)
-%             %
-%             out = {'Subject','Channels'};
-%         end
-        
+                
         function out = getSubjectInfo(this,j)
-            %
+            %return definitions of all columns in subject info
             if(isempty(j))
                 out = this.subjectInfo;
             else
@@ -915,9 +893,9 @@ classdef studyIS < handle
             end
         end
         
-        function out = getSubjectInfoCombi(this)
-            %
-            out = this.subjectInfoCombi;
+        function out = getSubjectInfoConditionalColumnDefinitions(this)
+            %return definitions of all conditional columns
+            out = this.subjectInfoConditionDefinition;
         end
         
         function out = getResultROICoordinates(this,subName,ROIType)
@@ -1029,10 +1007,10 @@ classdef studyIS < handle
             end
         end
                 
-        function out = getResultCuts(this,subName)
-            %
+        function out = getResultCrossSection(this,subName)
+            %get result cross section definition
             if(isempty(subName))
-                out = this.resultCuts;
+                out = this.resultCrossSection;
             else
                 if(~isnumeric(subName))
                     subName = this.subName2idx(subName);
@@ -1041,7 +1019,7 @@ classdef studyIS < handle
                         return
                     end
                 end
-                out = cell2mat(this.resultCuts(subName));
+                out = cell2mat(this.resultCrossSection(subName));
             end
         end        
         
@@ -1051,20 +1029,20 @@ classdef studyIS < handle
 %             data.resultFileChs = this.resultFileChs(idx,:);
 %             data.measurementFileChs = this.measurementFileChs(idx,:);
 %             data.resultROI = this.resultROI(idx);
-%             data.resultCuts = this.resultCuts(idx);
+%             data.resultCrossSection = this.resultCrossSection(idx);
 %             data.subjectInfo = this.subjectInfo(idx,:);
-%             data.infoHeaders = this.infoHeaders;
+%             data.subjectInfoColumnNames = this.subjectInfoColumnNames;
 %             data.allFLIMItems = this.allFLIMItems(idx,:);
 %         end
         
         function data = getSubjectFilesData(this)
             %merge subjects and subjectFilesData
-            if(isempty(this.subjects))
+            if(isempty(this.subjectNames))
                 data = [];
                 return
             end
             data = cell(this.nrSubjects,3);
-            data(:,1) = this.subjects;            
+            data(:,1) = this.subjectNames;            
             for i = 1:this.nrSubjects
                 %measurement files
                 chs = this.measurementFileChs(i,:);
@@ -1101,14 +1079,84 @@ classdef studyIS < handle
             end
         end
         
-        function out = getDataFromStudyInfo(this,descriptor)
+        function out = getDataFromStudyInfo(this,descriptor,subName,colName)
             %get data from study info defined by descriptor
-            try
-                out = this.(sprintf('%s',descriptor));
-            catch
-                out = [];
+            switch descriptor
+                case 'subjectInfoData'
+                    out = this.subjectInfo;
+                    if(nargin >= 3)
+                        %return subject info only for specific subject
+                        idx = this.subName2idx(subName);
+                        if(isempty(idx))
+                            %subject does not exist
+                            out = [];
+                            return
+                        else
+                            out = out(idx,:);
+                        end
+                    end
+                    if(nargin == 4)
+                        %return subject info only for specific column
+                        idx = this.subjectInfoColumnName2idx(colName);
+                        if(isempty(idx))
+                            %column does not exist
+                            out = [];
+                            return
+                        else
+                            out = out{1,idx};
+                        end
+                    end
+                case 'resultFileChannels'
+                    out = this.resultFileChs;
+                case 'measurementFileChannels'
+                    out = this.measurementFileChs;
+                case 'subjectInfoAllColumnNames'
+                    out = this.subjectInfoColumnNames;
+                case 'subjectInfoConditionalColumnNames'
+                    ref = this.getSubjectInfoConditionalColumnDefinitions();
+                    idx = ~(cellfun('isempty',ref));
+                    out = this.subjectInfoColumnNames(idx,1);
+                case 'subjectInfoRegularColumnNames'
+                    ref = this.getSubjectInfoConditionalColumnDefinitions();
+                    idx = cellfun('isempty',ref);
+                    out = this.subjectInfoColumnNames(idx,1);
+                case 'subjectInfoRegularNumericColumnNames'                    
+                    ref = this.getSubjectInfoConditionalColumnDefinitions();
+                    idx = cellfun('isempty',ref);
+                    tmp = cellfun(@isnumeric,this.subjectInfo) & ~cellfun(@isempty,this.subjectInfo);
+                    if(isempty(tmp))
+                        out = cell(0,0);
+                    else
+                        idx = idx & any(tmp,1)';
+                        out = this.subjectInfoColumnNames(idx,1);
+                    end
+                otherwise
+                    out = [];
             end
         end
+        
+%         function out = getSubjectInfoColumnNames(this,columnType)
+%             %get list of subject info columns, columnType: [] - all columns; 'reference' - only reference columns; 'condition' - only conditional columns
+%             out = cell(0,0);
+%             if(isempty(columnType))
+%                 out = this.subjectInfoColumnNames;
+%             else
+%                 ref = this.getSubjectInfoConditionalColumnDefinitions();
+%                 if(strcmp(columnType,'reference'))
+%                     idx = cellfun('isempty',ref);
+%                 elseif(strcmp(columnType,'condition'))
+%                     idx = ~(cellfun('isempty',ref));
+%                 else
+%                     %wrong column type
+%                     return                    
+%                 end
+%                 out = this.subjectInfoColumnNames(idx,1);
+% %                 out(end+1,1) = {FDTree.defaultConditionName()};   %define default 'no condition'
+% %                 if(~isempty(this.subjectInfoColumnNames(idx,1)))
+% %                     out(end+1:end+(sum(idx(:))),1) = this.subjectInfoColumnNames(idx,1);
+% %                 end
+%             end
+%         end
         
         function [integral, id, timeChannels] = getIRFInfo(this,ch)
             %get info on used IRF for channel chStr
@@ -1163,17 +1211,6 @@ classdef studyIS < handle
             end
         end
         
-        function out = getConditionsStr(this)
-            %get conditional columns as conditions of study
-            out = cell(0,0);
-            ref = this.getSubjectInfoCombi();
-            idx = ~(cellfun('isempty',ref));
-            out(end+1,1) = {FDTree.defaultConditionName()};   %define default 'no condition'
-            if(~isempty(this.infoHeaders(idx,1)))
-                out(end+1:end+(sum(idx(:))),1) = this.infoHeaders(idx,1);
-            end
-        end
-        
         function out = getAboutInfo(this)
             %get about info structure
             out = this.myParent.getAboutInfo();
@@ -1187,7 +1224,7 @@ classdef studyIS < handle
                 %subject not in study
                 return
             end
-            if(length(this.subjects)>1)
+            if(length(this.subjectNames)>1)
                 %remove arbitrary subject
                 idx = this.subName2idx(subName);
                 this.resultFileChs(idx,:) = [];
@@ -1195,8 +1232,8 @@ classdef studyIS < handle
                 this.resultROICoordinates(idx) = [];
                 this.resultZScaling(idx) = [];
                 this.resultColorScaling(idx) = [];
-                this.resultCuts(idx) = [];
-                this.subjects(idx) = [];
+                this.resultCrossSection(idx) = [];
+                this.subjectNames(idx) = [];
                 this.subjectInfo(idx,:) = [];
                 this.allFLIMItems(idx,:) = [];
             else
@@ -1206,8 +1243,8 @@ classdef studyIS < handle
                 this.resultROICoordinates = cell(0,0);
                 this.resultZScaling = cell(0,0);
                 this.resultColorScaling = cell(0,0);
-                this.resultCuts = cell(0,0);
-                this.subjects = cell(0,0);
+                this.resultCrossSection = cell(0,0);
+                this.subjectNames = cell(0,0);
                 this.subjectInfo = cell(0,0);
                 this.allFLIMItems = cell(0,0);
             end
@@ -1222,7 +1259,7 @@ classdef studyIS < handle
                 this.resultROICoordinates(idx) = cell(1,1);
                 this.resultZScaling(idx) = cell(1,1);
                 this.resultColorScaling(idx) = cell(1,1);
-                this.resultCuts(idx) = cell(1,1);
+                this.resultCrossSection(idx) = cell(1,1);
                 this.allFLIMItems(idx) = cell(1,1);
                 this.setDirty(true);
             end            
@@ -1230,15 +1267,15 @@ classdef studyIS < handle
         
         function removeColumn(this,colName)
             %delete column in table study data
-            col = this.infoHeaderName2idx(colName);
+            col = this.subjectInfoColumnName2idx(colName);
             if(isempty(this.subjectInfo))
                 %special case: first header has to be deleted when
                 %importing study
-                this.infoHeaders(col,:) = [];
+                this.subjectInfoColumnNames(col,:) = [];
             else
-                this.infoHeaders(col,:) = [];
+                this.subjectInfoColumnNames(col,:) = [];
                 this.subjectInfo(:,col) = [];
-                this.subjectInfoCombi(col,:) = [];
+                this.subjectInfoConditionDefinition(col,:) = [];
                 idx = find(strcmp(colName,this.conditionColors(1,:)), 1);
                 if(~isempty(idx))
                     this.conditionColors(:,idx) = [];
@@ -1257,21 +1294,21 @@ classdef studyIS < handle
         %% computation and other methods
         function swapColumn(this,col,n)
             %swap column with its nth neighbor
-            if(((n + col) < 1) || ((n + col) > length(this.infoHeaders)))
+            if(((n + col) < 1) || ((n + col) > length(this.subjectInfoColumnNames)))
                 %out of index
                 return
             end
-            %swap InfoHeaders
-            temp = this.infoHeaders(col,1);
-            this.infoHeaders(col,1) = this.infoHeaders(col+n,1);
-            this.infoHeaders(col+n,1) = temp;
+            %swap subjectInfoColumnNames
+            temp = this.subjectInfoColumnNames(col,1);
+            this.subjectInfoColumnNames(col,1) = this.subjectInfoColumnNames(col+n,1);
+            this.subjectInfoColumnNames(col+n,1) = temp;
             %swap Data
             temp = this.subjectInfo(:,col);
             this.subjectInfo(:,col) = this.subjectInfo(:,col+n);
             this.subjectInfo(:,col+n) = temp;
-            temp = this.subjectInfoCombi(col,1);
-            this.subjectInfoCombi(col,1) = this.subjectInfoCombi(col+n,1);
-            this.subjectInfoCombi(col+n,1) = temp;
+            temp = this.subjectInfoConditionDefinition(col,1);
+            this.subjectInfoConditionDefinition(col,1) = this.subjectInfoConditionDefinition(col+n,1);
+            this.subjectInfoConditionDefinition(col+n,1) = temp;
             this.setDirty(true);
         end
         
@@ -1282,11 +1319,11 @@ classdef studyIS < handle
             end
             if(isempty(colN))
                 %check all columns
-                for i=1:length(this.infoHeaders)
+                for i=1:length(this.subjectInfoColumnNames)
                     this.checkConditionRef(i);
                 end
             else
-                ref = this.getColReference(colN);
+                ref = this.getConditionalColumnDefinition(colN);
                 if(isempty(ref))
                     %column is not a combination
                     return
@@ -1298,15 +1335,15 @@ classdef studyIS < handle
                     case '!='
                         ref.relA = '~=';
                 end
-                a = this.infoHeaderName2idx(ref.colA);
-                if((a > colN) && (~isempty(this.getColReference(a))))
+                a = this.subjectInfoColumnName2idx(ref.colA);
+                if((a > colN) && (~isempty(this.getConditionalColumnDefinition(a))))
                     %reference is a non-updated condition column
                     this.checkConditionRef(a);
                 end                
                 colA = this.subjectInfo(:,a);                
                 for j=1:size(colA,1)
                     if(isempty(colA{j,1}) || all(isnan(colA{j,1})))
-                        if(isempty(this.getColReference(a)))
+                        if(isempty(this.getConditionalColumnDefinition(a)))
                             %non logical reference
                             colA(j,1) = {0};
                         else
@@ -1328,15 +1365,15 @@ classdef studyIS < handle
                         case '!='
                             ref.relB = '~=';
                     end
-                    b = this.infoHeaderName2idx(ref.colB);
-                    if((b > colN) && (~isempty(this.getColReference(b))))
+                    b = this.subjectInfoColumnName2idx(ref.colB);
+                    if((b > colN) && (~isempty(this.getConditionalColumnDefinition(b))))
                         %reference is a non-updated condition column
                         this.checkConditionRef(b);
                     end
                     colB = this.subjectInfo(:,b);                    
                     for j=1:size(colB,1)
                         if(isempty(colB{j,1}) || isnan(colB{j,1}))
-                            if(isempty(this.getColReference(b)))
+                            if(isempty(this.getConditionalColumnDefinition(b)))
                                 %non-logical reference
                                 colB(j,1) = {0};
                             else
@@ -1362,7 +1399,7 @@ classdef studyIS < handle
             %get the index of a subject or check if index is valid
             idx = [];
             if(ischar(subName))
-                idx = find(strcmp(subName,this.subjects),1);
+                idx = find(strcmp(subName,this.subjectNames),1);
             elseif(isnumeric(subName))
                 if(subName <= this.nrSubjects)
                     idx = subName;
@@ -1385,14 +1422,14 @@ classdef studyIS < handle
             end
         end
         
-        function idx = infoHeaderName2idx(this,iHName)
-            %get the index of a infoHeader field or check if index is valid
+        function idx = subjectInfoColumnName2idx(this,columnName)
+            %get the index of a subject info column or check if index is valid
             idx = [];
-            if(ischar(iHName))
-                idx = find(strcmp(iHName,this.infoHeaders),1);
-            elseif(isnumeric(iHName))
-                if(iHName <= length(this.infoHeaders))
-                    idx = iHName;
+            if(ischar(columnName))
+                idx = find(strcmp(columnName,this.subjectInfoColumnNames),1);
+            elseif(isnumeric(columnName))
+                if(columnName <= length(this.subjectInfoColumnNames))
+                    idx = columnName;
                 end
             end
         end
@@ -1401,47 +1438,47 @@ classdef studyIS < handle
             %get the index of a subject or check if index is valid
             name = '';
             if(ischar(id))
-                idx = find(strcmp(id,this.subjects),1);
+                idx = find(strcmp(id,this.subjectNames),1);
                 if(~isempty(idx))
                     %valid subject name
                     name = id;
                 end
             elseif(isnumeric(id))
                 if(id <= this.nrSubjects)
-                    name = this.subjects{id};
+                    name = this.subjectNames{id};
                 end
             end
         end
         
         function out = sortSubjects(this,varargin)
             %sort subjects and connected fields
-            if(isempty(this.subjects))
+            if(isempty(this.subjectNames))
                 out = [];
                 return
             end            
             if(isempty(varargin))
                 %sort subjects of current study
-                [this.subjects, idx] = sort(this.subjects);
+                [this.subjectNames, idx] = sort(this.subjectNames);
                 this.resultFileChs = this.resultFileChs(idx,:);
                 this.measurementFileChs = this.measurementFileChs(idx,:);
                 this.subjectInfo = this.subjectInfo(idx,:);
                 this.resultROICoordinates = this.resultROICoordinates(idx);
                 this.resultZScaling = this.resultZScaling(idx);
                 this.resultColorScaling = this.resultColorScaling(idx);
-                this.resultCuts = this.resultCuts(idx);
+                this.resultCrossSection = this.resultCrossSection(idx);
                 this.allFLIMItems = this.allFLIMItems(idx,:);
                 this.setDirty(true);
             else
                 %sort subjects of imported study
                 oldStudy = varargin{1};
-                [oldStudy.subjects, idx] = sort(oldStudy.subjects);
+                [oldStudy.subjectNames, idx] = sort(oldStudy.subjectNames);
                 oldStudy.resultFileChs = oldStudy.resultFileChs(idx,:);
                 oldStudy.measurementFileChs = oldStudy.measurementFileChs(idx,:);
                 oldStudy.subjectInfo = oldStudy.subjectInfo(idx,:);
                 oldStudy.resultROICoordinates = oldStudy.resultROICoordinates(idx);
                 oldStudy.resultZScaling = oldStudy.resultZScaling(idx);
                 oldStudy.resultColorScaling = oldStudy.resultColorScaling(idx);
-                oldStudy.resultCuts = oldStudy.resultCuts(idx);
+                oldStudy.resultCrossSection = oldStudy.resultCrossSection(idx);
                 oldStudy.allFLIMItems = oldStudy.allFLIMItems(idx,:);
                 out = oldStudy;
             end
@@ -1729,6 +1766,26 @@ classdef studyIS < handle
                 end
             end
             
+            if(oldStudy.revision < 26)
+                %change names of a few fields
+                if(isfield(oldStudy,'subjects'))
+                    oldStudy.subjectNames = oldStudy.subjects;
+                    oldStudy = rmfield(oldStudy,'subjects');
+                end
+                if(isfield(oldStudy,'subjectInfoCombi'))
+                    oldStudy.subjectInfoConditionDefinition = oldStudy.subjectInfoCombi;
+                    oldStudy = rmfield(oldStudy,'subjectInfoCombi');
+                end
+                if(isfield(oldStudy,'resultCuts'))
+                    oldStudy.resultCrossSection = oldStudy.resultCuts;
+                    oldStudy = rmfield(oldStudy,'resultCuts');
+                end
+                if(isfield(oldStudy,'infoHeaders'))
+                    oldStudy.subjectInfoColumnNames = oldStudy.infoHeaders;
+                    oldStudy = rmfield(oldStudy,'infoHeaders');
+                end
+            end
+            
             this.setDirty(true);
         end
         
@@ -1749,7 +1806,7 @@ classdef studyIS < handle
         %% dependent properties
         function nr = get.nrSubjects(this)
             %how many subjects are in this study?
-            nr = length(this.subjects);
+            nr = length(this.subjectNames);
         end
         
     end %methods
@@ -1761,7 +1818,7 @@ classdef studyIS < handle
             if(isstruct(testStudy) && ~isfield(testStudy,'IRFInfo'))
                 testStudy.IRFInfo = [];
             end
-            nrSubjects = length(testStudy.subjects);
+            nrSubjects = length(testStudy.subjectNames);
             %result files
             tmpLen = size(testStudy.resultFileChs,1);
             if(tmpLen < nrSubjects)
@@ -1811,34 +1868,34 @@ classdef studyIS < handle
                     testStudy.subjectInfo(tmpTestChar(:,idx(i)),idx(i)) = num2cell(cellfun(@str2double,testStudy.subjectInfo(tmpTestChar(:,idx(i)),idx(i))));
                 end                
             end
-            %infoHeaders
-            if(size(testStudy.infoHeaders,2) > 1)
-                testStudy.infoHeaders = testStudy.infoHeaders(:);
+            %subjectInfoColumnNames
+            if(size(testStudy.subjectInfoColumnNames,2) > 1)
+                testStudy.subjectInfoColumnNames = testStudy.subjectInfoColumnNames(:);
                 dirty = true;
             end
-            tmpLen = length(testStudy.infoHeaders);
+            tmpLen = length(testStudy.subjectInfoColumnNames);
             if(tmpLen < nrInfoCols)
-                testStudy.infoHeaders(end+1:end+nrInfoCols-tmpLen,1) = cell(nrInfoCols-tmpLen,1);
+                testStudy.subjectInfoColumnNames(end+1:end+nrInfoCols-tmpLen,1) = cell(nrInfoCols-tmpLen,1);
                 dirty = true;
             elseif(tmpLen > nrInfoCols)
-                testStudy.infoHeaders = testStudy.infoHeaders(1:nrInfoCols);
+                testStudy.subjectInfoColumnNames = testStudy.subjectInfoColumnNames(1:nrInfoCols);
                 dirty = true;
             end
-            %subjectInfoCombi
-            if(size(testStudy.subjectInfoCombi,2) > 1)
-                testStudy.subjectInfoCombi = testStudy.subjectInfoCombi(:);
+            %subjectInfoConditionDefinition
+            if(size(testStudy.subjectInfoConditionDefinition,2) > 1)
+                testStudy.subjectInfoConditionDefinition = testStudy.subjectInfoConditionDefinition(:);
                 dirty = true;
             end
-            tmpLen = length(testStudy.subjectInfoCombi);
+            tmpLen = length(testStudy.subjectInfoConditionDefinition);
             if(tmpLen < nrInfoCols)
-                testStudy.subjectInfoCombi(end+1:end+nrInfoCols-tmpLen,1) = cell(nrInfoCols-tmpLen,1);
+                testStudy.subjectInfoConditionDefinition(end+1:end+nrInfoCols-tmpLen,1) = cell(nrInfoCols-tmpLen,1);
                 dirty = true;
             elseif(tmpLen > nrInfoCols)
-                testStudy.subjectInfoCombi = testStudy.subjectInfoCombi(1:nrInfoCols);
+                testStudy.subjectInfoConditionDefinition = testStudy.subjectInfoConditionDefinition(1:nrInfoCols);
                 dirty = true;
             end
             %check subject info data types, logical is allowed only for conditional columns
-            conditionCol = cellfun('isempty',testStudy.subjectInfoCombi);
+            conditionCol = cellfun('isempty',testStudy.subjectInfoConditionDefinition);
             for i = 1:length(conditionCol)
                 if(conditionCol(i)) %normal column
                     cellclass = cellfun('isclass',testStudy.subjectInfo(:,i),'char');
@@ -1893,24 +1950,24 @@ classdef studyIS < handle
                     end
                 end
             end            
-            %check content of infoHeaders
-            if(isempty(testStudy.infoHeaders))
+            %check content of subjectInfoColumnNames
+            if(isempty(testStudy.subjectInfoColumnNames))
                 %no element --> add first info header
-                testStudy.infoHeaders(1,1) = {'column 1'};
-                testStudy.subjectInfoCombi(1,1) = {[]};
+                testStudy.subjectInfoColumnNames(1,1) = {'column 1'};
+                testStudy.subjectInfoConditionDefinition(1,1) = {[]};
                 dirty = true;
             else
                 %column header exist -> check names
-                for i = 1:length(testStudy.infoHeaders)
-                    if(isempty(testStudy.infoHeaders{i,1}))
+                for i = 1:length(testStudy.subjectInfoColumnNames)
+                    if(isempty(testStudy.subjectInfoColumnNames{i,1}))
                         %there is no validate name
                         colname = sprintf('column %d',i);
-                        testStudy.infoHeaders(i,1)= {colname};
+                        testStudy.subjectInfoColumnNames(i,1)= {colname};
                         dirty = true;
                     end
-                    %check if we have a corresponding field in subjectInfoCombi
-                    if(length(testStudy.subjectInfoCombi) < i)
-                        testStudy.subjectInfoCombi(i,1) = cell(1,1);
+                    %check if we have a corresponding field in subjectInfoConditionDefinition
+                    if(length(testStudy.subjectInfoConditionDefinition) < i)
+                        testStudy.subjectInfoConditionDefinition(i,1) = cell(1,1);
                         dirty = true;
                     end
                 end
@@ -1954,17 +2011,17 @@ classdef studyIS < handle
                 testStudy.resultColorScaling = testStudy.resultColorScaling(1:nrSubjects);
                 dirty = true;
             end
-            %resultCuts
-            if(size(testStudy.resultCuts,2) > 1)
-                testStudy.resultCuts = testStudy.resultCuts(:);
+            %resultCrossSection
+            if(size(testStudy.resultCrossSection,2) > 1)
+                testStudy.resultCrossSection = testStudy.resultCrossSection(:);
                 dirty = true;
             end
-            tmpLen = length(testStudy.resultCuts);
+            tmpLen = length(testStudy.resultCrossSection);
             if(tmpLen < nrSubjects)
-                testStudy.resultCuts(end+1:end+nrSubjects-tmpLen) = cell(nrSubjects-tmpLen,1);
+                testStudy.resultCrossSection(end+1:end+nrSubjects-tmpLen) = cell(nrSubjects-tmpLen,1);
                 dirty = true;
             elseif(tmpLen > nrSubjects)
-                testStudy.resultCuts = testStudy.resultCuts(1:nrSubjects);
+                testStudy.resultCrossSection = testStudy.resultCrossSection(1:nrSubjects);
                 dirty = true;
             end
             %all FLIMItems
@@ -1996,12 +2053,12 @@ classdef studyIS < handle
                 testStudy.conditionColors(2,1) = {studyIS.makeRndColor()};
                 dirty = true;
             end
-            newColors = setdiff(testStudy.infoHeaders(~conditionCol,1),testStudy.conditionColors(1,:));
+            newColors = setdiff(testStudy.subjectInfoColumnNames(~conditionCol,1),testStudy.conditionColors(1,:));
             for i = 1:length(newColors)
                 testStudy.conditionColors(1,end+1) = newColors(i);
                 testStudy.conditionColors(2,end) = {studyIS.makeRndColor()};
             end
-            delColors = setdiff(testStudy.conditionColors(1,:),testStudy.infoHeaders(~conditionCol,1));
+            delColors = setdiff(testStudy.conditionColors(1,:),testStudy.subjectInfoColumnNames(~conditionCol,1));
             delColors = delColors(~strcmp(delColors,FDTree.defaultConditionName()));
             for i = 1:length(delColors)
                 idx = find(strcmp(delColors{i},testStudy.conditionColors(1,:)), 1);

@@ -72,10 +72,10 @@ classdef FDisplay < handle
         ROIType = [];
         ROISubType = [];
         ROIInvertFlag = [];
-        cutXVal = 0;
-        cutYVal = 0;
-        cutXInv = 0;
-        cutYInv = 0;
+        crossSectionXVal = 0;
+        crossSectionYVal = 0;
+        crossSectionXInv = 0;
+        crossSectionYInv = 0;
         mDispDim = [];
         mDispScale = [];
         sDispMode = [];
@@ -578,7 +578,7 @@ classdef FDisplay < handle
                         end
                 end
             else
-                %cuts                    
+                %crossSections                    
                 this.sethfdSupp(hfd);
             end
             if(~isempty(hfd{1}))
@@ -591,7 +591,7 @@ classdef FDisplay < handle
         end        
         
         function updatePlots(this)
-            %update main and cuts axes
+            %update main and crossSections axes
             %tic;                                    
             this.UpdateMinMaxLbl();
             this.myColorScaleObj.updateGUI([]);
@@ -779,14 +779,14 @@ classdef FDisplay < handle
                         zMax(isnan(zMax)) = zMin(isnan(zMax))+1;
                         caxis(hAx,[zMin(end) zMax(end)]);
                         set(hAx,'YDir',ydir,'XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)]);
-                        %draw cuts
-                        tmp = hfd{i}.getCutXVal(dispDim-1,true,rc,rt,rs,ri);
-                        if(hfd{i}.getCutX() && tmp ~= 0)
-                            line('XData',[tmp tmp],'YData',[1 size(current_img,1)],'LineWidth',1,'Linestyle','--','Color',sVisParam.cutXColor,'Parent',hAx);
+                        %draw crossSections
+                        tmp = hfd{i}.getCrossSectionXVal(dispDim-1,true,rc,rt,rs,ri);
+                        if(hfd{i}.getCrossSectionX() && tmp ~= 0)
+                            line('XData',[tmp tmp],'YData',[1 size(current_img,1)],'LineWidth',1,'Linestyle','--','Color',sVisParam.crossSectionXColor,'Parent',hAx);
                         end
-                        tmp = hfd{i}.getCutYVal(dispDim-1,true,rc,rt,rs,ri);
-                        if(hfd{i}.getCutY() && tmp ~= 0)
-                            line('XData',[1 size(current_img,2)], 'YData',[tmp tmp],'LineWidth',1,'Linestyle','--','Color',sVisParam.cutYColor,'Parent',hAx);
+                        tmp = hfd{i}.getCrossSectionYVal(dispDim-1,true,rc,rt,rs,ri);
+                        if(hfd{i}.getCrossSectionY() && tmp ~= 0)
+                            line('XData',[1 size(current_img,2)], 'YData',[tmp tmp],'LineWidth',1,'Linestyle','--','Color',sVisParam.crossSectionYColor,'Parent',hAx);
                         end
                         %draw ROI if TOP view
                         if(dispDim == 1)
@@ -850,63 +850,63 @@ classdef FDisplay < handle
                                 current_img = current_img + offset; %add offset
                             end
                         end                        
-                        %% cuts
-                        cutsWidth = 2;
+                        %% crossSections
+                        crossSectionssWidth = 2;
                         if(sVisParam.padd) %padd with zeros (-inf)
-                            if(hfd{i}.getCutX() && hfd{i}.getCutXVal(true,true,rc,rt,rs,ri) ~= 0)
-                                if(hfd{i}.getCutXInv())
-                                    current_img(:,hfd{i}.getCutXVal(true,true,rc,rt,rs,ri)+1:end) = -inf;
+                            if(hfd{i}.getCrossSectionX() && hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri) ~= 0)
+                                if(hfd{i}.getCrossSectionXInv())
+                                    current_img(:,hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri)+1:end) = -inf;
                                 else
-                                    current_img(:,1:hfd{i}.getCutXVal(true,true,rc,rt,rs,ri)-1) = -inf;
+                                    current_img(:,1:hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri)-1) = -inf;
                                 end
-                                if(sVisParam.color_cuts)
-                                    tmp = hfd{i}.getCutXVal(true,true,rc,rt,rs,ri);
-                                    colors(:,tmp:tmp+cutsWidth-1,:) = reshape(repmat(sVisParam.cutXColor,size(colors,1),cutsWidth),[size(colors,1) cutsWidth 3]);
+                                if(sVisParam.color_crossSections)
+                                    tmp = hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri);
+                                    colors(:,tmp:tmp+crossSectionssWidth-1,:) = permute(repmat(repmat(sVisParam.crossSectionXColor,size(colors,2),1),[1 1 crossSectionssWidth]),[1 3 2]);
                                 end
                             end
-                            if(hfd{1}.getCutY() && hfd{1}.getCutYVal(true,true,rc,rt,rs,ri) ~= 0)
-                                if(hfd{1}.getCutYInv())
-                                    current_img(hfd{1}.getCutYVal(true,true,rc,rt,rs,ri)+1:end,:) = -inf;
+                            if(hfd{1}.getCrossSectionY() && hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri) ~= 0)
+                                if(hfd{1}.getCrossSectionYInv())
+                                    current_img(hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri)+1:end,:) = -inf;
                                 else
-                                    current_img(1:hfd{1}.getCutYVal(true,true,rc,rt,rs,ri)-1,:) = -inf;%m.sVisParam.zlim_min;
+                                    current_img(1:hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri)-1,:) = -inf;%m.sVisParam.zlim_min;
                                 end
-                                if(sVisParam.color_cuts)
-                                    tmp = hfd{1}.getCutYVal(true,true,rc,rt,rs,ri);
-                                    colors(tmp:tmp+cutsWidth-1,:,:) = reshape(repmat(sVisParam.cutYColor,size(colors,2),cutsWidth),[cutsWidth size(colors,2) 3]);
+                                if(sVisParam.color_crossSections)
+                                    tmp = hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri);
+                                    colors(tmp:tmp+crossSectionssWidth-1,:,:) = permute(repmat(repmat(sVisParam.crossSectionYColor,size(colors,2),1),[1 1 crossSectionssWidth]),[3 1 2]);
                                 end
                             end
                         elseif(~sVisParam.padd)%no padding
-                            if(hfd{i}.getCutX() && hfd{i}.getCutXVal(true,true,rc,rt,rs,ri) ~= 0)
-                                if(hfd{i}.getCutXInv())
-                                    current_img = current_img(:,1:hfd{i}.getCutXVal(true,true,rc,rt,rs,ri));
-                                    alphaData = alphaData(:,1:hfd{i}.getCutXVal(true,true,rc,rt,rs,ri));
-                                    colors = colors(:,1:hfd{i}.getCutXVal(true,true,rc,rt,rs,ri),:);
-                                    if(sVisParam.color_cuts)
-                                        colors(:,end-cutsWidth+1:end,:) = reshape(repmat(sVisParam.cutXColor,size(colors,1),cutsWidth),[size(colors,1) cutsWidth 3]);
+                            if(hfd{i}.getCrossSectionX() && hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri) ~= 0)
+                                if(hfd{i}.getCrossSectionXInv())
+                                    current_img = current_img(:,1:hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri));
+                                    alphaData = alphaData(:,1:hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri));
+                                    colors = colors(:,1:hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri),:);
+                                    if(sVisParam.color_crossSections)
+                                        colors(:,end-crossSectionssWidth+1:end,:) = reshape(repmat(sVisParam.crossSectionXColor,size(colors,1),crossSectionssWidth),[size(colors,1) crossSectionssWidth 3]);
                                     end
                                 else
-                                    current_img = current_img(:,hfd{i}.getCutXVal(true,true,rc,rt,rs,ri):end);
-                                    alphaData = alphaData(:,hfd{i}.getCutXVal(true,true,rc,rt,rs,ri):end);
-                                    colors = colors(:,hfd{i}.getCutXVal(true,true,rc,rt,rs,ri):end,:);
-                                    if(sVisParam.color_cuts)
-                                        colors(:,1:cutsWidth,:) = reshape(repmat(sVisParam.cutXColor,size(colors,1),cutsWidth),[size(colors,1) cutsWidth 3]);
+                                    current_img = current_img(:,hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri):end);
+                                    alphaData = alphaData(:,hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri):end);
+                                    colors = colors(:,hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri):end,:);
+                                    if(sVisParam.color_crossSections)
+                                        colors(:,1:crossSectionssWidth,:) = reshape(repmat(sVisParam.crossSectionXColor,size(colors,1),crossSectionssWidth),[size(colors,1) crossSectionssWidth 3]);
                                     end
                                 end                                
                             end
-                            if(hfd{i}.getCutY() && hfd{i}.getCutYVal(true,true,rc,rt,rs,ri) ~= 0)
-                                if(hfd{i}.getCutYInv())
-                                    current_img = current_img(1:hfd{i}.getCutYVal(true,true,rc,rt,rs,ri),:);
-                                    alphaData = alphaData(1:hfd{i}.getCutYVal(true,true,rc,rt,rs,ri),:);
-                                    colors = colors(1:hfd{i}.getCutYVal(true,true,rc,rt,rs,ri),:,:);
-                                    if(sVisParam.color_cuts)
-                                        colors(end-cutsWidth+1:end,:,:) = reshape(repmat(sVisParam.cutYColor,size(colors,2),cutsWidth),[cutsWidth size(colors,2) 3]);
+                            if(hfd{i}.getCrossSectionY() && hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri) ~= 0)
+                                if(hfd{i}.getCrossSectionYInv())
+                                    current_img = current_img(1:hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri),:);
+                                    alphaData = alphaData(1:hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri),:);
+                                    colors = colors(1:hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri),:,:);
+                                    if(sVisParam.color_crossSections)
+                                        colors(end-crossSectionssWidth+1:end,:,:) = reshape(repmat(sVisParam.crossSectionYColor,size(colors,2),crossSectionssWidth),[crossSectionssWidth size(colors,2) 3]);
                                     end
                                 else
-                                    current_img = current_img(hfd{i}.getCutYVal(true,true,rc,rt,rs,ri):end,:);
-                                    alphaData = alphaData(hfd{i}.getCutYVal(true,true,rc,rt,rs,ri):end,:);
-                                    colors = colors(hfd{i}.getCutYVal(true,true,rc,rt,rs,ri):end,:,:);
-                                    if(sVisParam.color_cuts)
-                                        colors(1:cutsWidth,:,:) = reshape(repmat(sVisParam.cutYColor,size(colors,2),cutsWidth),[cutsWidth size(colors,2) 3]);
+                                    current_img = current_img(hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri):end,:);
+                                    alphaData = alphaData(hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri):end,:);
+                                    colors = colors(hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri):end,:,:);
+                                    if(sVisParam.color_crossSections)
+                                        colors(1:crossSectionssWidth,:,:) = reshape(repmat(sVisParam.crossSectionYColor,size(colors,2),crossSectionssWidth),[crossSectionssWidth size(colors,2) 3]);
                                     end
                                 end                                
                             end
@@ -963,8 +963,7 @@ classdef FDisplay < handle
                                 set(hAx,'color',sVisParam.supp_plot_bg_color,'Box','off','XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)],'ZLim',[ztick(1) ztick(end)],'ZTick',ztick,'ZTickLabel',zticklbl);
                             else
                                 set(hAx,'color',sVisParam.supp_plot_bg_color,'Box','off','XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)],'ZLim',[this.current_img_lbl_min this.current_img_lbl_max]);
-                            end
-                            
+                            end                            
                         end
                         if(sVisParam.alpha ~= 1)
                             alpha(sVisParam.alpha);
@@ -1053,10 +1052,10 @@ classdef FDisplay < handle
             end
             this.makeMainXYLabels();
             %supplemental plot
-            if(this.sDispMode == 4 && hfd.getCutX() && hfd.getCutXVal(true,true,rc,rt,rs,ri) ~= 0 )
+            if(this.sDispMode == 4 && hfd.getCrossSectionX() && hfd.getCrossSectionXVal(true,true,rc,rt,rs,ri) ~= 0 )
                 this.h_s_ax.XLim = hAxMain.YLim;
                 xlbl = hfd.getCIYLbl(rc,rt,rs,ri);
-            elseif(this.sDispMode == 3 && hfd.getCutY() && hfd.getCutYVal(true,true,rc,rt,rs,ri) ~= 0 )
+            elseif(this.sDispMode == 3 && hfd.getCrossSectionY() && hfd.getCrossSectionYVal(true,true,rc,rt,rs,ri) ~= 0 )
                 this.h_s_ax.XLim = hAxMain.XLim;
                 xlbl = hfd.getCIXLbl(rc,rt,rs,ri);
             else
@@ -1255,9 +1254,9 @@ classdef FDisplay < handle
                         cla(this.h_s_ax);
                         axis(this.h_s_ax,'off');
                     end
-                case {3, 4} %3:horizontal cut, 4: vertical cut
-                    if( (this.sDispMode == 4 && hfd{1}.getCutX() && hfd{1}.getCutXVal(true,true,rc,rt,rs,ri) ~= 0 ) ||...
-                            (this.sDispMode == 3 && hfd{1}.getCutY() && hfd{1}.getCutYVal(true,true,rc,rt,rs,ri) ~= 0 ))
+                case {3, 4} %3:horizontal crossSection, 4: vertical crossSection
+                    if( (this.sDispMode == 4 && hfd{1}.getCrossSectionX() && hfd{1}.getCrossSectionXVal(true,true,rc,rt,rs,ri) ~= 0 ) ||...
+                            (this.sDispMode == 3 && hfd{1}.getCrossSectionY() && hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri) ~= 0 ))
                         offset = 0;
                         max_amp = 0;
                         ytick = [];
@@ -1279,8 +1278,6 @@ classdef FDisplay < handle
                                 switch this.sDispScale
                                     case 2
                                         hfdT = hfd{i}.getLogData();
-                                    case 3
-                                        hfdT = hfd{i}.getPerData();
                                     otherwise %linear data
                                         hfdT = hfd{i}.getLinData();
                                 end
@@ -1299,12 +1296,12 @@ classdef FDisplay < handle
                                 pos = get(this.h_s_ax,'Position');
                                 max_amp = pos(4)/nrFD;
                             end
-                            %cuts
-                            if(this.sDispMode == 3) %horizontal cut
-                                current_img = current_img(min(hfd{1}.getCutYVal(true,true,rc,rt,rs,ri),size(current_img,1)),:);
+                            %crossSections
+                            if(this.sDispMode == 3) %horizontal crossSection
+                                current_img = current_img(min(hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri),size(current_img,1)),:);
                                 this.suppExport(:,i) = current_img;
-                            else %vertical cut
-                                current_img = current_img(:,min(hfd{1}.getCutXVal(true,true,rc,rt,rs,ri),size(current_img,2)));
+                            else %vertical crossSection
+                                current_img = current_img(:,min(hfd{1}.getCrossSectionXVal(true,true,rc,rt,rs,ri),size(current_img,2)));
                                 this.suppExport(:,i) = current_img;
                             end
                             if(nrFD > 1)
@@ -1407,17 +1404,17 @@ classdef FDisplay < handle
                                 end
                             end
                         end
-                        if(this.sDispMode == 3 && hfd{1}.getCutX() && hfd{1}.getCutXVal(true,true,rc,rt,rs,ri) ~= 0 && this.staticVisParams.show_cut)
-                            %horizontal cut
-                            line('XData',[hfd{1}.getCutXVal(true,true,rc,rt,rs,ri) hfd{1}.getCutXVal(true,true,rc,rt,rs,ri)],...
+                        if(this.sDispMode == 3 && hfd{1}.getCrossSectionX() && hfd{1}.getCrossSectionXVal(true,true,rc,rt,rs,ri) ~= 0 && this.staticVisParams.show_crossSection)
+                            %horizontal crossSection
+                            line('XData',[hfd{1}.getCrossSectionXVal(true,true,rc,rt,rs,ri) hfd{1}.getCrossSectionXVal(true,true,rc,rt,rs,ri)],...
                                 'YData',ylim, ...
-                                'LineWidth',1,'Linestyle','--','Color',this.staticVisParams.cutXColor,'Parent',this.h_s_ax);
+                                'LineWidth',1,'Linestyle','--','Color',this.staticVisParams.crossSectionXColor,'Parent',this.h_s_ax);
                         end
-                        if(this.sDispMode == 4 && hfd{1}.getCutY() && hfd{1}.getCutYVal(true,true,rc,rt,rs,ri) ~= 0 && this.staticVisParams.show_cut)
-                            %vertical cut
-                            line('XData',[hfd{1}.getCutYVal(true,true,rc,rt,rs,ri) hfd{1}.getCutYVal(true,true,rc,rt,rs,ri)],...
+                        if(this.sDispMode == 4 && hfd{1}.getCrossSectionY() && hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri) ~= 0 && this.staticVisParams.show_crossSection)
+                            %vertical crossSection
+                            line('XData',[hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri) hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri)],...
                                 'YData',ylim, ...
-                                'LineWidth',1,'Linestyle','--','Color',this.staticVisParams.cutYColor,'Parent',this.h_s_ax);
+                                'LineWidth',1,'Linestyle','--','Color',this.staticVisParams.crossSectionYColor,'Parent',this.h_s_ax);
                         end
                     else
                         %nothing to do
@@ -1561,32 +1558,32 @@ classdef FDisplay < handle
             out = this.visObj.getROIInvertFlag(this.mySide);
         end
         
-        function out = get.cutXVal(this)
+        function out = get.crossSectionXVal(this)
             %
-            if(this.visObj.fdt.getCutX(this.myDS))
-                out = this.visObj.fdt.getCutXVal(this.myDS,true);
+            if(this.visObj.fdt.getCrossSectionX(this.myDS))
+                out = this.visObj.fdt.getCrossSectionXVal(this.myDS,true);
             else
                 out = 0;
             end
         end
         
-        function out = get.cutYVal(this)
+        function out = get.crossSectionYVal(this)
             %
-            if(this.visObj.fdt.getCutY(this.myDS))
-                out = this.visObj.fdt.getCutYVal(this.myDS,true);
+            if(this.visObj.fdt.getCrossSectionY(this.myDS))
+                out = this.visObj.fdt.getCrossSectionYVal(this.myDS,true);
             else
                 out = 0;
             end
         end
         
-        function out = get.cutXInv(this)
+        function out = get.crossSectionXInv(this)
             %
-            out = this.visObj.fdt.getCutXInv(this.myDS);
+            out = this.visObj.fdt.getCrossSectionXInv(this.myDS);
         end
         
-        function out = get.cutYInv(this)
+        function out = get.crossSectionYInv(this)
             %
-            out = this.visObj.fdt.getCutYInv(this.myDS);
+            out = this.visObj.fdt.getCrossSectionYInv(this.myDS);
         end
         
         function out = get.mDispDim(this)

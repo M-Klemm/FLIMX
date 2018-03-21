@@ -51,7 +51,7 @@ classdef Channel < handle
         end
         
         function addObj(this,dType,gScale,data)
-            %
+            %add an object to FDTree and generate id (running number) automatically
             chunk = this.getChunk(dType);
             if(isempty(chunk))
                 chunk = this.addChunk(dType,gScale);
@@ -60,7 +60,7 @@ classdef Channel < handle
         end
         
         function addObjID(this,nr,dType,gScale,data)
-            %
+            %add an object to FDTree with specific id (running number)
             chunk = this.getChunk(dType);
             if(isempty(chunk))
                 chunk = this.addChunk(dType,gScale);
@@ -132,11 +132,11 @@ classdef Channel < handle
             end
         end
         
-        function setCutVec(this,dim,cutVec)
-            %set the cut vector for dimension dim
+        function setResultCrossSection(this,dim,csDef)
+            %set the cross section for dimension dim
             for i = 1:this.myChunks.queueLen
                 if(this.myChunks.getDataByPos(i).globalScale)
-                    this.myChunks.getDataByPos(i).setCutVec(dim,cutVec);
+                    this.myChunks.getDataByPos(i).setResultCrossSection(dim,csDef);
                 end
             end
         end

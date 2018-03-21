@@ -193,9 +193,9 @@ classdef FLIMXVisGUI < handle
                     set(this.visHandles.(sprintf('main_axes_%s_pop',s)),'String','params','Value',1);
                     %setup study controls                    
                     set(this.visHandles.(sprintf('dataset_%s_pop',s)),'String','dataset','Value',1);                    
-                    %update cuts
-                    this.objHandles.cutx.updateCtrls();
-                    this.objHandles.cuty.updateCtrls();
+                    %update crossSections
+                    this.objHandles.crossSectionx.updateCtrls();
+                    this.objHandles.crossSectiony.updateCtrls();
                     %ROI
                     this.objHandles.(sprintf('%sROI',s)).setupGUI();
                     this.objHandles.(sprintf('%sZScale',s)).setupGUI();
@@ -307,7 +307,7 @@ classdef FLIMXVisGUI < handle
                         end
                         set(this.visHandles.(sprintf('supp_axes_scale_%s_pop',s)),'Visible','on');
                         set(this.visHandles.(sprintf('color_scale_%s_panel',s)),'Visible','on');
-                    else %none, cuts
+                    else %none, crossSections
                         set(this.visHandles.(sprintf('supp_axes_hist_%s_pop',s)),'Visible','off');
                         set(this.visHandles.(sprintf('supp_axes_scale_%s_pop',s)),'Visible','off');
                         set(this.visHandles.(sprintf('color_scale_%s_panel',s)),'Visible','off');
@@ -375,18 +375,18 @@ classdef FLIMXVisGUI < handle
                 this.objHandles.(sprintf('%sdo',s)).updatePlots();
                 this.objHandles.(sprintf('%sdo',s)).myColorScaleObj.checkCallback(this.getROIDisplayMode(s) > 1);                
                 if(strcmp(s,'l'))
-                    %update cuts
-                    this.objHandles.cutx.updateCtrls();
-                    this.objHandles.cuty.updateCtrls();
+                    %update crossSections
+                    this.objHandles.crossSectionx.updateCtrls();
+                    this.objHandles.crossSectiony.updateCtrls();
                 end
                 switch get(this.visHandles.(sprintf('supp_axes_%s_pop',s)),'Value')
                     case 1 %none
                         set(this.visHandles.(sprintf('supp_axes_scale_%s_pop',s)),'Enable','off');
                     case {2,3,4} %histograms
                         set(this.visHandles.(sprintf('supp_axes_scale_%s_pop',s)),'Enable','off');
-                    case 5 %horizontal cut
+                    case 5 %horizontal crossSection
                         set(this.visHandles.(sprintf('supp_axes_scale_%s_pop',s)),'Enable','on');
-                    case 6 %vertical cut
+                    case 6 %vertical crossSection
                         set(this.visHandles.(sprintf('supp_axes_scale_%s_pop',s)),'Enable','on'); 
                 end
                 %enable / disable intensity overlay functions
@@ -1315,8 +1315,8 @@ classdef FLIMXVisGUI < handle
             this.objHandles.(sprintf('%sdo',s)).makeZoom();
         end
         
-        function GUI_cut_Callback(this,hObject,eventdata)
-            %access cut controls
+        function GUI_crossSection_Callback(this,hObject,eventdata)
+            %access crossSection controls
             if(this.fdt.getNrSubjects(this.getStudy('l'),this.getCondition('l')) < 1)
                 return
             end
@@ -1326,11 +1326,11 @@ classdef FLIMXVisGUI < handle
                 ax = 'y';
             end
             if(contains(tag,'edit'))
-                this.objHandles.(sprintf('cut%s',ax)).editCallback();
+                this.objHandles.(sprintf('crossSection%s',ax)).editCallback();
             elseif(contains(tag,'check'))
-                this.objHandles.(sprintf('cut%s',ax)).checkCallback();
+                this.objHandles.(sprintf('crossSection%s',ax)).checkCallback();
             else
-                this.objHandles.(sprintf('cut%s',ax)).sliderCallback();
+                this.objHandles.(sprintf('crossSection%s',ax)).sliderCallback();
             end
             this.objHandles.rdo.updatePlots();
             this.objHandles.ldo.updatePlots();
@@ -1443,8 +1443,8 @@ classdef FLIMXVisGUI < handle
             else                
                 if(~strcmp(dim,'z'))
                     this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
-                    %update cuts only for x and y
-                    this.objHandles.(sprintf('cut%s',dim)).checkCallback();
+                    %update crossSections only for x and y
+                    this.objHandles.(sprintf('crossSection%s',dim)).checkCallback();
                 else
                     this.objHandles.(sprintf('%sZScale',otherSide)).updateGUI([]);
                 end
@@ -1458,7 +1458,7 @@ classdef FLIMXVisGUI < handle
         end
         
         function GUI_suppAxesPop_Callback(this,hObject,eventdata)
-            %select cut or histogram for supplemental display
+            %select crossSection or histogram for supplemental display
             s = 'r';
             if(strcmp(get(hObject,'Tag'),'supp_axes_l_pop'))
                 s = 'l';
@@ -1468,7 +1468,7 @@ classdef FLIMXVisGUI < handle
         end
         
         function GUI_suppAxesHistPop_Callback(this,hObject,eventdata)
-            %select cut or histogram for supplemental display
+            %select crossSection or histogram for supplemental display
             s = 'r';
             if(strcmp(get(hObject,'Tag'),'supp_axes_hist_l_pop'))
                 s = 'l';
@@ -1477,7 +1477,7 @@ classdef FLIMXVisGUI < handle
         end
         
         function GUI_suppAxesScalePop_Callback(this,hObject,eventdata)
-            %select linear or log10 scaling for cuts in supplemental plot
+            %select linear or log10 scaling for crossSections in supplemental plot
             s = 'r';
             if(strcmp(get(hObject,'Tag'),'supp_axes_scale_l_pop'))
                 s = 'l';
@@ -1613,15 +1613,15 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.supp_axes_hist_r_pop,'Callback',@this.GUI_suppAxesHistPop_Callback,'TooltipString','Show histogram for current subject or current study / condition');
             set(this.visHandles.supp_axes_scale_l_pop,'Callback',@this.GUI_suppAxesScalePop_Callback,'TooltipString','Select linear or log10 scaling for cross-section');
             set(this.visHandles.supp_axes_scale_r_pop,'Callback',@this.GUI_suppAxesScalePop_Callback,'TooltipString','Select linear or log10 scaling for cross-section');
-            %cuts
-            set(this.visHandles.cut_x_l_check,'Callback',@this.GUI_cut_Callback,'TooltipString','Enable or disable the vertical cross-section');
-            set(this.visHandles.cut_y_l_check,'Callback',@this.GUI_cut_Callback,'TooltipString','Enable or disable the horizontal cross-section');
-            set(this.visHandles.cut_y_l_slider,'Callback',@this.GUI_cut_Callback,'TooltipString','Move horizontal cross-section');
-            set(this.visHandles.cut_x_l_slider,'Callback',@this.GUI_cut_Callback,'TooltipString','Move vertical cross-section');
-            set(this.visHandles.cut_y_l_edit,'Callback',@this.GUI_cut_Callback,'TooltipString','Enter position in pixels for horizontal cross-section');
-            set(this.visHandles.cut_x_l_edit,'Callback',@this.GUI_cut_Callback,'TooltipString','Enter position in pixels for vertical cross-section');
-            set(this.visHandles.cut_x_inv_check,'Callback',@this.GUI_cut_Callback,'TooltipString','Toggle which side of the cross-section is cut off (3D plot only)');
-            set(this.visHandles.cut_y_inv_check,'Callback',@this.GUI_cut_Callback,'TooltipString','Toggle which side of the cross-section is cut off (3D plot only)');
+            %cross-sections
+            set(this.visHandles.cut_x_l_check,'Callback',@this.GUI_crossSection_Callback,'TooltipString','Enable or disable the vertical cross-section');
+            set(this.visHandles.cut_y_l_check,'Callback',@this.GUI_crossSection_Callback,'TooltipString','Enable or disable the horizontal cross-section');
+            set(this.visHandles.cut_y_l_slider,'Callback',@this.GUI_crossSection_Callback,'TooltipString','Move horizontal cross-section');
+            set(this.visHandles.cut_x_l_slider,'Callback',@this.GUI_crossSection_Callback,'TooltipString','Move vertical cross-section');
+            set(this.visHandles.cut_y_l_edit,'Callback',@this.GUI_crossSection_Callback,'TooltipString','Enter position in pixels for horizontal cross-section');
+            set(this.visHandles.cut_x_l_edit,'Callback',@this.GUI_crossSection_Callback,'TooltipString','Enter position in pixels for vertical cross-section');
+            set(this.visHandles.cut_x_inv_check,'Callback',@this.GUI_crossSection_Callback,'TooltipString','Toggle which side of the cross-section is cut off (3D plot only)');
+            set(this.visHandles.cut_y_inv_check,'Callback',@this.GUI_crossSection_Callback,'TooltipString','Toggle which side of the cross-section is cut off (3D plot only)');
             %ROI controls and z scaling
             dims =['x','y','z'];
             axs = ['l','r'];
@@ -1706,8 +1706,8 @@ classdef FLIMXVisGUI < handle
             %init ui control objects
             this.objHandles.ldo = FDisplay(this,'l');
             this.objHandles.rdo = FDisplay(this,'r');
-            this.objHandles.cutx = CutCtrl(this,'x',this.objHandles.ldo,this.objHandles.rdo);
-            this.objHandles.cuty = CutCtrl(this,'y',this.objHandles.ldo,this.objHandles.rdo);
+            this.objHandles.crossSectionx = CutCtrl(this,'x',this.objHandles.ldo,this.objHandles.rdo);
+            this.objHandles.crossSectiony = CutCtrl(this,'y',this.objHandles.ldo,this.objHandles.rdo);
             this.objHandles.lROI = ROICtrl(this,'l',this.objHandles.ldo,this.objHandles.rdo);
             this.objHandles.rROI = ROICtrl(this,'r',this.objHandles.ldo,this.objHandles.rdo);
             this.objHandles.lZScale = ZCtrl(this,'l',this.objHandles.ldo,this.objHandles.rdo);

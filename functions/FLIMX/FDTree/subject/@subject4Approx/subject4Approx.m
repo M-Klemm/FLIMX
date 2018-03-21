@@ -41,7 +41,14 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
         function this = subject4Approx(study,name)
             %constructor
             %this.FLIMXObj = hFLIMX;
-            this = this@fluoSubject(study,name);            
+            this = this@fluoSubject(study,name);
+            chList = find(any(this.myMeasurement.dirtyFlags,2));
+            if(~isempty(chList))
+                %something was changed when loading the measurement (e.g. reflection mask was recalculated), save it for later use
+                for i = 1:length(chList)
+                    this.myMeasurement.saveMatFile2Disk(chList(i));
+                end
+            end
         end
         
         %% input methods

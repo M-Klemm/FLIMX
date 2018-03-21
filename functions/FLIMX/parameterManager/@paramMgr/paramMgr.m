@@ -149,42 +149,42 @@ classdef paramMgr < handle
         
         function set.computationParams(this,val)
             %set computation parameters
-            this.getParamSection('computation',val);
+            this.setParamSection('computation',val);
         end
         
         function set.cleanupFitParams(this,val)
             %set cleanup fit parameters
-            this.getParamSection('cleanup_fit',val);
+            this.setParamSection('cleanup_fit',val);
         end
         
         function set.preProcessParams(this,val)
             %set pre processing parameters
-            this.getParamSection('pre_processing',val);
+            this.setParamSection('pre_processing',val);
         end
         
         function set.basicParams(this,val)
             %set basic fit parameters
-            this.getParamSection('basic_fit',val);
+            this.setParamSection('basic_fit',val);
         end
                 
         function set.initFitParams(this,val)
             %set init fit parameters
-            this.getParamSection('init_fit',val);
+            this.setParamSection('init_fit',val);
         end
         
         function set.pixelFitParams(this,val)
             %set pixel fit parameters
-            this.getParamSection('pixel_fit',val);
+            this.setParamSection('pixel_fit',val);
         end
         
         function set.optimizationParams(this,val)
             %set optimization parameters
-            this.getParamSection('optimization',val);
+            this.setParamSection('optimization',val);
         end
         
         function set.boundsParams(this,val)
             %set bounds
-            this.getParamSection('bounds',val);
+            this.setParamSection('bounds',val);
         end
                 
         function def = getDefaults(this)
@@ -506,9 +506,9 @@ classdef paramMgr < handle
             
             def.flimvis_gui.alpha               	=	1;
             def.flimvis_gui.cluster_grp_bg_color	=	[0  0  0];
-            def.flimvis_gui.color_cuts          	=	1;
-            def.flimvis_gui.cutXColor           	=	[0.34921     0.34921     0.34921];
-            def.flimvis_gui.cutYColor           	=	[0.30159     0.30159     0.30159];
+            def.flimvis_gui.color_crossSections    	=	1;
+            def.flimvis_gui.crossSectionXColor    	=	[0.34921     0.34921     0.34921];
+            def.flimvis_gui.crossSectionYColor     	=	[0.30159     0.30159     0.30159];
             def.flimvis_gui.ROIColor                =	[1     1     1];
             def.flimvis_gui.ROILinestyle            =	'-';
             def.flimvis_gui.ROILinewidth            =	2;            
@@ -520,7 +520,7 @@ classdef paramMgr < handle
             def.flimvis_gui.offset_sc           	=	1;
             def.flimvis_gui.padd                	=	1;
             def.flimvis_gui.shading             	=	'interp';
-            def.flimvis_gui.show_cut            	=	1;
+            def.flimvis_gui.show_crossSection      	=	1;
             def.flimvis_gui.supp_plot_bg_color  	=	[1        0.95         0.9];
             def.flimvis_gui.supp_plot_color     	=	[0.2         0.2         0.2];
             def.flimvis_gui.supp_plot_linewidth 	=	2;

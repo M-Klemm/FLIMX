@@ -46,6 +46,7 @@ classdef FLIMXFitResultImport < handle
         myResultStruct = [];
         myJTableHandle = [];
         myChannelNrs = [];
+        myCurrentSubject = [];
         maxCh = 16;
         currentRow = 1;
         axesMgr = [];
@@ -58,9 +59,10 @@ classdef FLIMXFitResultImport < handle
         cm = [];
         isOpenVisWnd = false;
         cmIntensity = [];
-        currentStudy = '';
-        currentSubject = '';
+        currentStudyName = '';
+        currentSubjectName = '';
         currentChannel = 1;
+        currentSubject = [];
         currentItem = '';
         currentFileInfo = [];
         currentFileGroup = '';
@@ -98,6 +100,7 @@ classdef FLIMXFitResultImport < handle
             this.myResultStruct = [];
             this.myJTableHandle = [];
             this.myChannelNrs = [];
+            this.myCurrentSubject = []; %check if dirty?
             this.currentRow = 1;
         end %closeVisWnd
         
@@ -132,7 +135,7 @@ classdef FLIMXFitResultImport < handle
                     set(this.visHandles.popupSubjectSel,'String',subjects,'Value',idx);
                 end
             else
-                this.currentSubject = subject;
+                this.currentSubjectName = subject;
             end
         end
         
@@ -152,7 +155,7 @@ classdef FLIMXFitResultImport < handle
                 end
             end
             %subject selection
-            str = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName());
+            str = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudyName,FDTree.defaultConditionName());
             if(isempty(str))
                 set(this.visHandles.radioExistingSubject,'Value',0,'Enable','off');
                 set(this.visHandles.radioNewSubject,'Value',1);
@@ -165,7 +168,7 @@ classdef FLIMXFitResultImport < handle
                 set(this.visHandles.popupSubjectSel,'Visible','on');
                 set(this.visHandles.editSubjectName,'Visible','off');
                 %set subject popup to current subject
-                idx = find(strcmp(str,this.currentSubject));
+                idx = find(strcmp(str,this.currentSubjectName));
                 if(~isempty(idx))
                     set(this.visHandles.popupSubjectSel,'Value',idx);
                 end
@@ -280,6 +283,17 @@ classdef FLIMXFitResultImport < handle
         end
         
         %% dependent properties
+        function out = get.currentSubject(this)
+            %get current selected subject
+            if(~this.isOpenVisWnd)
+                return
+            end
+            if(isempty(this.myCurrentSubject))
+                this.myCurrentSubject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudyName,this.currentSubjectName);
+            end
+            out = this.myCurrentSubject;
+        end
+        
         function out = get.currentChannel(this)
             %get current selected channel
             if(~this.isOpenVisWnd)
@@ -326,7 +340,7 @@ classdef FLIMXFitResultImport < handle
             out = this.FLIMXObj.FLIMVisGUI.dynParams.cmIntensity;
         end
         
-        function out = get.currentStudy(this)
+        function out = get.currentStudyName(this)
             %get name of current study
             out = '';
             if(this.isOpenVisWnd)
@@ -342,11 +356,11 @@ classdef FLIMXFitResultImport < handle
                 end
             else
                 %we don't have a GUI yet, use FLIMXFitGUI
-                out = this.FLIMXObj.FLIMFitGUI.currentStudy;
+                out = this.FLIMXObj.FLIMFitGUI.currentStudyName;
             end
         end
         
-        function out = get.currentSubject(this)
+        function out = get.currentSubjectName(this)
             %get name of current subject
             out = '';
             if(~this.isOpenVisWnd)
@@ -366,9 +380,9 @@ classdef FLIMXFitResultImport < handle
         
         function out = get.currentFileInfo(this)
             %get current file info struct; if we have a measurement, take it from there, otherwise use default
-            measurementChs = this.FLIMXObj.fdt.getSubjectFilesStatus(this.currentStudy,this.currentSubject);
+            measurementChs = this.FLIMXObj.fdt.getSubjectFilesStatus(this.currentStudyName,this.currentSubjectName);
             if(~isempty(measurementChs))
-                subject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudy,this.currentSubject);
+                subject = this.currentSubject;
                 if(isempty(subject))
                     %should not happen
                     out = measurementFile.getDefaultFileInfo();
@@ -444,6 +458,7 @@ classdef FLIMXFitResultImport < handle
             this.myFileGroupsCounts = [];
             this.currentRow = 1;
             this.myChannelNrs = [];
+            this.myCurrentSubject = [];
             this.maxCh = 16;
             this.myResultStruct = [];
             this.xRef = [];
@@ -465,14 +480,14 @@ classdef FLIMXFitResultImport < handle
             %load data of a certain filegroup
             this.currentRow = 1;
             %this.currentChannel = 1;
-            rs = result4Import.ASCIIFilesInGroup2ResultStruct(this.currentPath,this.myFileTypes,fileGroup,this.currentSubject,@this.plotProgressbar);
+            rs = result4Import.ASCIIFilesInGroup2ResultStruct(this.currentPath,this.myFileTypes,fileGroup,this.currentSubjectName,@this.plotProgressbar);
             rsChNrs = length(rs);
-            [~, existingChs] = this.FLIMXObj.fdt.getSubjectFilesStatus(this.currentStudy,this.currentSubject);
+            [~, existingChs] = this.FLIMXObj.fdt.getSubjectFilesStatus(this.currentStudyName,this.currentSubjectName);
             choice = '';
             chs = intersect(existingChs,1:rsChNrs);
             if(any(chs))
                 %some or all channels exist already in current subject
-                choice = questdlg(sprintf('Channels ''%s'' already have results in subject ''%s''!',num2str(chs),this.currentSubject),...
+                choice = questdlg(sprintf('Channels ''%s'' already have results in subject ''%s''!',num2str(chs),this.currentSubjectName),...
                     'FLIMX Result Import: Existing Result Channel(s)','Keep existing results and add new items','Delete all existing results and import new channel(s)','Abort','Keep existing results and add new items');
             end
             switch choice
@@ -483,8 +498,8 @@ classdef FLIMXFitResultImport < handle
                 case 'Keep existing results and add new items'                    
                 case 'Delete all existing results and import new channel(s)'
                     %clear old result data and add new channel(s)
-                    this.FLIMXObj.fdt.removeChannel(this.currentStudy,this.currentSubject,[]);
-                    this.FLIMXObj.fdt.clearSubjectFiles(this.currentStudy,this.currentSubject);
+                    this.FLIMXObj.fdt.removeSubjectResult(this.currentStudyName,this.currentSubjectName);
+                    %this.FLIMXObj.fdt.clearSubjectFiles(this.currentStudyName,this.currentSubjectName);
                 otherwise                    
             end            
             %check if there are too many channels            
@@ -547,7 +562,7 @@ classdef FLIMXFitResultImport < handle
             %check if subject already has results
             af = this.allFiles{ch};
             out = false(size(af,1),1);
-            subject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudy,this.currentSubject);
+            subject = this.currentSubject;
             if(isempty(subject))
                 return
             end
@@ -803,7 +818,7 @@ classdef FLIMXFitResultImport < handle
             %enter path manually
             path = get(this.visHandles.editPath,'String');
             if(isempty(path))
-                this.openFolderByGUI(this.currentStudy,this.currentSubject);
+                this.openFolderByGUI(this.currentStudyName,this.currentSubjectName);
             else
                 this.openFolderByStr(path);
             end
@@ -842,7 +857,7 @@ classdef FLIMXFitResultImport < handle
         % Pushbutton
         function GUI_buttonBrowse_Callback(this,hObject, eventdata)
             %browse for a new folder
-            this.openFolderByGUI(this.currentStudy,this.currentSubject);
+            this.openFolderByGUI(this.currentStudyName,this.currentSubjectName);
         end
         
         function GUI_buttonCancel_Callback(this,hObject, eventdata)
@@ -863,14 +878,14 @@ classdef FLIMXFitResultImport < handle
                 end
             end
             %confirm that user wants to import
-            choice = questdlg(sprintf('Do you want to import all selected items into subject ''%s'' in study ''%s''?', this.currentSubject,this.currentStudy),'FLIMX Result Import: Confirmation','Yes','No','No');
+            choice = questdlg(sprintf('Do you want to import all selected items into subject\n\n''%s''\n\nin study\n\n''%s''?', this.currentSubjectName,this.currentStudyName),'FLIMX Result Import: Confirmation','Yes','No','No');
             switch choice
                 case 'No'
                     this.closeVisWnd();
                     return
             end
             %% do actual import
-            is = this.FLIMXObj.fdt.getSubject4Import(this.currentStudy,this.currentSubject);
+            is = this.FLIMXObj.fdt.getSubject4Import(this.currentStudyName,this.currentSubjectName);
             %update position and scaling if needed
             pos = this.visHandles.popupPosition.String{this.visHandles.popupPosition.Value};
             res = str2double(this.visHandles.editResolution.String);
@@ -916,6 +931,7 @@ classdef FLIMXFitResultImport < handle
                     end
                 end
             end
+%             this.FLIMXObj.studyMgrGUI.updateGUI();
             this.closeVisWnd();            
         end
         

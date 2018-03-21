@@ -474,7 +474,7 @@ classdef measurementFile < handle
         function out = getReflectionMask(this,channel)
             %get reflection mask of channel
             if(isempty(this.fileInfo.reflectionMask) || length(this.fileInfo.reflectionMask) < channel || isempty(this.fileInfo.reflectionMask{channel}))
-                this.getSEPosRM(channel);
+                this.updateSEPosRM(channel);
             end
             out = this.fileInfo.reflectionMask{channel};
         end
@@ -799,7 +799,7 @@ classdef measurementFile < handle
                         bl = 0;
                     else
                         %get target nr of photons                        
-                        [~,bl,out] = getAdaptiveBinROI(raw,roiX,roiY,targetPhotons,int32(50),false);
+                        [~,bl,out] = getAdaptiveBinROI(raw,roiX,roiY,int32(targetPhotons),int32(50),false);
                     end
                 end
                 this.updateProgress(1,sprintf('ROI preparation channel %d 100%% done',ch));
@@ -819,7 +819,7 @@ classdef measurementFile < handle
             end
         end
         
-        function goOn = getSEPosRM(this,channel)
+        function goOn = updateSEPosRM(this,channel)
             %get start-pos, end-pos and reflection mask
             goOn = true;            
             pParam = this.paramMgrObj.getParamSection('pre_processing');
@@ -873,8 +873,9 @@ classdef measurementFile < handle
                 goOn = false;
                 this.fileInfo.StartPosition{channel} = 1;
                 this.fileInfo.EndPosition{channel} = this.fileInfo.nrTimeChannels;
-                this.fileInfo.reflectionMask{channel} = ones(this.fileInfo.nrTimeChannels,1);
+                this.fileInfo.reflectionMask{channel} = ones(this.fileInfo.nrTimeChannels,1);                
             end
+            this.setDirtyFlags([],2,true);
         end
         
         function [rawData, fluoFileInfo, auxInfo, ROIInfo] = makeExportVars(this,ch)
@@ -900,10 +901,6 @@ classdef measurementFile < handle
         
         function exportMatFile(this,ch,folder)
             %save measurement data to disk
-            %              [rawData, fluoFileInfo, auxInfo, ROIInfo] = this.makeExportVars(ch);
-            %              if(isempty(rawData))
-            %                  return
-            %              end
             fn = this.getMeasurementFileName(ch,folder);
             [pathstr, ~, ~]= fileparts(fn);
             if(~isdir(pathstr))
@@ -919,7 +916,6 @@ classdef measurementFile < handle
                 rawMaskData = this.getRawMaskData(ch);
                 fluoFileInfo = this.getFileInfoStruct(ch);
                 auxInfo.revision = this.FLIMXAboutInfo.measurement_revision;
-                %out.channel = ch;
                 [~, name, ext] = fileparts(this.getSourceFile());
                 auxInfo.sourceFile = [name ext];
                 ROIInfo = this.getROIInfo(ch);
@@ -1060,7 +1056,15 @@ classdef measurementFile < handle
                         elseif(this.useMex4StaticBin && isa(raw,'uint16') && binFactor > 4)
                             out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));
                         else
-                            out = getStaticBinROI(raw,uint16(roi),uint16(binFactor));
+                            try
+                                out = getStaticBinROI(raw,uint16(roi),uint16(binFactor));
+                            catch
+                                try
+                                    out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));
+                                catch
+                                    out = [];
+                                end
+                            end
                         end
                     end
                 end

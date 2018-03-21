@@ -188,9 +188,15 @@ classdef measurementInFDTree < measurementFile
             %load ROI info for current measurement
             success = false;
             if(this.openChannel(ch))
+                %loading the ROI will clear some of the file info
+                oldFI = this.fileInfo;
                 ri = this.myFiles{1,ch}.ROIInfo;
                 this.setROIDataType(ri.ROIDataType);
                 this.setROICoord(ri.ROICoordinates);
+                %write file info back so it doesn't have to be recomputed (it is valid as it was stored together on the hdd)
+                this.fileInfo.reflectionMask = oldFI.reflectionMask;
+                this.fileInfo.StartPosition = oldFI.StartPosition;
+                this.fileInfo.EndPosition = oldFI.EndPosition;
                 if(this.roiAdaptiveBinEnable && ~isempty(ri.ROIAdaptiveBinThreshold) && ri.ROIAdaptiveBinThreshold == this.roiAdaptiveBinThreshold && isfield(ri,'ROISupport'))
                     if(isfield(ri.ROISupport,'roiFluoDataFlat'))
                         this.roiFluoDataFlat{ch} = ri.ROISupport.roiFluoDataFlat;

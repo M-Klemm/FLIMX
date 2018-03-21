@@ -51,7 +51,7 @@ classdef FStudy < handle
             % Constructor for FStudy.
             this.myParent = parent;
             this.name = name;
-            this.revision = 25;
+            this.revision = 26;
             this.myDir = sDir;
             this.mySubjects = LinkedList();
             this.myStudyInfoSet = studyIS(this);
@@ -81,7 +81,7 @@ classdef FStudy < handle
                 this.save();
             end            
             %create subjects (but load them on demand)
-            subjects = this.myStudyInfoSet.getAllSubjectsStr();
+            subjects = this.myStudyInfoSet.getAllSubjectNames();
             for i=1:length(subjects)
                 %add subject to mySubjects
                 channels = this.myStudyInfoSet.getFileChs(i);
@@ -110,7 +110,7 @@ classdef FStudy < handle
         
         %% input functions
         function addObj(this,subjectID,chan,dType,gScale,data)
-            %add object (and subject if needed) with automatic runningNr
+            %add an object to FDTree and generate id (running number) automatically
             subject = this.getSubject(subjectID);
             if(isempty(subject))
                 subject = this.addSubject(subjectID);
@@ -122,7 +122,7 @@ classdef FStudy < handle
         end
         
         function addObjID(this,nr,subjectID,chan,dType,gScale,data)
-            %add object (and subject if needed) with specific runningNr nr
+            %add an object to FDTree with specific id (running number)
             subject = this.getSubject(subjectID);
             if(isempty(subject))
                 subject = this.addSubject(subjectID);
@@ -159,7 +159,7 @@ classdef FStudy < handle
                 subject.setSubjectName(newName);
                 %set name in study info set
                 idx = this.getSubjectNr(subjectID);
-                this.myStudyInfoSet.setSubjects(newName,idx);
+                this.myStudyInfoSet.setSubjectName(newName,idx);
                 %rename folder (if one exists)
                 oldpath = fullfile(this.myDir,subjectID);
                 newpath = fullfile(this.myDir,newName);
@@ -190,7 +190,7 @@ classdef FStudy < handle
                 end
             end
             %set name of condition cluster objects
-            conditionStr = this.getConditionsStr();
+            conditionStr = this.myStudyInfoSet.getDataFromStudyInfo('subjectInfoConditionalColumnNames');
             conditionClusterID = sprintf('Condition%s',clusterID);
             for i=1:length(conditionStr)
                 condition = this.getConditionObj(conditionStr{i});
@@ -306,12 +306,12 @@ classdef FStudy < handle
             this.myStudyInfoSet.setResultColorScaling(subjectID,ch,dType,dTypeNr,colorBorders);
         end
         
-        function setCutVec(this,subjectID,dim,cutVec)
-            %set the cut vector for subject subName and dimension dim
-            this.myStudyInfoSet.setCutVec(subjectID,dim,cutVec);
+        function setResultCrossSection(this,subjectID,dim,csDef)
+            %set the cross section for subject subName and dimension dim
+            this.myStudyInfoSet.setResultCrossSection(subjectID,dim,csDef);
             subject = this.getSubject(subjectID);
             if(~isempty(subject))
-                subject.setCutVec(dim,cutVec);
+                subject.setResultCrossSection(dim,csDef);
             end
         end
                 
@@ -335,45 +335,45 @@ classdef FStudy < handle
         end
         
         function addColumn(this,name)
-            %
+            %add new column to study info
             this.myStudyInfoSet.addColumn(name);
         end
         
-        function addCondColumn(this,opt)
-            %
-            this.myStudyInfoSet.addCondColumn(opt);
+        function addConditionalColumn(this,val)
+            %add new conditional column to study info with definition val
+            this.myStudyInfoSet.addConditionalColumn(val);
         end
         
-        function setCondColumn(this,colName,opt)
-            %
-            this.myStudyInfoSet.setCondColumn(colName,opt);
+        function setConditionalColumnDefinition(this,colName,opt)
+            %set definition for conditional column
+            this.myStudyInfoSet.setConditionalColumnDefinition(colName,opt);
         end
         
-        function setSubjectInfoHeaders(this,subjectInfoHeaders,idx)
-            %set info header and change condition name if required
+        function setSubjectInfoColumnName(this,newColumnName,idx)
+            %give column at idx a new name
             %check if idx is a conditional column
-            conditions = this.getConditionsStr();
-            headers = this.getSubjectInfoHeaders();
-            colName = headers{idx};
+            conditions = this.myStudyInfoSet.getDataFromStudyInfo('subjectInfoConditionalColumnNames');
+            allColumnNames = this.myStudyInfoSet.getDataFromStudyInfo('subjectInfoAllColumnNames');
+            colName = allColumnNames{idx};
             if(ismember(colName,conditions))
                 condition = this.getConditionObj(colName);
                 if(~isempty(condition))
                     %we have this condition in FDtree, change name of condition
-                    condition.setSubjectName(subjectInfoHeaders);
+                    condition.setSubjectName(newColumnName);
                 end
             end
-            %set info header in study info data
-            this.myStudyInfoSet.setSubjectInfoHeaders(subjectInfoHeaders,idx);
+            %set column name in study info data
+            this.myStudyInfoSet.setSubjectInfoColumnName(newColumnName,idx);
         end
         
         function setSubjectInfo(this,irow,icol,newData)
-            %
+            %set data in subject info at specific row and column
             this.myStudyInfoSet.setSubjectInfo(irow,icol,newData);
         end
         
-        function setSubjectInfoCombi(this,ref,idx)
-            %
-            this.myStudyInfoSet.setSubjectInfoCombi(ref,idx);
+        function setSubjectInfoConditionalColumnDefinition(this,def,idx)
+            %set definition def of a conditional column with the index idx
+            this.myStudyInfoSet.setSubjectInfoConditionalColumnDefinition(def,idx);
         end
         
         function importStudyInfo(this,file,mode)
@@ -601,7 +601,7 @@ classdef FStudy < handle
                 end
             end
             %delete condition cluster objects
-            conditionStr = this.getConditionsStr();
+            conditionStr = this.myStudyInfoSet.getDataFromStudyInfo('subjectInfoConditionalColumnNames');
             conditionClusterID = sprintf('Condition%s',clusterID);
             for i=1:length(conditionStr)
                 condition = this.getConditionObj(conditionStr{i});
@@ -688,7 +688,7 @@ classdef FStudy < handle
         
         function removeColumn(this,colName)
             %reomve column in study data and condition if required
-            cond = this.myStudyInfoSet.getColConditions(colName);
+            cond = this.myStudyInfoSet.getColumnDependencies(colName);
             if(~isempty(cond))
                 %we have a reference column
                 choice = questdlg(sprintf('"%s" is a reference column. All corresponding conditions will be deleted! Do you want to continue?',...
@@ -715,6 +715,9 @@ classdef FStudy < handle
             export.revision = this.revision;
             save(fullfile(this.myDir,'studyData.mat'),'export');
             this.isDirty = false;
+            %remove unnecessary files
+            this.checkStudyFiles();
+            this.checkSubjectFiles([]);
         end
         
         function out = getStatsParams(this)
@@ -946,12 +949,7 @@ classdef FStudy < handle
                 end
             end
         end
-        
-        function out = getConditionsStr(this)
-            %get conditional columns as conditions of study
-            out = this.myStudyInfoSet.getConditionsStr();
-        end
-        
+                
         function out = getConditionName(this,cNr)
             %get name of condition out of study data
             if(cNr == 1)
@@ -959,7 +957,7 @@ classdef FStudy < handle
                 out = FDTree.defaultConditionName();
                 return
             end
-            subjectInfoHeaders = this.getSubjectInfoHeaders();
+            subjectInfoHeaders = this.getDataFromStudyInfo('subjectInfoAllColumnNames');
             if(cNr > length(subjectInfoHeaders))
                 out = [];
                 return
@@ -1014,7 +1012,7 @@ classdef FStudy < handle
                 nr = this.mySubjects.queueLen;
             else
                 %get number according to conditional column
-                idx = this.myStudyInfoSet.infoHeaderName2idx(cName);
+                idx = this.myStudyInfoSet.subjectInfoColumnName2idx(cName);
                 subjectInfo = this.myStudyInfoSet.getSubjectInfo([]);
                 col = cell2mat(subjectInfo(:,idx));
                 nr = sum(col);
@@ -1035,7 +1033,7 @@ classdef FStudy < handle
                 return
             end
             %show only subjects which fullfil the conditional column
-            idx = this.myStudyInfoSet.infoHeaderName2idx(cName);
+            idx = this.myStudyInfoSet.subjectInfoColumnName2idx(cName);
             subjectInfo = this.myStudyInfoSet.getSubjectInfo([]);
             col = cell2mat(subjectInfo(:,idx));
             dStr = dStr(col);
@@ -1269,28 +1267,25 @@ classdef FStudy < handle
 %         end
         
         function out = getStudyClustersStr(this,mode)
-            %
+            %get list of clusters in study
+            %mode 0 - get all subject clusters
+            %mode 1 - get only calculable clusters
             out = this.myStudyInfoSet.getStudyClustersStr(mode);
         end
         
-        function out = getColReference(this,n)
-            %
-            out = this.myStudyInfoSet.getColReference(n);
+        function out = getConditionalColumnDefinition(this,idx)
+            %return definition of a conditional column with index idx
+            out = this.myStudyInfoSet.getConditionalColumnDefinition(idx);
         end
-        
-        function out = getSubjectInfoHeaders(this)
-            %
-            out = this.myStudyInfoSet.getSubjectInfoHeaders();
-        end
-        
+                
         function out = getSubjectInfo(this,subName)
-            %
+            %return the data of all columns in subject info
             out = this.myStudyInfoSet.getSubjectInfo(subName);
         end
         
-        function out = getSubjectInfoCombi(this)
-            %
-            out = this.myStudyInfoSet.getSubjectInfoCombi();
+        function out = getSubjectInfoConditionalColumnDefinitions(this)
+            %return definitions of all conditional columns in subject info
+            out = this.myStudyInfoSet.getSubjectInfoConditionalColumnDefinitions();
         end
         
         function out = getResultROICoordinates(this,subName,ROIType)
@@ -1308,9 +1303,9 @@ classdef FStudy < handle
             out = this.myStudyInfoSet.getResultColorScaling(subName,dType,ch,dTypeNr);
         end
                 
-        function out = getResultCuts(this,subName)
-            %
-            out = this.myStudyInfoSet.getResultCuts(subName);
+        function out = getResultCrossSection(this,subName)
+            %return cross section defintion for subject
+            out = this.myStudyInfoSet.getResultCrossSection(subName);
         end
         
         function data = makeInfoSetExportStruct(this,subName)
@@ -1323,9 +1318,9 @@ classdef FStudy < handle
 %             out = this.myStudyInfoSet.getSubjectFilesHeaders();
 %         end
         
-        function idx = infoHeaderName2idx(this,iHName)
-            %
-            idx = this.myStudyInfoSet.infoHeaderName2idx(iHName);
+        function idx = subjectInfoColumnName2idx(this,columnName)
+            %get the index of a subject info column or check if index is valid
+            idx = this.myStudyInfoSet.subjectInfoColumnName2idx(columnName);
         end
         
         function data = getSubjectFilesData(this)
@@ -1333,9 +1328,18 @@ classdef FStudy < handle
             data = this.myStudyInfoSet.getSubjectFilesData();
         end
         
-        function out = getDataFromStudyInfo(this,descriptor)
+        function out = getDataFromStudyInfo(this,descriptor,subName,colName)
             %get data from study info defined by descriptor
-            out = this.myStudyInfoSet.getDataFromStudyInfo(descriptor);
+            switch nargin
+                case 2
+                    out = this.myStudyInfoSet.getDataFromStudyInfo(descriptor);
+                case 3
+                    out = this.myStudyInfoSet.getDataFromStudyInfo(descriptor,subName);
+                case 4
+                    out = this.myStudyInfoSet.getDataFromStudyInfo(descriptor,subName,colName);
+                otherwise
+                    out = [];
+            end
         end
         
         function exportStudyInfo(this,file)
@@ -1493,7 +1497,7 @@ classdef FStudy < handle
                 %check all subjects
                 %clear all old results
                 nrSubjects = this.myStudyInfoSet.nrSubjects;
-                subjects = this.myStudyInfoSet.getAllSubjectsStr();
+                subjects = this.myStudyInfoSet.getAllSubjectNames();
                 this.myStudyInfoSet.clearFilesList([]);
                 for i = 1:nrSubjects
                     this.checkSubjectFiles(subjects{i});
@@ -1511,7 +1515,7 @@ classdef FStudy < handle
                     this.myStudyInfoSet.clearFilesList(idx);
                     this.myStudyInfoSet.clearROI(idx);
                     this.myStudyInfoSet.clearZScaling(idx);
-                    this.myStudyInfoSet.clearCuts(idx);
+                    this.myStudyInfoSet.clearCrossSections(idx);
                     return
                 else
                     %we know the subject and there is something on disk
@@ -1530,8 +1534,7 @@ classdef FStudy < handle
                         id = str2double(sn(isstrprop(sn, 'digit')));
                         this.myStudyInfoSet.setMeasurementOnHDD(subjectID,id);
                     end
-                end
-                
+                end                
             end
         end
         
@@ -1540,8 +1543,8 @@ classdef FStudy < handle
             if(isempty(subName))
                 %clear all subjects
                 nrSubjects = this.myStudyInfoSet.nrSubjects;
-                subjects = this.myStudyInfoSet.getAllSubjectsStr();
-                for i = 1:nrSubjects;
+                subjects = this.myStudyInfoSet.getAllSubjectNames();
+                for i = 1:nrSubjects
                     this.clearSubjectFiles(subjects{i});
                 end
             else
@@ -1551,7 +1554,7 @@ classdef FStudy < handle
                     this.myStudyInfoSet.clearFilesList(idx);
                     this.myStudyInfoSet.clearROI(idx);
                     this.myStudyInfoSet.clearZScaling(idx);
-                    this.myStudyInfoSet.clearCuts(idx);
+                    this.myStudyInfoSet.clearCrossSections(idx);
                 end
                 subDir = fullfile(this.myDir,subName);
                 if(~isdir(subDir))

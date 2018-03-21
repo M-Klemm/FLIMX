@@ -46,6 +46,16 @@ classdef subjectParamMgr < paramMgr
         function this = subjectParamMgr(hSubject,about)
             %constructor            
             this = this@paramMgr(about);
+            %this parameter manager has default parameters, use current FLIMX parameters as default
+            this.generalParams = hSubject.myParent.FLIMXParamMgrObj.generalParams;
+            this.computationParams = hSubject.myParent.FLIMXParamMgrObj.computationParams;
+            this.cleanupFitParams = hSubject.myParent.FLIMXParamMgrObj.cleanupFitParams;
+            this.preProcessParams = hSubject.myParent.FLIMXParamMgrObj.preProcessParams;
+            this.basicParams = hSubject.myParent.FLIMXParamMgrObj.basicParams;
+            this.initFitParams = hSubject.myParent.FLIMXParamMgrObj.initFitParams;
+            this.pixelFitParams = hSubject.myParent.FLIMXParamMgrObj.pixelFitParams;
+            this.boundsParams = hSubject.myParent.FLIMXParamMgrObj.boundsParams;
+            this.optimizationParams = hSubject.myParent.FLIMXParamMgrObj.optimizationParams;
             this.mySubject = hSubject;
             %make volatile parameters struct
             this.volatilePixelParams.nModelParamsPerCh = 0;
@@ -67,12 +77,18 @@ classdef subjectParamMgr < paramMgr
         %% output methods
         function out = get.fluoFileObj(this)
             %get handle to measurement
-            out = this.mySubject.myMeasurement;
+            out = [];
+            if(~isempty(this.mySubject))
+                out = this.mySubject.myMeasurement;
+            end
         end
         
         function out = get.resultObj(this)
             %get handle to result
-            out = this.mySubject.myResult;
+            out = [];
+            if(~isempty(this.mySubject))
+                out = this.mySubject.myResult;
+            end
         end
         
         function out = getVolatileChannelParams(this,ch)
@@ -154,10 +170,12 @@ classdef subjectParamMgr < paramMgr
                     case 'basic_fit'
                         this.volatileChannelParams{1}.cVec = [];
                         this.volatileChannelParams{2}.cVec = [];
-                        this.makeVolatileParams();
-                        if(resetResults)
-                            for ch = 1:this.fluoFileObj.nrSpectralChannels
-                                this.resultObj.allocResults(ch,this.fluoFileObj.getROIYSz(),this.fluoFileObj.getROIXSz());
+                        if(~isempty(this.fluoFileObj))
+                            this.makeVolatileParams();
+                            if(resetResults)
+                                for ch = 1:this.fluoFileObj.nrSpectralChannels
+                                    this.resultObj.allocResults(ch,this.fluoFileObj.getROIYSz(),this.fluoFileObj.getROIXSz());
+                                end
                             end
                         end
                     case 'init_fit'

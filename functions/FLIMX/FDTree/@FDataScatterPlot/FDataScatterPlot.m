@@ -44,10 +44,9 @@ classdef FDataScatterPlot < FDataNormal
     
     methods
         function this = FDataScatterPlot(parent,id,rawImage)
-            %
+            %constructor of FDataScatterPlot class
             this = this@FDataNormal(parent,id,rawImage);
-            this.ROICoordinates = zeros(7,3,2,'int16');
-            
+            this.ROICoordinates = zeros(7,3,2,'int16');            
         end
         
         function out = getROICoordinates(this,ROIType)
@@ -166,6 +165,4 @@ classdef FDataScatterPlot < FDataNormal
     methods (Access = protected)
           
     end%methods(protected)
-    
-    
 end

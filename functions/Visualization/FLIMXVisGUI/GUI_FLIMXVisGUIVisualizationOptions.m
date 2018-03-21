@@ -105,8 +105,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function updateGUI(handles,data)
 set(handles.plot_bg_color_button,'Backgroundcolor',data.flimvis.supp_plot_bg_color);
-set(handles.plot_cutXLine_color_button,'Backgroundcolor',data.flimvis.cutXColor);
-set(handles.plot_cutYLine_color_button,'Backgroundcolor',data.flimvis.cutYColor);
+set(handles.plot_cutXLine_color_button,'Backgroundcolor',data.flimvis.crossSectionXColor);
+set(handles.plot_cutYLine_color_button,'Backgroundcolor',data.flimvis.crossSectionYColor);
 set(handles.ButtonROILinecolor,'Backgroundcolor',data.flimvis.ROIColor);
 set(handles.buttonSuppLinecolor,'Backgroundcolor',data.flimvis.supp_plot_color);
 set(handles.buttonMVGrpBgColor,'Backgroundcolor',data.flimvis.cluster_grp_bg_color);
@@ -181,8 +181,8 @@ else
 end
 set(handles.editETDRSBgTrans,'Visible','on','String',data.flimvis.ETDRS_subfield_bg_color(4));
 set(handles.checkOffsetM3D,'Value',data.flimvis.offset_m3d);
-set(handles.checkColorCrossSections,'Value',data.flimvis.color_cuts);
-set(handles.checkSuppShowCrossSectionPos,'Value',data.flimvis.show_cut);
+set(handles.checkColorCrossSections,'Value',data.flimvis.color_crossSections);
+set(handles.checkSuppShowCrossSectionPos,'Value',data.flimvis.show_crossSection);
 if(data.flimvis.offset_m3d)
     set(handles.radioOffsetFixed,'Value',data.flimvis.offset_sc,'Enable','on');
     set(handles.radioOffsetAdaptive,'Value',~data.flimvis.offset_sc,'Enable','on');
@@ -386,7 +386,7 @@ updateGUI(handles,rdh);
 % --- Executes on button press in checkColorCrossSections.
 function checkColorCrossSections_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
-rdh.flimvis.color_cuts = get(hObject,'Value');
+rdh.flimvis.color_crossSections = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
@@ -394,7 +394,7 @@ updateGUI(handles,rdh);
 % --- Executes on button press in checkSuppShowCrossSectionPos.
 function checkSuppShowCrossSectionPos_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
-rdh.flimvis.show_cut = get(hObject,'Value');
+rdh.flimvis.show_crossSection = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
@@ -532,10 +532,10 @@ updateGUI(handles,rdh);
 % --- Executes on button press in plot_cutXLine_color_button.
 function plot_cutXLine_color_button_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
-cs = GUI_Colorselection(rdh.flimvis.cutXColor);
+cs = GUI_Colorselection(rdh.flimvis.crossSectionXColor);
 if(length(cs) == 3)
     rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
-    rdh.flimvis.cutXColor = cs;
+    rdh.flimvis.crossSectionXColor = cs;
     rdh.isDirty(1) = 1;
     set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 end
@@ -544,10 +544,10 @@ updateGUI(handles,rdh);
 % --- Executes on button press in plot_cutYLine_color_button.
 function plot_cutYLine_color_button_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
-cs = GUI_Colorselection(rdh.flimvis.cutYColor);
+cs = GUI_Colorselection(rdh.flimvis.crossSectionYColor);
 if(length(cs) == 3)
     rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
-    rdh.flimvis.cutYColor = cs;
+    rdh.flimvis.crossSectionYColor = cs;
     rdh.isDirty(1) = 1;
     set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 end
@@ -604,8 +604,8 @@ rdh.flimvis.alpha = data.defaults.flimvis.alpha;
 rdh.flimvis.fontsize = data.defaults.flimvis.fontsize;
 rdh.flimvis.shading = data.defaults.flimvis.shading;
 rdh.flimvis.offset_m3d = data.defaults.flimvis.offset_m3d;
-rdh.flimvis.color_cuts = data.defaults.flimvis.color_cuts;
-rdh.flimvis.show_cut = data.defaults.flimvis.show_cut;
+rdh.flimvis.color_crossSections = data.defaults.flimvis.color_crossSections;
+rdh.flimvis.show_crossSection = data.defaults.flimvis.show_crossSection;
 rdh.flimvis.offset_sc = data.defaults.flimvis.offset_sc;
 rdh.flimvis.cluster_grp_bg_color = data.defaults.flimvis.cluster_grp_bg_color;
 rdh.general.windowSize = data.defaults.general.windowSize;
