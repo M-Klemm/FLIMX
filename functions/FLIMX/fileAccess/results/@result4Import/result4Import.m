@@ -176,17 +176,42 @@ classdef result4Import < resultFile
                 return
             end
             [~,fileNames,e] = cellfun(@fileparts,{files(:).name},'UniformOutput',false);
-            idx = contains(fileNames,'[%]') & strcmp(e,'.asc'); %remove amps in percent
-            fileNames(idx) = [];
-            e(idx) = [];
             %try to find ***a1.asc
             fnTmp = fileNames(strcmp(e,'.asc'));
-            a1Id = find(contains(fnTmp,'_a1'));
+            ampsInPercentFlag = false;
+            if(any(contains(fnTmp,'_a1') & ~contains(fnTmp,'[%]')))
+                %remove % amplitudes
+                idx = contains(fileNames,'[%]') & strcmp(e,'.asc'); %remove amps in percent
+                fileNames(idx) = [];
+                e(idx) = [];
+                fnTmp = fileNames(strcmp(e,'.asc'));
+                a1Id = find(contains(fnTmp,'_a1'));                
+            else
+                %try to find amplitudes in %
+                a1Id = find(contains(fnTmp,'_a1') & contains(fnTmp,'[%]'));
+                if(~isempty(a1Id))
+                    %remove amplitudes which are not scaled in %
+                    idx = find(cellfun(@length,fnTmp) >= 3);
+                    for i = length(idx):-1:1
+                        tmp = fnTmp{idx(i)};
+                        tmp = tmp(end-2:end);
+                        if(strcmp(tmp(1:2),'_a') && isstrprop(tmp(3),'digit'))
+                            fnTmp(idx(i)) = [];
+                            e(idx(i)) = [];
+                        end
+                    end
+                    ampsInPercentFlag = true;
+                end
+            end
             if(~isempty(a1Id))
                 fileStub = cell(length(a1Id),1);
                 for i = 1:length(a1Id)
                     stub = fnTmp{a1Id(i)};
-                    stub = stub(1:end-2); %remove _a1
+                    if(ampsInPercentFlag)
+                        stub = stub(1:end-5); %remove _a1[%]
+                    else
+                        stub = stub(1:end-2); %remove _a1
+                    end
                     %check for single channel and multiple channels
                     chPos = regexp(stub,'-Ch\d+-_');
                     if(~isempty(chPos))% && strcmp(stub(end),'-') && chDigitLength >= 1 && chDigitLength <= 2)
@@ -277,6 +302,13 @@ classdef result4Import < resultFile
             if(isempty(files))
                 rs = [];
                 return
+            end            
+            [~,fileNames,e] = cellfun(@fileparts,{files(:).name},'UniformOutput',false);
+            %try to find ***a1.asc or ***a1[%].asc
+            if( ~any(strcmp(e,'.asc') & contains(fileNames,'_a1') & ~contains(fileNames,'[%]')) && any(strcmp(e,'.asc') & contains(fileNames,'_a1') & contains(fileNames,'[%]')))
+                ampsInPercentFlag = true;
+            else
+                ampsInPercentFlag = false;
             end
             rs.results.pixel.Amplitude1 = [];
             for i = 1:length(files)
@@ -291,12 +323,21 @@ classdef result4Import < resultFile
                     chanNr = str2double(str(idx));
                     curName = filename(min(length(filename),chPos+6):end);
                 end
-                if(isempty(curName) || contains(curName,'[%]') || strcmp(curName,'trace'))
+                if(isempty(curName) || ~ampsInPercentFlag && contains(curName,'[%]') || strcmp(curName,'trace'))
                     %error or amplitude in percent or data trace
                     continue
                 end
                 curNr = [];
-                if(strcmp(curName(1),'a') && sum(isstrprop(curName,'digit')) >= 1 && sum(isstrprop(curName,'digit')) <= 2 && length(curName) <= 3)
+                if(strcmp(curName(1),'a') && sum(isstrprop(curName,'digit')) == 1 && length(curName) == 2 ||  sum(isstrprop(curName,'digit')) == 2 && length(curName) == 3)
+                    %regular amplitude
+                    if(ampsInPercentFlag)
+                        %ignore regular amplitudes
+                        continue
+                    end
+                    curNr = str2double(curName(isstrprop(curName,'digit')));
+                    curName = 'Amplitude';
+                elseif(ampsInPercentFlag && strcmp(curName(1),'a') && sum(isstrprop(curName,'digit')) == 1 && length(curName) == 5 || sum(isstrprop(curName,'digit')) == 2 && length(curName) == 6)
+                    %amplitude in percent
                     curNr = str2double(curName(isstrprop(curName,'digit')));
                     curName = 'Amplitude';
                 elseif(strcmp(curName(1),'t') && sum(isstrprop(curName,'digit')) >= 1 && sum(isstrprop(curName,'digit')) <= 2 && length(curName) <= 3)
