@@ -46,16 +46,19 @@ classdef subjectParamMgr < paramMgr
         function this = subjectParamMgr(hSubject,about)
             %constructor            
             this = this@paramMgr(about);
-            %this parameter manager has default parameters, use current FLIMX parameters as default
-            this.generalParams = hSubject.myParent.FLIMXParamMgrObj.generalParams;
-            this.computationParams = hSubject.myParent.FLIMXParamMgrObj.computationParams;
-            this.cleanupFitParams = hSubject.myParent.FLIMXParamMgrObj.cleanupFitParams;
-            this.preProcessParams = hSubject.myParent.FLIMXParamMgrObj.preProcessParams;
-            this.basicParams = hSubject.myParent.FLIMXParamMgrObj.basicParams;
-            this.initFitParams = hSubject.myParent.FLIMXParamMgrObj.initFitParams;
-            this.pixelFitParams = hSubject.myParent.FLIMXParamMgrObj.pixelFitParams;
-            this.boundsParams = hSubject.myParent.FLIMXParamMgrObj.boundsParams;
-            this.optimizationParams = hSubject.myParent.FLIMXParamMgrObj.optimizationParams;
+            %check if subject has a parent (a simulated subject may have not)
+            if(~isempty(hSubject.myParent))
+                %this parameter manager has default parameters, use current FLIMX parameters as default
+                this.generalParams = hSubject.myParent.FLIMXParamMgrObj.generalParams;
+                this.computationParams = hSubject.myParent.FLIMXParamMgrObj.computationParams;
+                this.cleanupFitParams = hSubject.myParent.FLIMXParamMgrObj.cleanupFitParams;
+                this.preProcessParams = hSubject.myParent.FLIMXParamMgrObj.preProcessParams;
+                this.basicParams = hSubject.myParent.FLIMXParamMgrObj.basicParams;
+                this.initFitParams = hSubject.myParent.FLIMXParamMgrObj.initFitParams;
+                this.pixelFitParams = hSubject.myParent.FLIMXParamMgrObj.pixelFitParams;
+                this.boundsParams = hSubject.myParent.FLIMXParamMgrObj.boundsParams;
+                this.optimizationParams = hSubject.myParent.FLIMXParamMgrObj.optimizationParams;
+            end
             this.mySubject = hSubject;
             %make volatile parameters struct
             this.volatilePixelParams.nModelParamsPerCh = 0;
