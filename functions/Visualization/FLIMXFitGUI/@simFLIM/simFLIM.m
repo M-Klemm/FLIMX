@@ -550,6 +550,8 @@ classdef simFLIM < handle
             set(this.visHandles.radioSourceLastResult,'Callback',@this.GUI_radioSource_Callback);
             set(this.visHandles.radioSourceData,'Callback',@this.GUI_radioSource_Callback);
             %axes
+            this.visHandles.axesPreview.YLimMode = 'auto';
+            this.visHandles.axesPreview.YScale = 'log';
             set(this.visHandles.axesProgress,'XLim',[0 100],...
                 'YLim',[0 1],...
                 'Box','on', ...
@@ -808,9 +810,7 @@ classdef simFLIM < handle
         
         function updatePreviewPlot(this)
             %update plot
-            cla(this.visHandles.axesPreview);
-            this.visHandles.axesPreview.YLimMode = 'auto';
-            this.visHandles.axesPreview.YScale = 'log';
+            cla(this.visHandles.axesPreview);            
             lStr = cell(0,0);
             sdc = this.currentSynthDataCh;
             [szX, szY, szTime, nExp, photons, offset, sdt, xVec, tci] = this.getSimParams(this.currentSynthDataName,this.currentChannel);
@@ -833,6 +833,8 @@ classdef simFLIM < handle
                 lStr = FLIMXFitGUI.makeModelPlot(this.visHandles.axesPreview,model,xAxis,'ExpSum',dynVisParams,this.fluoDecayFitVisParams,'RefData',lStr);
             end
             FLIMXFitGUI.makeLegend(this.visHandles.axesPreview,lStr);
+            this.visHandles.axesPreview.YLimMode = 'auto';
+            this.visHandles.axesPreview.YScale = 'log';
         end
         
         function updateProgressbar(this,x,text)
