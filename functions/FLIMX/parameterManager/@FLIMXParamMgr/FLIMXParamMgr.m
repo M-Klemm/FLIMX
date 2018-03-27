@@ -245,19 +245,19 @@ classdef FLIMXParamMgr < paramMgr
                 if(ini.about.config_revision < 264)
                     if(isfield(ini,'flimvis_gui')) %rename cuts to crossSections
                         if(isfield(ini.flimvis_gui,'color_cuts'))
-                            ini.basic_fit.color_crossSections = ini.basic_fit.color_cuts;
+                            ini.flimvis_gui.color_crossSections = ini.flimvis_gui.color_cuts;
                             ini_isdirty = true;
                         end
                         if(isfield(ini.flimvis_gui,'cutXColor'))
-                            ini.basic_fit.color_crossSectionXColor = ini.basic_fit.cutXColor;
+                            ini.flimvis_gui.color_crossSectionXColor = ini.flimvis_gui.cutXColor;
                             ini_isdirty = true;
                         end
                         if(isfield(ini.flimvis_gui,'cutYColor'))
-                            ini.basic_fit.color_crossSectionYColor = ini.basic_fit.cutYColor;
+                            ini.flimvis_gui.color_crossSectionYColor = ini.flimvis_gui.cutYColor;
                             ini_isdirty = true;
                         end
                         if(isfield(ini.flimvis_gui,'show_cut'))
-                            ini.basic_fit.show_crossSection = ini.basic_fit.show_cut;
+                            ini.flimvis_gui.show_crossSection = ini.flimvis_gui.show_cut;
                             ini_isdirty = true;
                         end                        
                     end                    
