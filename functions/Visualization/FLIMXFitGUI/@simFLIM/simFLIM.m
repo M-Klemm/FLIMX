@@ -809,8 +809,8 @@ classdef simFLIM < handle
         function updatePreviewPlot(this)
             %update plot
             cla(this.visHandles.axesPreview);
-            set(this.visHandles.axesPreview,'YLimMode','auto');
-            set(this.visHandles.axesPreview,'Yscale','log');
+            this.visHandles.axesPreview.YLimMode = 'auto';
+            this.visHandles.axesPreview.YScale = 'log';
             lStr = cell(0,0);
             sdc = this.currentSynthDataCh;
             [szX, szY, szTime, nExp, photons, offset, sdt, xVec, tci] = this.getSimParams(this.currentSynthDataName,this.currentChannel);
@@ -824,10 +824,6 @@ classdef simFLIM < handle
                 model = squeeze(sdc.modelData(1,1,:));
                 %plot exponentials if we don't use data as reference
                 lStr = FLIMXFitGUI.makeModelPlot(this.visHandles.axesPreview,model,xAxis,'ExpSum',dynVisParams,this.fluoDecayFitVisParams,'Model',lStr);
-                %scale xvec to max(data)
-                dMax = max(raw(:));
-                %                 xVec(end) = xVec(end) * dMax;
-                xVec(1:sdc.nrExponentials) = xVec(1:sdc.nrExponentials).* dMax;
 %                 this.updatebasicParams(sdc);
                 this.mySimSubject.setMeasurementData(this.currentChannel,raw);
                 apObj = this.currentApObj;                

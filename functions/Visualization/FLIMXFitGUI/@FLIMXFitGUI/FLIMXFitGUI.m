@@ -2535,7 +2535,11 @@ classdef FLIMXFitGUI < handle
                 hmOld = apObj.basicParams.heightMode;
                 apObj.basicParams.heightMode = 1;
                 exponentials = apObj.getExponentials(apObj.currentChannel,x_vec);
+                %scale exponentials relative to the data maximum
+                dMax = max(apObj.getMeasurementData(apObj.currentChannel));
+                expMax = max(exponentials(:,1:apObj.basicParams.nExp),[],1);
                 apObj.basicParams.heightMode = hmOld;
+                exponentials(:,1:apObj.basicParams.nExp) = exponentials(:,1:apObj.basicParams.nExp)./expMax.*(expMax ./ sum(expMax(:)).*dMax);
                 exponentials = squeeze(exponentials);
                 if(size(exponentials,2) ~= apObj.basicParams.nExp+1+apObj.volatilePixelParams.nScatter)
                     return
