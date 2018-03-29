@@ -360,6 +360,10 @@ classdef result4Import < resultFile
                             elseif(zm == 3)
                                 %convert image to binary image
                                 data_temp = rgb2ind(data_temp(:,:,1:3),0.1);
+                                if(~any(data_temp(:)) || all(data_temp(:)) && any(transparency(:)))
+                                    %there is no structure in the RGB channels, try to use the transparency channel
+                                    data_temp = logical(transparency);
+                                end
                             elseif(zm == 4)
                                 %this is the transparency mask, we use its inverted version
                                 data_temp = ~data_temp(:,:,4) > 0.1;
