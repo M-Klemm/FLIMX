@@ -365,8 +365,14 @@ classdef result4Import < resultFile
                                     data_temp = logical(transparency);
                                 end
                             elseif(zm == 4)
-                                %this is the transparency mask, we use its inverted version
-                                data_temp = ~data_temp(:,:,4) > 0.1;
+                                %convert image to binary image
+                                transparency = squeeze(data_temp(:,:,4));
+                                data_temp = rgb2ind(data_temp(:,:,1:3),0.1);
+                                if(~any(data_temp(:)) || all(data_temp(:)))
+                                    %there is no structure in the RGB channels, try to use the transparency channel
+                                    %this is the transparency mask, we use its inverted version
+                                    data_temp = ~transparency > 0.1;
+                                end
                             end
                         catch
                             %reading image failed
