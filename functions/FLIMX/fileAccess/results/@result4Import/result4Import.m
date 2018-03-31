@@ -347,6 +347,10 @@ classdef result4Import < resultFile
                     %get datatype from filename; remove not allowed characters
                     curName = studyMgr.checkStructFieldName(curName);
                 end
+                if(isempty(curName))
+                    %no valid name
+                    continue
+                end
                 file = fullfile(path,[filename,curExt]);
                 switch curExt
                     case '.asc'

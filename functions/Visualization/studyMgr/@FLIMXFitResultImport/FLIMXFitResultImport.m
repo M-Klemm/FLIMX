@@ -431,8 +431,11 @@ classdef FLIMXFitResultImport < handle
             if(~this.isOpenVisWnd)% || ~ischar(val))
                 return
             end
-            val = max(val,this.maxCh);
-            set(this.visHandles.popupChannel,'Value',val);
+            idx = find(val == this.myChannelNrs,1);
+            if(isempty(val))
+                idx = 1;
+            end
+            set(this.visHandles.popupChannel,'Value',idx);
             this.currentRow = 1;
             this.updateGUI();
         end
@@ -478,6 +481,8 @@ classdef FLIMXFitResultImport < handle
         
         function switchFileGroup(this,fileGroup)
             %load data of a certain filegroup
+            this.visHandles.buttonImport.Enable = 'Off';
+            drawnow
             this.currentRow = 1;
             %this.currentChannel = 1;
             rs = result4Import.ASCIIFilesInGroup2ResultStruct(this.currentPath,this.myFileTypes,fileGroup,this.currentSubjectName,@this.plotProgressbar);
@@ -493,6 +498,7 @@ classdef FLIMXFitResultImport < handle
             switch choice
                 case 'Abort'
                     %skip
+                    this.visHandles.buttonImport.Enable = 'On';
                     this.closeVisWnd();
                     return
                 case 'Keep existing results and add new items'                    
@@ -518,6 +524,7 @@ classdef FLIMXFitResultImport < handle
             else
                 set(this.visHandles.editPath,'String',this.currentPath);
                 warndlg('No result files found!','FLIMX Result Import: No Files Found');
+                this.visHandles.buttonImport.Enable = 'On';
                 return
             end
             for chId = 1:length(this.myChannelNrs)
@@ -542,7 +549,8 @@ classdef FLIMXFitResultImport < handle
                 af(:,5) = num2cell(existing);
                 af(:,6) = num2cell(~existing & sizeFit);
                 this.allFiles(this.myChannelNrs(chId)) = {af};
-            end            
+            end
+            this.visHandles.buttonImport.Enable = 'On';
             this.setupGUI();
             this.updateGUI();
         end
