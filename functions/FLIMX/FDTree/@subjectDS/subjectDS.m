@@ -636,8 +636,7 @@ classdef subjectDS < handle
                 chBList = totalCh;
             else
                 chBList = repmat(aiParams.chB,1,nCh);
-            end
-            
+            end            
             %loop over channels
             for chIdx = 1:nCh
                 if(strncmp(aiParams.FLIMItemA,'subjectInfo->',13))
@@ -697,8 +696,27 @@ classdef subjectDS < handle
                         idxA(idxA) = logical(dataA(idxA));
                         idxB = ~isnan(dataB);
                         idxB(idxB) = logical(dataB(idxB));
-                        eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
-                        data = dataA;
+                        switch op
+                            case '&'
+                                eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
+                                data = dataA;
+                            case '|'
+                                eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
+                                if(isempty(neg))
+                                    %this is |
+                                    data = zeros(size(dataA),'like',dataA);
+                                    data(idxB) = dataB(idxB);
+                                    data(idxA) = dataA(idxA);
+                                else
+                                    %this is ~|
+                                    data = dataA;
+                                end
+                            case 'xor'
+                                eval(sprintf('idx = %sxor(idxA,idxB);',neg));
+                                data = zeros(size(dataA),'like',dataA);
+                                data(idxB & idx) = dataB(idxB & idx);
+                                data(idxA & idx) = dataA(idxA & idx);
+                        end
                         data(~idx) = nan;
                     else
                         eval(sprintf('data = dataA %s dataB;',aiParams.opA));
