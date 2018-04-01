@@ -103,7 +103,7 @@ classdef AICtrl < handle
         function new_Callback(this,hObject,eventdata)
             %user wants a new arithmetic image
             %get arithmetic images for current study
-            oldNames = this.visObj.fdt.getArithmeticImage(this.curStudy);
+            oldNames = this.visObj.fdt.getArithmeticImageDefinition(this.curStudy);
             while(true)
                 [settings, button] = settingsdlg(...
                     'Description', 'Enter a unique for the arithmetic image.',...
@@ -117,7 +117,7 @@ classdef AICtrl < handle
                 end
             end
             %we got a new name, update all GUI controls
-            this.visObj.fdt.setArithmeticImage(this.curStudy,settings.Name,this.getDefStruct);
+            this.visObj.fdt.setArithmeticImageDefinition(this.curStudy,settings.Name,this.getDefStruct);
             this.updateCtrls();
             set(this.aiSel,'Value',length(oldNames)+1);%new ai is at the end
             this.updateCtrls();
@@ -143,7 +143,7 @@ classdef AICtrl < handle
                 set(hObject,'String',str2double(get(hObject,'String')));
             end
             if(hObject ~= this.visObj.visHandles.ai_sel_pop)
-                this.visObj.fdt.setArithmeticImage(this.curStudy,this.curAIName,this.getCurAIParams());
+                this.visObj.fdt.setArithmeticImageDefinition(this.curStudy,this.curAIName,this.getCurAIParams());
             end
             this.updateCtrls();
             this.visObj.updateGUI([]);
@@ -152,7 +152,7 @@ classdef AICtrl < handle
         function updateCtrls(this)
             %updates controls to current values
             %get arithmetic images for current study
-            [aiStr, aiParam] = this.visObj.fdt.getArithmeticImage(this.curStudy);
+            [aiStr, aiParam] = this.visObj.fdt.getArithmeticImageDefinition(this.curStudy);
             idx = min(length(aiStr),get(this.aiSel,'Value'));
             if(length(aiStr) < idx || isempty(aiStr{idx}))
                 %hide controls

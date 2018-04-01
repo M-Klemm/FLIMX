@@ -92,10 +92,12 @@ guidata(hObject, handles);
 
 rdh.studiesStr = varargin{1};
 rdh.studyOrgSel = varargin{2};
+tStr = varargin{3};
 rdh.studyDestSel = varargin{2};
 if(isempty(rdh.studiesStr))
     delete(handles.studyDestinationFigure);
 else
+    handles.studyDestinationFigure.Name = tStr;
     rdh.studyOrgSel = max(1,min(length(rdh.studiesStr),rdh.studyOrgSel));
     rdh.studyDestSel = rdh.studyOrgSel;
     set(handles.studyDestinationFigure,'userdata',rdh);

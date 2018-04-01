@@ -326,7 +326,7 @@ classdef subjectDS < handle
                     end
                 end
 %                 %make arithmetic images
-%                 aiNames = this.myParent.getArithmeticImage();
+%                 aiNames = this.myParent.getArithmeticImageDefinition();
 %                 for j = 1:length(aiNames)
 %                     if(~isempty(aiNames{j}))
 %                         this.clearAllRIs(aiNames{j});

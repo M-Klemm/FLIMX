@@ -256,7 +256,7 @@ classdef FStudy < handle
         
         function clearArithmeticRIs(this)
             %clear raw images of arithmetic images
-            aiNames = this.getArithmeticImage();
+            aiNames = this.getArithmeticImageDefinition();
             for j = 1:length(aiNames)
                 if(~isempty(aiNames{j}))
                     this.clearAllRIs(aiNames{j});
@@ -508,10 +508,10 @@ classdef FStudy < handle
 %             end
 %         end
         
-        function setArithmeticImage(this,aiName,aiParam)
+        function setArithmeticImageDefinition(this,aiName,aiParam)
             %set name and definition of arithmetic image for a study
             this.clearArithmeticRIs();
-            this.myStudyInfoSet.setArithmeticImageInfo(aiName,aiParam);
+            this.myStudyInfoSet.setArithmeticImageDefinition(aiName,aiParam);
         end
         
         function setConditionColor(this,cName,val)
@@ -520,7 +520,7 @@ classdef FStudy < handle
         end
         
         %% removing functions
-        function removeArithmeticImage(this,aiName)
+        function removeArithmeticImageDefinition(this,aiName)
             %remove arithmetic image for a study
             this.myStudyInfoSet.removeArithmeticImageInfo(aiName);
             %remove the arithmetic image from each subject
@@ -714,10 +714,10 @@ classdef FStudy < handle
             export.name = this.name;
             export.revision = this.revision;
             save(fullfile(this.myDir,'studyData.mat'),'export');
-            this.isDirty = false;
             %remove unnecessary files
             this.checkStudyFiles();
             this.checkSubjectFiles([]);
+            this.isDirty = false;
         end
         
         function out = getStatsParams(this)
@@ -738,7 +738,7 @@ classdef FStudy < handle
             end
             %check if is arithmetic image
             %to do: move this to subjectDS?
-            [aiNames, aiParams] = this.myStudyInfoSet.getArithmeticImageInfo();
+            [aiNames, aiParams] = this.myStudyInfoSet.getArithmeticImageDefinition();
             idx = strcmp(dType,aiNames);
             if(sum(idx) == 1) %found 1 arithmetic image
                 %try to get image data
@@ -1071,7 +1071,7 @@ classdef FStudy < handle
                 subject.loadChannel(ch);
             end
             %get existing FLIMitems in channel + arithmetic images (which may have not been computed yet)
-            str = this.getArithmeticImage();
+            str = this.getArithmeticImageDefinition();
             if(isempty(str{1}))
                 str = subject.getChObjStr(ch);
             else
@@ -1372,9 +1372,9 @@ classdef FStudy < handle
 %             out = this.myParent.getIRFStr(timeChannels);
 %         end
         
-        function [aiStr, aiParam] = getArithmeticImage(this)
+        function [aiStr, aiParam] = getArithmeticImageDefinition(this)
             %get names and definitions of arithmetic images for a study
-            [aiStr, aiParam] = this.myStudyInfoSet.getArithmeticImageInfo();
+            [aiStr, aiParam] = this.myStudyInfoSet.getArithmeticImageDefinition();
         end
         
         function out = getConditionColor(this,cName)

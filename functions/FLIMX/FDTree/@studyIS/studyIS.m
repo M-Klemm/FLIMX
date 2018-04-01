@@ -494,7 +494,7 @@ classdef studyIS < handle
             end
         end
         
-        function setArithmeticImageInfo(this,aiName,aiStruct)
+        function setArithmeticImageDefinition(this,aiName,aiStruct)
             %set arithmetic image info
             if(isempty(aiName))
                 return
@@ -516,7 +516,7 @@ classdef studyIS < handle
             this.setDirty(true);
         end
         
-        function removeArithmeticImageInfo(this,aiName)
+        function removeArithmeticImageDefinition(this,aiName)
             %set arithmetic image info
             idx = find(strcmp(aiName,this.arithmeticImageInfo(:,1)));
             if(~isempty(idx))
@@ -1172,7 +1172,7 @@ classdef studyIS < handle
             end
         end
         
-        function [aiNames, aiParams] = getArithmeticImageInfo(this)
+        function [aiNames, aiParams] = getArithmeticImageDefinition(this)
             %
             if(isempty(this.arithmeticImageInfo))
                 aiNames = {[]}; aiParams = {[]};
@@ -1459,15 +1459,18 @@ classdef studyIS < handle
             if(isempty(varargin))
                 %sort subjects of current study
                 [this.subjectNames, idx] = sort(this.subjectNames);
-                this.resultFileChs = this.resultFileChs(idx,:);
-                this.measurementFileChs = this.measurementFileChs(idx,:);
-                this.subjectInfo = this.subjectInfo(idx,:);
-                this.resultROICoordinates = this.resultROICoordinates(idx);
-                this.resultZScaling = this.resultZScaling(idx);
-                this.resultColorScaling = this.resultColorScaling(idx);
-                this.resultCrossSection = this.resultCrossSection(idx);
-                this.allFLIMItems = this.allFLIMItems(idx,:);
-                this.setDirty(true);
+                if(~all(idx(:) == (1:this.nrSubjects)'))
+                    %study was not already sorted
+                    this.resultFileChs = this.resultFileChs(idx,:);
+                    this.measurementFileChs = this.measurementFileChs(idx,:);
+                    this.subjectInfo = this.subjectInfo(idx,:);
+                    this.resultROICoordinates = this.resultROICoordinates(idx);
+                    this.resultZScaling = this.resultZScaling(idx);
+                    this.resultColorScaling = this.resultColorScaling(idx);
+                    this.resultCrossSection = this.resultCrossSection(idx);
+                    this.allFLIMItems = this.allFLIMItems(idx,:);
+                    this.setDirty(true);
+                end
             else
                 %sort subjects of imported study
                 oldStudy = varargin{1};

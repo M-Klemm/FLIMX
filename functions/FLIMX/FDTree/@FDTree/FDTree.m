@@ -628,19 +628,19 @@ classdef FDTree < handle
             end
         end
         
-        function setArithmeticImage(this,studyID,aiName,aiParam)
+        function setArithmeticImageDefinition(this,studyID,aiName,aiParam)
             %set name and definition of arithmetic image for a study
             study = this.getStudy(studyID);
             if(~isempty(study))
-                study.setArithmeticImage(aiName,aiParam);
+                study.setArithmeticImageDefinition(aiName,aiParam);
             end
         end
         
-        function removeArithmeticImage(this,studyID,aiName)
+        function removeArithmeticImageDefinition(this,studyID,aiName)
             %remove arithmetic image for a study
             study = this.getStudy(studyID);
             if(~isempty(study))
-                study.removeArithmeticImage(aiName);
+                study.removeArithmeticImageDefinition(aiName);
             end
         end
         
@@ -1307,12 +1307,12 @@ classdef FDTree < handle
             end
         end
         
-        function [aiStr, aiParam] = getArithmeticImage(this,studyID)
+        function [aiStr, aiParam] = getArithmeticImageDefinition(this,studyID)
             %get names and definitions of arithmetic images for a study
             study = this.getStudy(studyID);
             aiStr = []; aiParam = [];
             if(~isempty(study))
-                [aiStr, aiParam] = study.getArithmeticImage();
+                [aiStr, aiParam] = study.getArithmeticImageDefinition();
             end
         end
         

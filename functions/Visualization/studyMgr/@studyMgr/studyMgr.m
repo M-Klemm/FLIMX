@@ -151,6 +151,7 @@ classdef studyMgr < handle
             set(this.visHandles.contextChangeSubjectFileInfo,'Callback',@this.menuChangeSubjectFileInfo_Callback);
             set(this.visHandles.contextDeleteSubjectResult,'Callback',@this.menuDeleteSubjectResult_Callback);
             set(this.visHandles.contextCopyROI2Study,'Callback',@this.menuCopyROI2Study_Callback);
+            set(this.visHandles.contextCopyAI2Study,'Callback',@this.menuCopyAI2Study_Callback);
             set(this.visHandles.contextImportMeasurement,'Callback',@this.menuImportMeasurementSingle_Callback);
             set(this.visHandles.contextImportResult,'Callback',@this.menuImportResultSelSub_Callback);
             %menu import
@@ -503,11 +504,17 @@ classdef studyMgr < handle
             this.clearClipboard;
             this.add2Clipboard(1);
             this.add2Clipboard(this.curStudyName);
+            oldStudyName = this.curStudyName;
             for i=1:this.fdt.getNrSubjects(this.curStudyName,FDTree.defaultConditionName())
                 this.add2Clipboard(i)
             end            
             this.addStudy(newStudyName);
-            this.insertSubjects(newStudyName);            
+            this.insertSubjects(newStudyName); 
+            %copy arithmetic images
+            [aiStr, aiParam] = this.fdt.getArithmeticImageDefinition(oldStudyName);
+            for i = 1:length(aiStr)
+                this.fdt.setArithmeticImageDefinition(newStudyName,aiStr{i},aiParam{i});
+            end
             this.fdt.saveStudy(newStudyName);
             this.clearClipboard;
             set(hObject,'String','Duplicate');
@@ -1196,7 +1203,7 @@ classdef studyMgr < handle
             end
             studies = get(this.visHandles.popupStudySelection,'String');
             orgStudyID = get(this.visHandles.popupStudySelection,'Value');
-            destStudyID = GUI_studyDestinationSel(studies,orgStudyID);
+            destStudyID = GUI_studyDestinationSel(studies,orgStudyID,'Copy ROI Coordinates to Study');
             if(isempty(destStudyID) || destStudyID > length(studies) || orgStudyID == destStudyID)
                 return
             end
@@ -1211,6 +1218,25 @@ classdef studyMgr < handle
                     sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec', 100*(i)/nSubjects,hours,minutes,secs));
             end
             this.plotProgressbar(0,'','');
+            this.visObj.setupGUI();
+            this.visObj.updateGUI('');
+        end
+        
+        function menuCopyAI2Study_Callback(this,hObject,eventdata)
+            %copy ROI coordinates of subject(s) from current study to target study
+            if(~this.isOpenVisWnd())
+                return
+            end
+            studies = get(this.visHandles.popupStudySelection,'String');
+            orgStudyID = get(this.visHandles.popupStudySelection,'Value');
+            destStudyID = GUI_studyDestinationSel(studies,orgStudyID,'Copy Arithmetic Image Definitions to Study');
+            if(isempty(destStudyID) || destStudyID > length(studies) || orgStudyID == destStudyID)
+                return
+            end
+            [aiStr, aiParam] = this.fdt.getArithmeticImageDefinition(studies{orgStudyID});
+            for i = 1:length(aiStr)
+                this.fdt.setArithmeticImageDefinition(studies{destStudyID},aiStr{i},aiParam{i});
+            end
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
         end
