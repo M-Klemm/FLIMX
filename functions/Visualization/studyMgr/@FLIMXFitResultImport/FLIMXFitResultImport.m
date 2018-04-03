@@ -948,7 +948,7 @@ classdef FLIMXFitResultImport < handle
             % switch checkbox and select all/deselect all
             data = this.getTableData4Channel(this.currentChannel);
             set(hObject,'Value',1)
-            data(:,5) = num2cell(true(size(data,1),1));
+            data(:,6) = num2cell(true(size(data,1),1));
             this.setTableData4Channel(this.currentChannel,data);
             this.updateGUI();
         end
@@ -957,7 +957,7 @@ classdef FLIMXFitResultImport < handle
             % switch checkbox and select all/deselect all
             data = this.getTableData4Channel(this.currentChannel);
             set(hObject,'Value',0)
-            data(:,5) = num2cell(false(size(data,1),1));
+            data(:,6) = num2cell(false(size(data,1),1));
             this.setTableData4Channel(this.currentChannel,data);
             this.updateGUI();
         end
