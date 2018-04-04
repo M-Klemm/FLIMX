@@ -938,10 +938,20 @@ classdef FLIMXVisGUI < handle
                             %get ROI coordinates after moving
                             ROICoord = thisROIObj.getCurROIInfo();
                             %draw ROI
-                            this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),ROICoord(:,3:end),ROICoord(:,2),false);
+                            switch this.getROIType(thisSide)
+                                case {4,5}
+                                    this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),ROICoord(:,2),ROICoord(:,3),false);
+                                otherwise
+                                    this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),ROICoord(:,3:end),ROICoord(:,2),false);
+                            end
                             if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
                                 %move ROI also on the other side
-                                this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),ROICoord(:,3:end),ROICoord(:,2),false);
+                                switch this.getROIType(otherSide)
+                                    case {4,5}
+                                        this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),ROICoord(:,2),ROICoord(:,3),false);
+                                    otherwise
+                                        this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),ROICoord(:,3:end),ROICoord(:,2),false);
+                                end                                
                             end
                         end
                     end
