@@ -102,6 +102,7 @@ classdef studyMgr < handle
             set(this.visHandles.menuImportStudy,'Callback',@this.menuImportStudy_Callback);
             set(this.visHandles.menuRenameStudy,'Callback',@this.menuRenameStudy_Callback);
             set(this.visHandles.buttonRenameStudy,'Callback',@this.menuRenameStudy_Callback);
+            set(this.visHandles.menuCopyAI2Study,'Callback',@this.menuCopyAI2Study_Callback);
             %subjects
             set(this.visHandles.menuNewSubject,'Callback',@this.menuNewSubject_Callback);
             set(this.visHandles.menuDeleteSubject,'Callback',@this.menuDeleteSubject_Callback);
@@ -367,7 +368,7 @@ classdef studyMgr < handle
             end
             
             %Clipboard-Mode: Cut?
-            if this.myClipboard{1} == 2
+            if(this.myClipboard{1} == 2)
                 for i = 1:size(queue,2)
                     %delete only subjects which were copied successfully
                     %using workaround
@@ -1233,10 +1234,43 @@ classdef studyMgr < handle
             if(isempty(destStudyID) || destStudyID > length(studies) || orgStudyID == destStudyID)
                 return
             end
-            [aiStr, aiParam] = this.fdt.getArithmeticImageDefinition(studies{orgStudyID});
-            for i = 1:length(aiStr)
-                this.fdt.setArithmeticImageDefinition(studies{destStudyID},aiStr{i},aiParam{i});
+            oldStr = this.visHandles.buttonStop.String;
+            try
+                this.visHandles.buttonStop.String = sprintf('<html><img src="file:/%s"/></html>',FLIMX.getAnimationPath());
+                drawnow;
             end
+            [aiStrNew, aiParamNew] = this.fdt.getArithmeticImageDefinition(studies{orgStudyID});
+            [aiStrDest, aiParamDest] = this.fdt.getArithmeticImageDefinition(studies{destStudyID});
+            is = intersect(aiStrNew,aiStrDest);
+            overWriteAllFlag = false;
+            for i = 1:length(aiStrNew)
+                [tf,idx] = ismember(aiStrNew{i},is);
+                if(tf)
+                    [~,idx] = ismember(is(idx),aiStrDest);
+                    %arithmetic image is already in destination study;
+                    %check if it is identical
+                    newAI = aiParamNew{i};
+                    oldAI = aiParamDest{idx};
+                    identFlag = strcmp(newAI.FLIMItemA,oldAI.FLIMItemA) && strcmp(newAI.FLIMItemB,oldAI.FLIMItemB) && newAI.normalizeA == oldAI.normalizeA...
+                        && newAI.normalizeB == oldAI.normalizeB && newAI.chA == oldAI.chA && newAI.chB == oldAI.chB...
+                        && strcmp(newAI.opA,oldAI.opA) && strcmp(newAI.opB,oldAI.opB)...
+                        && strcmp(newAI.compAgainst,oldAI.compAgainst) && strcmp(newAI.valCombi,oldAI.valCombi)...
+                        && newAI.valA == oldAI.valA && newAI.valB == oldAI.valB;
+                    if(~identFlag && ~overWriteAllFlag)
+                        choice = questdlg(sprintf('Arithmetic image definition ''%s'' already exists in study ''%s'' but is different from study ''%s''.\n\nDo you want to overwrite the definition in study ''%s''?',...
+                            aiStrNew{i},studies{destStudyID},studies{orgStudyID},studies{destStudyID}),'Copy Arithmetic Image Definition','Yes','All','No','Yes');
+                        switch choice
+                            case 'All'
+                                overWriteAllFlag = true;
+                            case 'No'
+                                %keep old arithmetic image
+                                aiParamNew(i) = aiParamDest(idx);
+                        end
+                    end
+                end
+                this.fdt.setArithmeticImageDefinition(studies{destStudyID},aiStrNew{i},aiParamNew{i});
+            end
+            this.visHandles.buttonStop.String = oldStr;
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
         end
