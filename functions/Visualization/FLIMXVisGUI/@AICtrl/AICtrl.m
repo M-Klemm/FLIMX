@@ -131,7 +131,7 @@ classdef AICtrl < handle
         
         function del_Callback(this,hObject,eventdata)
             %delete arithmetic image
-            this.visObj.fdt.removeArithmeticImage(this.curStudy,this.curAIName);
+            this.visObj.fdt.removeArithmeticImageDefinition(this.curStudy,this.curAIName);
             this.updateCtrls();
             this.visObj.setupGUI();
             this.visObj.updateGUI([]);
