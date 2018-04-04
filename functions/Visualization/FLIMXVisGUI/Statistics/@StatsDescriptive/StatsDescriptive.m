@@ -42,6 +42,9 @@ classdef StatsDescriptive < handle
         normDistTests = [];
         normDistTestsLegend = cell(0,0);
     end
+%     properties(GetAccess = protected, SetAccess = protected)
+%         stopFlag = false;
+%     end
     properties (Dependent = true)
         study = '';
         condition = '';
@@ -253,16 +256,18 @@ classdef StatsDescriptive < handle
             %
             set(this.visHandles.editSNPreview,'String',this.currentSheetName);
         end
-        
+                
         function GUI_buttonExcelExport_Callback(this,hObject,eventdata)
-            %
+            %create xls file with current statistics data
             [file,path] = uiputfile('*.xls','Export Data in Excel Fileformat...');
             if ~file ; return ; end
+            fn = fullfile(path,file);
+            %switch of GUI elements
             try
                 set(hObject,'String',sprintf('<html><img src="file:/%s"/></html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
-            fn = fullfile(path,file);
+            this.toggleGUIControls('Off');            
             switch this.exportModeFLIM
                 case 1 %single (current) result
                     if(isempty(this.subjectStats))
@@ -303,7 +308,7 @@ classdef StatsDescriptive < handle
                     this.clearResults();
             end
             %loop over all export paramters
-            totalIter = length(condIds)*length(FLIMIds)*length(ROIIds)*length(chIds);
+            totalIter = length(condIds)*length(FLIMIds)*length(ROIIds)*length(chIds); %assume identical number of FLIM items in all channels
             curIter = 0;
             for v = 1:length(condIds)
                 if(length(condIds) > 1)
@@ -311,32 +316,38 @@ classdef StatsDescriptive < handle
                     this.clearResults();
                     this.GUI_SelConditionPop_Callback(this.visHandles.popupSelCondition,[]); %will call setupGUI
                 end
-                for f = 1:length(FLIMIds)
-                    if(length(FLIMIds) > 1)
-                        set(this.visHandles.popupSelFLIMParam,'Value',f);
+                for c = 1:length(chIds)
+                    if(length(chIds) > 1)
+                        set(this.visHandles.popupSelCh,'Value',c);
                         this.clearResults();
-                        this.GUI_SelFLIMParamPop_Callback(this.visHandles.popupSelFLIMParam,[]); %will call setupGUI
+                        this.GUI_SelChPop_Callback(this.visHandles.popupSelCh,[]); %will call setupGUI
                     end
-                    for r = 1:length(ROIIds)
-                        if(length(ROIIds) > 1)
-                            switch this.exportModeROI
-                                case 2 %all ETDRS grid ROIs
-                                    set(this.visHandles.popupSelROIType,'Value',2); %switch to ETDRS grid
-                                    set(this.visHandles.popupSelROISubType,'Value',ROIIds(r));
-                                    this.clearResults();
-                                    this.GUI_SelROITypePop_Callback(this.visHandles.popupSelROIType,[]); %will call setupGUI
-                                case 3 %all major ROIs except for the ETDRS grid
-                                    set(this.visHandles.popupSelROIType,'Value',ROIIds(r));
-                                    this.clearResults();
-                                    this.GUI_SelROITypePop_Callback(this.visHandles.popupSelROIType,[]); %will call setupGUI
-                            end
+                    if(this.exportModeFLIM == 2)
+                        FLIMIds = 1:this.totalDTypes;
+                    else
+                        FLIMIds = get(this.visHandles.popupSelFLIMParam,'Value');
+                    end
+                    for f = 1:length(FLIMIds)
+                        if(length(FLIMIds) > 1)
+                            set(this.visHandles.popupSelFLIMParam,'Value',f);
+                            this.clearResults();
+                            this.GUI_SelFLIMParamPop_Callback(this.visHandles.popupSelFLIMParam,[]); %will call setupGUI
                         end
-                        for c = 1:length(chIds)
-                            if(length(chIds) > 1)
-                                set(this.visHandles.popupSelCh,'Value',c);
-                                this.clearResults();
-                                this.GUI_SelChPop_Callback(this.visHandles.popupSelCh,[]);
+                        for r = 1:length(ROIIds)
+                            if(length(ROIIds) > 1)
+                                switch this.exportModeROI
+                                    case 2 %all ETDRS grid ROIs
+                                        set(this.visHandles.popupSelROIType,'Value',2); %switch to ETDRS grid
+                                        set(this.visHandles.popupSelROISubType,'Value',ROIIds(r));
+                                        this.clearResults();
+                                        this.GUI_SelROITypePop_Callback(this.visHandles.popupSelROIType,[]); %will call setupGUI
+                                    case 3 %all major ROIs except for the ETDRS grid
+                                        set(this.visHandles.popupSelROIType,'Value',ROIIds(r));
+                                        this.clearResults();
+                                        this.GUI_SelROITypePop_Callback(this.visHandles.popupSelROIType,[]); %will call setupGUI
+                                end
                             end
+                            %finally update the GUI and export its data
                             this.updateGUI();
                             if(isempty(this.subjectStats))
                                 this.makeStats();
@@ -387,6 +398,7 @@ classdef StatsDescriptive < handle
                     end
                 end
             end
+            this.toggleGUIControls('On');
             set(hObject,'String','Go');
             this.updateProgressbar(0,'');
         end
@@ -450,7 +462,7 @@ classdef StatsDescriptive < handle
             %params
             oldPStr = get(this.visHandles.popupSelFLIMParam,'String');
             if(iscell(oldPStr))
-                oldPStr = oldPStr(get(this.visHandles.popupSelFLIMParam,'Value'));
+                oldPStr = oldPStr(min(length(oldPStr),get(this.visHandles.popupSelFLIMParam,'Value')));
             end
             %try to find oldPStr in new pstr
             idx = find(strcmp(oldPStr,coStr),1);
@@ -628,7 +640,11 @@ classdef StatsDescriptive < handle
             if(isempty(this.subjectStats))
                 out = [];
             else
-                out = mean(this.subjectStats,1);
+                idx = isnan(this.subjectStats);
+                out = zeros(1,size(idx,2));
+                for i = 1:size(idx,2)
+                    out(i) = mean(this.subjectStats(~idx(:,i),i),1);
+                end
             end
         end
         
@@ -728,6 +744,59 @@ classdef StatsDescriptive < handle
             out = abs(str2double(get(this.visHandles.editAlpha,'string')))/100;
         end
     end %methods
+    
+    methods(Access = protected)
+        function toggleGUIControls(this,flag)
+            %disable or enable GUI elements, e.g. during export
+            persistent oldSNCondition oldSNROI oldSNCh oldSNFLIM
+            if(isempty(oldSNCondition))
+                oldSNCondition = 'On';
+            end
+            if(isempty(oldSNROI))
+                oldSNROI = 'On';
+            end
+            if(isempty(oldSNCh))
+                oldSNCh = 'On';
+            end
+            if(isempty(oldSNFLIM))
+                oldSNFLIM = 'On';
+            end
+            this.visHandles.popupSelStudy.Enable = flag;
+            this.visHandles.popupSelCondition.Enable = flag;
+            this.visHandles.popupSelFLIMParam.Enable = flag;
+            this.visHandles.popupSelCh.Enable = flag;
+            this.visHandles.popupSelExportCondition.Enable = flag;
+            this.visHandles.popupSelExportROI.Enable = flag;
+            this.visHandles.popupSelExportCh.Enable = flag;
+            this.visHandles.popupSelExportFLIM.Enable = flag;
+            this.visHandles.checkExportStatsHist.Enable = flag;
+            this.visHandles.checkExportNormalTests.Enable = flag;
+            this.visHandles.checkExportSubjectData.Enable = flag;
+            this.visHandles.popupSelROIType.Enable = flag;
+            this.visHandles.popupSelROISubType.Enable = flag;
+            this.visHandles.popupSelStatParam.Enable = flag;
+            this.visHandles.editClassWidth.Enable = flag;
+            this.visHandles.editAlpha.Enable = flag;
+            this.visHandles.buttonUpdateGUI.Enable = flag;
+            if(strcmpi(flag,'off'))
+                %save old state
+                oldSNCondition = this.visHandles.checkSNCondition.Enable;
+                oldSNROI = this.visHandles.checkSNROI.Enable;
+                oldSNCh = this.visHandles.checkSNCh.Enable;
+                oldSNFLIM = this.visHandles.checkSNFLIM.Enable;
+                this.visHandles.checkSNCondition.Enable = flag;
+                this.visHandles.checkSNROI.Enable = flag;
+                this.visHandles.checkSNCh.Enable = flag;
+                this.visHandles.checkSNFLIM.Enable = flag;
+            else
+                %restore old state
+                this.visHandles.checkSNCondition.Enable = oldSNCondition;
+                this.visHandles.checkSNROI.Enable = oldSNROI;
+                this.visHandles.checkSNCh.Enable = oldSNCh;
+                this.visHandles.checkSNFLIM.Enable = oldSNFLIM;
+            end
+        end
+    end
     
     methods(Static)
         function [h,p] = test4NormalDist(test,data,alpha)
