@@ -43,9 +43,7 @@ classdef subject4Sim < fluoSubject
     methods
         function this = subject4Sim(studyName,sdc,hParentParamMgr,hIRFMgr)
             %constructor            
-            this = this@fluoSubject(hParentParamMgr,'Simulation');%,'',hParentParamMgr,hIRFMgr,about);
-%             this.myParamMgr.setParamSection('pre_processing',[]);
-%             this.myParamMgr.setParamSection('bounds',[]);
+            this = this@fluoSubject(hParentParamMgr,'Simulation');
             this.parentParamMgr = hParentParamMgr;
             this.IRFMgr = hIRFMgr;
             this.studyName = studyName;

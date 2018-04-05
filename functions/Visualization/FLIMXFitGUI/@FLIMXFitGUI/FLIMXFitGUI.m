@@ -2585,7 +2585,7 @@ classdef FLIMXFitGUI < handle
                     'Linestyle',staticVisParams.(sprintf('plot%sLinestyle',paramName)),...
                     'Color',staticVisParams.(sprintf('plot%sColor',paramName)),'Parent',hAx);
                 catch ME
-                    warning('FLIMXFitGUI:makeverticalLinePlot',ME.message);
+                    warning('FLIMXFitGUI:makeverticalLinePlot','%s',ME.message);
                     return
                 end
             end

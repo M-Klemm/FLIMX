@@ -710,7 +710,7 @@ classdef simFLIM < handle
                 %IRF
                 IRFnames = this.FLIMXObj.irfMgr.getIRFNames(sdc.nrTimeChannels);
                 set(this.visHandles.popupIRF,'String',IRFnames);
-                [tf pos] = ismember(sdc.IRFName,IRFnames);
+                [tf, pos] = ismember(sdc.IRFName,IRFnames);
                 if(tf)
                     set(this.visHandles.popupIRF,'Value',pos,'Enable','On');
                 else
@@ -1290,7 +1290,7 @@ classdef simFLIM < handle
         
         function GUI_popupTime_Callback(this,hObject,eventdata)
             %select time resolution
-            switch get(hObject,'Value');
+            switch get(hObject,'Value')
                 case 1
                     szTime = 1024;
                 case 2
@@ -1328,7 +1328,7 @@ classdef simFLIM < handle
                 return
             end
             if(sdc.dataSourceType == 1)
-                [str, mask] = this.FLIMXObj.irfMgr.getIRFNames(sdc.nrTimeChannels);
+                [str, ~] = this.FLIMXObj.irfMgr.getIRFNames(sdc.nrTimeChannels);
                 sdc.IRFName = str{min(get(hObject,'Value'),length(str))};
                 this.mySimSubject.basicParams.curIRFID = sdc.IRFName;
                 this.mySimSubject.updateAuxiliaryData(1:sdc.nrSpectralChannels);
@@ -1607,9 +1607,9 @@ classdef simFLIM < handle
             end
             choice = 'Start';
             tag = get(hObject,'Tag');
-            if(~isempty(strfind(tag,'Step')))
+            if(contains(tag,'Step'))
                 choice = 'Step';
-            elseif(~isempty(strfind(tag,'End')))
+            elseif(contains(tag,'End'))
                 choice = 'End';
             end
             val = abs(str2double(get(hObject,'String')));
@@ -1776,7 +1776,7 @@ classdef simFLIM < handle
             %check irf
             if(isempty(this.FLIMXObj.irfMgr.getCurIRF(this.currentChannel)))
                 [irfStr,IRFmask] = this.FLIMXObj.irfMgr.getIRFNames(this.mySimSubject.nrTimeChannels);
-                [settings button] = settingsdlg(...
+                [settings, button] = settingsdlg(...
                     'Description', 'The currently selected IRF is not valid for parameter approximation. Please choose a valid IRF from the list below.',...
                     'title' , 'IRF Selection',...
                     {'IRF name';'IRFid'}, irfStr);
