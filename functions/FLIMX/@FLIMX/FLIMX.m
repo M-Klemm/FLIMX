@@ -553,16 +553,16 @@ classdef FLIMX < handle
             out = {
                 'This software uses ''Scalar function-based filtering'' by Damien Garcia from http://www.biomecardio.com/matlab/sffilt.html';
                 
-                char(10);
+                newline;
                 'This software uses ''Fast and robust smoothing of one-dimensional and multidimensional data'' by Damien Garcia from http://www.biomecardio.com/matlab/smoothn.html';
                 
-                char(10);
+                newline;
                 'This software uses ''qinterp1'' by Nathaniel Brahms from http://www.mathworks.com/matlabcentral/fileexchange/10286-fast-interpolation';
                 
-                char(10);
+                newline;
                 'This software uses ''fminsearchbnd new'' by Ken Purchase from http://www.mathworks.com/matlabcentral/fileexchange/17804-fminsearchbnd-new';
                 
-                char(10);
+                newline;
                 'This software uses ''Fast smoothing function'' by T. C. O''Haver from http://www.mathworks.com/matlabcentral/fileexchange/19998-fast-smoothing-function, which is covered by the following license:';
                 char(13);
                 'Copyright (c) 2009, Tom O''Haver All rights reserved.';
@@ -589,7 +589,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses ''Recursive directory listing'' by Gus Brown from http://www.mathworks.com/matlabcentral/fileexchange/19550-recursive-directory-listing, which is covered by the following license:';
                 'Copyright (c) 2009, Gus Brown';
                 'All rights reserved.';
@@ -616,7 +616,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses ''CATSTRUCT'' by Jos van der Geest from http://www.mathworks.com/matlabcentral/fileexchange/7842-catstruct, which is covered by the following license:';
                 'Copyright (c) 2009, Jos van der Geest';
                 'All rights reserved.';
@@ -643,7 +643,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses ''struct2ini'' by Dirk Lohse from http://www.mathworks.com/matlabcentral/fileexchange/22079-struct2ini, which is covered by the following license:';
                 'Copyright (c) 2009, Dirk Lohse';
                 'All rights reserved.';
@@ -670,7 +670,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses ''ini2struct'' by Andriy Nych from http://www.mathworks.com/matlabcentral/fileexchange/17177-ini2struct, which is covered by the following license:';
                 'Copyright (c) 2008, Andriy Nych';
                 'All rights reserved.';
@@ -697,7 +697,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses ''Multicore - Parallel processing on multiple cores'' by Markus Buehren from http://www.mathworks.com/matlabcentral/fileexchange/13775-multicore-parallel-processing-on-multiple-cores, which is covered by the following license:';
                 'Copyright (c) 2007, Markus Buehren';
                 'All rights reserved.';
@@ -724,7 +724,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses ''Differential Evolution'' by Markus Buehren from http://www.mathworks.com/matlabcentral/fileexchange/18593-differential-evolution, which is covered by the following license:';
                 'Copyright (c) 2008, Markus Buehren';
                 'All rights reserved.';
@@ -751,7 +751,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses ''Another Particle Swarm Toolbox'' by Sam Chen from http://www.mathworks.com/matlabcentral/fileexchange/25986-another-particle-swarm-toolbox, which is covered by the following license:';
                 'Copyright (c) 2009, Sam Chen';
                 'All rights reserved.';
@@ -763,7 +763,7 @@ classdef FLIMX < handle
                 char(13);
                 'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.',
                 
-                char(10);
+                newline;
                 'This software uses ''settings dialog'' by Rody Oldenhuis from http://www.mathworks.com/matlabcentral/fileexchange/26312-settings-dialog, which is covered by the following license:';
                 'Copyright (c) 2010, Rody Oldenhuis';
                 'All rights reserved.';
@@ -790,7 +790,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses ''ROC curve'' by Giuseppe Cardillo from http://www.mathworks.com/matlabcentral/fileexchange/19950-roc-curve, which is covered by the following license:';
                 'Copyright (c) 2014, Giuseppe Cardillo';
                 'All rights reserved.';
@@ -817,7 +817,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses ''Clinical Test Performance'' by Giuseppe Cardillo from http://www.mathworks.com/matlabcentral/fileexchange/12705-clinical-test-performance, which is covered by the following license:';
                 'Copyright (c) 2006, Giuseppe Cardillo';
                 'All rights reserved.';
@@ -844,7 +844,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses ''rotate xtick labels of an axes'' by Brian Katz from http://www.mathworks.com/matlabcentral/fileexchange/3486-xticklabel-rotate, which is covered by the following license:';
                 'Copyright (c) 2003, Brian Katz';
                 'Copyright (c) 2009, The MathWorks, Inc.';
@@ -875,7 +875,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses ''findjobj'' by Yair Altman from http://www.mathworks.com/matlabcentral/fileexchange/14317-findjobj-find-java-handles-of-matlab-graphic-objects, which is covered by the following license:';
                 'Copyright (c) 2014, Yair Altman';
                 'All rights reserved.';
@@ -902,7 +902,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses the color maps ''Magma'', ''Inferno'', ''Plasma'', ''Virirdis'' by Nathaniel Smith & Stefan van der Walt from https://bids.github.io/colormap, which is covered by the following license:';
                 'CC0 1.0 Universal';
                 'No Copyright';
@@ -914,7 +914,7 @@ classdef FLIMX < handle
                 'You should have received a copy of the CC0 legalcode along with this';
                 'work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.';
                                 
-                char(10);
+                newline;
                 'This software uses ''DirSize'' by Richard Moore from https://de.mathworks.com/matlabcentral/fileexchange/41300-dirsize, which is covered by the following license:';
                 'Copyright (c) 2013, Richard Moore';
                 'All rights reserved.';
@@ -941,7 +941,7 @@ classdef FLIMX < handle
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
                 
-                char(10);
+                newline;
                 'This software uses parts of Coye, Tyler (2015). A Novel Retinal Blood Vessel Segmentation Algorithm for Fundus Images (http://www.mathworks.com/matlabcentral/fileexchange/50839), MATLAB Central File Exchange.[retrieved 20th August 2017]';
                 'Copyright (c) 2017, Tyler Coye';
                 'Copyright (c) 2015, Matt Smith';
@@ -967,7 +967,33 @@ classdef FLIMX < handle
                 'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN';
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
-                'POSSIBILITY OF SUCH DAMAGE.';             
+                'POSSIBILITY OF SUCH DAMAGE.';
+                                
+                newline;
+                'This software uses ''disk_free'' by Igor from https://www.mathworks.com/matlabcentral/fileexchange/41904-disk-usage, which is covered by the following license:';
+                'Copyright (c) 2013, Igor';
+                'All rights reserved.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without';
+                'modification, are permitted provided that the following conditions are met:';
+                char(13);
+                '* Redistributions of source code must retain the above copyright';
+                'notice, this list of conditions and the following disclaimer.';
+                '* Redistributions in binary form must reproduce the above copyright';
+                'notice, this list of conditions and the following disclaimer in';
+                'the documentation and/or other materials provided with the distribution';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"';
+                'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE'; 
+                'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE'; 
+                'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE'; 
+                'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR'; 
+                'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF'; 
+                'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS'; 
+                'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN'; 
+                'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)'; 
+                'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE'; 
+                'POSSIBILITY OF SUCH DAMAGE.';
                 
                 };
         end
