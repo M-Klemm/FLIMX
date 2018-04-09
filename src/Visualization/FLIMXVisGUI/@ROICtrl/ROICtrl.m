@@ -238,6 +238,8 @@ classdef ROICtrl < handle
         
         function tableEditCallback(this,eventdata)
             %callback function to edit node of current polygon
+            this.save();
+            this.updateGUI([]);
         end
         
         function buttonClearLastCallback(this)
@@ -636,5 +638,68 @@ classdef ROICtrl < handle
             end
         end
     end %methods protected
+    
+    methods(Static)
+        function [out, numIdent, insideROI] = mouseOverROIBorder(cp,ROIType,ROICoord,pixelMargin)
+            %check if coordinates of current point (cp) are over the border of an ROI, return the mouse pointer type, otherwise return 'cross'
+            out = 'cross'; numIdent = 0; insideROI = false;            
+            switch ROIType
+                case {2,3}
+                    %rectangle
+                    if(abs(ROICoord(2,2)-cp(1)) <= pixelMargin && abs(ROICoord(1,2)-cp(2)) <= pixelMargin)
+                        out = 'topr'; 
+                        numIdent = 2;
+                    elseif(abs(ROICoord(2,1)-cp(1)) <= pixelMargin && abs(ROICoord(1,2)-cp(2)) <= pixelMargin)
+                        out = 'topl'; 
+                        numIdent = 4;                        
+                    elseif(abs(ROICoord(2,1)-cp(1)) <= pixelMargin && abs(ROICoord(1,1)-cp(2)) <= pixelMargin)
+                        out = 'botl'; 
+                        numIdent = 6;  
+                    elseif(abs(ROICoord(2,2)-cp(1)) <= pixelMargin && abs(ROICoord(1,1)-cp(2)) <= pixelMargin)
+                        out = 'botr'; 
+                        numIdent = 8;  
+                    elseif(abs(ROICoord(2,1)-cp(1)) <= pixelMargin)
+                        out = 'left'; 
+                        numIdent = 5;
+                    elseif(abs(ROICoord(2,2)-cp(1)) <= pixelMargin)
+                        out = 'right';
+                        numIdent = 1;
+                    elseif(abs(ROICoord(1,2)-cp(2)) <= pixelMargin)
+                        out = 'top';
+                        numIdent = 3;
+                    elseif(abs(ROICoord(1,1)-cp(2)) <= pixelMargin)
+                        out = 'bottom';
+                        numIdent = 7;
+                    end
+                case {4,5}
+                    %circle
+                    radius = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
+                    center = double(ROICoord(:,1));
+                    angle = -pi/8:2*pi/360:pi/8;
+                    pointerTypes = FLIMXVisGUI.getROIBorderPointerTypes;
+                    for i = 1:8
+                        aTmp = angle + (i-1)*pi/4;
+                        pTmp = round(radius.*[sin(aTmp); cos(aTmp)]+center); %pixel coordinates
+                        idxTmp = abs(cp(2) - pTmp(1,:)) <= pixelMargin;
+                        hitTmp = abs(cp(1) - pTmp(2,idxTmp)) <= pixelMargin;
+                        if(~isempty(hitTmp) && any(hitTmp))
+                            out = pointerTypes{i};
+                            numIdent = i;
+                            return
+                        end
+                    end
+                case {6,7}
+                    %polygon
+                    if(size(ROICoord,2) >= 1)
+                        idx = cp(2) == ROICoord(1,1:end);
+                        if(any(idx) && ~isempty(cp(1) == ROICoord(2,idx)))
+                            out = 'hand';
+                            numIdent = 9;
+                        end
+                    end
+            end
+        end
+        
+    end
     
 end %classdef
