@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/M-Klemm/FLIMX/blob/master/functions/Visualization/FLIMX_Logo.png" width="591" height="354" alt="FLIMX"><br><br>
+  <img src="https://github.com/M-Klemm/FLIMX/blob/master/src/Visualization/FLIMX_Logo.png" width="591" height="354" alt="FLIMX"><br><br>
 </div>
 
 -----------------
