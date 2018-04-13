@@ -90,8 +90,13 @@ function GUI_optOptions_OpeningFcn(hObject, eventdata, handles, varargin)
 % Update handles structure
 % guidata(hObject, handles);
 rdh.optParams = varargin{1};
+if(strcmp('Off',varargin{2}))
+    rdh.enableGUIControlsFlag = 'Off';
+else
+    rdh.enableGUIControlsFlag = 'On';
+end
 rdh.isDirty = [0 0 0 0]; %flags which part was changed, 1-de, 2-msimplexbnd, 2-fminsearchbnd, 4-pso
-updateGUI(handles, rdh.optParams);  
+updateGUI(handles, rdh);  
 set(handles.optOptionsFigure,'userdata',rdh);
 
 % UIWAIT makes GUI_optOptions wait for user response (see UIRESUME)
@@ -120,38 +125,38 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function updateGUI(handles,data)
 %de
-set(handles.editDE_CR,'String',data.options_de.CR);
-set(handles.editDE_F,'String',data.options_de.F);
-set(handles.editDE_Fv,'String',data.options_de.Fv);
-set(handles.editDE_NP,'String',data.options_de.NP);
-set(handles.editDE_Strat,'String',data.options_de.strategy);
-set(handles.editDE_Iter,'String',data.options_de.maxiter);
-set(handles.editDE_MaxReInit,'String',data.options_de.maxReInitCnt);
-set(handles.editDE_MaxBestValConst,'String',data.options_de.maxBestValConstCnt);
-set(handles.editDE_BestValTol,'String',data.options_de.bestValTol);
-set(handles.editDE_minValSD,'String',data.options_de.minvalstddev);
-set(handles.editDE_minParamSD,'String',data.options_de.minparamstddev);
-set(handles.editDE_StopVal,'String',data.options_de.stopVal);
+set(handles.editDE_CR,'String',data.optParams.options_de.CR,'Enable',data.enableGUIControlsFlag);
+set(handles.editDE_F,'String',data.optParams.options_de.F,'Enable',data.enableGUIControlsFlag);
+set(handles.editDE_Fv,'String',data.optParams.options_de.Fv,'Enable',data.enableGUIControlsFlag);
+set(handles.editDE_NP,'String',data.optParams.options_de.NP,'Enable',data.enableGUIControlsFlag);
+set(handles.editDE_Strat,'String',data.optParams.options_de.strategy,'Enable',data.enableGUIControlsFlag);
+set(handles.editDE_Iter,'String',data.optParams.options_de.maxiter,'Enable',data.enableGUIControlsFlag);
+set(handles.editDE_MaxReInit,'String',data.optParams.options_de.maxReInitCnt,'Enable',data.enableGUIControlsFlag);
+set(handles.editDE_MaxBestValConst,'String',data.optParams.options_de.maxBestValConstCnt,'Enable',data.enableGUIControlsFlag);
+set(handles.editDE_BestValTol,'String',data.optParams.options_de.bestValTol,'Enable',data.enableGUIControlsFlag);
+set(handles.editDE_minValSD,'String',data.optParams.options_de.minvalstddev,'Enable',data.enableGUIControlsFlag);
+set(handles.editDE_minParamSD,'String',data.optParams.options_de.minparamstddev,'Enable',data.enableGUIControlsFlag);
+set(handles.editDE_StopVal,'String',data.optParams.options_de.stopVal,'Enable',data.enableGUIControlsFlag);
 %msimplexbnd
-set(handles.editMSB_Fun,'String',data.options_msimplexbnd.MaxFunEvals);
-set(handles.editMSB_Iter,'String',data.options_msimplexbnd.MaxIter);
-set(handles.editMSB_TolFun,'String',data.options_msimplexbnd.TolFun);
-set(handles.popupMSB_MultSeeds,'Value',data.options_msimplexbnd.multipleSeedsMode);
+set(handles.editMSB_Fun,'String',data.optParams.options_msimplexbnd.MaxFunEvals,'Enable',data.enableGUIControlsFlag);
+set(handles.editMSB_Iter,'String',data.optParams.options_msimplexbnd.MaxIter,'Enable',data.enableGUIControlsFlag);
+set(handles.editMSB_TolFun,'String',data.optParams.options_msimplexbnd.TolFun,'Enable',data.enableGUIControlsFlag);
+set(handles.popupMSB_MultSeeds,'Value',data.optParams.options_msimplexbnd.multipleSeedsMode,'Enable',data.enableGUIControlsFlag);
 %fminsearchbnd
-set(handles.editFMSB_Fun,'String',data.options_fminsearchbnd.MaxFunEvals);
-set(handles.editFMSB_Iter,'String',data.options_fminsearchbnd.MaxIter);
-set(handles.editFMSB_TolFun,'String',data.options_fminsearchbnd.TolFun);
-set(handles.editFMSB_TolX,'String',data.options_fminsearchbnd.TolX);
+set(handles.editFMSB_Fun,'String',data.optParams.options_fminsearchbnd.MaxFunEvals,'Enable',data.enableGUIControlsFlag);
+set(handles.editFMSB_Iter,'String',data.optParams.options_fminsearchbnd.MaxIter,'Enable',data.enableGUIControlsFlag);
+set(handles.editFMSB_TolFun,'String',data.optParams.options_fminsearchbnd.TolFun,'Enable',data.enableGUIControlsFlag);
+set(handles.editFMSB_TolX,'String',data.optParams.options_fminsearchbnd.TolX,'Enable',data.enableGUIControlsFlag);
 %pso
-set(handles.editPSO_CA,'String',num2str(data.options_pso.CognitiveAttraction));
-set(handles.editPSO_CB,'String',data.options_pso.ConstrBoundary);
-set(handles.editPSO_Generations,'String',num2str(data.options_pso.Generations));
-set(handles.editPSO_PS,'String',num2str(data.options_pso.PopulationSize));
-set(handles.editPSO_SA,'String',num2str(data.options_pso.SocialAttraction));
-set(handles.editPSO_SGL,'String',num2str(data.options_pso.StallGenLimit));
-set(handles.editPSO_time,'String',num2str(data.options_pso.TimeLimit));
-set(handles.editPSO_TolX,'String',num2str(data.options_pso.TolCon));
-set(handles.editPSO_TolFun,'String',num2str(data.options_pso.TolFun));
+set(handles.editPSO_CA,'String',num2str(data.optParams.options_pso.CognitiveAttraction),'Enable',data.enableGUIControlsFlag);
+set(handles.editPSO_CB,'String',data.optParams.options_pso.ConstrBoundary,'Enable',data.enableGUIControlsFlag);
+set(handles.editPSO_Generations,'String',num2str(data.optParams.options_pso.Generations),'Enable',data.enableGUIControlsFlag);
+set(handles.editPSO_PS,'String',num2str(data.optParams.options_pso.PopulationSize),'Enable',data.enableGUIControlsFlag);
+set(handles.editPSO_SA,'String',num2str(data.optParams.options_pso.SocialAttraction),'Enable',data.enableGUIControlsFlag);
+set(handles.editPSO_SGL,'String',num2str(data.optParams.options_pso.StallGenLimit),'Enable',data.enableGUIControlsFlag);
+set(handles.editPSO_time,'String',num2str(data.optParams.options_pso.TimeLimit),'Enable',data.enableGUIControlsFlag);
+set(handles.editPSO_TolX,'String',num2str(data.optParams.options_pso.TolCon),'Enable',data.enableGUIControlsFlag);
+set(handles.editPSO_TolFun,'String',num2str(data.optParams.options_pso.TolFun),'Enable',data.enableGUIControlsFlag);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -91,9 +91,14 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 rdh.bounds = varargin{1};
+if(strcmp('Off',varargin{2}))
+    rdh.enableGUIControlsFlag = 'Off';
+else
+    rdh.enableGUIControlsFlag = 'On';
+end
 rdh.isDirty = [0 0 0 0 0 0 0 0 0 0]; %flags which part was changed, bounds_1_exp,bounds_2_exp,bounds_3_exp,bounds_nExp,bounds_tci,bounds_v_shift,bounds_h_shift,bounds_offset,bounds_scatter,bounds_s_exp
 set(handles.boundsOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh.bounds);
+updateGUI(handles,rdh);
 
 % UIWAIT makes GUI_boundsOptions wait for user response (see UIRESUME)
 uiwait(handles.boundsOptionsFigure);
@@ -120,30 +125,25 @@ end
 %other functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function updateGUI(handles,bounds)
-%
-set(handles.tableSingle,'Data',genTabData(bounds.bounds_1_exp));
-set(handles.tableDouble,'Data',genTabData(bounds.bounds_2_exp));
-set(handles.tableTriple,'Data',genTabData(bounds.bounds_3_exp));
-set(handles.tableStretched,'Data',genTabData(bounds.bounds_s_exp));
-set(handles.tableN,'Data',genTabData(bounds.bounds_nExp));
-set(handles.tableScatter,'Data',genTabData(bounds.bounds_scatter));
-
-dtmp = genTabData(bounds.bounds_tci);
-set(handles.tableTci,'Data',dtmp);
-
+function updateGUI(handles,data)
+%update GUI to current calues
+set(handles.tableSingle,'Data',genTabData(data.bounds.bounds_1_exp),'Enable',data.enableGUIControlsFlag);
+set(handles.tableDouble,'Data',genTabData(data.bounds.bounds_2_exp),'Enable',data.enableGUIControlsFlag);
+set(handles.tableTriple,'Data',genTabData(data.bounds.bounds_3_exp),'Enable',data.enableGUIControlsFlag);
+set(handles.tableStretched,'Data',genTabData(data.bounds.bounds_s_exp),'Enable',data.enableGUIControlsFlag);
+set(handles.tableN,'Data',genTabData(data.bounds.bounds_nExp),'Enable',data.enableGUIControlsFlag);
+set(handles.tableScatter,'Data',genTabData(data.bounds.bounds_scatter),'Enable',data.enableGUIControlsFlag);
+dtmp = genTabData(data.bounds.bounds_tci);
+set(handles.tableTci,'Data',dtmp,'Enable',data.enableGUIControlsFlag);
 dtmp = zeros(1,8);
-dtmp(1,:) = genTabData(bounds.bounds_h_shift);
-set(handles.tableHShift,'Data',dtmp);
-
+dtmp(1,:) = genTabData(data.bounds.bounds_h_shift);
+set(handles.tableHShift,'Data',dtmp,'Enable',data.enableGUIControlsFlag);
 dtmp = zeros(1,8);
-dtmp(1,:) = genTabData(bounds.bounds_offset);
-set(handles.tableOffset,'Data',dtmp);
-
-
+dtmp(1,:) = genTabData(data.bounds.bounds_offset);
+set(handles.tableOffset,'Data',dtmp,'Enable',data.enableGUIControlsFlag);
 
 function data = genTabData(bStruct)
-%
+%prepare the data for display in a table
 fn = fieldnames(bStruct);
 data = zeros(length(bStruct.lb),length(fn));
 for i = 1:length(fn)

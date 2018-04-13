@@ -159,6 +159,9 @@ classdef studyMgr < handle
             set(this.visHandles.menuImportResultSel,'Callback',@this.menuImportResultSelSub_Callback);
             set(this.visHandles.menuImportMeasurementSingle,'Callback',@this.menuImportMeasurementSingle_Callback);
             set(this.visHandles.menuImportMeasurementFolder,'Callback',@this.menuImportMeasurementFolder_Callback);
+            %GUIs
+            set(this.visHandles.menuOpenFLIMXFit,'Callback',@this.menuOpenFLIMXFit_Callback);
+            set(this.visHandles.menuOpenFLIMXVis,'Callback',@this.menuOpenFLIMXVis_Callback);
             %other
             set(this.visHandles.buttonOK,'Callback',@this.GUI_buttonOK_Callback);
             set(this.visHandles.buttonStop,'Callback',@this.GUI_buttonStop_Callback);
@@ -241,6 +244,8 @@ classdef studyMgr < handle
             set(this.visHandles.tableStudyData,'Data',subjectInfo,'ColumnEditable',true(1,size(subjectInfo,2))); 
             if(~isempty(subjectFilesData))
                 set(this.visHandles.tableStudyData,'RowName',subjectFilesData(:,1));
+            else
+                this.visHandles.tableStudyData.RowName = cell(0,0);
             end
             set(this.visHandles.tableFileData,'ColumnName',this.fdt.getDataFromStudyInfo(this.curStudyName,'filesHeaders'),'Data',subjectFilesData);
             sStr = this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName());
@@ -689,6 +694,17 @@ classdef studyMgr < handle
             end            
             this.importResults4Subjects(subidx);
             figure(this.visHandles.studyMgrFigure);
+        end
+        
+        function menuOpenFLIMXFit_Callback(this,hObject,eventdata)
+            %show FLIMXFit GUI window
+            this.FLIMXObj.FLIMFitGUI.checkVisWnd();
+        end
+        
+        function menuOpenFLIMXVis_Callback(this,hObject,eventdata)
+            %show FLIMXVis window
+            this.FLIMXObj.FLIMVisGUI.checkVisWnd();
+            this.FLIMXObj.FLIMVisGUI.setStudy('',this.curStudyName);
         end
         
         function contextNewColumn_Callback(this,hObject,eventdata)
@@ -1229,9 +1245,9 @@ classdef studyMgr < handle
                 return
             end
             studies = get(this.visHandles.popupStudySelection,'String');
-            orgStudyID = get(this.visHandles.popupStudySelection,'Value');
-            destStudyID = GUI_studyDestinationSel(studies,orgStudyID,'Copy Arithmetic Image Definitions to Study');
-            if(isempty(destStudyID) || destStudyID > length(studies) || orgStudyID == destStudyID)
+            sourceStudyID = get(this.visHandles.popupStudySelection,'Value');
+            destStudyID = GUI_studyDestinationSel(studies,sourceStudyID,'Copy Arithmetic Image Definitions to Study');
+            if(isempty(destStudyID) || destStudyID > length(studies) || sourceStudyID == destStudyID)
                 return
             end
             oldStr = this.visHandles.buttonStop.String;
@@ -1239,17 +1255,27 @@ classdef studyMgr < handle
                 this.visHandles.buttonStop.String = sprintf('<html><img src="file:/%s"/></html>',FLIMX.getAnimationPath());
                 drawnow;
             end
-            [aiStrNew, aiParamNew] = this.fdt.getArithmeticImageDefinition(studies{orgStudyID});
+            [aiStrSource, aiParamSource] = this.fdt.getArithmeticImageDefinition(studies{sourceStudyID});
+            if(all(cellfun(@isempty,aiStrSource)))
+                %source study does not have an arithmetic image -> nothing to do
+                this.visHandles.buttonStop.String = oldStr;
+                return
+            end
             [aiStrDest, aiParamDest] = this.fdt.getArithmeticImageDefinition(studies{destStudyID});
-            is = intersect(aiStrNew,aiStrDest);
+            if(all(cellfun(@isempty,aiStrDest)))
+                %destination study does not have an arithmetic image
+                is = {''};
+            else
+                is = intersect(aiStrSource,aiStrDest);
+            end            
             overWriteAllFlag = false;
-            for i = 1:length(aiStrNew)
-                [tf,idx] = ismember(aiStrNew{i},is);
+            for i = 1:length(aiStrSource)
+                [tf,idx] = ismember(aiStrSource{i},is);
                 if(tf)
                     [~,idx] = ismember(is(idx),aiStrDest);
                     %arithmetic image is already in destination study;
                     %check if it is identical
-                    newAI = aiParamNew{i};
+                    newAI = aiParamSource{i};
                     oldAI = aiParamDest{idx};
                     identFlag = strcmp(newAI.FLIMItemA,oldAI.FLIMItemA) && strcmp(newAI.FLIMItemB,oldAI.FLIMItemB) && newAI.normalizeA == oldAI.normalizeA...
                         && newAI.normalizeB == oldAI.normalizeB && newAI.chA == oldAI.chA && newAI.chB == oldAI.chB...
@@ -1258,17 +1284,17 @@ classdef studyMgr < handle
                         && newAI.valA == oldAI.valA && newAI.valB == oldAI.valB;
                     if(~identFlag && ~overWriteAllFlag)
                         choice = questdlg(sprintf('Arithmetic image definition ''%s'' already exists in study ''%s'' but is different from study ''%s''.\n\nDo you want to overwrite the definition in study ''%s''?',...
-                            aiStrNew{i},studies{destStudyID},studies{orgStudyID},studies{destStudyID}),'Copy Arithmetic Image Definition','Yes','All','No','Yes');
+                            aiStrSource{i},studies{destStudyID},studies{sourceStudyID},studies{destStudyID}),'Copy Arithmetic Image Definition','Yes','All','No','Yes');
                         switch choice
                             case 'All'
                                 overWriteAllFlag = true;
                             case 'No'
                                 %keep old arithmetic image
-                                aiParamNew(i) = aiParamDest(idx);
+                                aiParamSource(i) = aiParamDest(idx);
                         end
                     end
                 end
-                this.fdt.setArithmeticImageDefinition(studies{destStudyID},aiStrNew{i},aiParamNew{i});
+                this.fdt.setArithmeticImageDefinition(studies{destStudyID},aiStrSource{i},aiParamSource{i});
             end
             this.visHandles.buttonStop.String = oldStr;
             this.visObj.setupGUI();

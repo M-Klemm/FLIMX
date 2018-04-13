@@ -91,9 +91,20 @@ classdef FLIMXVisGUI < handle
             if(isempty(s))
                 s = ['l' 'r'];
             end
+            allStudies = this.visHandles.study_l_pop.String;
+            if(ischar(val))
+                val = find(strcmp(val,allStudies),1);            
+            elseif(isnumeric(val))
+                val = max(1,min(val,length(allStudies)));
+            end
+            if(isempty(val))
+                return
+            end
             for i=1:length(s)
                 set(this.visHandles.(sprintf('study_%s_pop',s(i))),'Value',val);
             end
+            this.setupGUI();
+            this.updateGUI([]);
         end
         
         function out = isOpenVisWnd(this)

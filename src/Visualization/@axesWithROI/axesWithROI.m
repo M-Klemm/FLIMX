@@ -45,10 +45,6 @@ classdef axesWithROI < handle
         myCMPercentileUB = 1;
         myROIRectangle = -1;
         
-%         ROITopLine = -1;
-%         ROIBottomLine = -1;
-%         ROILeftLine = -1;
-%         ROIRightLine = -1;
         ROILineColor = 'w';
         ROILineWidth = 2;
         ROILineStyle = '-';
@@ -71,6 +67,38 @@ classdef axesWithROI < handle
             this.myCBLblHigh = hCBLblHigh;
             this.myCPLbl = hCPLbl;
             this.setColorMap(cm);
+        end
+        
+        function clear(this)
+            %clear all data
+            cla(this.myMainAxes);
+            cla(this.myCBAxes);
+            %delete old ROI and current point lines
+            if(ishandle(this.myROIRectangle))
+                delete(this.myROIRectangle);
+                this.myROIRectangle = -1;
+            end
+            if(ishandle(this.CPXLine))
+                delete(this.CPXLine);
+                this.CPXLine = -1;
+            end
+            if(ishandle(this.CPYLine))
+                delete(this.CPYLine);
+                this.CPYLine = -1;
+            end            
+            %update colorbar labels
+            if(ishandle(this.myCBLblLow))                  
+                this.myCBLblLow.String = '';
+            end
+            if(ishandle(this.myCBLblHigh))
+                this.myCBLblHigh.String = '';
+            end
+            if(ishandle(this.myCPLbl))
+                this.myCPLbl.String = '';
+            end
+            this.myData = [];
+            this.myCMPercentileLB = 0;
+            this.myCMPercentileUB = 1;            
         end
         
         function setShortNumberFlag(this,flag)

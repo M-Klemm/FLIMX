@@ -237,16 +237,16 @@ classdef FLIMXFitGUI < handle
             if(this.generalParams.cmIntensityInvert)
                 this.dynVisParams.cm = flipud(this.dynVisParams.cmIntensity);
             end
-            oldPStr = get(this.visHandles.popupROI,'String');
+            oldPStr = get(this.visHandles.popupROA,'String');
             if(iscell(oldPStr))
-                oldPStr = oldPStr(get(this.visHandles.popupROI,'Value'));
+                oldPStr = oldPStr(get(this.visHandles.popupROA,'Value'));
             end
             %try to find oldPStr in new pstr
             idx = find(strcmp(oldPStr,pstr),1);
             if(isempty(idx))
-                idx = min(length(pstr),get(this.visHandles.popupROI,'Value'));
+                idx = min(length(pstr),get(this.visHandles.popupROA,'Value'));
             end
-            set(this.visHandles.popupROI,'String',pstr,'Value',idx,'Enable','on');
+            set(this.visHandles.popupROA,'String',pstr,'Value',idx,'Enable','on');
             this.axesRawMgr.setColorMap(this.dynVisParams.cmIntensity);
             this.axesRawMgr.setColorMapPercentiles(this.generalParams.cmIntensityPercentileLB,this.generalParams.cmIntensityPercentileUB);
             this.axesROIMgr.setColorMap(this.dynVisParams.cm);
@@ -336,14 +336,20 @@ classdef FLIMXFitGUI < handle
             %decay plot
             if(isempty(this.FLIMXObj.curSubject.getROIData(this.currentChannel,this.currentY,this.currentX)))
                 if(flag)
-                    this.clearAllPlots();
+                    %clear all axes and the table
+                    cla(this.visHandles.axesRes);
+                    cla(this.visHandles.axesResHis);
+                    cla(this.visHandles.axesMain);
+                    this.axesRawMgr.clear();
+                    this.axesROIMgr.clear();
+                    this.visHandles.tableParam.Data = cell(0,0);
                 end
                 return;
             end
             this.visCurFit(this.currentChannel,this.currentY,this.currentX,this.visHandles.axesMain);
             if(flag)
-                str = get(this.visHandles.popupROI,'String');
-                val = get(this.visHandles.popupROI,'Value');
+                str = get(this.visHandles.popupROA,'String');
+                val = get(this.visHandles.popupROA,'Value');
                 if(iscell(str))
                     str = str{val};
                 end
@@ -427,8 +433,8 @@ classdef FLIMXFitGUI < handle
                 data = [];
                 return;
             end
-            pstr = char(get(this.visHandles.popupROI,'String'));
-            pos = get(this.visHandles.popupROI,'Value');
+            pstr = char(get(this.visHandles.popupROA,'String'));
+            pos = get(this.visHandles.popupROA,'Value');
             pstr = strtrim(pstr(pos,:));
             if(this.showInitialization)
                 if(strcmp('Intensity',pstr))
@@ -994,235 +1000,6 @@ classdef FLIMXFitGUI < handle
             %% residuum statistics
         end
         
-        function plotRawData(this,handle,data)
-            %visualize raw data
-            if(nargin == 2)
-                data = this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel);
-            end
-            if(isempty(handle) && ~this.isOpenVisWnd())
-                return;
-            end
-            if(isempty(handle))
-                this.plotRawData(this.visHandles.axesMain);
-                this.plotRawData(this.visHandles.axesRaw);
-                set(this.visHandles.textCbRawTop,'String',max(data(:)));
-                set(this.visHandles.textCbRawBottom,'String',min(data(:)));
-                return;
-            end
-            cla(handle);
-            if(isempty(data))
-                return
-            end
-%             lb = prctile(data(:),0.1);
-%             ub = prctile(data(:),99.9);
-            img = image2ColorMap(data,this.dynVisParams.cmIntensity);
-%             if(lb == ub || isnan(lb) || isnan(ub))
-                image(img,'Parent',handle);
-%             else
-%                 imagesc(img,'Parent',handle,[lb ub]);
-%             end  
-            [r, c] = size(data);
-            if(~isnan(r) && ~isnan(c) && size(data,1) > 1 && size(data,2) > 1)
-                xlim(handle,[1 size(data,2)])
-                ylim(handle,[1 size(data,1)])
-            end
-            set(handle,'YDir','normal');
-            %lables
-            xlbl = 1:1:c;
-            ylbl = 1:1:r;
-            xtick = get(handle,'XTick');
-            idx = abs(fix(xtick)-xtick)<eps; %only integer labels
-            pos = xtick(idx);
-            xCell = cell(length(xtick),1);
-            xCell(idx) = num2cell(xlbl(pos));
-            ytick = get(handle,'YTick');
-            idx = abs(fix(ytick)-ytick)<eps; %only integer labels
-            pos = ytick(idx);
-            yCell = cell(length(ytick),1);
-            yCell(idx) = num2cell(ylbl(pos));
-            set(handle,'XTickLabel',xCell,'YTickLabel',yCell);            
-            
-            this.visHandles.rawPlotTopLine = -1;
-            this.visHandles.rawPlotBottomLine = -1;
-            this.visHandles.rawPlotLeftLine = -1;
-            this.visHandles.rawPlotRightLine = -1;
-            this.visHandles.rawPlotCPXLine = -1;
-            this.visHandles.rawPlotCPYtLine = -1;
-        end
-        
-        function plotRawDataROI(this,handle,roi)
-            %plot the current ROI in raw data plot
-            if(isempty(handle) && ~this.isOpenVisWnd())
-                return;
-            end
-            if(isempty(handle))
-                this.plotRawDataROI(this.visHandles.axesMain,[]);
-                this.plotRawDataROI(this.visHandles.axesRaw,[]);
-                return;
-            end
-            if(isempty(roi) && ~isempty(this.FLIMXObj.curSubject.ROICoordinates))
-                roi = this.FLIMXObj.curSubject.ROICoordinates; %x1 x2 y1 y2
-            end
-            if(~isempty(roi))
-                %top
-                if(isfield(this.visHandles,'rawPlotTopLine') && ishandle(this.visHandles.rawPlotTopLine))
-                    delete(this.visHandles.rawPlotTopLine(ishandle(this.visHandles.rawPlotTopLine)));
-                    this.visHandles.rawPlotTopLine = -1;
-                end
-                this.visHandles.rawPlotTopLine = line('XData',[roi(1) roi(2)],'YData',[roi(4) roi(4)],'Color','w','LineWidth',2,'LineStyle','-','Parent',handle);
-                %bottom
-                if(isfield(this.visHandles,'rawPlotBottomLine') && ishandle(this.visHandles.rawPlotBottomLine))
-                    delete(this.visHandles.rawPlotBottomLine(ishandle(this.visHandles.rawPlotBottomLine)));
-                    this.visHandles.rawPlotBottomLine = -1;
-                end
-                this.visHandles.rawPlotBottomLine = line('XData',[roi(2) roi(1)],'YData',[roi(3) roi(3)],'Color','w','LineWidth',2,'LineStyle','-','Parent',handle);
-                %left
-                if(isfield(this.visHandles,'rawPlotLeftLine') && ishandle(this.visHandles.rawPlotLeftLine))
-                    delete(this.visHandles.rawPlotLeftLine(ishandle(this.visHandles.rawPlotLeftLine)));
-                    this.visHandles.rawPlotLeftLine = -1;
-                end
-                this.visHandles.rawPlotLeftLine = line('XData',[roi(1) roi(1)],'YData',[roi(3) roi(4)],'Color','w','LineWidth',2,'LineStyle','-','Parent',handle);
-                %right
-                if(isfield(this.visHandles,'rawPlotRightLine') && ishandle(this.visHandles.rawPlotRightLine))
-                    delete(this.visHandles.rawPlotRightLine(ishandle(this.visHandles.rawPlotRightLine)));
-                    this.visHandles.rawPlotRightLine = -1;
-                end
-                this.visHandles.rawPlotRightLine = line('XData',[roi(2) roi(2)],'YData',[roi(4) roi(3)],'Color','w','LineWidth',2,'LineStyle','-','Parent',handle);
-            end
-        end
-        
-        function plotRawDataCP(this,handle,roi)
-            %plot current point in raw data plot
-            if(isempty(handle) && ~this.isOpenVisWnd())
-                return;
-            end
-            if(isempty(handle))
-                this.plotRawDataCP(this.visHandles.axesMain,[]);
-                this.plotRawDataCP(this.visHandles.axesRaw,[]);
-                return;
-            end
-            if(isempty(roi) && ~isempty(this.FLIMXObj.curSubject.ROICoordinates))
-                roi = this.FLIMXObj.curSubject.ROICoordinates; %x1 x2 y1 y2
-            end
-            if(~isempty(roi))
-                if(ishandle(this.visHandles.rawPlotCPXLine))
-                    delete(this.visHandles.rawPlotCPXLine)
-                end
-                this.visHandles.rawPlotCPXLine = line('XData',[this.currentX+roi(1)-1 this.currentX+roi(1)-1],'YData',[1 size(this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel),1)],'Color','w','LineWidth',2,'LineStyle',':','Parent',handle);
-                if(ishandle(this.visHandles.rawPlotCPYLine))
-                    delete(this.visHandles.rawPlotCPYLine)
-                end
-                this.visHandles.rawPlotCPYLine = line('XData',[1 size(this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel),2)],'YData',[this.currentY+roi(3)-1 this.currentY+roi(3)-1],'Color','w','LineWidth',2,'LineStyle',':','Parent',handle);
-            end
-        end
-        
-        function plotSuppData(this,handle,data)
-            %visualize raw data
-            if(nargin == 2)
-                data = this.axesSuppData;
-            end
-            if(isempty(handle) && ~this.isOpenVisWnd())
-                return;
-            end
-            if(isempty(handle))
-                this.plotSuppData(this.visHandles.axesMain);
-                this.plotSuppData(this.visHandles.axesSupp);
-                set(this.visHandles.textCbSuppTop,'String',max(data(:)));
-                set(this.visHandles.textCbSuppBottom,'String',min(data(:)));
-                return;
-            end
-            [r, c] = size(data);
-            cla(handle);
-            ylabel(handle,'');
-            legend(handle,'off');
-            if(isempty(data))
-                return
-            end
-%             lb = prctile(data(:),0.1);
-%             ub = prctile(data(:),99.9);
-            img = image2ColorMap(data,this.dynVisParams.cm);
-%             if(lb == ub || isnan(lb) || isnan(ub))
-                image(img,'Parent',handle);
-%             else
-%                 imagesc(data,'Parent',handle,[lb ub]);
-%             end
-            set(handle,'YDir','normal');
-            set(handle,'Yscale','linear');
-            if(c > 1 && r > 1)
-                axis(handle,[1 c 1 r]);
-            end
-            %lables            
-            xlbl = 1:1:c;
-            ylbl = 1:1:r;
-            xtick = get(handle,'XTick');
-            idx = abs(fix(xtick)-xtick)<eps & xtick > 0 & xtick < c; %only integer labels
-            pos = xtick(idx);
-            xCell = cell(length(xtick),1);
-            xCell(idx) = num2cell(xlbl(pos));
-            ytick = get(handle,'YTick');
-            idx = abs(fix(ytick)-ytick)<eps & ytick > 0 & ytick < r; %only integer labels
-            pos = ytick(idx);
-            yCell = cell(length(ytick),1);
-            yCell(idx) = num2cell(ylbl(pos));
-            set(handle,'XTickLabel',xCell,'YTickLabel',yCell);
-            this.visHandles.roiPlotCPXLine = -1;
-            this.visHandles.roiPlotCPYLine = -1;
-        end
-        
-        function plotSuppDataCP(this,handle)
-            %plot current point in raw data plot
-            if(~this.isOpenVisWnd())
-                return;
-            end
-            if(isempty(handle))
-                this.plotSuppDataCP(this.visHandles.axesMain);
-                this.plotSuppDataCP(this.visHandles.axesSupp);
-                return;
-            end
-            data = this.axesSuppData;
-            if(ishandle(this.visHandles.roiPlotCPXLine))
-                delete(this.visHandles.roiPlotCPXLine)
-            end
-            this.visHandles.roiPlotCPXLine = line('XData',[this.currentX this.currentX],'YData',[1 size(data,1)],'Color','w','LineWidth',2,'LineStyle',':','Parent',handle);
-            if(ishandle(this.visHandles.roiPlotCPYLine))
-                delete(this.visHandles.roiPlotCPYLine)
-            end
-            this.visHandles.roiPlotCPYLine = line('XData',[1 size(data,2)],'YData',[this.currentY this.currentY],'Color','w','LineWidth',2,'LineStyle',':','Parent',handle);
-        end
-        
-        function clearAllPlots(this)
-            %clean up all axes
-            cla(this.visHandles.axesRes);
-            cla(this.visHandles.axesResHis);
-            cla(this.visHandles.axesMain);
-            cla(this.visHandles.axesRaw);
-            cla(this.visHandles.axesSupp);
-            this.visHandles.rawPlotTopLine = [];
-            this.visHandles.rawPlotBottomLine = [];
-            this.visHandles.rawPlotLeftLine = [];
-            this.visHandles.rawPlotRightLine = [];
-            this.visHandles.roiPlotCPXLine = [];
-            this.visHandles.roiPlotCPYLine = [];
-            set(this.visHandles.textCbRawTop,'String','');
-            set(this.visHandles.textCbRawBottom,'String','');
-            set(this.visHandles.textCbSuppTop,'String','');
-            set(this.visHandles.textCbSuppBottom,'String','');
-            set(this.visHandles.tableParam,'Data','');
-        end
-        
-        function showFitResult(this,y,x)
-            %update main and cuts axes
-            %decay plot
-            if(nargin == 3)
-                this.currentY = y;
-                this.currentX = x;
-            end
-            this.visCurFit(this.currentChannel,this.currentY,this.currentX);
-            this.plotRawDataROI(this.visHandles.axesRaw,[]);
-            this.plotRawDataCP(this.visHandles.axesRaw,[]);
-            this.plotSuppDataCP(this.visHandles.axesSupp);
-        end
-        
         %% GUI callbacks
         function GUI_buttonLeft_Callback(this,hObject,eventdata)
             %call of editX control
@@ -1484,8 +1261,8 @@ classdef FLIMXFitGUI < handle
             this.currentChannel = get(hObject,'Value');
         end
         
-        function GUI_popupROI_Callback(this,hObject,eventdata)
-            %call of popupROI control
+        function GUI_popupROA_Callback(this,hObject,eventdata)
+            %call of popupROA control
             this.setupGUI();
             this.updateGUI(true);
         end
@@ -1633,7 +1410,7 @@ classdef FLIMXFitGUI < handle
                                 %at least 10 time channels difference
                                 this.visHandles.editTimeScalEnd.String = num2str(xPos .* this.FLIMXObj.curSubject.timeChannelWidth,'%.02f');
                             end
-                            if(xPos > 0 && xPos <= length(yVal) && ~isempty(this.currentDecayData))
+                            if(xPos > 0 && xPos <= length(yVal) && ~isempty(yVal))
                                 %this.mouseOverlayBoxMain.setVerticalBoxPositionMode(0);
                                 this.mouseOverlayBoxMain.draw(cp,{sprintf('Time: %04.2fns',xPos.*this.FLIMXObj.curSubject.timeChannelWidth/1000), sprintf('Counts: %d',yVal(xPos))},yVal(xPos));
                             end
@@ -1644,7 +1421,7 @@ classdef FLIMXFitGUI < handle
                             end
                         else
                             %inside residuum axes
-                            if(xPos > 0 && xPos <= length(yVal) && ~isempty(this.currentDecayData))
+                            if(xPos > 0 && xPos <= length(yVal) && ~isempty(yVal))
                                 %this.mouseOverlayBoxMain.setVerticalBoxPositionMode(1);
                                 this.mouseOverlayBoxMain.draw([cp(1),yVal(xPos)],{sprintf('Time: %04.2fns',xPos.*this.FLIMXObj.curSubject.timeChannelWidth/1000), sprintf('Counts: %d',yVal(xPos))},yVal(xPos));
                             end
@@ -1660,7 +1437,7 @@ classdef FLIMXFitGUI < handle
                         this.mouseOverlayBoxSupp.clear();
                         this.mouseOverlayBoxRaw.clear();
                 case 'axesSupp'
-                    %% supper (ROI) axes
+                    %% supplemental (ROI) axes
                     cp = round(cp);
                     data = this.axesSuppData;
                     if(~isempty(data))
@@ -1948,7 +1725,7 @@ classdef FLIMXFitGUI < handle
         
         function menuInfoPreProcessOpt_Callback(this,hObject,eventdata)
             %
-            GUI_preProcessOptions(this.FLIMXObj.curSubject.preProcessParams);
+            GUI_preProcessOptions(this.FLIMXObj.curSubject.preProcessParams,this.FLIMXObj.curSubject,'Off');
         end
         
         function  menuInfoFitOpt_Callback(this,hObject,eventdata)
@@ -1959,28 +1736,28 @@ classdef FLIMXFitGUI < handle
             this.volatilePixelParams,...
             this.FLIMXObj.curSubject.getVolatileChannelParams(0),...%todo
             this.FLIMXObj.curSubject.boundsParams,...
-            str,mask,{this.FLIMXObj.curSubject.basicParams.scatterStudy},this.currentChannel);
+            str,mask,{this.FLIMXObj.curSubject.basicParams.scatterStudy},this.currentChannel,'Off');
         end
         
         function menuInfoOptOpt_Callback(this,hObject,eventdata)
             %
-            GUI_optOptions(this.FLIMXObj.curSubject.optimizationParams);
+            GUI_optOptions(this.FLIMXObj.curSubject.optimizationParams,'Off');
         end
         
         function menuInfoBndOpt_Callback(this,hObject,eventdata)
             %
-            GUI_boundsOptions(this.FLIMXObj.paramMgr.getParamSection('bounds'));
+            GUI_boundsOptions(this.FLIMXObj.paramMgr.getParamSection('bounds'),'Off');
         end
         
         function menuInfoCompOpt_Callback(this,hObject,eventdata)
             %
-            GUI_compOptions(this.FLIMXObj.curSubject.computationParams);
+            GUI_compOptions(this.FLIMXObj.curSubject.computationParams,'Off');
         end
         
         function menuPreProcessOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
-            new = GUI_preProcessOptions(this.FLIMXObj.paramMgr.getParamSection('pre_processing'));
+            new = GUI_preProcessOptions(this.FLIMXObj.paramMgr.getParamSection('pre_processing'),this.FLIMXObj.curSubject,'On');
             if(~isempty(new))
                 this.FLIMXObj.paramMgr.setParamSection('pre_processing',new.preProcessing);
                 this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
@@ -2001,7 +1778,7 @@ classdef FLIMXFitGUI < handle
                 this.FLIMXObj.curSubject.getVolatileChannelParams(0),...
                 this.FLIMXObj.paramMgr.getParamSection('bounds'),...
                 str,mask,this.FLIMXObj.fdt.getStudyNames(),...
-                this.currentChannel);
+                this.currentChannel,'On');
             if(~isempty(new))
                 if(new.isDirty(1) == 1)
                     this.FLIMXObj.paramMgr.setParamSection('basic_fit',new.basic);
@@ -2022,7 +1799,7 @@ classdef FLIMXFitGUI < handle
         function menuBndOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
-            new = GUI_boundsOptions(this.FLIMXObj.paramMgr.getParamSection('bounds'));
+            new = GUI_boundsOptions(this.FLIMXObj.paramMgr.getParamSection('bounds'),'On');
             if(~isempty(new))
                 this.FLIMXObj.paramMgr.setParamSection('bounds',new.bounds);
                 this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
@@ -2035,7 +1812,7 @@ classdef FLIMXFitGUI < handle
         function menuOptOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
-            new = GUI_optOptions(this.FLIMXObj.paramMgr.getParamSection('optimization'));
+            new = GUI_optOptions(this.FLIMXObj.paramMgr.getParamSection('optimization'),'On');
             if(~isempty(new))
                 this.FLIMXObj.paramMgr.setParamSection('optimization',new.optParams);
                 this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
@@ -2048,7 +1825,7 @@ classdef FLIMXFitGUI < handle
         function menuCompOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
-            new = GUI_compOptions(this.computationParams);
+            new = GUI_compOptions(this.computationParams,'On');
             if(~isempty(new))
                 this.FLIMXObj.paramMgr.setParamSection('computation',new.computation);
                 this.FLIMXObj.curSubject.computationParams = new;
@@ -2100,8 +1877,8 @@ classdef FLIMXFitGUI < handle
             end
         end
         
-        function menuROIRedefine_Callback(this,hObject,eventdata)
-            % change ROI, channel or IRF
+        function menuROARedefine_Callback(this,hObject,eventdata)
+            % change ROA, channel or IRF
             this.FLIMXObj.importGUI.checkVisWnd();          
         end
         
@@ -2130,16 +1907,13 @@ classdef FLIMXFitGUI < handle
             %start fitting for current channel
             cla(this.visHandles.axesRes);
             cla(this.visHandles.axesResHis);
-            %setup visualization
-            %this.checkVisWnd();
-            this.setupGUI();
-            this.plotRawData([]);
-            this.plotRawDataROI([],[]);
-            this.plotSuppData([]);
             this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
             this.FLIMXObj.curSubject.update(); 
+            this.updateGUI(true);
             %start actual fitting process
+            this.setButtonStopSpinning(true);
             this.FLIMXObj.FLIMFit.startFitProcess(this.currentChannel,0,0);
+            this.setButtonStopSpinning(false);
             this.setupGUI();
             this.updateGUI(false);
         end
@@ -2291,6 +2065,7 @@ classdef FLIMXFitGUI < handle
         function menuOpenFLIMXVis_Callback(this,hObject,eventdata)
             %show FLIMXVis window
             this.FLIMXObj.FLIMVisGUI.checkVisWnd();
+            this.FLIMXObj.FLIMVisGUI.setStudy('',this.currentStudy);
         end
                 
     end %methods
@@ -2393,6 +2168,8 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.buttonCountsScalStartInc,'String',char(174),'Callback',@this.GUI_buttonCountsScal_Callback,'TooltipString','Increase lower limit of custom intensity / anisotropy scaling');
             set(this.visHandles.buttonCountsScalEndDec,'String',char(172),'Callback',@this.GUI_buttonCountsScal_Callback,'TooltipString','Decrease upper limit of custom intensity / anisotropy scaling');
             set(this.visHandles.buttonCountsScalEndInc,'String',char(174),'Callback',@this.GUI_buttonCountsScal_Callback,'TooltipString','Increase upper limit of custom intensity / anisotropy scaling');
+            set(this.visHandles.buttonROARedefine,'Callback',@this.menuROARedefine_Callback,'TooltipString','Refefine the region of approximation (ROA), this will delete the approximation resultsm of the current subject');
+            set(this.visHandles.textROA,'TooltipString','Region of Approximation (ROA)');
             
             %checkbox
             set(this.visHandles.checkAutoFitPixel,'Callback',@this.GUI_checkAutoFitPixel_Callback,'TooltipString','Automatically approximate current pixel on mouse click (may be slow!)');
@@ -2410,10 +2187,10 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.popupSubject,'Callback',@this.GUI_popupSubject_Callback,'TooltipString','Select a subject');
             set(this.visHandles.popupCondition,'Callback',@this.GUI_popupCondition_Callback,'TooltipString','Select a condition');
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select a channel');
-            set(this.visHandles.popupROI,'Callback',@this.GUI_popupROI_Callback,'TooltipString','Select FLIM parameter to display');
+            set(this.visHandles.popupROA,'Callback',@this.GUI_popupROA_Callback,'TooltipString','Select FLIM parameter to display');
             
             %menu            
-            set(this.visHandles.menuROIRedefine,'Callback',@this.menuROIRedefine_Callback);
+            set(this.visHandles.menuROARedefine,'Callback',@this.menuROARedefine_Callback);
             
             set(this.visHandles.menuExportShot,'Callback',@this.menuExportScreenshot_Callback);
             set(this.visHandles.menuExportFiles,'Callback',@this.menuExportFiles_Callback);

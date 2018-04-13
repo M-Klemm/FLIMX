@@ -54,7 +54,7 @@ function varargout = GUI_startEndPosWizard(varargin)
 
 % Edit the above text to modify the response to help GUI_startEndPosWizard
 
-% Last Modified by GUIDE v2.5 14-Aug-2009 17:52:37
+% Last Modified by GUIDE v2.5 10-Apr-2018 19:47:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -83,22 +83,20 @@ function GUI_startEndPosWizard_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to GUI_startEndPosWizard (see VARARGIN)
-
 sep.data = varargin{1};
-sep.auto_start = varargin{2};
-sep.auto_end = varargin{3};
-sep.timeChannelWidth = varargin{4};
-sep.RRWinSz = varargin{5};
-sep.RRgrpSz = varargin{6};
-sep.fix_start = varargin{7};
-sep.fix_end = varargin{8};
-sep.start_pos = fluoPixelModel.getStartPos(sep.data);
-
+sep.params = varargin{2};
+handles.textStudyName.String = varargin{3};
+handles.textSubjectName.String = varargin{4};
+handles.popupChannel.String = varargin{5};
+handles.popupChannel.Value = 1;
+sep.start_pos = varargin{6}; %fluoPixelModel.getStartPos(sep.data);
+sep.end_pos = varargin{7};
 sep.ERidx = [];
-%[mask sep.ERidx] = compReflectionMask(sep.data,sep.RRWinSz,sep.RRgrpSz);
+
+%[mask sep.ERidx] = compReflectionMask(sep.data,sep.params.ReflRemWinSz,sep.params.ReflRemGrpSz);
 sep.tableERrow = 1;
 sep.buttonDown = 0;
-switch sep.auto_start
+switch sep.params.autoStartPos
     case 1 %auto
         sep.start_pos = fluoPixelModel.getStartPos(sep.data);
         set(handles.buttonSDec,'Enable','off');
@@ -106,15 +104,17 @@ switch sep.auto_start
         set(handles.buttonSAuto,'Enable','off');
         set(handles.editStart,'Enable','off');
     case 0 %manual
-        sep.start_pos = fluoPixelModel.getStartPos(sep.data);
+        if(sep.start_pos == 0)
+           sep.start_pos = fluoPixelModel.getStartPos(sep.data);
+        end
     case -1 %fix
-        sep.start_pos = varargin{7};
+        sep.start_pos = sep.params.fixStartPos;
         set(handles.buttonSDec,'Enable','off');
         set(handles.buttonSInc,'Enable','off');
         set(handles.buttonSAuto,'Enable','off');
         set(handles.editStart,'Enable','off');
 end
-switch sep.auto_end
+switch sep.params.autoEndPos
     case 1 %auto
         sep.end_pos = fluoPixelModel.getEndPos(sep.data);
         set(handles.buttonEDec,'Enable','off');
@@ -122,9 +122,11 @@ switch sep.auto_end
         set(handles.buttonEAuto,'Enable','off');
         set(handles.editEnd,'Enable','off');
     case 0 %manual
-        sep.end_pos = fluoPixelModel.getEndPos(sep.data);
+        if(sep.end_pos == 0)
+            sep.end_pos = fluoPixelModel.getEndPos(sep.data);
+        end
     case -1 %fix
-        sep.end_pos = varargin{8};
+        sep.end_pos = sep.params.fixEndPos;
         set(handles.buttonEDec,'Enable','off');
         set(handles.buttonEInc,'Enable','off');
         set(handles.buttonEAuto,'Enable','off');
@@ -154,9 +156,9 @@ function varargout = GUI_startEndPosWizard_OutputFcn(hObject, eventdata, handles
 
 % Get default command line output from handles structure
 if isempty(handles)
-    varargout{1} = 0;
-    varargout{2} = 0;
-    varargout{3} = 0;
+    varargout{1} = -1;
+    varargout{2} = -1;
+    varargout{3} = -1;
 else
     sep = get(handles.startEndPosWizardFigure,'userdata');
     varargout{1} = sep.start_pos;
@@ -250,7 +252,7 @@ editStart_Callback(handles.editStart,[],handles);
 function buttonERAuto_Callback(hObject, eventdata, handles)
 %
 sep = get(handles.startEndPosWizardFigure,'userdata');
-[mask sep.ERidx] = measurementFile.compReflectionMask(sep.data,sep.RRWinSz,sep.RRgrpSz);
+[~, sep.ERidx] = measurementFile.compReflectionMask(sep.data,sep.params.ReflRemWinSz,sep.params.ReflRemGrpSz);
 set(handles.startEndPosWizardFigure,'userdata',sep);
 updateGUI(handles);
 
@@ -301,13 +303,13 @@ cp(2)=fix(cp(2)-10-0.52);
 sel = get(handles.startEndPosWizardFigure,'SelectionType');
 if(strcmpi(sel,'normal'))
     %left click
-    if(sep.auto_start)
+    if(sep.params.autoStartPos)
         return
     end 
     set(handles.editStart,'String',max(min(round(abs(cp(1))),sep.end_pos-1),1));
 elseif(strcmpi(sel,'alt'))
     %right click
-    if(sep.auto_end)
+    if(sep.params.autoEndPos)
         return
     end
     set(handles.editEnd,'String',min(max(round(abs(cp(1))),sep.start_pos+1),length(sep.data)));
@@ -323,7 +325,7 @@ updateGUI(handles);
 function mouseMotion_Callback(hObject, eventdata, handles)
 %executes on mouse move in window
 sep = get(handles.startEndPosWizardFigure,'userdata');
-if(sep.auto_start && sep.auto_end)
+if(sep.params.autoStartPos && sep.params.autoEndPos)
     return
 end
 cp = get(handles.axesData,'CurrentPoint');
@@ -351,13 +353,13 @@ cp(1)=fix(cp(1)+2.7-0.52);
 sel = get(handles.startEndPosWizardFigure,'SelectionType');
 if(strcmpi(sel,'normal'))
     %left click
-    if(sep.auto_start)
+    if(sep.params.autoStartPos)
         return
     end
     set(handles.editStart,'String',max(min(round(abs(cp(1))),sep.end_pos-1),1));
 elseif(strcmpi(sel,'alt'))
     %right click
-    if(sep.auto_end)
+    if(sep.params.autoEndPos)
         return
     end
     set(handles.editEnd,'String',min(max(round(abs(cp(1))),sep.start_pos+1),length(sep.data)));
@@ -394,14 +396,14 @@ cp(2)=fix(cp(2)-10-0.52);
 sel = get(handles.startEndPosWizardFigure,'SelectionType');
 if(strcmpi(sel,'normal'))
     %left click
-    if(sep.auto_start)
+    if(sep.params.autoStartPos)
         return
     end
     set(handles.editStart,'String',max(min(round(abs(cp(1))),sep.end_pos-1),1));
     sep.start_pos = round(abs(cp(1)));
 elseif(strcmpi(sel,'alt'))
      %right click
-    if(sep.auto_end)
+    if(sep.params.autoEndPos)
         return
     end    
     set(handles.editEnd,'String',min(max(round(abs(cp(1))),sep.start_pos+1),length(sep.data)));
@@ -502,3 +504,14 @@ function editEnd_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+% --- Executes during object creation, after setting all properties.
+function textSubjectName_CreateFcn(hObject, eventdata, handles)
+% --- Executes during object creation, after setting all properties.
+function textStudyName_CreateFcn(hObject, eventdata, handles)
+
+
+% --- Executes on selection change in popupChannel.
+function popupChannel_Callback(hObject, eventdata, handles)
+
+
+

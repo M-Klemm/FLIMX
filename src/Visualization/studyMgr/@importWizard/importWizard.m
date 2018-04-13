@@ -747,7 +747,7 @@ classdef importWizard < handle
             end
             cp = get(this.visHandles.axesROI,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
-            if(any(cp(:) < 0))
+            if(any(cp(:) <= 0) || cp(1) > this.myMeasurement.getRawYSz() || cp(2) > this.myMeasurement.getRawXSz())
                 return;
             end
             set(this.visHandles.textXL,'String',round(abs(cp(1))));
@@ -796,7 +796,7 @@ classdef importWizard < handle
             end
             cp = get(this.visHandles.axesROI,'CurrentPoint');
             cp = cp(logical([1 1 0; 0 0 0]));
-            if(any(cp(:) < 0))
+            if(any(cp(:) <= 0)  || cp(1) > this.myMeasurement.getRawYSz() || cp(2) > this.myMeasurement.getRawXSz())
                 return;
             end            
             cXl = this.mouseButtonDownROI(1);

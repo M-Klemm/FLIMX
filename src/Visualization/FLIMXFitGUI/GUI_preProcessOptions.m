@@ -54,16 +54,16 @@ function varargout = GUI_preProcessOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_preProcessOptions
 
-% Last Modified by GUIDE v2.5 13-Aug-2013 16:39:38
+% Last Modified by GUIDE v2.5 10-Apr-2018 18:32:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @GUI_preProcessOptions_OpeningFcn, ...
-                   'gui_OutputFcn',  @GUI_preProcessOptions_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @GUI_preProcessOptions_OpeningFcn, ...
+    'gui_OutputFcn',  @GUI_preProcessOptions_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -90,15 +90,48 @@ function GUI_preProcessOptions_OpeningFcn(hObject, eventdata, handles, varargin)
 % Update handles structure
 % guidata(hObject, handles);
 rdh.preProcessing = varargin{1};
-updateGUI(handles, rdh);  
+rdh.currentSubject = varargin{2};
+if(strcmp('Off',varargin{3}))
+    rdh.enableGUIControlsFlag = 'Off';
+else
+    rdh.enableGUIControlsFlag = 'On';
+end
+updateGUI(handles, rdh);
 set(handles.preProcessOptionsFigure,'userdata',rdh);
-
+%set tooltips
+handles.radioStartAuto.TooltipString = 'Automatic determination of the start position of the time interval used for the fluorescence lifetime approximation';
+handles.radioStartManual.TooltipString = 'Manually set the start position of the time interval used for the fluorescence lifetime approximation (this will open a GUI when loading a new subject)';
+handles.radioStartFix.TooltipString = 'Set the start position of the time interval used for the fluorescence lifetime approximation to a fixed value';
+handles.editStartFix.TooltipString = 'Value for fixed start position';
+handles.buttonStartManual.TooltipString = 'Set start position for current subject';
+handles.radioEndAuto.TooltipString = 'Automatic determination of the end position of the time interval used for the fluorescence lifetime approximation';
+handles.radioEndManual.TooltipString = 'Manually set the end position of the time interval used for the fluorescence lifetime approximation (this will open a GUI when loading a new subject)';
+handles.radioEndFix.TooltipString = 'Set the end position of the time interval used for the fluorescence lifetime approximation to a fixed value';
+handles.editEndFix.TooltipString = 'Value for fixed end position';
+handles.buttonEndManual.TooltipString = 'Set end position for current subject';
+handles.radioReflRemAuto.TooltipString = 'Automatic detection and removal of ascending parts in the time interval used for fluorescence lifetime approximation caused by reflections';
+handles.radioReflRemManual.TooltipString = 'Manually select time intervals for each channel, which are removed from the fluorescence lifetime approximation (this will open a GUI when loading a new subject)';
+handles.radioReflRemDisabled.TooltipString = 'Disable algorithm to remove ascending parts in time interval used for fluorescence lifetime approximation caused by reflections';
+handles.editReflRemWinSz.TooltipString = 'Window size for reflection removal algorithm (used to smooth the fluorescence intensity decay)';
+handles.editReflRemGrpSz.TooltipString = 'Group size for reflection removal algorithm (number of consecutive time points with a rising fluorescence signal to be detected as a reflection artifact) ';
+handles.buttonReflRemManual.TooltipString = 'Set the parts of the time interval, which are irgnored for fluorescence lifetime approximation for current subject';
+handles.radioStaticBinning.TooltipString = 'Use static binning to improve the signal-to-noise ratio for the fluorescence lifetime approximation by reducing the effective spatial resolution';
+handles.editStaticBinFactor.TooltipString = 'Binning factor; number of pixels binned = (2 x binning factor +1)²';
+handles.buttonDecStaticBinFactor.TooltipString = 'Decrease static binning factor';
+handles.buttonIncStaticBinFactor.TooltipString = 'Increase static binning factor';
+handles.radioAdaptiveBinning.TooltipString = 'Use adaptive binning to improve the signal-to-noise ratio for the fluorescence lifetime approximation by reducing the effective spatial resolution (best compromise of signal quality and loss of spatial resolution for a target number of photons per pixel';
+handles.editAdaptiveBinFactor.TooltipString = 'Maximum binning factor used';
+handles.editAdaptiveTargetPhotons.TooltipString = 'Target number of photons after adaptive binning';
+handles.buttonDecAdaptiveBinFactor.TooltipString = 'Decrease max binning factor';
+handles.buttonIncAdaptiveBinFactor.TooltipString = 'Increase max binning factor';
+handles.buttonOK.TooltipString = 'Save changes and close window';
+handles.buttonCancel.TooltipString = 'Discard changes and close window';
 % UIWAIT makes GUI_preProcessOptions wait for user response (see UIRESUME)
 uiwait(handles.preProcessOptionsFigure);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = GUI_preProcessOptions_OutputFcn(hObject, eventdata, handles) 
+function varargout = GUI_preProcessOptions_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -109,7 +142,9 @@ if isempty(handles)
     handles.output=[];
     varargout{1} = [];
 else
-    varargout{1} = get(handles.preProcessOptionsFigure,'userdata');
+    rdh = get(handles.preProcessOptionsFigure,'userdata');
+    rdh = rmfield(rdh,'currentSubject');
+    varargout{1} = rdh;
     delete(handles.preProcessOptionsFigure);
 end
 
@@ -120,95 +155,119 @@ function updateGUI(handles,data)
 %general
 switch data.preProcessing.autoStartPos
     case 1
-        set(handles.radioStartAuto,'Value',1);
-        set(handles.radioStartManual,'Value',0);
-        set(handles.radioStartFix,'Value',0);
-        set(handles.editStartFix,'Enable','off','String',num2str(data.preProcessing.fixStartPos));
+        set(handles.radioStartAuto,'Value',1,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioStartManual,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioStartFix,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.editStartFix,'Enable','Off','String',num2str(data.preProcessing.fixStartPos));
+        handles.buttonStartManual.Enable = 'Off';
     case 0
-        set(handles.radioStartAuto,'Value',0);
-        set(handles.radioStartManual,'Value',1);
-        set(handles.radioStartFix,'Value',0);
-        set(handles.editStartFix,'Enable','off','String',num2str(data.preProcessing.fixStartPos));
+        set(handles.radioStartAuto,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioStartManual,'Value',1,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioStartFix,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.editStartFix,'Enable','Off','String',num2str(data.preProcessing.fixStartPos));
+        if(strcmp(data.enableGUIControlsFlag,'On'))
+            handles.buttonStartManual.Enable = 'On';
+        end
     case -1
-        set(handles.radioStartAuto,'Value',0);
-        set(handles.radioStartManual,'Value',0);
-        set(handles.radioStartFix,'Value',1);
-        set(handles.editStartFix,'Enable','on','String',num2str(data.preProcessing.fixStartPos));
+        set(handles.radioStartAuto,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioStartManual,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioStartFix,'Value',1,'Enable',data.enableGUIControlsFlag);
+        if(strcmp(data.enableGUIControlsFlag,'On'))
+            set(handles.editStartFix,'Enable','on','String',num2str(data.preProcessing.fixStartPos));
+        else
+            set(handles.editStartFix,'Enable','Off','String',num2str(data.preProcessing.fixStartPos));
+        end
+        handles.buttonStartManual.Enable = 'Off';
 end
 switch data.preProcessing.autoEndPos
     case 1
-        set(handles.radioEndAuto,'Value',1);
-        set(handles.radioEndManual,'Value',0);
-        set(handles.radioEndFix,'Value',0);
-        set(handles.editEndFix,'Enable','off','String',num2str(data.preProcessing.fixEndPos));
+        set(handles.radioEndAuto,'Value',1,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioEndManual,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioEndFix,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.editEndFix,'Enable','Off','String',num2str(data.preProcessing.fixEndPos));
+        handles.buttonEndManual.Enable = 'Off';
     case 0
-        set(handles.radioEndAuto,'Value',0);
-        set(handles.radioEndManual,'Value',1);
-        set(handles.radioEndFix,'Value',0);
-        set(handles.editEndFix,'Enable','off','String',num2str(data.preProcessing.fixEndPos));
+        set(handles.radioEndAuto,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioEndManual,'Value',1,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioEndFix,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.editEndFix,'Enable','Off','String',num2str(data.preProcessing.fixEndPos));
+        if(strcmp(data.enableGUIControlsFlag,'On'))
+            handles.buttonEndManual.Enable = 'On';
+        end
     case -1
-        set(handles.radioEndAuto,'Value',0);
-        set(handles.radioEndManual,'Value',0);
-        set(handles.radioEndFix,'Value',1);
-        set(handles.editEndFix,'Enable','on','String',num2str(data.preProcessing.fixEndPos));
+        set(handles.radioEndAuto,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioEndManual,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioEndFix,'Value',1,'Enable',data.enableGUIControlsFlag);
+        if(strcmp(data.enableGUIControlsFlag,'On'))
+            set(handles.editEndFix,'Enable','On','String',num2str(data.preProcessing.fixEndPos));
+        else
+            set(handles.editEndFix,'Enable','Off','String',num2str(data.preProcessing.fixEndPos));
+        end
+        handles.buttonEndManual.Enable = 'Off';
+end
+%reflection removal
+set(handles.editReflRemWinSz,'String',num2str(data.preProcessing.ReflRemWinSz));
+set(handles.editReflRemGrpSz,'String',num2str(data.preProcessing.ReflRemGrpSz));
+if(strcmp(data.enableGUIControlsFlag,'Off'))
+    handles.buttonReflRemManual.Enable = 'Off';
+    autoReflRemFlag = 'Off';
+else
+    switch data.preProcessing.autoReflRem
+        case 1
+            handles.buttonReflRemManual.Enable = 'Off';
+            autoReflRemFlag = 'On';
+        case 0
+            handles.buttonReflRemManual.Enable = 'On';
+            autoReflRemFlag = 'Off';
+        case -1
+            handles.buttonReflRemManual.Enable = 'Off';
+            autoReflRemFlag = 'Off';
+    end
 end
 switch data.preProcessing.autoReflRem
     case 1
-        set(handles.radioReflRemAuto,'Value',1);
-        set(handles.radioReflRemManual,'Value',0);
-        set(handles.radioReflRemDisabled,'Value',0);
-        set(handles.editReflRemWinSz,'String',num2str(data.preProcessing.ReflRemWinSz),'Enable','on');
-        set(handles.editReflRemGrpSz,'String',num2str(data.preProcessing.ReflRemGrpSz),'Enable','on');
-        set(handles.textReflRemWinSz,'Enable','on');
-        set(handles.textReflRemGrpSz,'Enable','on');
+        set(handles.radioReflRemAuto,'Value',1,'Enable',autoReflRemFlag);
+        set(handles.radioReflRemManual,'Value',0,'Enable',autoReflRemFlag);
+        set(handles.radioReflRemDisabled,'Value',0,'Enable',autoReflRemFlag);
     case 0
-        set(handles.radioReflRemAuto,'Value',0);
-        set(handles.radioReflRemManual,'Value',1);
-        set(handles.radioReflRemDisabled,'Value',0);
-        set(handles.editReflRemWinSz,'String',num2str(data.preProcessing.ReflRemWinSz),'Enable','off');
-        set(handles.editReflRemGrpSz,'String',num2str(data.preProcessing.ReflRemGrpSz),'Enable','off');  
-        set(handles.textReflRemWinSz,'Enable','off');
-        set(handles.textReflRemGrpSz,'Enable','off');
+        set(handles.radioReflRemAuto,'Value',0,'Enable',autoReflRemFlag);
+        set(handles.radioReflRemManual,'Value',1,'Enable',autoReflRemFlag);
+        set(handles.radioReflRemDisabled,'Value',0,'Enable',autoReflRemFlag);
     case -1
-        set(handles.radioReflRemAuto,'Value',0);
-        set(handles.radioReflRemManual,'Value',0);
-        set(handles.radioReflRemDisabled,'Value',1);
-        set(handles.editReflRemWinSz,'String',num2str(data.preProcessing.ReflRemWinSz),'Enable','off');
-        set(handles.editReflRemGrpSz,'String',num2str(data.preProcessing.ReflRemGrpSz),'Enable','off');
-        set(handles.textReflRemWinSz,'Enable','off');
-        set(handles.textReflRemGrpSz,'Enable','off');
+        set(handles.radioReflRemAuto,'Value',0,'Enable',autoReflRemFlag);
+        set(handles.radioReflRemManual,'Value',0,'Enable',autoReflRemFlag);
+        set(handles.radioReflRemDisabled,'Value',1,'Enable',autoReflRemFlag);
 end
-switch data.preProcessing.roiAdaptiveBinEnable
-    case 0
-        set(handles.radioStaticBinning,'Value',1);
-        set(handles.editStaticBinFactor,'String',num2str(data.preProcessing.roiBinning),'Enable','on');
-        set(handles.buttonDecStaticBinFactor,'Enable','on');
-        set(handles.buttonIncStaticBinFactor,'Enable','on');
-        set(handles.textStaticBinFactor,'Enable','on');
-        set(handles.radioAdaptiveBinning,'Value',0);  
-        set(handles.editAdaptiveBinFactor,'String',num2str(data.preProcessing.roiAdaptiveBinMax),'Enable','off');
-        set(handles.editAdaptiveTargetPhotons,'String',num2str(data.preProcessing.roiAdaptiveBinThreshold),'Enable','off');
-        set(handles.buttonDecAdaptiveBinFactor,'Enable','off');
-        set(handles.buttonIncAdaptiveBinFactor,'Enable','off');
-        set(handles.textAdaptiveBinFactor,'Enable','off');
-        set(handles.textAdaptiveTargetPhotons,'Enable','off');
-    case 1
-        set(handles.radioStaticBinning,'Value',0);
-        set(handles.editStaticBinFactor,'String',num2str(data.preProcessing.roiBinning),'Enable','off');
-        set(handles.buttonDecStaticBinFactor,'Enable','off');
-        set(handles.buttonIncStaticBinFactor,'Enable','off');
-        set(handles.textStaticBinFactor,'Enable','off');
-        set(handles.radioAdaptiveBinning,'Value',1);
-        set(handles.editAdaptiveBinFactor,'String',num2str(data.preProcessing.roiAdaptiveBinMax),'Enable','on');
-        set(handles.editAdaptiveTargetPhotons,'String',num2str(data.preProcessing.roiAdaptiveBinThreshold),'Enable','on');
-        set(handles.buttonDecAdaptiveBinFactor,'Enable','on');
-        set(handles.buttonIncAdaptiveBinFactor,'Enable','on');
-        set(handles.textAdaptiveBinFactor,'Enable','on');
-        set(handles.textAdaptiveTargetPhotons,'Enable','on');
+set(handles.editReflRemWinSz,'String',num2str(data.preProcessing.ReflRemWinSz),'Enable',autoReflRemFlag);
+set(handles.editReflRemGrpSz,'String',num2str(data.preProcessing.ReflRemGrpSz),'Enable',autoReflRemFlag);
+set(handles.textReflRemWinSz,'Enable',autoReflRemFlag);
+set(handles.textReflRemGrpSz,'Enable',autoReflRemFlag);
+%binning
+set(handles.radioStaticBinning,'Value',data.preProcessing.roiAdaptiveBinEnable,'Enable',data.enableGUIControlsFlag);
+set(handles.radioAdaptiveBinning,'Value',~data.preProcessing.roiAdaptiveBinEnable,'Enable',data.enableGUIControlsFlag);
+if(strcmp(data.enableGUIControlsFlag,'Off'))
+    staticFlag = 'Off';
+    adaptiveFlag = 'Off';
+else
+    switch data.preProcessing.roiAdaptiveBinEnable
+        case 0
+            staticFlag = 'On';
+            adaptiveFlag = 'Off';
+        case 1
+            staticFlag = 'Off';
+            adaptiveFlag = 'On';
+    end
 end
-
-
-
+set(handles.editStaticBinFactor,'String',num2str(data.preProcessing.roiBinning),'Enable',staticFlag);
+set(handles.buttonDecStaticBinFactor,'Enable',staticFlag);
+set(handles.buttonIncStaticBinFactor,'Enable',staticFlag);
+set(handles.textStaticBinFactor,'Enable',staticFlag);
+set(handles.editAdaptiveBinFactor,'String',num2str(data.preProcessing.roiAdaptiveBinMax),'Enable',adaptiveFlag);
+set(handles.editAdaptiveTargetPhotons,'String',num2str(data.preProcessing.roiAdaptiveBinThreshold),'Enable',adaptiveFlag);
+set(handles.buttonDecAdaptiveBinFactor,'Enable',adaptiveFlag);
+set(handles.buttonIncAdaptiveBinFactor,'Enable',adaptiveFlag);
+set(handles.textAdaptiveBinFactor,'Enable',adaptiveFlag);
+set(handles.textAdaptiveTargetPhotons,'Enable',adaptiveFlag);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -311,35 +370,35 @@ function radioReflRemAuto_Callback(hObject, eventdata, handles)
 rdh = get(handles.preProcessOptionsFigure,'userdata');
 rdh.preProcessing.autoReflRem = 1;
 set(handles.preProcessOptionsFigure,'userdata',rdh);
-updateGUI(handles, rdh); 
+updateGUI(handles, rdh);
 
 % --- Executes on button press in radioReflRemManual.
 function radioReflRemManual_Callback(hObject, eventdata, handles)
 rdh = get(handles.preProcessOptionsFigure,'userdata');
 rdh.preProcessing.autoReflRem = 0;
 set(handles.preProcessOptionsFigure,'userdata',rdh);
-updateGUI(handles, rdh); 
+updateGUI(handles, rdh);
 
 % --- Executes on button press in radioReflRemDisabled.
 function radioReflRemDisabled_Callback(hObject, eventdata, handles)
 rdh = get(handles.preProcessOptionsFigure,'userdata');
 rdh.preProcessing.autoReflRem = -1;
 set(handles.preProcessOptionsFigure,'userdata',rdh);
-updateGUI(handles, rdh); 
+updateGUI(handles, rdh);
 
 % --- Executes on button press in radioStaticBinning.
 function radioStaticBinning_Callback(hObject, eventdata, handles)
 rdh = get(handles.preProcessOptionsFigure,'userdata');
 rdh.preProcessing.roiAdaptiveBinEnable = 0;
 set(handles.preProcessOptionsFigure,'userdata',rdh);
-updateGUI(handles, rdh); 
+updateGUI(handles, rdh);
 
 % --- Executes on button press in radioAdaptiveBinning.
 function radioAdaptiveBinning_Callback(hObject, eventdata, handles)
 rdh = get(handles.preProcessOptionsFigure,'userdata');
 rdh.preProcessing.roiAdaptiveBinEnable = 1;
 set(handles.preProcessOptionsFigure,'userdata',rdh);
-updateGUI(handles, rdh); 
+updateGUI(handles, rdh);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -381,6 +440,38 @@ rdh = get(handles.preProcessOptionsFigure,'userdata');
 rdh.preProcessing.roiAdaptiveBinMax = rdh.preProcessing.roiAdaptiveBinMax+1;
 set(handles.preProcessOptionsFigure,'userdata',rdh);
 updateGUI(handles, rdh);
+
+% --- Executes on button press in buttonReflRemManual.
+function buttonReflRemManual_Callback(hObject, eventdata, handles)
+buttonStartManual_Callback(hObject, eventdata, handles)
+
+% --- Executes on button press in buttonStartManual.
+function buttonStartManual_Callback(hObject, eventdata, handles)
+%start wizard
+rdh = get(handles.preProcessOptionsFigure,'userdata');
+nrChs = rdh.currentSubject.myMeasurement.nrSpectralChannels;
+subjectName = rdh.currentSubject.name;
+studyName = '';
+if(~isempty(rdh.currentSubject.myParent))
+    studyName = rdh.currentSubject.myParent.name;
+end
+for ch = 1:nrChs
+    fi = rdh.currentSubject.myMeasurement.getFileInfoStruct(ch);
+    if(~isempty(fi))
+        [fi.StartPosition, fi.EndPosition, fi.reflectionMask] = GUI_startEndPosWizard(rdh.currentSubject.getROIMerged(ch),rdh.preProcessing,studyName,subjectName,ch,fi.StartPosition, fi.EndPosition);
+        if(fi.StartPosition >= 0 &&  fi.EndPosition >= 0 && all(fi.reflectionMask(:) > 0))
+            %user did not press cancel, force deletion of results after GUI closes
+            handles.buttonCancel.Enable = 'Off';
+            rdh.currentSubject.myMeasurement.setStartPosition(ch,fi.StartPosition);
+            rdh.currentSubject.myMeasurement.setEndPosition(ch,fi.EndPosition);
+            rdh.currentSubject.myMeasurement.setReflectionMask(ch,fi.reflectionMask);
+        end
+    end
+end
+
+% --- Executes on button press in buttonEndManual.
+function buttonEndManual_Callback(hObject, eventdata, handles)
+buttonStartManual_Callback(hObject, eventdata, handles)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -59,11 +59,11 @@ function varargout = GUI_compOptions(varargin)
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @GUI_compOptions_OpeningFcn, ...
-                   'gui_OutputFcn',  @GUI_compOptions_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @GUI_compOptions_OpeningFcn, ...
+    'gui_OutputFcn',  @GUI_compOptions_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -90,7 +90,12 @@ function GUI_compOptions_OpeningFcn(hObject, eventdata, handles, varargin)
 % Update handles structure
 % guidata(hObject, handles);
 rdh.computation = varargin{1};
-updateGUI(handles, rdh);  
+if(strcmp('Off',varargin{2}))
+    rdh.enableGUIControlsFlag = 'Off';
+else
+    rdh.enableGUIControlsFlag = 'On';
+end
+updateGUI(handles, rdh);
 set(handles.compOptionsFigure,'userdata',rdh);
 
 % UIWAIT makes GUI_compOptions wait for user response (see UIRESUME)
@@ -98,7 +103,7 @@ uiwait(handles.compOptionsFigure);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = GUI_compOptions_OutputFcn(hObject, eventdata, handles) 
+function varargout = GUI_compOptions_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -119,16 +124,18 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function updateGUI(handles,data)
 %update GUI to current values
-switch data.computation.useDistComp
-    case 0
-        set(handles.radioLocal,'Value',1);
-        set(handles.radioMulticore,'Value',0);
-        flag = 'off'; 
-    case 1
-        set(handles.radioLocal,'Value',0);
-        set(handles.radioMulticore,'Value',1);
-        flag = 'on';
+if(strcmp(data.enableGUIControlsFlag,'Off'))
+    flag = 'Off';
+else
+    switch data.computation.useDistComp
+        case 0
+            flag = 'off';
+        case 1
+            flag = 'on';
+    end
 end
+set(handles.radioLocal,'Value',data.computation.useDistComp,'Enable',data.enableGUIControlsFlag);
+set(handles.radioMulticore,'Value',~data.computation.useDistComp,'Enable',data.enableGUIControlsFlag);
 set(handles.editMCPixelPerWU,'String',num2str(data.computation.mcTargetPixelPerWU),'Enable',flag);
 set(handles.editMCWUs,'String',num2str(data.computation.mcTargetNrWUs),'Enable',flag);
 set(handles.textMCPixelPerWU,'Enable',flag);
@@ -136,8 +143,9 @@ set(handles.textMCWUs,'Enable',flag);
 set(handles.checkMCWorkLocal,'Value',data.computation.mcWorkLocal,'Enable',flag);
 set(handles.checkMCComputeJobHash,'Value',data.computation.mcComputeJobHash,'Enable',flag);
 set(handles.editMCPath,'String',data.computation.mcShare,'Enable',flag);
-set(handles.checkMatlabDistComp,'Value',logical(data.computation.useMatlabDistComp));
-set(handles.checkMatlabGPU,'Value',logical(data.computation.useGPU));
+set(handles.checkMatlabDistComp,'Value',logical(data.computation.useMatlabDistComp),'Enable',data.enableGUIControlsFlag);
+set(handles.checkMatlabGPU,'Value',logical(data.computation.useGPU),'Enable',data.enableGUIControlsFlag);
+set(handles.buttonMCPath,'Enable',data.enableGUIControlsFlag);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -208,7 +216,7 @@ function radioMulticore_Callback(hObject, eventdata, handles)
 rdh = get(handles.compOptionsFigure,'userdata');
 rdh.computation.useDistComp = 1;
 set(handles.compOptionsFigure,'userdata',rdh);
-updateGUI(handles, rdh); 
+updateGUI(handles, rdh);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

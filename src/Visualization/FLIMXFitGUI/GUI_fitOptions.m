@@ -99,9 +99,15 @@ rdh.IRFStr = varargin{7};
 rdh.IRFMask = varargin{8};
 rdh.studiesStr = varargin{9};
 rdh.isDirty = [0 0 0]; %flags which part was changed, 1-basic, 2-init, 3-pixel
-updateGUI(handles, rdh);  
+if(strcmp('Off',varargin{11}))
+    rdh.enableGUIControlsFlag = 'Off';
+else
+    rdh.enableGUIControlsFlag = 'On';
+end
+updateGUI(handles, rdh);
 set(handles.fitOptionsFigure,'userdata',rdh);
 set(handles.popupChannel,'Value',min(varargin{10},length(get(handles.popupChannel,'String'))));
+
 updateGUI(handles, rdh);
 % UIWAIT makes GUI_fitOptions wait for user response (see UIRESUME)
 uiwait(handles.fitOptionsFigure);
@@ -131,35 +137,35 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function updateGUI(handles,data)
 %general
-set(handles.popupApproxTarget,'Value',data.basic.approximationTarget);
+set(handles.popupApproxTarget,'Value',data.basic.approximationTarget,'Enable',data.enableGUIControlsFlag);
 if(data.basic.approximationTarget == 2)
     %anisotropy
-    set(handles.panelApproxModel,'Visible','off');
-    set(handles.panelAnisotropy,'Visible','on');
-    set(handles.popupChannel,'String',num2cell(1:4)');
+    set(handles.panelApproxModel,'Visible','Off','Enable',data.enableGUIControlsFlag);
+    set(handles.panelAnisotropy,'Visible','On','Enable',data.enableGUIControlsFlag);
+    set(handles.popupChannel,'String',num2cell(1:4)','Enable',data.enableGUIControlsFlag);
 else
     %lifetime
-    set(handles.panelApproxModel,'Visible','on');
-    set(handles.panelAnisotropy,'Visible','off');
+    set(handles.panelApproxModel,'Visible','On');
+    set(handles.panelAnisotropy,'Visible','Off');
     set(handles.popupChannel,'String',num2cell(1:2)','Value',min(2,get(handles.popupChannel,'Value')));
 end
-set(handles.checkReconvolute,'Value',data.basic.reconvoluteWithIRF)
+set(handles.checkReconvolute,'Value',data.basic.reconvoluteWithIRF,'Enable',data.enableGUIControlsFlag);
 if(data.basic.reconvoluteWithIRF)
-    set(handles.popupIRF,'Visible','on');
+    set(handles.popupIRF,'Visible','On','Enable',data.enableGUIControlsFlag);
 else
-    set(handles.popupIRF,'Visible','off');
+    set(handles.popupIRF,'Visible','Off','Enable',data.enableGUIControlsFlag);
 end
-set(handles.popupNExp,'Value',data.basic.nExp);
+set(handles.popupNExp,'Value',data.basic.nExp,'Enable',data.enableGUIControlsFlag);
 if(data.basic.nExp == 1)
-    set(handles.popupAmplitudeOrder,'Value',1,'Enable','off');
-    set(handles.textAmplitudeOrder,'Enable','off');
-else
-    set(handles.popupAmplitudeOrder,'Value',data.basic.amplitudeOrder+1,'Enable','on');
-    set(handles.textAmplitudeOrder,'Enable','on');
+    set(handles.popupAmplitudeOrder,'Value',1,'Enable','Off');
+    set(handles.textAmplitudeOrder,'Enable','Off');
+else    
+    set(handles.popupAmplitudeOrder,'Value',data.basic.amplitudeOrder+1,'Enable',data.enableGUIControlsFlag);
+    set(handles.textAmplitudeOrder,'Enable',data.enableGUIControlsFlag);
 end
-set(handles.editLifetimeGap,'String',(data.basic.lifetimeGap-1)*100);
-set(handles.checkHybridFit,'Value',data.basic.hybridFit);
-set(handles.popupOffsetFit,'Value',data.basic.nonLinOffsetFit);
+set(handles.editLifetimeGap,'String',(data.basic.lifetimeGap-1)*100,'Enable',data.enableGUIControlsFlag);
+set(handles.checkHybridFit,'Value',data.basic.hybridFit,'Enable',data.enableGUIControlsFlag);
+set(handles.popupOffsetFit,'Value',data.basic.nonLinOffsetFit,'Enable',data.enableGUIControlsFlag);
 if(isempty(data.IRFStr))
     set(handles.popupIRF,'String','no IRF found','Value',1);
 else
@@ -171,120 +177,120 @@ else
 end
 switch data.basic.fitModel
     case 0 %tailfit
-        set(handles.radioTciFit,'Value',0);
-        set(handles.radioTailFit,'Value',1);
-        set(handles.textTailFitPreMax,'Visible','on');
-        set(handles.editTailFitPreMax,'Visible','on','String',data.basic.tailFitPreMaxSteps);
+        set(handles.radioTciFit,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioTailFit,'Value',1,'Enable',data.enableGUIControlsFlag);
+        set(handles.textTailFitPreMax,'Visible','On','Enable',data.enableGUIControlsFlag);
+        set(handles.editTailFitPreMax,'Visible','On','String',data.basic.tailFitPreMaxSteps,'Enable',data.enableGUIControlsFlag);
     case 1 %all time points
-        set(handles.radioTciFit,'Value',1);
-        set(handles.radioTailFit,'Value',0);
-        set(handles.textTailFitPreMax,'Visible','off');
-        set(handles.editTailFitPreMax,'Visible','off','String',data.basic.tailFitPreMaxSteps);
+        set(handles.radioTciFit,'Value',1,'Enable',data.enableGUIControlsFlag);
+        set(handles.radioTailFit,'Value',0,'Enable',data.enableGUIControlsFlag);
+        set(handles.textTailFitPreMax,'Visible','Off','Enable',data.enableGUIControlsFlag);
+        set(handles.editTailFitPreMax,'Visible','Off','String',data.basic.tailFitPreMaxSteps,'Enable',data.enableGUIControlsFlag);
 end
 tcilen = length(data.basic.tciMask);
 stelen = length(data.basic.stretchedExpMask);
 for i = 1:5
     %tci
     if(data.basic.fitModel ~= 1 || i > tcilen)
-        set(handles.(sprintf('checkTc%d',i)),'Enable','off','Value',0);
+        set(handles.(sprintf('checkTc%d',i)),'Enable','Off','Value',0);
     else
-        set(handles.(sprintf('checkTc%d',i)),'Enable','on','Value',data.basic.tciMask(i));
+        set(handles.(sprintf('checkTc%d',i)),'Enable',data.enableGUIControlsFlag,'Value',data.basic.tciMask(i));
     end
     %stretched exp
     if(i > stelen)
-        set(handles.(sprintf('checkSE%d',i)),'Enable','off','Value',0);
+        set(handles.(sprintf('checkSE%d',i)),'Enable','Off','Value',0);
     else
-        set(handles.(sprintf('checkSE%d',i)),'Enable','on','Value',data.basic.stretchedExpMask(i));
+        set(handles.(sprintf('checkSE%d',i)),'Enable',data.enableGUIControlsFlag,'Value',data.basic.stretchedExpMask(i));
     end
     %global fit
     if(i > data.basic.nExp)
-        set(handles.(sprintf('checkGFTau%d',i)),'Enable','off','Value',0);        
+        set(handles.(sprintf('checkGFTau%d',i)),'Enable','Off','Value',0);        
     else
-        set(handles.(sprintf('checkGFTau%d',i)),'Enable','on','Value',any(strcmp(sprintf('Tau %d',i),data.basic.globalFitMaskSaveStr)));
+        set(handles.(sprintf('checkGFTau%d',i)),'Enable',data.enableGUIControlsFlag,'Value',any(strcmp(sprintf('Tau %d',i),data.basic.globalFitMaskSaveStr)));
     end
     if(data.basic.fitModel ~= 1 || i > data.basic.nExp || data.basic.tciMask(i) == 0)
-        set(handles.(sprintf('checkGFtc%d',i)),'Enable','off','Value',0);        
+        set(handles.(sprintf('checkGFtc%d',i)),'Enable','Off','Value',0);        
     else
-        set(handles.(sprintf('checkGFtc%d',i)),'Enable','on','Value',any(strcmp(sprintf('tc %d',i),data.basic.globalFitMaskSaveStr)));
+        set(handles.(sprintf('checkGFtc%d',i)),'Enable',data.enableGUIControlsFlag,'Value',any(strcmp(sprintf('tc %d',i),data.basic.globalFitMaskSaveStr)));
     end
 end
 %anisotropy controls
-set(handles.editAnisoChannelShift,'String',data.basic.anisotropyChannelShift);
-set(handles.editAnisoGFactor,'String',data.basic.anisotropyGFactor);
-set(handles.editAnisoPerpenFactor,'String',data.basic.anisotropyPerpendicularFactor);
-set(handles.popupAnisoR0Method,'Value',data.basic.anisotropyR0Method);
-set(handles.checkIDec,'Value',data.basic.incompleteDecay);
-set(handles.editPhotons,'String',num2str(data.basic.photonThreshold));
-set(handles.checkSmoothInitFix,'Value',data.basic.fix2InitSmoothing);
-set(handles.editInitGridSize,'String',num2str(data.init.gridSize));
-set(handles.editInitGridPhotons,'String',num2str(data.init.gridPhotons));
-set(handles.editResultValidyCheckCnt,'String',num2str(data.basic.resultValidyCheckCnt));
+set(handles.editAnisoChannelShift,'String',data.basic.anisotropyChannelShift,'Enable',data.enableGUIControlsFlag);
+set(handles.editAnisoGFactor,'String',data.basic.anisotropyGFactor,'Enable',data.enableGUIControlsFlag);
+set(handles.editAnisoPerpenFactor,'String',data.basic.anisotropyPerpendicularFactor,'Enable',data.enableGUIControlsFlag);
+set(handles.popupAnisoR0Method,'Value',data.basic.anisotropyR0Method,'Enable',data.enableGUIControlsFlag);
+set(handles.checkIDec,'Value',data.basic.incompleteDecay,'Enable',data.enableGUIControlsFlag);
+set(handles.editPhotons,'String',num2str(data.basic.photonThreshold),'Enable',data.enableGUIControlsFlag);
+set(handles.checkSmoothInitFix,'Value',data.basic.fix2InitSmoothing,'Enable',data.enableGUIControlsFlag);
+set(handles.editInitGridSize,'String',num2str(data.init.gridSize),'Enable',data.enableGUIControlsFlag);
+set(handles.editInitGridPhotons,'String',num2str(data.init.gridPhotons),'Enable',data.enableGUIControlsFlag);
+set(handles.editResultValidyCheckCnt,'String',num2str(data.basic.resultValidyCheckCnt),'Enable',data.enableGUIControlsFlag);
 switch data.basic.neighborFit
     case 0
-        set(handles.popupNBPixels,'Value',1);
+        set(handles.popupNBPixels,'Value',1,'Enable',data.enableGUIControlsFlag);
     case 4
-        set(handles.popupNBPixels,'Value',2);
+        set(handles.popupNBPixels,'Value',2,'Enable',data.enableGUIControlsFlag);
     case 8
-        set(handles.popupNBPixels,'Value',3);
+        set(handles.popupNBPixels,'Value',3,'Enable',data.enableGUIControlsFlag);
 end
-set(handles.editNBWeight,'String',num2str(data.basic.neighborWeight));
-set(handles.popupFigureOfMerit,'Value',data.basic.figureOfMerit);
-set(handles.popupFigureOfMeritModifier,'Value',data.basic.figureOfMeritModifier);
+set(handles.editNBWeight,'String',num2str(data.basic.neighborWeight),'Enable',data.enableGUIControlsFlag);
+set(handles.popupFigureOfMerit,'Value',data.basic.figureOfMerit,'Enable',data.enableGUIControlsFlag);
+set(handles.popupFigureOfMeritModifier,'Value',data.basic.figureOfMeritModifier,'Enable',data.enableGUIControlsFlag);
 if(data.basic.figureOfMerit == 1)
-    set(handles.popupChiWeighting,'Value',data.basic.chiWeightingMode,'Visible','on');
-    set(handles.textChiWeighting,'Visible','on');
+    set(handles.popupChiWeighting,'Value',data.basic.chiWeightingMode,'Visible','On','Enable',data.enableGUIControlsFlag);
+    set(handles.textChiWeighting,'Visible','On','Enable',data.enableGUIControlsFlag);
 else
-    set(handles.popupChiWeighting,'Value',data.basic.chiWeightingMode,'Visible','off');
-    set(handles.textChiWeighting,'Visible','off');
+    set(handles.popupChiWeighting,'Value',data.basic.chiWeightingMode,'Visible','Off','Enable',data.enableGUIControlsFlag);
+    set(handles.textChiWeighting,'Visible','Off','Enable',data.enableGUIControlsFlag);
 end
 switch data.basic.figureOfMeritModifier
     case 2
-        set(handles.textErrorMPixelP1,'String','Boost Factor','Visible','on');
-        set(handles.textErrorMPixelP2,'String','pre-Max Window-Size','Visible','on');
-        set(handles.textErrorMPixelP3,'String','post-Max Window-Size','Visible','on');
+        set(handles.textErrorMPixelP1,'String','Boost Factor','Visible','On','Enable',data.enableGUIControlsFlag);
+        set(handles.textErrorMPixelP2,'String','pre-Max Window-Size','Visible','On','Enable',data.enableGUIControlsFlag);
+        set(handles.textErrorMPixelP3,'String','post-Max Window-Size','Visible','On','Enable',data.enableGUIControlsFlag);
         
-        set(handles.editErrorMPixelP1,'String',data.basic.ErrorMP1,'Visible','on');
-        set(handles.editErrorMPixelP2,'String',data.basic.ErrorMP2,'Visible','on');
-        set(handles.editErrorMPixelP3,'String',data.basic.ErrorMP3,'Visible','on');
+        set(handles.editErrorMPixelP1,'String',data.basic.ErrorMP1,'Visible','On','Enable',data.enableGUIControlsFlag);
+        set(handles.editErrorMPixelP2,'String',data.basic.ErrorMP2,'Visible','On','Enable',data.enableGUIControlsFlag);
+        set(handles.editErrorMPixelP3,'String',data.basic.ErrorMP3,'Visible','On','Enable',data.enableGUIControlsFlag);
     otherwise
-        set(handles.textErrorMPixelP1,'String','','Visible','off');
-        set(handles.textErrorMPixelP2,'String','','Visible','off');
-        set(handles.textErrorMPixelP3,'String','','Visible','off');
-        set(handles.editErrorMPixelP1,'String','','Visible','off');
-        set(handles.editErrorMPixelP2,'String','','Visible','off');
-        set(handles.editErrorMPixelP3,'String','','Visible','off');
+        set(handles.textErrorMPixelP1,'String','','Visible','Off','Enable',data.enableGUIControlsFlag);
+        set(handles.textErrorMPixelP2,'String','','Visible','Off','Enable',data.enableGUIControlsFlag);
+        set(handles.textErrorMPixelP3,'String','','Visible','Off','Enable',data.enableGUIControlsFlag);
+        set(handles.editErrorMPixelP1,'String','','Visible','Off','Enable',data.enableGUIControlsFlag);
+        set(handles.editErrorMPixelP2,'String','','Visible','Off','Enable',data.enableGUIControlsFlag);
+        set(handles.editErrorMPixelP3,'String','','Visible','Off','Enable',data.enableGUIControlsFlag);
 end
 
 %init
-set(handles.popupInitOptimizer,'Value',data.init.optimizer(1));
+set(handles.popupInitOptimizer,'Value',data.init.optimizer(1),'Enable',data.enableGUIControlsFlag);
 %per pixel
-set(handles.popupPPOptInit,'Value',data.basic.optimizerInitStrategy);
-set(handles.popupPPOptimizer1,'Value',data.pixel.optimizer(1));
+set(handles.popupPPOptInit,'Value',data.basic.optimizerInitStrategy,'Enable',data.enableGUIControlsFlag);
+set(handles.popupPPOptimizer1,'Value',data.pixel.optimizer(1),'Enable',data.enableGUIControlsFlag);
 if(length(data.pixel.optimizer) > 1)
-    set(handles.popupPPOptimizer2,'Value',data.pixel.optimizer(2) + 1);
+    set(handles.popupPPOptimizer2,'Value',data.pixel.optimizer(2) + 1,'Enable',data.enableGUIControlsFlag);
 else
-    set(handles.popupPPOptimizer2,'Value',1);
+    set(handles.popupPPOptimizer2,'Value',1,'Enable',data.enableGUIControlsFlag);
 end
-set(handles.popupPPDimension,'Value',data.pixel.fitDimension);
+set(handles.popupPPDimension,'Value',data.pixel.fitDimension,'Enable',data.enableGUIControlsFlag);
 %constant parameters
 set(handles.tableConstParams,'ColumnName',{'Parameter','Value','manual','Init.'});
 set(handles.tableConstParams,'ColumnWidth',{80,50,55,55});
 set(handles.tableConstParams,'ColumnEditable',[false,true,true,true]);
 dstr = getTableData(get(handles.popupChannel,'Value'),data.basic,data.bounds,data.volatilePixel);
-set(handles.tableConstParams,'Data',dstr);
+set(handles.tableConstParams,'Data',dstr,'Enable',data.enableGUIControlsFlag);
 %init fit panel
 if(any([dstr{:,4}]) || data.basic.optimizerInitStrategy == 2)
-    set(handles.panelInitFit,'Visible','on');
+    set(handles.panelInitFit,'Visible','On');
 else
-    set(handles.panelInitFit,'Visible','off');
+    set(handles.panelInitFit,'Visible','Off');
 end
 %scatter light
-if(data.basic.scatterEnable)
-    scatterEn = 'on';
+if(data.basic.scatterEnable && ~strcmp('Off',data.enableGUIControlsFlag))
+    scatterEn = 'On';
 else
-    scatterEn = 'off';
+    scatterEn = 'Off';
 end
-set(handles.checkScatterEnable,'Value',data.basic.scatterEnable);
+set(handles.checkScatterEnable,'Value',data.basic.scatterEnable,'Enable',data.enableGUIControlsFlag);
 set(handles.checkScatterIRF,'Value',data.basic.scatterIRF,'enable',scatterEn);
 set(handles.textScatterStudy,'enable',scatterEn);
 str = {'-'};
