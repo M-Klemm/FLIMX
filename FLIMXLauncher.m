@@ -35,7 +35,7 @@ else
         uiwait(errordlg(sprintf('Your MATLAB version is R%s. This software requires MATLAB R%d%s or newer. Please update your MATLAB installation.',nr,reqMajor,reqMinor),'MATLAB version too old','modal'));
         return
     end
-    clear nr;
+    clear 'nr' 'reqMajor' 'reqMinor'
 end
 %check for physical memory
 if(ispc())
@@ -43,7 +43,7 @@ if(ispc())
     if(sys.PhysicalMemory.Total < (2^31-100e6))
         uiwait(warndlg(sprintf('Your computer has only %dGB of RAM. 2GB are the minimal requirement for useful operation of this software. 4GB or more are recommended!',ceil(sys.PhysicalMemory.Total/2^30)),'Low amount of RAM','modal'));
     end
-    clear sys
+    clear 'sys'
 end
 if(~isdeployed())
     addpath(genpath([cd filesep 'src']));
@@ -68,7 +68,7 @@ catch ME
     end
     uiwait(errordlg(str,'Error launching FLIMX','modal'));
     pause(0.1);
-    clear 'FLIMXObj'
+    clear 'FLIMXObj' 'ME' 'str'
     return
 end
 FLIMXObj.updateSplashScreenProgressLong(0.9,'Open GUIs...');
