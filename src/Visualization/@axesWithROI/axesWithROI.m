@@ -256,13 +256,19 @@ classdef axesWithROI < handle
             sz = size(this.myData);
             if(~isempty(coord) && all(coord > 0) && all(coord <= sz))
                 if(ishandle(this.CPXLine))
-                    delete(this.CPXLine)
-                end
-                this.CPXLine = line('XData',[coord(2) coord(2)],'YData',[1 size(this.myData,1)],'Color','w','LineWidth',2,'LineStyle',':','Parent',this.myMainAxes);
+                    %delete(this.CPXLine)
+                    this.CPXLine.XData = [coord(2) coord(2)];
+                    this.CPXLine.YData = [1 size(this.myData,1)];
+                else
+                    this.CPXLine = line('XData',[coord(2) coord(2)],'YData',[1 size(this.myData,1)],'Color','w','LineWidth',2,'LineStyle',':','Parent',this.myMainAxes);
+                end                
                 if(ishandle(this.CPYLine))
-                    delete(this.CPYLine)
-                end
-                this.CPYLine = line('XData',[1 size(this.myData,2)],'YData',[coord(1) coord(1)],'Color','w','LineWidth',2,'LineStyle',':','Parent',this.myMainAxes);
+                    %delete(this.CPYLine)
+                    this.CPYLine.XData = [1 size(this.myData,2)];
+                    this.CPYLine.YData = [coord(1) coord(1)];
+                else
+                    this.CPYLine = line('XData',[1 size(this.myData,2)],'YData',[coord(1) coord(1)],'Color','w','LineWidth',2,'LineStyle',':','Parent',this.myMainAxes);
+                end                
             end
             %update text field
             if(ishandle(this.myCPLbl))
