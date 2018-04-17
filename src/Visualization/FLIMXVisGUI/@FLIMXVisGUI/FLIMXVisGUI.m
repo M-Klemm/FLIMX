@@ -862,7 +862,7 @@ classdef FLIMXVisGUI < handle
             end
             hSlider = this.visHandles.(sprintf('slider_%s_zoom',s));
             %this.objHandles.(sprintf('%sdo',s)).setZoomAnchor(cp);
-            hSlider.Value = max(hSlider.Min,min(hSlider.Max,hSlider.Value+hSlider.SliderStep(1)*eventdata.VerticalScrollCount));
+            hSlider.Value = max(hSlider.Min,min(hSlider.Max,hSlider.Value-hSlider.SliderStep(1)*eventdata.VerticalScrollCount));
             if(hSlider.Value == 1)
                 %reset zoom anchor if zoom level = 1
                 this.objHandles.(sprintf('%sdo',s)).setZoomAnchor([]);
