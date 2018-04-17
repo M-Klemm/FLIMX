@@ -79,6 +79,8 @@ classdef FLIMXVisGUI < handle
             this.dynParams.mouseButtonDown = false;
             this.dynParams.mouseButtonUp = false;
             this.dynParams.mouseButtonDownROI = [];
+            this.dynParams.mouseButtonIsLeft = false;
+            this.dynParams.mouseButtonIsInsideROI = false;
             this.dynParams.lastExportFile = 'image.png';
             %init objects            
             this.fdt.setShortProgressCallback(@this.updateShortProgressbar);
@@ -859,7 +861,7 @@ classdef FLIMXVisGUI < handle
                 s = 'r';
             end
             hSlider = this.visHandles.(sprintf('slider_%s_zoom',s));
-            this.objHandles.(sprintf('%sdo',s)).setZoomAnchor(cp);
+            %this.objHandles.(sprintf('%sdo',s)).setZoomAnchor(cp);
             hSlider.Value = max(hSlider.Min,min(hSlider.Max,hSlider.Value+hSlider.SliderStep(1)*eventdata.VerticalScrollCount));
             if(hSlider.Value == 1)
                 %reset zoom anchor if zoom level = 1
@@ -927,16 +929,33 @@ classdef FLIMXVisGUI < handle
                     %main axes
                     thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
                     isLeftButton = strcmp('normal',get(hObject,'SelectionType'));
-                    if(isempty(this.dynParams.mouseButtonDown) || ~this.dynParams.mouseButtonDown || this.dynParams.mouseButtonDown && isLeftButton)
-                        if(~isempty(this.dynParams.mouseButtonDown) && this.dynParams.mouseButtonDown > 1)
+                    %isempty(this.dynParams.mouseButtonDown) || ~this.dynParams.mouseButtonDown || this.dynParams.mouseButtonDown && isempty(this.dynParams.mouseButtonDownROI) && 
+                    if(~isempty(this.dynParams.mouseButtonDown) && this.dynParams.mouseButtonDown && isLeftButton)                        
+                        if(this.dynParams.mouseButtonDown > 1)
+                            %mouse pointer while changing the ROI size
                             pTypes = FLIMXVisGUI.getROIBorderPointerTypes;
                             this.visHandles.FLIMXVisGUIFigure.Pointer = pTypes{this.dynParams.mouseButtonDown-1};
                         else
-                            ROICoord = thisROIObj.getCurROIInfo();
-                            this.visHandles.FLIMXVisGUIFigure.Pointer = ROICtrl.mouseOverROIBorder(cpMain,thisROIObj.ROIType,ROICoord(:,2:end),2);
+                            %mouse move during new ROI
+                            this.visHandles.FLIMXVisGUIFigure.Pointer = 'cross';
+                        end
+                    elseif(~isempty(this.dynParams.mouseButtonDown) && this.dynParams.mouseButtonDown && ~isLeftButton)
+                        %mouse move during moving of ROI or moving zoom
+                        if(this.dynParams.mouseButtonIsInsideROI && this.visHandles.enableMouse_check.Value)
+                            this.visHandles.FLIMXVisGUIFigure.Pointer = 'fleur';
+                        else
+                            this.visHandles.FLIMXVisGUIFigure.Pointer = 'hand';
                         end
                     else
-                        this.visHandles.FLIMXVisGUIFigure.Pointer = 'fleur';
+                        %no mouse button pressed
+                        if(this.visHandles.enableMouse_check.Value)
+                            %mouse pointer at edge of ROI with ROI enabled
+                            ROICoord = thisROIObj.getCurROIInfo();
+                            this.visHandles.FLIMXVisGUIFigure.Pointer = ROICtrl.mouseOverROIBorder(cpMain,thisROIObj.ROIType,ROICoord(:,2:end),2);
+                        else
+                            %hovering over the axis with ROI def. disabled
+                            this.visHandles.FLIMXVisGUIFigure.Pointer = 'cross';
+                        end
                     end
                 end
             elseif(isempty(cpMain) && isempty(cpSupp))
@@ -947,7 +966,8 @@ classdef FLIMXVisGUI < handle
                 otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
                 if(this.dynParams.mouseButtonDown)
                     %user pressed a mouse button
-                    if(this.getROIType(thisSide) >= 1)% && this.getROIType(thisSide) < 6)% && get(this.visHandles.enableMouse_check,'Value'))
+                    if(this.getROIType(thisSide) >= 1)
+                        %an ROI is active
                         if(isLeftButton)
                             %left button down
                             if(this.dynParams.mouseButtonDown == 1)
@@ -991,11 +1011,11 @@ classdef FLIMXVisGUI < handle
                                         thisROIObj.setEndPoint(flipud(cpMain),false);
                                     case {6,7} %polygon
                                         pixelMargin = 2;
-                                        oldPoint = tmpROI;
+                                        oldPoint = flipud(this.dynParams.mouseButtonDownCoord);
                                         newPoint = cpMain;
                                         oldROI = thisROIObj.getCurROIInfo();
-                                        idx = abs(oldPoint(1) - oldROI(2,:)) <= pixelMargin;
-                                        hit = abs(oldPoint(2) - oldROI(1,idx)) <= pixelMargin;
+                                        idx = abs(oldPoint(1) - oldROI(1,:)) <= pixelMargin;
+                                        hit = abs(oldPoint(2) - oldROI(2,idx)) <= pixelMargin;
                                         if(sum(hit(:)) > 1)
                                             %multiple nodes are within pixelMargin around the current point
                                             idx = find(hit);
@@ -1015,31 +1035,48 @@ classdef FLIMXVisGUI < handle
                                 end
                                 this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),tmpROI(:,1),tmpROI(:,2:end),false);
                             end
-                        else
-                            %right button down: move ROI
-                            dTarget = int16(flipud(this.dynParams.mouseButtonDownCoord-cpMain));
-                            ROICoord = thisROIObj.getCurROIInfo();
-                            ROICoord = ROICoord(:,2:end);
-                            dMoved = this.dynParams.mouseButtonDownROI(:,1) - ROICoord(:,1);
-                            thisROIObj.moveROI(dTarget-dMoved,false);
-                            %get ROI coordinates after moving
-                            ROICoord = thisROIObj.getCurROIInfo();
-                            %draw ROI
-                            switch thisROIObj.ROIType
-                                case {4,5} %circle
-                                    this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),ROICoord(:,2),ROICoord(:,3),false);
-                                otherwise
-                                    this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),ROICoord(:,3:end),ROICoord(:,2),false);
-                            end
-                            if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
-                                %move ROI also on the other side
+                        else                            
+                            if(this.dynParams.mouseButtonIsInsideROI  && this.visHandles.enableMouse_check.Value)
+                                %right button down: move ROI
+                                dTarget = int16(flipud(this.dynParams.mouseButtonDownCoord-cpMain));
+                                ROICoord = thisROIObj.getCurROIInfo();
+                                ROICoord = ROICoord(:,2:end);
+                                dMoved = this.dynParams.mouseButtonDownROI(:,1) - ROICoord(:,1);
+                                thisROIObj.moveROI(dTarget-dMoved,false);
+                                %get ROI coordinates after moving
+                                ROICoord = thisROIObj.getCurROIInfo();
+                                %draw ROI
                                 switch thisROIObj.ROIType
                                     case {4,5} %circle
-                                        this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),ROICoord(:,2),ROICoord(:,3),false);
+                                        this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),ROICoord(:,2),ROICoord(:,3),false);
                                     otherwise
-                                        this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),ROICoord(:,3:end),ROICoord(:,2),false);
-                                end                                
+                                        this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),ROICoord(:,3:end),ROICoord(:,2),false);
+                                end
+                                if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
+                                    %move ROI also on the other side
+                                    switch thisROIObj.ROIType
+                                        case {4,5} %circle
+                                            this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),ROICoord(:,2),ROICoord(:,3),false);
+                                        otherwise
+                                            this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),ROICoord(:,3:end),ROICoord(:,2),false);
+                                    end
+                                end
+                            else
+                                %move zoom anchor
+                                if(this.objHandles.(sprintf('%sdo',thisSide)).mZoomFactor > 1)
+                                    dTarget = this.dynParams.mouseButtonDownCoord-cpMain;
+                                    this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);
+                                    this.objHandles.(sprintf('%sdo',thisSide)).makeZoom();
+                                end
                             end
+                        end
+                    else
+                        %no ROI active
+                        if(this.dynParams.mouseButtonDown == 1 && ~isLeftButton && this.objHandles.(sprintf('%sdo',thisSide)).mZoomFactor > 1)
+                            %move zoom anchor
+                            dTarget = this.dynParams.mouseButtonDownCoord-cpMain;
+                            this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);
+                            this.objHandles.(sprintf('%sdo',thisSide)).makeZoom();
                         end
                     end
                 end
@@ -1113,54 +1150,84 @@ classdef FLIMXVisGUI < handle
             end
             %% cursor
             isLeftButton = strcmp('normal',get(hObject,'SelectionType'));
+            this.dynParams.mouseButtonIsLeft = isLeftButton;
             if(~isempty(cpMain) && this.getROIDisplayMode(thisSide) < 3 || ~isempty(cpSupp))
                 if(isLeftButton)
                     this.visHandles.FLIMXVisGUIFigure.Pointer = 'cross';
                 else
                     if(~isempty(cpMain))
-                        this.visHandles.FLIMXVisGUIFigure.Pointer = 'fleur';
+                        this.visHandles.FLIMXVisGUIFigure.Pointer = 'hand';
                     end
                 end
             elseif(isempty(cpMain) && isempty(cpSupp))
                 this.visHandles.FLIMXVisGUIFigure.Pointer = 'arrow';
                 return
-            end            
+            end
             %% main axes
-            if(~isempty(cpMain) && this.getROIType(thisSide) >= 1)                
-                thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
-                otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
-                currentROI = thisROIObj.getCurROIInfo();
-                %check if user hit the border of an ROI
-                [ROIBorderStr, ROIBorderID] = ROICtrl.mouseOverROIBorder(cpMain,thisROIObj.ROIType,currentROI(:,2:end),2);
-                if(this.getROIDisplayMode(thisSide) < 3 && this.visHandles.enableMouse_check.Value && thisROIObj.ROIType >= 1)
-                    %user clicked in a main axes, ROI definition is enabled
-                    this.dynParams.mouseButtonUp = false;
-                    this.dynParams.mouseButtonDownCoord = cpMain;
-                    if(isLeftButton && thisROIObj.ROIType >= 2 && ~strcmp(ROIBorderStr,'cross'))
-                        %this is not an ETDRS grid, change size of existing ROI
+            if(~isempty(cpMain) && this.getROIDisplayMode(thisSide) < 3)
+                %user clicked in a main axes
+                this.dynParams.mouseButtonUp = false;
+                if(this.getROIType(thisSide) >= 1)
+                    %there is an ROI active
+                    thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
+                    otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
+                    currentROI = thisROIObj.getCurROIInfo();
+                    %check if user hit the border of an ROI
+                    [ROIBorderStr, ROIBorderID] = ROICtrl.mouseOverROIBorder(cpMain,thisROIObj.ROIType,currentROI(:,2:end),2);
+                    %ROI is active and ROI definition enabled
+                    if(isLeftButton && this.visHandles.enableMouse_check.Value && thisROIObj.ROIType >= 1)
                         this.dynParams.mouseButtonDown = ROIBorderID+1;
-                        this.visHandles.FLIMXVisGUIFigure.Pointer = ROIBorderStr;
-                    else
-                        %start ROI from beginning or move it
-                        this.dynParams.mouseButtonDown = 1;                        
-                    end
-                    if(size(currentROI,2) >= 2)
+                        if(thisROIObj.ROIType >= 2 && ~strcmp(ROIBorderStr,'cross'))
+                            %this is not an ETDRS grid, change size of existing ROI
+                            this.visHandles.FLIMXVisGUIFigure.Pointer = ROIBorderStr;
+                        end
+                        if(thisROIObj.ROIType >= 6 && ~strcmp(ROIBorderStr,'cross'))
+                            %move current point of a polygon
+                            this.dynParams.mouseButtonDownROI = cpMain;
+                        elseif(this.getROIType(thisSide) < 6 && strcmp(ROIBorderStr,'cross'))
+                            %left click, start new ROI
+                            this.dynParams.mouseButtonDownROI = [];
+                            thisROIObj.setStartPoint(flipud(cpMain));
+                        end
+                        if(size(currentROI,2) >= 2)
+                            this.dynParams.mouseButtonDownCoord = cpMain;
+                            this.dynParams.mouseButtonDownROI = currentROI(:,2:end);
+                        else
+                            this.dynParams.mouseButtonDownCoord = [];
+                            this.dynParams.mouseButtonDownROI = [];
+                        end
+                    elseif(~isLeftButton)
+                        %right click: move ROI or zoom anchor
+                        this.dynParams.mouseButtonDown = 1;
+                        %check if inside ROI
+                        isInsideROI = false;
+                        if(thisROIObj.ROIType == 1)
+                            %for the ETDRS grid the pixel scaling is required -> obtain it and simulate a circle with its outer ring
+                            hfd = this.objHandles.(sprintf('%sdo',thisSide)).gethfd;
+                            if(~isempty(hfd{1}))
+                                hfd = hfd{1};
+                                fi = hfd.getFileInfoStruct();
+                                if(~isempty(fi))
+                                    res = fi.pixelResolution;
+                                    rOuter = int16([(6000/res/2); 0]);
+                                    isInsideROI = ROICtrl.mouseInsideROI(cpMain,4,[currentROI(:,2) currentROI(:,2)+rOuter]);
+                                end
+                            end
+                        else
+                            isInsideROI = ROICtrl.mouseInsideROI(cpMain,thisROIObj.ROIType,currentROI(:,2:end));
+                        end
+                        if(isInsideROI && this.visHandles.enableMouse_check.Value)
+                            this.visHandles.FLIMXVisGUIFigure.Pointer = 'fleur';
+                        end
+                        this.dynParams.mouseButtonIsInsideROI = isInsideROI;
+                        this.dynParams.mouseButtonDownCoord = cpMain;
                         this.dynParams.mouseButtonDownROI = currentROI(:,2:end);
-                    else
-                        this.dynParams.mouseButtonDownCoord = [];
-                    end
-                    if(isLeftButton && thisROIObj.ROIType >= 6 && ~strcmp(ROIBorderStr,'cross'))
-                        %move current point of a polygon
-                        this.dynParams.mouseButtonDownROI = cpMain;
-                    end
-                        
-                    if(isLeftButton && this.getROIType(thisSide) < 6 && strcmp(ROIBorderStr,'cross'))
-                        %left click, start new ROI
-                        thisROIObj.setStartPoint(flipud(cpMain));
                     end
                 else
-                    return
-                end                
+                    %no ROI on display
+                    this.dynParams.mouseButtonDown = 1;
+                    this.dynParams.mouseButtonDownCoord = cpMain;
+                end
                 if(isLeftButton && this.getROIType(thisSide) < 6 && ROIBorderID == 1)
                     %draw current point and ROI in both main axes (empty cp deletes old lines)
                     this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(cpMain),flipud(cpMain),false);
@@ -1170,6 +1237,9 @@ classdef FLIMXVisGUI < handle
                         this.objHandles.(sprintf('%sdo',otherSide)).drawCPMain(cpMain);
                     end
                 end
+                return
+            elseif(~isempty(cpMain) && this.getROIDisplayMode(thisSide) == 3)
+                %3D plot -> nothing to do
                 return
             end
             %% supp axes
@@ -1198,8 +1268,7 @@ classdef FLIMXVisGUI < handle
                 end
                 this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                 this.objHandles.(sprintf('%sdo',thisSide)).drawCPSupp(cpSupp);
-                this.objHandles.(sprintf('%sdo',otherSide)).drawCPSupp([]);
-            else
+                this.objHandles.(sprintf('%sdo',otherSide)).drawCPSupp([]);            
             end
         end
         
@@ -1236,11 +1305,11 @@ classdef FLIMXVisGUI < handle
             %% main axes
             %draw mouse overlay in both main axes (empty cp deletes old overlays)
             if(this.getROIDisplayMode(thisSide) < 3)
-                if(isempty(cpSupp) && this.getROIType(thisSide) >= 1 && get(this.visHandles.enableMouse_check,'Value'))
+                if(isempty(cpSupp) && this.getROIType(thisSide) >= 1 && this.visHandles.enableMouse_check.Value)
                     thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
                     otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
                     if(~isempty(cpMain))
-                        if(strcmp('normal',get(hObject,'SelectionType')))
+                        if(this.dynParams.mouseButtonIsLeft)%strcmp('normal',get(hObject,'SelectionType'))
                             %left click
                             if(this.dynParams.mouseButtonDown == 1)
                                 %new ROI
@@ -1274,11 +1343,11 @@ classdef FLIMXVisGUI < handle
                                         tmpROI(:,2) = flipud(cpMain);
                                     case {6,7} %polygon
                                         pixelMargin = 2;
-                                        oldPoint = tmpROI;
+                                        oldPoint = flipud(this.dynParams.mouseButtonDownCoord);
                                         newPoint = cpMain;
                                         oldROI = thisROIObj.getCurROIInfo();
-                                        idx = abs(oldPoint(1) - oldROI(2,:)) <= pixelMargin;
-                                        hit = abs(oldPoint(2) - oldROI(1,idx)) <= pixelMargin;
+                                        idx = abs(oldPoint(1) - oldROI(1,:)) <= pixelMargin;
+                                        hit = abs(oldPoint(2) - oldROI(2,idx)) <= pixelMargin;
                                         if(sum(hit(:)) > 1)
                                             %multiple nodes are within pixelMargin around the current point
                                             idx = find(hit);
@@ -1304,13 +1373,23 @@ classdef FLIMXVisGUI < handle
                             end
                         else
                             %right click
-                            dTarget = int16(flipud(this.dynParams.mouseButtonDownCoord-cpMain));
-                            ROICoord = thisROIObj.getCurROIInfo();
-                            ROICoord = ROICoord(:,2:end);
-                            dMoved = this.dynParams.mouseButtonDownROI(:,1) - ROICoord(:,1);
-                            thisROIObj.moveROI(dTarget-dMoved,true);
-                        end
-                    end
+                            if(this.dynParams.mouseButtonIsInsideROI)
+                                %move ROI
+                                dTarget = int16(flipud(this.dynParams.mouseButtonDownCoord-cpMain));
+                                ROICoord = thisROIObj.getCurROIInfo();
+                                ROICoord = ROICoord(:,2:end);
+                                dMoved = this.dynParams.mouseButtonDownROI(:,1) - ROICoord(:,1);
+                                thisROIObj.moveROI(dTarget-dMoved,true);
+                            else
+                                %move zoom anchor
+                                if(this.objHandles.(sprintf('%sdo',thisSide)).mZoomFactor > 1)
+                                    dTarget = this.dynParams.mouseButtonDownCoord-cpMain;
+                                    this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);
+                                    this.objHandles.(sprintf('%sdo',thisSide)).makeZoom();
+                                end
+                            end
+                        end                    
+                    end %if(~isempty(cpMain))
                     otherROIObj.updateGUI([]);
                     this.myStatsGroupComp.clearResults();
                     this.objHandles.rdo.updatePlots();
@@ -1322,47 +1401,59 @@ classdef FLIMXVisGUI < handle
                     else
                         %other side displays something else, clear possible invalid mouse overlay
                         this.objHandles.(sprintf('%sdo',otherSide)).drawCPMain([]);
-                    end
-                    this.dynParams.mouseButtonDown = 0;
-                    this.dynParams.mouseButtonDownCoord = [];
-                    this.dynParams.mouseButtonDownROI = [];
+                    end                    
+                elseif(~isempty(cpMain) && isempty(cpSupp) && ~this.visHandles.enableMouse_check.Value || this.getROIType(thisSide) < 1)
+                    %click in main axis with ROI definition disabled or no ROI active
+                    if(~this.dynParams.mouseButtonIsLeft)
+                        %move zoom anchor
+                        if(this.objHandles.(sprintf('%sdo',thisSide)).mZoomFactor > 1)
+                            dTarget = this.dynParams.mouseButtonDownCoord-cpMain;
+                            this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);
+                            this.objHandles.(sprintf('%sdo',thisSide)).makeZoom();
+                        end
+                    end                        
                 end
+                this.dynParams.mouseButtonDown = 0;
+                this.dynParams.mouseButtonDownCoord = [];
+                this.dynParams.mouseButtonDownROI = [];
+                this.dynParams.mouseButtonIsLeft = false;
+                this.dynParams.mouseButtonIsInsideROI = false;
             end
             %% supp axes
             if(~isempty(cpMain) || this.visHandles.(sprintf('supp_axes_%s_pop',thisSide)).Value ~= 2)
                 this.dynParams.mouseButtonUp = false;
                 return
             end
-            switch get(hObject,'SelectionType')
-                case 'normal'
-                    if(this.dynParams.mouseButtonDown)
-                        if(~isempty(cpSupp))
-                            %we only have a valid current point inside of axes, if mouse button is released outside, the last valid cp from mouseMotion is used
-                            switch this.dynParams.mouseButtonDown
-                                case 1 %whole new color scaling
-                                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 this.dynParams.mouseButtonDownCoord(1) cpSupp(1)]),true);
-                                case 2 %user moved start class
-                                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 cpSupp(1) this.dynParams.mouseButtonDownCoord(1)]),true);
-                                case 3 %user moved end class
-                                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 this.dynParams.mouseButtonDownCoord(1) cpSupp(1)]),true);
-                            end
-                        end
-                        this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
-                        this.dynParams.mouseButtonDownCoord = [];
-                        this.dynParams.mouseButtonDown = 0;
-                    end
-                case 'alt'                    
-                    this.dynParams.mouseButtonDownCoord = [];
-                    this.dynParams.mouseButtonDown = 0;
+            if(this.dynParams.mouseButtonIsLeft)
+                if(this.dynParams.mouseButtonDown)
                     if(~isempty(cpSupp))
-                        %reset color scaling to auto only if click happened inside of axes
-                        this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.forceAutoScale(this.getROIDisplayMode(thisSide) > 1);                        
+                        %we only have a valid current point inside of axes, if mouse button is released outside, the last valid cp from mouseMotion is used
+                        switch this.dynParams.mouseButtonDown
+                            case 1 %whole new color scaling
+                                this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 this.dynParams.mouseButtonDownCoord(1) cpSupp(1)]),true);
+                            case 2 %user moved start class
+                                this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 cpSupp(1) this.dynParams.mouseButtonDownCoord(1)]),true);
+                            case 3 %user moved end class
+                                this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.setColorScale(int16([0 this.dynParams.mouseButtonDownCoord(1) cpSupp(1)]),true);
+                        end
                     end
                     this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
+                end
+            else
+                %right click
+                if(~isempty(cpSupp))
+                    %reset color scaling to auto only if click happened inside of axes
+                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.forceAutoScale(this.getROIDisplayMode(thisSide) > 1);
+                end
+                this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
             end
-            this.dynParams.mouseButtonUp = false;
             this.objHandles.(sprintf('%sdo',thisSide)).drawCPSupp(cpSupp);
             this.objHandles.(sprintf('%sdo',otherSide)).drawCPSupp([]);
+            this.dynParams.mouseButtonDown = 0;
+            this.dynParams.mouseButtonDownCoord = [];
+            this.dynParams.mouseButtonDownROI = [];
+            this.dynParams.mouseButtonIsLeft = false;
+            this.dynParams.mouseButtonIsInsideROI = false;
         end
         
         function GUI_studySet_Callback(this,hObject,eventdata)
@@ -1983,7 +2074,7 @@ classdef FLIMXVisGUI < handle
         
         function out = getROIBorderPointerTypes()
             %return possible mouse pointer types when on border of a ROI
-            out = {'right','topr','top','topl','left','botl','bottom','botr','hand'};
+            out = {'right','topr','top','topl','left','botl','bottom','botr','crosshair'};
         end
     end  %methods(Static)  
 end %classdef

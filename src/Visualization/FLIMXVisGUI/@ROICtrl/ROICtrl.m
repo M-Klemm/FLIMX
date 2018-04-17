@@ -640,9 +640,38 @@ classdef ROICtrl < handle
     end %methods protected
     
     methods(Static)
-        function [out, numIdent, insideROI] = mouseOverROIBorder(cp,ROIType,ROICoord,pixelMargin)
+        function flag = mouseInsideROI(cp,ROIType,ROICoord)
+            %check if coordinates of current point (cp) are inside an ROI (including the border), return true, otherwise return false
+            flag = false;
+            if(isempty(cp) || isempty(ROICoord))
+                return
+            end
+            switch ROIType
+                case {2,3}
+                    %rectangle
+                    if(cp(1) >= ROICoord(2,1) && cp(1) <= ROICoord(2,2) && cp(2) >= ROICoord(1,1) && cp(2) <= ROICoord(1,2))
+                        flag = true;
+                    end
+                case {4,5}
+                    %circle
+                    radius = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
+                    center = double(ROICoord(:,1));
+                    current = center - flipud(cp);
+                    [~,rho] = cart2pol(current(2),current(1));
+                    if(rho <= radius)
+                        flag = true;
+                    end
+                case {6,7}
+                    %polygon                    
+                    ROICoord = double(ROICoord);
+                    mask = poly2mask(ROICoord(2,:),ROICoord(1,:),max([ROICoord(1,:),cp(2)]),max([ROICoord(2,:),cp(1)]));
+                    flag = mask(cp(2),cp(1));
+            end
+        end
+        
+        function [out, numIdent] = mouseOverROIBorder(cp,ROIType,ROICoord,pixelMargin)
             %check if coordinates of current point (cp) are over the border of an ROI, return the mouse pointer type, otherwise return 'cross'
-            out = 'cross'; numIdent = 0; insideROI = false;            
+            out = 'cross'; numIdent = 0;
             switch ROIType
                 case {2,3}
                     %rectangle
@@ -658,16 +687,16 @@ classdef ROICtrl < handle
                     elseif(abs(ROICoord(2,2)-cp(1)) <= pixelMargin && abs(ROICoord(1,1)-cp(2)) <= pixelMargin)
                         out = 'botr'; 
                         numIdent = 8;  
-                    elseif(abs(ROICoord(2,1)-cp(1)) <= pixelMargin)
+                    elseif(abs(ROICoord(2,1)-cp(1)) <= pixelMargin  && cp(2) >= ROICoord(1,1) && cp(2) <= ROICoord(1,2))
                         out = 'left'; 
                         numIdent = 5;
-                    elseif(abs(ROICoord(2,2)-cp(1)) <= pixelMargin)
+                    elseif(abs(ROICoord(2,2)-cp(1)) <= pixelMargin  && cp(2) >= ROICoord(1,1) && cp(2) <= ROICoord(1,2))
                         out = 'right';
                         numIdent = 1;
-                    elseif(abs(ROICoord(1,2)-cp(2)) <= pixelMargin)
+                    elseif(abs(ROICoord(1,2)-cp(2)) <= pixelMargin  && cp(1) >= ROICoord(2,1) && cp(1) <= ROICoord(2,2))
                         out = 'top';
                         numIdent = 3;
-                    elseif(abs(ROICoord(1,1)-cp(2)) <= pixelMargin)
+                    elseif(abs(ROICoord(1,1)-cp(2)) <= pixelMargin && cp(1) >= ROICoord(2,1) && cp(1) <= ROICoord(2,2))
                         out = 'bottom';
                         numIdent = 7;
                     end
@@ -693,7 +722,7 @@ classdef ROICtrl < handle
                     if(size(ROICoord,2) >= 1)
                         idx = cp(2) == ROICoord(1,1:end);
                         if(any(idx) && ~isempty(cp(1) == ROICoord(2,idx)))
-                            out = 'hand';
+                            out = 'crosshair';
                             numIdent = 9;
                         end
                     end

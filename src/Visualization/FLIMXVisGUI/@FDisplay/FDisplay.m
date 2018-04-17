@@ -44,6 +44,7 @@ classdef FDisplay < handle
         colorEndClass = 0;
         colorClassWidth = 0;
         mySuppXZoomScale = [];
+        zoomAnchor = [1; 1];
     end
     properties(GetAccess = protected, SetAccess = protected)
         visObj = [];
@@ -62,8 +63,7 @@ classdef FDisplay < handle
         h_cmImage = [];
         pixelResolution = 0;
         measurementPosition = 'OS';
-        zoomAnchor = [1; 1];
-        zoomFactor = 1;
+        
         mouseOverlayBoxMain = [];
         mouseOverlayBoxSupp = [];        
     end
@@ -78,6 +78,7 @@ classdef FDisplay < handle
         crossSectionYInv = 0;
         mDispDim = [];
         mDispScale = [];
+        mZoomFactor = 1;
         sDispMode = [];
         sDispHistMode = [];
         sDispScale = [];
@@ -994,25 +995,32 @@ classdef FDisplay < handle
         
         function setZoomAnchor(this,anchor)
             %set center for zoom
-            if(isempty(anchor) || length(anchor) ~= 2)
-                hfd = this.gethfd();
-                if(isempty(hfd{1}))
-                    return
-                end
-                hfd = hfd{1};
-                rc = this.ROICoordinates;
-                rt = this.ROIType;
-                rs = this.ROISubType;
-                ri = this.ROIInvertFlag;
-                if(this.mDispDim == 1)
-                    xFullRange = hfd.rawImgXSz(end);
-                    yFullRange = hfd.rawImgYSz(end);
-                else
-                    xFullRange = hfd.getCIxSz(rc,rt,rs,ri);
-                    yFullRange = hfd.getCIySz(rc,rt,rs,ri);
-                end
+            hfd = this.gethfd();
+            if(isempty(hfd{1}))
+                return
+            end
+            hfd = hfd{1};
+            rc = this.ROICoordinates;
+            rt = this.ROIType;
+            rs = this.ROISubType;
+            ri = this.ROIInvertFlag;
+            if(this.mDispDim == 1)
+                xFullRange = hfd.rawImgXSz(end);
+                yFullRange = hfd.rawImgYSz(end);
+            else
+                xFullRange = hfd.getCIxSz(rc,rt,rs,ri);
+                yFullRange = hfd.getCIySz(rc,rt,rs,ri);
+            end
+            if(isempty(anchor) || length(anchor) ~= 2)                
+                %set anchor to the center of the image
                 this.zoomAnchor = [max(1,floor(xFullRange./2));max(1,floor(yFullRange./2))];
             else
+                xNewRange = xFullRange./this.mZoomFactor;
+                xNewHalfRange = floor(xNewRange./2);
+                yNewRange = yFullRange./this.mZoomFactor;
+                yNewHalfRange = floor(yNewRange./2);
+                this.zoomAnchor(1) = max(xNewHalfRange+1,min(xFullRange-xNewHalfRange,this.zoomAnchor(1)));
+                this.zoomAnchor(2) = max(yNewHalfRange+1,min(yFullRange-yNewHalfRange,this.zoomAnchor(2)));
                 this.zoomAnchor = anchor(:);
             end
         end
@@ -1038,7 +1046,7 @@ classdef FDisplay < handle
             if(isempty(xFullRange))
                 return
             end
-            zoom = get(this.h_zoom_slider,'Value');
+            zoom = this.mZoomFactor;
             %main plot
             hAxMain = this.h_m_ax;
             if((zoom-1) < eps)
@@ -1046,9 +1054,13 @@ classdef FDisplay < handle
                 hAxMain.YLim = [1 yFullRange];
             else
                 xNewRange = xFullRange./zoom;
+                xNewHalfRange = floor(xNewRange./2);
                 yNewRange = yFullRange./zoom;
-                hAxMain.XLim = [max(1,this.zoomAnchor(1) - floor(xNewRange./2)) min(xFullRange,this.zoomAnchor(1) + ceil(xNewRange./2))];                
-                hAxMain.YLim = [max(1,this.zoomAnchor(2) - floor(yNewRange./2)) min(yFullRange,this.zoomAnchor(2) + ceil(yNewRange./2))];
+                yNewHalfRange = floor(yNewRange./2);
+                this.zoomAnchor(1) = max(xNewHalfRange+1,min(xFullRange-xNewHalfRange,this.zoomAnchor(1)));
+                this.zoomAnchor(2) = max(yNewHalfRange+1,min(yFullRange-yNewHalfRange,this.zoomAnchor(2)));
+                hAxMain.XLim = [max(1,this.zoomAnchor(1) - xNewHalfRange) min(xFullRange,this.zoomAnchor(1) + xNewHalfRange)];
+                hAxMain.YLim = [max(1,this.zoomAnchor(2) - yNewHalfRange) min(yFullRange,this.zoomAnchor(2) + yNewHalfRange)];
             end
             this.makeMainXYLabels();
             %supplemental plot
@@ -1594,6 +1606,11 @@ classdef FDisplay < handle
         function out = get.mDispScale(this)
             %
             out = get(this.h_m_psc,'Value');
+        end
+        
+        function out = get.mZoomFactor(this)
+            %
+            out = get(this.h_zoom_slider,'Value');
         end
         
         function out = get.sDispMode(this)
