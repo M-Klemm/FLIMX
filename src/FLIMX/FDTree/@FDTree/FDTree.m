@@ -1473,7 +1473,7 @@ classdef FDTree < handle
                 if(dirs(i,1).isdir && ~strcmp(dirs(i,1).name(1),'.'))
                     this.addStudy(dirs(i,1).name);
                     if(etime(clock, lastUpdate) > 0.5)
-                        this.updateShortProgress(i/length(dirs),sprintf('Loading studies %0.1f%% complete',100*i/length(dirs)));
+                        this.updateShortProgress(i/length(dirs),sprintf('Load studies %0.1f%% complete',100*i/length(dirs)));
                         lastUpdate = clock;
                     end
                 end
