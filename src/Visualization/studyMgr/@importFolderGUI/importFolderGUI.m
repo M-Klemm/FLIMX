@@ -135,7 +135,7 @@ classdef importFolderGUI < handle
         function openFolderByGUI(this)
             %open a new folder using a GUI
             path = uigetdir(this.FLIMXObj.importGUI.lastImportPath,'Select Folder to import measurement data');
-            if(isempty(path) || ~path)
+            if(isempty(path) || all(~path(:)))
                 return
             end
             this.checkVisWnd();
