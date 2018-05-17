@@ -243,7 +243,7 @@ catch
             'only scalar padding option is available.\n'...
             'If not specified, the scalar 0 is used as default.']);
     end
-    A = ones(sizB+siz(1:ndims(B))*2,'like',A)*padopt;
+    A = ones(double(sizB)+siz(1:ndims(B))*2,'like',A)*padopt;
     A(siz(1)+1:end-siz(1),siz(2)+1:end-siz(2),siz(3)+1:end-siz(3)) = B;
 end
 
