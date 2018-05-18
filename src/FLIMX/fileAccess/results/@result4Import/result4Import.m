@@ -312,6 +312,7 @@ classdef result4Import < resultFile
             end
             rs.results.pixel.Amplitude1 = [];
             for i = 1:length(files)
+                data_temp = [];
                 [~,filename,curExt] = fileparts(files(i).name);
                 chanNr = 1;
                 chPos = regexp(filename,'-Ch\d{1,2}-_','once');
@@ -354,7 +355,9 @@ classdef result4Import < resultFile
                 file = fullfile(path,[filename,curExt]);
                 switch curExt
                     case '.asc'
-                        data_temp = load(file,'-ASCII');
+                        try
+                            data_temp = load(file,'-ASCII');
+                        end
                     case {'.bmp', '.tif', '.tiff', '.png'}
                         try
                             [data_temp,map,transparency] = imread(file);
