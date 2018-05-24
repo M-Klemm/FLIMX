@@ -211,10 +211,12 @@ set(handles.editReflRemGrpSz,'String',num2str(data.preProcessing.ReflRemGrpSz));
 if(strcmp(data.enableGUIControlsFlag,'Off'))
     handles.buttonReflRemManual.Enable = 'Off';
     autoReflRemFlag = 'Off';
+    radioFlag = 'Off';
 else
+    radioFlag = 'On';
     switch data.preProcessing.autoReflRem
         case 1
-            handles.buttonReflRemManual.Enable = 'Off';
+            handles.buttonReflRemManual.Enable = 'Off';            
             autoReflRemFlag = 'On';
         case 0
             handles.buttonReflRemManual.Enable = 'On';
@@ -226,25 +228,25 @@ else
 end
 switch data.preProcessing.autoReflRem
     case 1
-        set(handles.radioReflRemAuto,'Value',1,'Enable',autoReflRemFlag);
-        set(handles.radioReflRemManual,'Value',0,'Enable',autoReflRemFlag);
-        set(handles.radioReflRemDisabled,'Value',0,'Enable',autoReflRemFlag);
+        set(handles.radioReflRemAuto,'Value',1,'Enable',radioFlag);
+        set(handles.radioReflRemManual,'Value',0,'Enable',radioFlag);
+        set(handles.radioReflRemDisabled,'Value',0,'Enable',radioFlag);
     case 0
-        set(handles.radioReflRemAuto,'Value',0,'Enable',autoReflRemFlag);
-        set(handles.radioReflRemManual,'Value',1,'Enable',autoReflRemFlag);
-        set(handles.radioReflRemDisabled,'Value',0,'Enable',autoReflRemFlag);
+        set(handles.radioReflRemAuto,'Value',0,'Enable',radioFlag);
+        set(handles.radioReflRemManual,'Value',1,'Enable',radioFlag);
+        set(handles.radioReflRemDisabled,'Value',0,'Enable',radioFlag);
     case -1
-        set(handles.radioReflRemAuto,'Value',0,'Enable',autoReflRemFlag);
-        set(handles.radioReflRemManual,'Value',0,'Enable',autoReflRemFlag);
-        set(handles.radioReflRemDisabled,'Value',1,'Enable',autoReflRemFlag);
+        set(handles.radioReflRemAuto,'Value',0,'Enable',radioFlag);
+        set(handles.radioReflRemManual,'Value',0,'Enable',radioFlag);
+        set(handles.radioReflRemDisabled,'Value',1,'Enable',radioFlag);
 end
 set(handles.editReflRemWinSz,'String',num2str(data.preProcessing.ReflRemWinSz),'Enable',autoReflRemFlag);
 set(handles.editReflRemGrpSz,'String',num2str(data.preProcessing.ReflRemGrpSz),'Enable',autoReflRemFlag);
 set(handles.textReflRemWinSz,'Enable',autoReflRemFlag);
 set(handles.textReflRemGrpSz,'Enable',autoReflRemFlag);
 %binning
-set(handles.radioStaticBinning,'Value',data.preProcessing.roiAdaptiveBinEnable,'Enable',data.enableGUIControlsFlag);
-set(handles.radioAdaptiveBinning,'Value',~data.preProcessing.roiAdaptiveBinEnable,'Enable',data.enableGUIControlsFlag);
+set(handles.radioStaticBinning,'Value',~data.preProcessing.roiAdaptiveBinEnable,'Enable',data.enableGUIControlsFlag);
+set(handles.radioAdaptiveBinning,'Value',data.preProcessing.roiAdaptiveBinEnable,'Enable',data.enableGUIControlsFlag);
 if(strcmp(data.enableGUIControlsFlag,'Off'))
     staticFlag = 'Off';
     adaptiveFlag = 'Off';

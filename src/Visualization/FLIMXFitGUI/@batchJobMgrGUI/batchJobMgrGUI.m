@@ -61,7 +61,7 @@ classdef batchJobMgrGUI < handle
             %save the ids of the selected job(s)
             if(~isempty(eventdata.Indices))
                 this.mySelJobs = eventdata.Indices(:,1);
-                this.updateGUI();
+                this.drawImages();
             end
         end        
         
@@ -268,6 +268,11 @@ classdef batchJobMgrGUI < handle
                 set(this.visHandles.tableCurrentJob,'Data',info(strcmp(runningJobUID,info(:,1)),:));
             end
             %plots
+            this.drawImages();
+        end
+        
+        function drawImages(this)
+            %draw raw and ROI image
             if(~isempty(this.mySelJobs))
                 [rawPic, roiPic] = this.batchJobMgr.getJobPictures(this.mySelJobs(1));
                 roi = this.batchJobMgr.getJobROI(this.mySelJobs(1));

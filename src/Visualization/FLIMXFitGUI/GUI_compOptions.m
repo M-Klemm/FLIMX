@@ -134,8 +134,8 @@ else
             flag = 'on';
     end
 end
-set(handles.radioLocal,'Value',data.computation.useDistComp,'Enable',data.enableGUIControlsFlag);
-set(handles.radioMulticore,'Value',~data.computation.useDistComp,'Enable',data.enableGUIControlsFlag);
+set(handles.radioLocal,'Value',~data.computation.useDistComp,'Enable',data.enableGUIControlsFlag);
+set(handles.radioMulticore,'Value',data.computation.useDistComp,'Enable',data.enableGUIControlsFlag);
 set(handles.editMCPixelPerWU,'String',num2str(data.computation.mcTargetPixelPerWU),'Enable',flag);
 set(handles.editMCWUs,'String',num2str(data.computation.mcTargetNrWUs),'Enable',flag);
 set(handles.textMCPixelPerWU,'Enable',flag);
