@@ -40,6 +40,7 @@ classdef importWizard < handle
         measurementObj = [];
         axesMgr = [];
         mouseOverlay = [];
+        currentPath = '';
         isDirty = false(1,5); %flags which part was changed, 1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo
     end
     
@@ -64,6 +65,7 @@ classdef importWizard < handle
                 error('Handle to FLIMX object required!');
             end
             this.FLIMXObj = flimX;
+            this.currentPath = this.FLIMXObj.getWorkingDir();
         end
         
         function closeCallback(this)
@@ -80,9 +82,9 @@ classdef importWizard < handle
             path = this.lastImportPath;
             if(this.openFileByStr(importWizard.loadFile({'*.sdt','Becker & Hickl file (*.sdt)';'*.txt;*.dat;*.asc','Single Decay (ASCII) file (*.txt,*.dat,*.asc)'},'Load Fluorescence Decay Data',path)))
                 this.checkVisWnd();
+                pathstr = this.measurementObj.sourcePath;
                 if(isempty(subject))
-                    %set default subject name
-                    pathstr = this.measurementObj.sourcePath;
+                    %set default subject name                    
                     if(strcmp(pathstr(end),filesep))
                         pathstr(end) = '';
                     end
@@ -94,6 +96,7 @@ classdef importWizard < handle
                     end
                 end
                 this.setSubject(study,subject);
+                this.lastImportPath = pathstr;
                 this.setupGUI();
             end
         end
@@ -128,6 +131,7 @@ classdef importWizard < handle
             end
             %guess position of the eye            
             this.myMeasurement.guessEyePosition();
+            this.lastImportPath = fileparts(fn);
             success = true;
         end
         
@@ -166,10 +170,16 @@ classdef importWizard < handle
         
         function pn = get.lastImportPath(this)
             %get the folder which was last used for fluo file import
-            pn = fileparts(this.myMeasurement.getSourceFile());
-            if(isempty(pn))
-                pn = this.FLIMXObj.getWorkingDir();
-            end
+            pn = this.currentPath;
+%             pn = fileparts(this.myMeasurement.getSourceFile());
+%             if(isempty(pn))
+%                 pn = this.FLIMXObj.getWorkingDir();
+%             end
+        end
+        
+        function set.lastImportPath(this,val)
+            %set the last imported path
+            this.currentPath = val;
         end
         
         function out = get.currentChannel(this)
