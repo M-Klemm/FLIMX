@@ -35,22 +35,121 @@ function out = getStaticBinROI(data,roiCoord,binFactor)
 %example:  dataBinned = getStaticBinROI(data,[32,192,32,192],2);
 %
 siz = uint16(size(data));
+sizY = siz(1); sizX = siz(2); sizZ = siz(3);
 roiX = roiCoord(1):roiCoord(2);
 roiY = roiCoord(3):roiCoord(4);
-roiXLen = int32(length(roiX));
-roiYLen = int32(length(roiY));
-nPixel = roiYLen*roiXLen;
+roiXLen = uint16(length(roiX));
+roiYLen = uint16(length(roiY));
+% nPixel = roiYLen*roiXLen;
 %calculate coordinates of output grid
-[pxYcoord, pxXcoord] = ind2sub([roiYLen,roiXLen],1:nPixel);
+%[pxYcoord, pxXcoord] = ind2sub([roiYLen,roiXLen],1:nPixel);
 if(binFactor == 0)
     out = data(roiY,roiX,:);
 else
-    out = zeros(roiYLen*roiXLen,1,siz(3),'like',data);
-    parfor px = 1:nPixel
-        out(px,1,:) = sum(reshape(data(max(roiY(pxYcoord(px))-binFactor,1):min(roiY(pxYcoord(px))+binFactor,siz(1)), max(roiX(pxXcoord(px))-binFactor,1):min(roiX(pxXcoord(px))+binFactor,siz(2)), :),[],siz(3)),1,'native');
+%     tic
+    dataTmp = zeros(roiYLen+2*binFactor,roiXLen+2*binFactor,sizZ,'like',data);
+    dataTmp(binFactor+1:binFactor+roiYLen,binFactor+1:binFactor+roiXLen,:) = data(roiY,roiX,:);
+    if(roiYLen ~= sizY || roiXLen ~= sizX)
+        %ROI is smaller than data -> copy surrounding data        
+        roiXStart = roiCoord(1) :-1: roiCoord(1)-binFactor;
+        roiXEnd = roiCoord(2) :1: roiCoord(2)+binFactor;
+        roiYStart = roiCoord(3) :-1: roiCoord(3)-binFactor;
+        roiYEnd = roiCoord(4) :1: roiCoord(4)+binFactor;
+        tmpStart = 1:binFactor+1;
+        tmpXEnd = roiXLen+binFactor:1:roiXLen+2*binFactor;
+        tmpYEnd = roiYLen+binFactor:1:roiYLen+2*binFactor;
+        %ROI borders are included to have at least one hit
+        idxXStart = roiXStart > 0;
+        idxXEnd = roiXEnd <= sizX;
+        idxYStart = roiYStart > 0;
+        idxYEnd = roiYEnd <= sizY;
+        %left border
+        dataTmp(min(tmpStart(idxYStart)):max(tmpYEnd(idxYEnd)),tmpStart(idxXStart),:) = data(min(roiYStart(idxYStart)):max(roiYEnd(idxYEnd)),roiXStart(idxXStart),:);
+        %right border
+        dataTmp(min(tmpStart(idxYStart)):max(tmpYEnd(idxYEnd)),tmpXEnd(idxXEnd),:) = data(min(roiYStart(idxYStart)):max(roiYEnd(idxYEnd)),roiXEnd(idxXEnd),:);
+        %top border
+        dataTmp(tmpStart(idxYStart),min(tmpStart(idxXStart)):max(tmpXEnd(idxXEnd)),:) = data(roiYStart,min(roiXStart(idxXStart)):max(roiXEnd(idxXEnd)),:);
+        %bottom border
+        dataTmp(tmpYEnd(idxYEnd),min(tmpStart(idxXStart)):max(tmpXEnd(idxXEnd)),:) = data(roiYEnd,min(roiXStart(idxXStart)):max(roiXEnd(idxXEnd)),:);
     end
-    out = reshape(out,roiYLen,roiXLen,siz(3));
+    %try to use parallel for loop
+    pool = gcp('nocreate');
+    if(isempty(pool))
+        %no pool available -> use single core
+        out = zeros(size(dataTmp),'like',data);
+        for i = 1:sizY
+            out(i+binFactor,:,:) = sum(dataTmp(i:i+2*binFactor,:,:),1,'native');
+        end
+        dataTmp = out;
+        out = zeros(size(dataTmp),'like',data);
+        for i = 1:sizX
+            out(:,i+binFactor,:) = sum(dataTmp(:,i:i+2*binFactor,:),2,'native');
+        end
+        out = out(binFactor+1:binFactor+sizY,binFactor+1:binFactor+sizX,:);
+    else
+        %use the pool, use as many tiles as there are workers
+        nrTiles = pool.NumWorkers;
+        idxTiles = binFactor+uint16(floor(linspace(0,single(siz(1)),nrTiles+1)));
+        dataSlices = cell(nrTiles,1);
+        for i = 1:nrTiles
+            dataSlices{i} = dataTmp(idxTiles(i)+1-binFactor:idxTiles(i+1)+binFactor,:,:);
+        end
+        res = cell(nrTiles,1);
+        parfor j = 1:nrTiles
+            myData = dataSlices{j};
+            mySizY = uint16(size(myData,1)-2*binFactor);
+            mySizX = uint16(size(myData,2)-2*binFactor);
+            myOut = zeros(size(myData),'like',myData);
+            for i = 1:mySizY
+                myOut(i+binFactor,:,:) = sum(myData(i:i+2*binFactor,:,:),1,'native');
+            end
+            myData = myOut;
+            myOut = zeros(size(myData),'like',myData);
+            for i = 1:mySizX
+                myOut(:,i+binFactor,:) = sum(myData(:,i:i+2*binFactor,:),2,'native');
+            end
+            myOut = myOut(binFactor+1:binFactor+mySizY,binFactor+1:binFactor+mySizX,:);
+            res{j} = myOut;
+        end
+        out = cell2mat(res);
+    end
 end
+
+
+%half speed at quad core
+%     tic
+%     out = zeros(roiYLen*roiXLen,sizZ,'like',data);
+%     parfor px = 1:nPixel
+%         out(px,:) = sum(reshape(data(max(roiY(pxYcoord(px))-binFactor,1):min(roiY(pxYcoord(px))+binFactor,sizY), max(roiX(pxXcoord(px))-binFactor,1):min(roiX(pxXcoord(px))+binFactor,sizX), :),[],sizZ),1,'native');
+%     end
+%     out = reshape(out,roiYLen,roiXLen,sizZ);
+%     tocdx
+%half speed at quad core
+% tic
+% out = zeros(roiYLen*roiXLen,siz(3),'like',data);
+% nrTiles = 4;
+% idxTiles = linspace(0,single(sizY*sizX),nrTiles+1);
+% pxYSlices = cell(nrTiles,1);
+% pxXSlices = cell(nrTiles,1);
+% for i = 1:nrTiles
+%     pxYSlices{i} = pxYcoord(:,idxTiles(i)+1:idxTiles(i+1));
+%     pxXSlices{i} = pxXcoord(:,idxTiles(i)+1:idxTiles(i+1));
+% end
+% res = cell(nrTiles,1);
+% parfor i = 1:nrTiles
+%     pxYc = pxYSlices{i};
+%     pxXc = pxXSlices{i};
+%     tmp = zeros(length(pxYc),sizZ,'like',data);
+%     for px = 1:length(pxYc)
+%         tmp(px,:) = sum(reshape(data(max(roiY(pxYc(px))-binFactor,1):min(roiY(pxYc(px))+binFactor,sizY), max(roiX(pxXc(px))-binFactor,1):min(roiX(pxXc(px))+binFactor,sizX), :),[],sizZ),1,'native');
+%     end
+%     res{i} = tmp;
+% end
+% for i = 1:nrTiles
+%     out(idxTiles(i)+1:idxTiles(i+1),:) = res{i};
+% end
+% out = reshape(out,roiYLen,roiXLen,siz(3));
+% toc
 %% GPU version a
 % if(binFactor == 0)
 %     out = uint16(data(roiY,roiX,:));
