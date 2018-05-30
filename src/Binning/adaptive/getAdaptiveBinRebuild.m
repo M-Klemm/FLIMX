@@ -33,12 +33,13 @@ function out = getAdaptiveBinRebuild(raw,roiCoord,binLevels)
 %
 [yR, xR, zR] = size(raw);
 out = zeros(size(binLevels,1),size(binLevels,2),zR,'like',raw);
-[binXcoord, binYcoord, binRho, binRhoU] = makeBinMask(100);
+[binXcoord, binYcoord, ~, ~, allMasks] = makeBinMask(100);
 raw = reshape(raw,[yR*xR,zR]);
 parfor i = 1:size(binLevels,1)
     tmp = out(i,:,:);
     for j = 1:size(binLevels,2)
-        idx = getAdaptiveBinningIndex(roiCoord(3)+i-1,roiCoord(1)+j-1,binLevels(i,j),yR,xR,binXcoord, binYcoord, binRho, binRhoU);
+        idx = moveMaskToPixelPosition(allMasks(:,:,binLevels(i,j)),roiCoord(3)+i-1,roiCoord(1)+j-1,yR,xR,binXcoord, binYcoord);
+        %idx = getAdaptiveBinningIndex(roiCoord(3)+i-1,roiCoord(1)+j-1,binLevels(i,j),yR,xR,binXcoord, binYcoord, binRho, binRhoU);
         %tmp(1,j,:) = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native')';
         tmp(1,j,:) = sum(raw(idx, :),1,'native')';
     end

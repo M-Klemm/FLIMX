@@ -1,4 +1,4 @@
-function [binXcoord, binYcoord, binRho, binRhoUnique] = makeBinMask(maxBin)
+function [binXcoord, binYcoord, binRho, binRhoUnique, allMasks] = makeBinMask(maxBin)
 %=============================================================================================================
 %
 % @file     makeBinMask.m
@@ -35,4 +35,8 @@ function [binXcoord, binYcoord, binRho, binRhoUnique] = makeBinMask(maxBin)
     [~,binRho] = cart2pol(single(binXcoord),single(binYcoord));
     binRhoUnique = unique(binRho(:));
     binRhoUnique(1) = [];
+    allMasks = false(size(binRho,1), size(binRho,2), length(binRhoUnique));
+    for i = 1:length(binRhoUnique)
+        allMasks(:,:,i) = binRho <= binRhoUnique(i);
+    end
 end
