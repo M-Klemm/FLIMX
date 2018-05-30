@@ -238,7 +238,26 @@ classdef FLIMXFitResultImport < handle
                     jtable.changeSelection(ed.Indices(1)-1,0, false, false);
                 end
             end
+            this.drawCurrentImage();
+            this.updateImportCounter();
+        end
+        
+        function updateImportCounter(this)
+            %update the counter for the imported items            
+            data = this.getTableData4Channel(this.currentChannel);
+            if(~isempty(data) || size(data,1) >= this.currentRow || size(data,2) < 8)
+                nCh = sum([data{:,6}]);
+                nAll = this.numberOfAllImports;
+            else
+                nCh = 0;
+                nAll = 0;
+            end
+            set(this.visHandles.editNumberImports,'String',sprintf('%d/%d in current channel',nCh, nAll));
+        end
+        
+        function drawCurrentImage(this)
             % show selected image
+            data = this.getTableData4Channel(this.currentChannel);
             if(~isempty(data) || size(data,1) >= this.currentRow || size(data,2) < 8)
                 img = this.myResultStruct(this.currentChannel).results.pixel.(this.currentItem);
                 %resize if neccessary
@@ -255,15 +274,10 @@ classdef FLIMXFitResultImport < handle
                     this.axesMgr.setMainData(img,0,1);
                 else
                     this.axesMgr.setMainData(img);
-                end                               
-                nCh = sum([data{:,6}]);
-                nAll = this.numberOfAllImports;
+                end
             else
-                nCh = 0;
-                nAll = 0;
                 cla(this.visHandles.axesPreview);
             end
-            set(this.visHandles.editNumberImports,'String',sprintf('%d/%d in current channel',nCh, nAll));
         end
         
         function out = getTableData4Channel(this,ch)
@@ -746,7 +760,7 @@ classdef FLIMXFitResultImport < handle
                 row = eventdata.Indices(1);
             end
             this.currentRow = row;
-            this.updateGUI();
+            this.drawCurrentImage();
         end
         
         function GUI_tableFiles_CellEditCallback(this,hObject, eventdata)
@@ -818,7 +832,8 @@ classdef FLIMXFitResultImport < handle
             if(isequal(5,eventdata.Indices(2)))
                 this.matchingImportsInitialize(this.currentChannel);
             end
-            this.updateGUI();
+            this.drawCurrentImage();
+            this.updateImportCounter();
         end
         
         % edit

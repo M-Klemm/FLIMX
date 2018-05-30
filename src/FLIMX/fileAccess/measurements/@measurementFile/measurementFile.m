@@ -718,13 +718,17 @@ classdef measurementFile < handle
             end
         end
         
-        function [out,bl] = getInitData(this,ch,targetPhotons)
+        function [out,bl,masks,nrPixels] = getInitData(this,ch,targetPhotons)
             %returns data for initialization fit of the corners of the ROI, each corner has >= target photons
-            if(length(this.initData) < ch || isempty(this.initData{ch}))
+            if(size(this.initData,1) < ch || isempty(this.initData{ch,1}))
                 out = [];
+                bl = 0;
+                masks = 0;
             else
-                out = this.initData{ch};
-                bl = zeros(size(out,1),size(out,2));
+                out = this.initData{ch,1};
+                bl = this.initData{ch,2};
+                masks = this.initData{ch,3};
+                nrPixels = squeeze(sum(sum(masks,3),4));
             end
             %get grid size
             if(isempty(this.paramMgrObj))
@@ -741,7 +745,7 @@ classdef measurementFile < handle
                     bp = this.paramMgrObj.basicParams;
                     %get anisotropy data from channel 1 and 2 (ch1 is parallel; ch2 is perpendicular)
                     if(this.nrSpectralChannels >= 2 && length(this.rawFluoData) >= 2)
-                        [pP,bl] = this.getInitData(1,targetPhotons); %parallel
+                        [pP,bl,masks] = this.getInitData(1,targetPhotons); %parallel
                         raw = this.getRawData(2); %senkrecht
                         [yR,xR,zR] = size(raw);
                         if(gridSz == 1 && param.gridPhotons == 0)
@@ -794,16 +798,25 @@ classdef measurementFile < handle
                             targetPhotons = int32(param.gridPhotons);
                         end
                     end
-                    if(gridSz <= 1 && targetPhotons == 0)
-                        out(1,1,:) = this.getROIMerged(ch);
-                        bl = 0;
+                    if(gridSz <= 1)
+                        if(targetPhotons == 0)
+                            out(1,1,:) = this.getROIMerged(ch);
+                            bl = 0;
+                            masks = this.rawXSz * this.rawYSz;
+                        else
+                            %get target nr of photons for central pixel
+                            [~,bl,out,masks] = getAdaptiveBinROI(raw,roiX(round(length(roiX)/2)),roiY(round(length(roiY)/2)),int32(targetPhotons),int32(50),false);
+                        end
                     else
-                        %get target nr of photons                        
-                        [~,bl,out] = getAdaptiveBinROI(raw,roiX,roiY,int32(targetPhotons),int32(50),false);
+                        %get target nr of photons
+                        [~,bl,out,masks] = getAdaptiveBinROI(raw,roiX,roiY,int32(targetPhotons),int32(50),false);
                     end
                 end
                 this.updateProgress(1,sprintf('ROI preparation channel %d 100%% done',ch));
-                this.initData{ch} = out;
+                this.initData{ch,1} = out;
+                this.initData{ch,2} = bl;
+                this.initData{ch,3} = masks;
+                nrPixels = squeeze(sum(sum(masks,3),4));
                 this.updateProgress(0,'');
             end
         end
@@ -1106,7 +1119,7 @@ classdef measurementFile < handle
             this.roiFluoDataFlat = cell(this.nrSpectralChannels,1);
             this.roiMerged = cell(this.nrSpectralChannels,1);
             this.roiSupport = cell(this.nrSpectralChannels,1);
-            this.initData = cell(this.nrSpectralChannels,1);
+            this.initData = cell(this.nrSpectralChannels,3);
             this.fileInfo.reflectionMask = cell(this.nrSpectralChannels,1);
             this.fileInfo.StartPosition = num2cell(ones(this.nrSpectralChannels,1));
             this.fileInfo.EndPosition = num2cell(this.fileInfo.nrTimeChannels.*ones(this.nrSpectralChannels,1));
@@ -1114,7 +1127,7 @@ classdef measurementFile < handle
         
         function clearInitData(this)
             %clear data needed for initialization fit
-            this.initData = cell(this.nrSpectralChannels,1);
+            this.initData = cell(this.nrSpectralChannels,3);
         end
         
         function updateProgress(this,prog,text)

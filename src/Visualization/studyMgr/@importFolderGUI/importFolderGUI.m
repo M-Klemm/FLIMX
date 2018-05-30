@@ -35,6 +35,7 @@ classdef importFolderGUI < handle
         FLIMXObj = [];
         visHandles = [];
         currentFiles = [];
+        currentPath = '';
     end
     
     properties (Dependent = true)
@@ -150,6 +151,8 @@ classdef importFolderGUI < handle
             set(this.visHandles.tableSubjects,'Data',[]);
             set(this.visHandles.editFolder,'String',path);
             this.currentFiles = rdir(sprintf('%s%s**%s*.sdt',path,filesep,filesep));
+            %save path
+            this.FLIMXObj.importGUI.lastImportPath = path;
             this.setupGUI();
         end
         

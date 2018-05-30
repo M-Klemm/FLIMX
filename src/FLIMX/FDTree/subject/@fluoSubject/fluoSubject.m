@@ -607,9 +607,9 @@ classdef fluoSubject < handle
             out = this.myMeasurement.getROIMerged(channel);
         end
         
-        function out = getInitData(this,ch,target)
+        function [initData,binLevels,masks,nrPixels] = getInitData(this,ch,target)
             %returns data for initialization fit of the corners of the ROI, each corner has >= target photons
-            out = this.myMeasurement.getInitData(ch,target);
+            [initData,binLevels,masks,nrPixels] = this.myMeasurement.getInitData(ch,target);
         end
         
         function out = getMyFolder(this)
@@ -721,11 +721,6 @@ classdef fluoSubject < handle
             %set optimizerInitStrategy for init fits to 1 (use guess values)
             params.basicFit.optimizerInitStrategy = 1;
             ad = this.myResult.getAuxiliaryData(ch);
-            
-            if(params.pixelFit.gridSize > 1)
-                idx = strcmpi('offset',params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)));
-                params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(idx) = [];
-            end
             %fix certain parameters to values from initialization
             %             if(~isempty(params.basicFit.fix2InitTargets))
             %                 %sStr = params.basicFit.(sprintf('constMaskSaveStrCh%d',ch));
@@ -742,17 +737,7 @@ classdef fluoSubject < handle
             %                     end
             %                 end
             %                 [vp, params.volatileChannel] = paramMgr.makeVolatileParams(params.basicFit,this.myMeasurement.nrSpectralChannels);
-            %             end            
-            if(ch < 3 || params.basicFit.approximationTarget == 1)
-                if(any(strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Offset')))
-                    if(params.preProcessing.roiAdaptiveBinEnable)
-                        bf = 1;
-                    else
-                        bf = (1+2*params.preProcessing.roiBinning).^2;
-                    end
-                    params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(end) = params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(end) .* this.getROIXSz .* this.getROIXSz ./ params.pixelFit.gridSize^2 ./bf;
-                end
-            end            
+            %             end
             if(params.basicFit.approximationTarget == 2 && params.basicFit.anisotropyR0Method == 2 && ch < 3)
                 idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Tau 2');
                 params.basicFit.(sprintf('constMaskSaveValCh%d',ch)) = double(params.basicFit.(sprintf('constMaskSaveValCh%d',ch)));
@@ -781,6 +766,7 @@ classdef fluoSubject < handle
                 end
                 data = zeros(params.pixelFit.gridSize,params.pixelFit.gridSize,fileInfo(ch).nrTimeChannels,fileInfo(ch).nrSpectralChannels,ad.measurementROIInfo.ROIDataType);
                 scatterData = zeros(fileInfo(ch).nrTimeChannels,vp.nScatter,fileInfo(ch).nrSpectralChannels,ad.measurementROIInfo.ROIDataType);
+                nrPixels = zeros(params.pixelFit.gridSize,params.pixelFit.gridSize);
                 for ch = 1:fileInfo(ch).nrSpectralChannels
                     data(:,:,:,ch) = this.myMeasurement.getInitData(ch,params.pixelFit.gridPhotons);
                     if(vp.nScatter > 0)
@@ -790,9 +776,28 @@ classdef fluoSubject < handle
             else
                 fileInfo(ch) = ad.fileInfo;
                 allIRFs{ch} = ad.IRF.vector;
-                data = this.myMeasurement.getInitData(ch,params.pixelFit.gridPhotons);
+                [data,~,~,nrPixels] = this.myMeasurement.getInitData(ch,params.pixelFit.gridPhotons);
                 scatterData = ad.scatter;
             end
+            %             if(params.pixelFit.gridSize > 1)
+            %                 %switch off offset fixation in case of initialization grid
+            %                 idx = strcmpi('offset',params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)));
+            %                 params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(idx) = [];
+            %             end
+            %adjust fixed offset according to number of pixels used
+            if(ch < 3 || params.basicFit.approximationTarget == 1)
+                idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Offset');
+                if(any(idx))
+%                     if(params.preProcessing.roiAdaptiveBinEnable)
+%                         bf = 1;
+%                     else
+%                         bf = (1+2*params.preProcessing.roiBinning).^2;
+%                     end
+                    %fixed offset is usually for static binning 2; now scale it with the average number of pixels used for initialization
+                    params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx(1)) = params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(end) ./ params.pixelFit.gridSize^2 .* mean(nrPixels(:));
+                end
+            end 
+            
             for i = 1:params.pixelFit.gridSize^2
                 [r, c] = ind2sub([params.pixelFit.gridSize params.pixelFit.gridSize],i);
                 tmp = fluoPixelModel(allIRFs,fileInfo,params,ch);
