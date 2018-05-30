@@ -786,7 +786,7 @@ classdef resultFile < handle
             %get parameters for visualization of current fit in channel ch
             if(initFit)
                 %show merge data                
-                fileInfo = apObj.getFileInfo(ch);
+                fileInfo = apObj.getFileInfoStruct(ch);
                 if(~this.isInitResult(ch))
                     rs = this.makeResultStructs(1,1);
                     hShift = rs.hShift;
@@ -817,7 +817,7 @@ classdef resultFile < handle
                 end                
             else
                 %pixel data                              
-                fileInfo = apObj.getFileInfo(ch);
+                fileInfo = apObj.getFileInfoStruct(ch);
                 y = min(y,this.resultSize(1));
                 x = min(x,this.resultSize(2));
                 if(~this.isPixelResult(ch) || strncmp(this.resultType,'ASCII',5))

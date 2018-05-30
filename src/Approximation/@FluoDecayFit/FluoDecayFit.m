@@ -423,9 +423,9 @@ classdef FluoDecayFit < handle
             nWorkers = 1;
             if(this.computationParams.useMatlabDistComp)
                 pool = gcp('nocreate');
-                 if(~isempty(pool))
-                     nWorkers = pool.NumWorkers;
-                 end
+                if(~isempty(pool))
+                    nWorkers = pool.NumWorkers;
+                end
             end
             %fit dimension
             if(initFit)
@@ -449,6 +449,145 @@ classdef FluoDecayFit < handle
             end
             tStart = clock;
             this.updateProgressShort(0.001,'0.0% - Time left: n/a');
+            %check if all non linear parameters are fixed
+            if(~initFit)
+                parameterCell = this.getApproxParamCell(ch,1,1,false);
+                if(~isempty(parameterCell))
+                    apObj = parameterCell{1}{1};
+                    vcp = apObj.getVolatileChannelParams(ch);
+                    noNonLinOpt = vcp.nApproxParamsPerCh == 0;
+                else
+                    noNonLinOpt = false;
+                end
+                if(noNonLinOpt)
+                    tStart = clock;
+                    measData = this.FLIMXObj.curSubject.getROIData(ch,[],[]);
+                    dataYSz = size(measData,1);
+                    dataXSz = size(measData,2);
+                    dataZSz = size(measData,3);
+                    measData = reshape(measData,dataYSz*dataXSz,dataZSz)';
+                    %generate reference exponetial models
+                        %                     apObj.makeDataPreProcessing([]);
+                        %                     bounds = apObj.getLinearBounds();
+                    bp = apObj.basicParams;
+                    bp.incompleteDecayFactor = 2;
+                    nParams = bp.nExp;                    
+                    fi = apObj.getFileInfoStruct(ch);
+                    t = double(linspace(0,(fi.nrTimeChannels-1)*fi.timeChannelWidth,bp.incompleteDecayFactor*fi.nrTimeChannels)'); 
+                    nTimeCh = size(t,1);
+                    expModels = [];
+                    oset = [];
+                    multiModelsFlag = this.FLIMXObj.curSubject.initFitParams.gridSize > 1;
+                    if(multiModelsFlag)
+                        tauOut = zeros(dataYSz,dataXSz,nParams,'single');
+                        for i = 1:nParams
+                            tauOut(:,:,i) = single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,sprintf('TauInit%d',i)));
+                        end
+                        tauOut = reshape(permute(tauOut,[3,2,1]),nParams,dataYSz*dataXSz);
+                        shiftOut = reshape(single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,'hShiftInit')),1,dataYSz*dataXSz);                      
+                        %apObj.basicParams.hybridFit = 0;
+                        %remove taus and shift from fixed parameters
+                        vcp.cMask(nParams+1:2*nParams) = 0;
+                        vcp.cVec(nParams+1:2*nParams) = [];
+                        vcp.cMask(end-1) = 0;
+                        vcp.cVec(end-1) = [];
+                        apObj.setVolatileChannelParams(ch,vcp);
+                        nrTiles = 256;                        
+                        %[amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch);
+                                                
+                    else
+                        %set amplitudes to fixed value (1)
+                        vcp.cMask(1:nParams) = 1;
+                        vcp.cVec(1:nParams) = 1;
+                        [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents([],true,ch);
+                        shiftOut = ones(1,dataYSz*dataXSz).* hShift;
+                        tauOut = ones(apObj.basicParams.nExp,dataYSz*dataXSz).*taus;
+                        apObj.setVolatileChannelParams(ch,vcp);
+                        expModels = single(apObj.getExponentials(ch,[]));
+                        nrTiles = nWorkers;
+                    end
+                                       
+                    %create mask where data is not zero
+                    dataNonZeroMask = measData ~= 0;                    
+                    dataNonZeroMask(1:fi.StartPosition-1,:) = false;
+                    dataNonZeroMask(fi.EndPosition+1:end,:) = false;
+                    if(isempty(fi.reflectionMask))
+                        dataNonZeroMask = dataNonZeroMask & repmat(fi.reflectionMask,1,size(dataNonZeroMask,2));
+                    end
+                    bounds = zeros(nParams,2);
+                    bounds(:,2) = inf;                    
+                    %create tiles                    
+                    idxTiles = floor(linspace(0,dataYSz*dataXSz,nrTiles+1));
+                    tic
+                    dataSlices = cell(nrTiles,1);
+                    dataNZMaskSlices = cell(nrTiles,1);                    
+                    for i = 1:nrTiles
+                        dataSlices{i} = measData(:,idxTiles(i)+1:idxTiles(i+1));
+                        dataNZMaskSlices{i} = dataNonZeroMask(:,idxTiles(i)+1:idxTiles(i+1));
+                    end                   
+                    res = cell(nrTiles,3);
+                    parfor i = 1:nrTiles
+                        tmp = cell(1,3);
+                        md = single(dataSlices{i});
+                        dnzm = dataNZMaskSlices{i};
+                        aTmp = [];
+                        oTmp = [];
+                        mTmp = [];
+                        expMTmp = [];
+                        if(multiModelsFlag)
+                            %different model for each pixel
+                            %[mTmp, aTmp, ~, oTmp] = apObj.myChannels{ch}.compModel([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(1,idxTiles(i)+1:idxTiles(i+1));]);
+                            [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, offset, tciHShiftFine, nVecsTmp] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch);
+                            myT = repmat(t(:,1),1,nVecsTmp);
+                            expMTmp = computeExponentials(bp,myT,apObj.myChannels{ch}.iMaxPos,apObj.myChannels{ch}.getIRFFFT(nTimeCh),[],amps, taus, tcis, betas, scAmps, scShifts, [], scOset, hShift, offset, tciHShiftFine);
+                            [ao,aTmp,oTmp] = computeAmplitudes(expMTmp,md,dnzm,offset,vcp.cMask(end)<0);
+                            expMTmp(:,:,1:nVecsTmp) = bsxfun(@times,expMTmp(:,:,1:nVecsTmp),ao);
+                            mTmp = squeeze(sum(expMTmp(:,:,1:nVecsTmp),2));
+                        else
+                            %same model for all pixels
+                            [~,aTmp,oTmp] = computeAmplitudes(expModels,md,dnzm,oset,false);
+                            mTmp = expModels * [aTmp; oTmp];
+                            %expMTmp = bsxfun(@times,expModels,ao);
+                            %mTmp = squeeze(sum(expMTmp(:,:,1:nVecsTmp),2));
+                        end
+                        %compute chi²
+                        tmp{1,1} = computeFigureOfMerit(mTmp,md,dnzm,nParams,bp)';
+                        tmp{1,2} = aTmp';
+                        tmp{1,3} = oTmp';
+                        res(i,:) = tmp;
+                    end
+                    %[chi2, ampsOut, osetOut] = computeTile(expModels,t,measDataTile,dataNonZeroMask,oset,bounds(:,1),bounds(:,2));
+                    %collect results
+                    chi2 = cell2mat(res(:,1));
+                    ampsOut = cell2mat(res(:,2));
+                    osetOut = cell2mat(res(:,3));
+                    toc
+                    chi2 = reshape(chi2,dataYSz,dataXSz);
+                    ampsOut = reshape(ampsOut,dataYSz,dataXSz,nParams);
+                    tauOut = reshape(permute(tauOut,[2,1]),dataYSz,dataXSz,nParams);
+                    shiftOut = reshape(shiftOut,dataYSz,dataXSz);
+                    osetOut = reshape(osetOut,dataYSz,dataXSz);
+                    xVec = zeros(size(chi2,1),size(chi2,2),length(vcp.cMask));
+                    xVec(:,:,1:apObj.basicParams.nExp) = ampsOut;
+                    xVec(:,:,apObj.basicParams.nExp+1:2*apObj.basicParams.nExp) = tauOut;
+                    xVec(:,:,end-1) = shiftOut;
+                    xVec(:,:,end) = osetOut;
+                    %store results
+                    this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'chi2',chi2);                    
+                    for i = 1:apObj.basicParams.nExp
+                        this.FLIMXObj.curSubject.setPixelFLIMItem(ch,sprintf('Amplitude%d',i),squeeze(ampsOut(:,:,i)));
+                        this.FLIMXObj.curSubject.setPixelFLIMItem(ch,sprintf('Tau%d',i),squeeze(tauOut(:,:,i)));
+                    end
+                    this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'x_vec',xVec);
+                    this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'hShift',xVec(:,:,end-1));
+                    this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'Offset',xVec(:,:,end));
+                    this.FLIMXObj.curSubject.setEffectiveTime(ch,etime(clock,tStart));
+                    this.updateProgressShort(0,'');
+                    return
+                end
+            end
+            
+            
             %check if we should run the computation locally or distributed
             if(this.computationParams.useDistComp == 1 && length(pixelPool) > nWorkers)
                 %use multicore package
@@ -575,6 +714,7 @@ classdef FluoDecayFit < handle
         function result = makeSingleCurveFit(this,ch,yPos,xPos,mcSettings)
             %make single curve fit
             if(yPos == 0 && xPos == 0)
+                %initalization fit
                 parameterCell = this.getApproxParamCell(ch,0,3,true);
             else
                 pixelPool = sub2ind([this.FLIMXObj.curSubject.getROIYSz() this.FLIMXObj.curSubject.getROIXSz()],yPos,xPos);
@@ -590,7 +730,7 @@ classdef FluoDecayFit < handle
                 [~, idx] = min([res(1,:).chi2]);
                 result = res(1,idx);
             else
-                parameterCell{3}.optimization.options_de.iterPostProcess = @this.iterPostProcess;
+                parameterCell{2}.options_de.iterPostProcess = @this.iterPostProcess;
                 result = feval(@makePixelFit, parameterCell{:});
             end
             this.updateProgressShort(0,'');

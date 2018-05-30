@@ -34,6 +34,8 @@ classdef fluoChannelModel < matlab.mixin.Copyable
     properties(SetAccess = protected)
         myStartPos = 1; %start position on the time axes used for figure of merit computation
         myEndPos = 1024; %end position on the time axes used for figure of merit computation
+        iMaxVal = 0; %max of irf
+        iMaxPos = 0; %position of irf max (index)
     end
     
     properties(GetAccess = protected, SetAccess = protected)
@@ -48,8 +50,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         chi_weights = []; %weights for chi2 computation with neighbors
         irfFFT = []; %fft transform of irf
         irfFFTGPU = []; %irf on GPU (for GPU computation)
-        iMaxVal = 0; %max of irf
-        iMaxPos = 0; %position of irf max (index)        
+                
         linLB = []; %lower bounds for linear optimized parameters
         linUB = []; %upper bounds for linear optimized parameters        
     end
@@ -75,7 +76,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             this.myParent = hPixel;
             this.myChannelNr = ch;
             if(this.basicParams.incompleteDecay) %incomplete decay
-                ds = 4;
+                ds = 2;
             else %no incomplete decay
                 ds = 1;
             end
@@ -120,7 +121,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         
         function out = get.fileInfo(this)
             %return fileInfo struct for my channel
-            out = this.myParent.getFileInfo(this.myChannelNr);
+            out = this.myParent.getFileInfoStruct(this.myChannelNr);
         end
         function out = get.volatilePixelParams(this)
             %return volatilePixelParams struct for my channel
@@ -182,6 +183,14 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         function out = getIRF(this)
             %get irf
             out = double(this.dataStorage.irf.raw)./this.iMaxVal;
+        end
+        
+        function out = getIRFFFT(this,len)
+            %get FFT of irf
+            if(isempty(this.irfFFT) || length(this.irfFFT) ~= len)
+                this.irfFFT = fft(this.getIRF(), len);
+            end
+            out = this.irfFFT;
         end
         
         function out = getMeasurementData(this)
@@ -289,6 +298,11 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             end
         end
         
+        function out = getLinearBounds(this)
+            %return linear bounds used for approximation
+            out = [this.linLB this.linUB];
+        end
+        
         function setLinearBounds(this,linBounds)
             %set linear bounds
             nrLinParam = sum(this.volatileChannelParams.cMask < 0);
@@ -373,6 +387,31 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             %set initialization data for nonlinear optimization (optional)
             this.dataStorage.initialization = data;
         end
+        
+        function [model, ampsOut, scAmpsOut, osetOut, expModelOut] = compModel2(this,x)
+            %
+            persistent t exponentialsLong expModels
+            scAmpsOut = [];
+            [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = getXVecComponents(this.myParent,x,true,this.myChannelNr);
+            bp = this.basicParams;
+            bp.incompleteDecayFactor = 2;
+            vpp = this.volatilePixelParams;
+            nTimeCh = this.tLen;
+            nTimeChNoID = nTimeCh / bp.incompleteDecayFactor;
+            if(isempty(t) || size(t,1) ~= this.tLen || size(t,2) < nVecs)
+                t = repmat(this.time(:,1),1,nVecs);
+            end
+            if(isempty(exponentialsLong) || size(exponentialsLong,1) ~= size(t,1) || size(exponentialsLong,3) < nVecs || size(exponentialsLong,2) ~= bp.nExp || size(expModels,2) ~= bp.nExp+vpp.nScatter)
+                exponentialsLong = ones(size(t,1),bp.nExp+(bp.scatterEnable && bp.scatterIRF),nVecs);
+                expModels = ones(nTimeChNoID,bp.nExp+vpp.nScatter+1,nVecs);
+            end
+            vcp = this.volatileChannelParams;
+            expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter,1:nVecs) = computeExponentials(bp,t,this.iMaxPos,this.getIRFFFT(nTimeCh),[],amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine,exponentialsLong(1:nTimeCh,1:bp.nExp+vpp.nScatter,1:nVecs),expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter,1:nVecs));
+            [ao,ampsOut,osetOut] = computeAmplitudes(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),this.getMeasurementData(),this.getDataNonZeroMask(),oset,vcp.cMask(end)<0);            
+            expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = bsxfun(@times,expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),ao);
+            model = squeeze(sum(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),2));
+            expModelOut = expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs);
+        end
                 
         function [model, ampsOut, scAmpsOut, osetOut, exponentialsOut] = compModel(this,x)
             % compute model for parameters x and reconvolute
@@ -388,7 +427,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             bp = this.basicParams;
             nTimeCh = this.tLen;
             if(bp.incompleteDecay)
-                nTimeCh = nTimeCh ./ 4;
+                nTimeCh = nTimeCh ./ 2;
             end
             vpp = this.volatilePixelParams;
             vcp = this.volatileChannelParams;
@@ -521,7 +560,28 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             end
         end %compModelTci
         
-        function [chi, chiD, chiVec] = compFigureOfMerit(this,model,tailFlag,figureOfMerit,chiWeightingMode,fomModifier)
+        function chiVec = compFigureOfMerit2(this,model,tailFlag,figureOfMerit,chiWeightingMode,fomModifier)
+           
+            if(nargin < 6)
+                fomModifier = this.basicParams.figureOfMeritModifier;
+            end
+            if(nargin < 5)
+                chiWeightingMode = this.basicParams.chiWeightingMode;
+            end
+            if(nargin < 4)
+                figureOfMerit = this.basicParams.figureOfMerit;
+            end
+            if(tailFlag)
+                dnzMask = this.getDataNonZeroMaskTail();
+            else
+                dnzMask = this.getDataNonZeroMask();
+            end
+            chiVec = computeFigureOfMerit(model,this.getMeasurementData(),dnzMask,this.volatileChannelParams.nApproxParamsPerCh,...
+                this.basicParams,figureOfMerit,chiWeightingMode,fomModifier);
+            
+        end
+        
+        function chiVec = compFigureOfMerit(this,model,tailFlag,figureOfMerit,chiWeightingMode,fomModifier)
             %compute the figure of merit (goodness of fit)
             if(nargin < 6)
                 fomModifier = this.basicParams.figureOfMeritModifier;
@@ -570,8 +630,8 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 %least squares
                 chiVec = sum(e_lsq);
                 chiVec(chiVec <= eps(chiVec)) = inf;
-                chi = sum(chiVec(:));
-                chiD = chiVec(1);
+%                 chi = sum(chiVec(:));
+%                 chiD = chiVec(1);
                 return
             end
             %                 elseif(figureOfMerit == 3) %maximum likelihood
@@ -677,8 +737,8 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             end
             %chiVec = abs(1-chiVec);
             chiVec(chiVec == 0) = inf;
-            chi = sum(chiVec(:));
-            chiD = chiVec(1);
+%             chi = sum(chiVec(:));
+%             chiD = chiVec(1);
         end
     end %methods
     
