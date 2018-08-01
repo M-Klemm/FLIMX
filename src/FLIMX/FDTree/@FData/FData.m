@@ -47,8 +47,7 @@ classdef FData < handle
         dType = [];
         globalScale = [];       
         subjectName = [];
-        channel = [];
-        nr = [];        
+        channel = [];  
         isEmptyStat = true;
         FLIMXParamMgrObj = [];
     end
@@ -69,6 +68,21 @@ classdef FData < handle
             this.clearCachedImage();
             this.color_data = [];
             this.logColor_data = [];
+        end
+        
+        function out = getSize(this)
+            %determine memory size of the FData
+            props = properties(this);
+            props{11} = 'cachedImage';
+            props{12} = 'maxHistClasses';
+            props(13:end) = [];
+            out = 0;
+            for i=1:length(props)
+                tmp = this.(props{i});
+                s = whos('tmp');
+                out = out + s.bytes;
+            end
+            %fprintf(1, 'FData size %d bytes\n', out);
         end
         
         function clearCachedImage(this)

@@ -50,6 +50,18 @@ classdef Channel < handle
             this.myChunks = LinkedList();
         end
         
+        function out = getSize(this)
+            %determine memory size of the channel
+            out = 0;
+            for i = 1:this.myChunks.queueLen
+                chunk = this.myChunks.getDataByPos(i);
+                if(~isempty(chunk))
+                    out = out + chunk.getSize();
+                end
+            end
+            %fprintf(1, 'Channel size %d bytes\n', out);
+        end
+        
         function addObj(this,dType,gScale,data)
             %add an object to FDTree and generate id (running number) automatically
             chunk = this.getChunk(dType);

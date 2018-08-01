@@ -34,13 +34,13 @@ function x = LinNonNeg(C,d,tol) %,resnorm,resid,exitflag,output,lambda]
 tol = 10*eps*norm(C,1)*length(C);
 n = size(C,2);
 % Initialize vector of n zeros and Infs (to be used later)
-nZeros = zeros(n,1);
+nZeros = zeros(n,1,'like',C);
 wz = nZeros;
 
 % Initialize set of non-active columns to null
-P = false(n,1);
+P = false(n,1,'like',logical(d));
 % Initialize set of active columns to all and the initial point to zeros
-Z = true(n,1);
+Z = true(n,1,'like',P);
 x = nZeros;
 
 resid = d - C*x;

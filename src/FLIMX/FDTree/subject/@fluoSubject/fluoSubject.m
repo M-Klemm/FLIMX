@@ -796,8 +796,8 @@ classdef fluoSubject < handle
                     %fixed offset is usually for static binning 2; now scale it with the average number of pixels used for initialization
                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx(1)) = params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(end) ./ params.pixelFit.gridSize^2 .* mean(nrPixels(:));
                 end
-            end 
-            
+            end
+            out = cell(params.pixelFit.gridSize^2,1);
             for i = 1:params.pixelFit.gridSize^2
                 [r, c] = ind2sub([params.pixelFit.gridSize params.pixelFit.gridSize],i);
                 tmp = fluoPixelModel(allIRFs,fileInfo,params,ch);
@@ -943,7 +943,7 @@ classdef fluoSubject < handle
             bp = out.basicParams;
             if(~isempty(bp.fix2InitTargets))                
                 if(any(out.volatilePixelParams.globalFitMask))
-                    for chTmp = 1:out.fileInfo(ch).nrSpectralChannels                        
+                    for chTmp = 1:out.nrChannels                        
                         bp.(sprintf('constMaskSaveValCh%d',chTmp)) = double(bp.(sprintf('constMaskSaveValCh%d',chTmp)));
                         vcp = out.getVolatileChannelParams(chTmp);
                         vcp = this.updateFixedTargets(chTmp,y,x,bp,vcp,out.volatilePixelParams.modelParamsString);

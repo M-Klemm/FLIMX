@@ -801,7 +801,7 @@ classdef StatsDescriptive < handle
     methods(Static)
         function [h,p] = test4NormalDist(test,data,alpha)
             %test group data for normal distribution
-            h = 0; p = 1;
+            h = 1; p = 0;
             data = data(~isnan(data));
             data = data(~isinf(data));
             if(~any(data(:)) || length(data) < 4)
@@ -812,17 +812,13 @@ classdef StatsDescriptive < handle
                     [h,p] = lillietest(data,'Alpha',alpha);
                 case 'ks' %kolmogorov smirnov test
                     %center data for ks test
-                    if(var(data(:)) < eps)
-                        h = 1; p = 0;
-                    else
+                    if(var(data(:)) >= eps)
                         tmp = data(:);
                         tmp = (tmp-mean(tmp(:)))/std(tmp);
                         [h,p] = kstest(tmp,'Alpha',alpha);
                     end
                 case 'sw' %shapiro-wilk test
-                    if(var(data(:)) < eps)
-                        h = 1; p = 0;
-                    else
+                    if(var(data(:)) >= eps)
                         [h,p] = swtest(data,alpha);
                     end
             end

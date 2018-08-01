@@ -51,6 +51,19 @@ classdef subjectDS < handle
             this.myChannels = LinkedList();
         end
         
+        function out = getSize(this)
+            %determine memory size of the subject
+            out = 0;
+            for i = 1:this.myChannels.queueLen
+                chObj = this.myChannels.getDataByID(i);
+                if(~isempty(chObj))
+                    out = out + chObj.getSize();
+                end
+            end
+            %todo: add fileInfo?!
+            %fprintf(1, 'Subject size %d bytes\n', out);
+        end
+        
         function addObj(this,chan,dType,gScale,data)
             %add an object to FDTree and generate id (running number) automatically
             if(isempty(dType))
