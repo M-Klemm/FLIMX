@@ -34,7 +34,11 @@ function data = circShiftArray(data,sVec)
 persistent LUT1024
 if(isempty(LUT1024))
     %initialize
-    LUT1024 = repmat((0:int32(1024)-1)',1,256);
+    if(isa(data,'gpuArray'))
+        LUT1024 = repmat(gpuArray(0:int32(1024)-1)',1,256);
+    else
+        LUT1024 = repmat((0:int32(1024)-1)',1,256);
+    end
 end
 [r, c, e] = size(data);
 if(r == 0 || c == 0 || isempty(sVec))

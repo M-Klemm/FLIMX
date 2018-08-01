@@ -48,8 +48,13 @@ if(c ~= length(sVec))
 end
 % if(c == 1)
 %     idx = mod((0:r-1)'-sVec, r)+1;
-% else    
+% else
+if(isa(data,'gpuArray'))
+    tmp = repmat(gpuArray(0:int32(r)-1)',1,c);
+    idx = bsxfun(@plus,mod(bsxfun(@minus,tmp,sVec'), r)+1,(0:c-1)*r);
+else
     idx = bsxfun(@plus,mod(bsxfun(@minus,repmat((0:int32(r)-1)',1,c),sVec'), r)+1,(0:c-1)*r);
+end
 % end
 if(e > 1)
     idx2 = repmat(idx,[1,1,e]);
