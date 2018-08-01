@@ -53,6 +53,18 @@ classdef Chunk < handle
             this.globalScale = logical(globalScale);
         end
         
+        function out = getSize(this)
+            %determine memory size of the chunk
+            out = 0;
+            for i = 1:this.mySlices.queueLen
+                slice = this.mySlices.getDataByID(i);
+                if(~isempty(slice))
+                    out = out + slice.getSize();
+                end
+            end
+            %fprintf(1, 'Chunk size %d bytes\n', out);
+        end
+        
         function addObj(this,data)            
             %add an object to FDTree and generate id (running number) automatically
             this.mySlices.insertEnd(FDataNormal(this,this.mySlices.queueLen+1,data));            

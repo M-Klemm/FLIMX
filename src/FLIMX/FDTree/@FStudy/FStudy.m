@@ -58,6 +58,19 @@ classdef FStudy < handle
             this.myConditionStatistics = LinkedList();
         end
         
+        function out = getSize(this)
+            %determine memory size of the study
+            out = 0;
+            for i = 1:this.mySubjects.queueLen
+                subject = this.getSubject(i);
+                if(~isempty(subject))
+                    out = out + subject.getSize();
+                end
+            end
+            %todo: add studyInfoSet and ConditionStatistics
+            %fprintf(1, 'Study size %d bytes\n', out);
+        end
+        
         function load(this)
             %load study data from disk
             try

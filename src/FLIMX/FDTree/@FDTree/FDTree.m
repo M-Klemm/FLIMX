@@ -80,6 +80,19 @@ classdef FDTree < handle
             this.scanForStudies();
         end
         
+        function out = getSize(this)
+            %determine memory size of the tree
+            out = 0;
+            for i = 1:this.myStudies.queueLen
+                study = this.getStudy(i);
+                if(~isempty(study))
+                    out = out + study.getSize();
+                end
+            end
+            %fprintf(1, 'FDTree size %d bytes\n', out);
+        end
+        
+        
         function removeObj(this,studyID,subjectID,chan,dType,id)
             %remove object from subject
             study = this.getStudy(studyID);
