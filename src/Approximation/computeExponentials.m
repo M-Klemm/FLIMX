@@ -1,45 +1,92 @@
-function exponentialsOut = computeExponentials(bp,t,irfMaxPos,irfFFT,scatterData,amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine,exponentialsLong,exponentialsOut)
-%UNTITLED2 Summary of this function goes here
-%   Detailed explanation goes here
-nTimeCh = length(t);
+function exponentialsOut = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,t,irfMaxPos,irfFFT,scatterData,amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine,optimize4CodegenFlag,exponentialsLong,exponentialsOut)
+%=============================================================================================================
+%
+% @file     computeExponentials.m
+% @author   Matthias Klemm <Matthias_Klemm@gmx.net>
+% @version  1.0
+% @date     June, 2018
+%
+% @section  LICENSE
+%
+% Copyright (C) 2018, Matthias Klemm. All rights reserved.
+%
+% Redistribution and use in source and binary forms, with or without modification, are permitted provided that
+% the following conditions are met:
+%     * Redistributions of source code must retain the above copyright notice, this list of conditions and the
+%       following disclaimer.
+%     * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and
+%       the following disclaimer in the documentation and/or other materials provided with the distribution.
+%     * Neither the name of FLIMX authors nor the names of its contributors may be used
+%       to endorse or promote products derived from this software without specific prior written permission.
+%
+% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+% WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+% PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+% INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+% PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+% HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+% NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+% POSSIBILITY OF SUCH DAMAGE.
+%
+%
+% @brief    A function to compute exponential decays from the input parameters
+
+nTimeCh = uint16(length(t));
 nVecs = size(amps,2);
 if(isempty(scatterData))
     nScatter = 0;
 else
     nScatter = size(scatterData,2);
 end    
-if(bp.incompleteDecay)
-    nTimeCh = nTimeCh ./ bp.incompleteDecayFactor;
-end
-tOut = t(1:nTimeCh,1);
+%if(bp.incompleteDecay)
+    nTimeChOut = nTimeCh / incompleteDecayFactor;
+%end
 %             vpp = this.volatilePixelParams;
 %             vcp = this.volatileChannelParams;
-nExp = bp.nExp;
+%nExp = bp.nExp;
 taus = 1./taus;
-% if(isempty(t) || size(t,1) ~= this.tLen || size(t,2) < nVecs)
+% if(isempty(t) || nTimeCh ~= this.tLen || size(t,2) < nVecs)
 %     t = repmat(this.time(:,1),1,nVecs);
 %     tSingle = single(t(:,1));
 % end
-if((nScatter-(bp.scatterEnable && bp.scatterIRF)) > 0)
+if((nScatter-(scatterEnable && scatterIRF)) > 0)
     %shiftAndLinearOpt function will move all components by hShift -> compensate scatter shifts here
     tcis = [tcis; bsxfun(@minus,scShifts,hShift)];
     tciHShiftFine = [tciHShiftFine; scHShiftsFine];
 end
 %% allocate memory for temporary vatiables
-%             if(isempty(exponentialsLong) || size(exponentialsLong,1) ~= size(t,1) || size(exponentialsLong,3) < nVecs || size(exponentialsLong,2) ~= nExp || size(exponentialsShort,2) ~= nExp+vpp.nScatter)
-if(nargin < 17)
-    exponentialsLong = ones(size(t,1),nExp+(bp.scatterEnable && bp.scatterIRF),nVecs);
+%             if(isempty(exponentialsLong) || size(exponentialsLong,1) ~= nTimeCh || size(exponentialsLong,3) < nVecs || size(exponentialsLong,2) ~= nExp || size(exponentialsShort,2) ~= nExp+vpp.nScatter)
+if(nargin < 22)
+    exponentialsLong = ones(nTimeCh,nExp*nVecs,'like',t);
+else
+    exponentialsLong = reshape(exponentialsLong,nTimeCh,[]);
 end
-if(nargin < 18)
-    exponentialsOut = ones(nTimeCh,nExp+nScatter+1,nVecs);
+if(nargin < 23)
+    exponentialsOut = ones(nTimeChOut,nExp+nScatter+1,nVecs,'like',t);
+else
+    exponentialsOut = reshape(exponentialsOut,nTimeChOut,[]);
 end
+%calculate indices where the exponentials are
+idxExponentialsLong = false(nExp,1);
+idxExponentialsLong(1:nExp) = true;
+idxExponentialsLong = repmat(idxExponentialsLong,nVecs,1);
+idxExponentialsOut = false(nExp+nScatter+1,1);
+idxExponentialsOut(1:nExp) = true;
+idxScatterOut = ~idxExponentialsOut;
+idxScatterOut(end) = false; %offset
+idxExponentialsOut = repmat(idxExponentialsOut,nVecs,1);
+idxScatterOut = repmat(idxScatterOut,nVecs,1);
+%reshape the parameters
+taus = reshape(taus,nVecs*nExp,1);
+temporalShift = reshape((tcis + hShift),nVecs*nExp,1);
+tciHShiftFine = reshape(tciHShiftFine,nVecs*nExp,1);
 %exponentialsOut = ones(nTimeCh,nExp,nVecs);
 %exponentialsOffset = ones(nTimeCh,nExp+vpp.nScatter+1,nVecs,'single');
 %             end
 % if(~isempty(this.dataStorage.scatter.raw))
-    scatterData = repmat(scatterData,[1,1,nVecs]);
+    scatterData = repmat(scatterData,[1,nVecs]);
 % else
-%     scVec = zeros(size(exponentialsOut,1),vpp.nScatter-bp.scatterIRF,nVecs);
+%     scVec = zeros(size(exponentialsOut,1),vpp.nScatter-scatterIRF,nVecs);
 % end
 
 %% prepare scatter
@@ -50,21 +97,33 @@ end
 %                 this.myStartPos = max(this.fileInfo.StartPosition + min(scShifts(:)), this.fileInfo.StartPosition);
 %                 this.myEndPos = min([this.fileInfo.EndPosition + min(scShifts(:)), this.fileInfo.EndPosition, nTimeCh]);
 %% make exponentials
-%stretched exponentials
-for i = find(bp.stretchedExpMask)
-    exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@power,bsxfun(@times, t(:,1:nVecs), taus(i,:)), betas(i,:)));
+if(any(stretchedExpMask))
+    idxSExp = repmat(stretchedExpMask(:),nVecs,1);
+    betas = reshape(betas,[],1);
+    exponentialsLong(:,idxExponentialsLong & idxSExp) = exp(-bsxfun(@power,t(:,1:sum(idxExponentialsLong & idxSExp)) .* taus(idxExponentialsLong & idxSExp)',betas(idxSExp)'));
+    exponentialsLong(:,idxExponentialsLong & ~idxSExp) = exp(-t(:,1:sum(idxExponentialsLong & ~idxSExp)) .* taus(idxExponentialsLong & ~idxSExp)');
+%     for i = 1:length(stretchedExpMask)
+%         if(stretchedExpMask(i))
+%             %stretched exponentials
+%             exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@power,bsxfun(@times, t(:,1:nVecs), taus(i,:)), betas(i,:)));
+%         else
+%             %'normal' exponentials
+%             exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@times, t(:,1:nVecs), taus(i,:)));
+%         end
+%     end
+else
+    exponentialsLong(:,idxExponentialsLong) = exp(-t(:,1:nExp*nVecs) .* taus');
 end
-%'normal' exponentials
-for i = find(~bp.stretchedExpMask)
-    exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@times, t(:,1:nVecs), taus(i,:)));
-end
-if(bp.scatterEnable && bp.scatterIRF)
+% for i = find(~stretchedExpMask)
+%     exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@times, t(:,1:nVecs), taus(i,:)));
+% end
+if(scatterEnable && scatterIRF)
     nExp = nExp+1;
-    exponentialsLong(:,nExp,1:nVecs) = zeros(size(t,1),1,nVecs);
+    exponentialsLong(:,nExp,1:nVecs) = zeros(nTimeCh,1,nVecs);
     exponentialsLong(1,nExp,1:nVecs) = 1;
 end
 %% reconvolute
-if(bp.reconvoluteWithIRF && ~isempty(irfFFT))
+if(~isempty(irfFFT))
     %determine reconv model length
     [~, p] = log2(size(exponentialsLong,1)-1);
     len_model_2 = pow2(p);    % smallest power of 2 > len_model
@@ -77,7 +136,7 @@ if(bp.reconvoluteWithIRF && ~isempty(irfFFT))
 %     if(isempty(this.irfFFT) || length(this.irfFFT) ~= len_model_2)
 %         this.irfFFT = fft(this.getIRF(), len_model_2);
 %     end
-    exponentialsLong(:,1:nExp,1:nVecs) = real(ifft(bsxfun(@times, fft(exponentialsLong(:,1:nExp,1:nVecs), len_model_2, 1), irfFFT), len_model_2, 1));
+    exponentialsLong(:,idxExponentialsLong) = real(ifft(fft(exponentialsLong(:,idxExponentialsLong), len_model_2, 1) .* irfFFT, len_model_2, 1));
     %                 end
 %     if(bp.approximationTarget == 2 && this.myChannelNr <= 2) %only in anisotropy mode
 %         %correct for shift caused by reconvolution
@@ -86,56 +145,37 @@ if(bp.reconvoluteWithIRF && ~isempty(irfFFT))
 %         tcis = tcis - bsxfun(@minus,dtci,dtci(1,:));
 %     end
 else
-    for i = 1:size(exponentialsLong,2)
-        exponentialsLong(:,i,1:nVecs) = circShiftArrayNoLUT(squeeze(exponentialsLong(:,i,1:nVecs)),repmat(irfMaxPos,nVecs,1));
+    for j = 1:nExp*nVecs
+        exponentialsLong(:,j) = circShift(exponentialsLong(:,j),irfMaxPos);
     end
 end
 %% incomplete decay
-if(bp.incompleteDecay)
-    if(bp.incompleteDecayFactor == 4)
-        exponentialsOut(1:nTimeCh,1:nExp,1:nVecs) = exponentialsLong(1:nTimeCh,:,1:nVecs) + exponentialsLong(nTimeCh+1:2*nTimeCh,:,1:nVecs) + exponentialsLong(2*nTimeCh+1:3*nTimeCh,:,1:nVecs) + exponentialsLong(3*nTimeCh+1:end,:,1:nVecs);
-    elseif(bp.incompleteDecayFactor == 2)
-        exponentialsOut(1:nTimeCh,1:nExp,1:nVecs) = exponentialsLong(1:nTimeCh,:,1:nVecs) + exponentialsLong(nTimeCh+1:2*nTimeCh,:,1:nVecs);
-    end
+if(incompleteDecayFactor == 4)
+    exponentialsLong(1:nTimeChOut,idxExponentialsLong) = exponentialsLong(1:nTimeChOut,idxExponentialsLong) + exponentialsLong(nTimeChOut+1:2*nTimeChOut,idxExponentialsLong) + exponentialsLong(2*nTimeChOut+1:3*nTimeChOut,idxExponentialsLong) + exponentialsLong(3*nTimeChOut+1:end,idxExponentialsLong);
+elseif(incompleteDecayFactor == 2)
+    exponentialsLong(1:nTimeChOut,idxExponentialsLong) = exponentialsLong(1:nTimeChOut,idxExponentialsLong) + exponentialsLong(nTimeChOut+1:2*nTimeChOut,idxExponentialsLong);
 else
-    exponentialsOut(1:nTimeCh,1:nExp,1:nVecs) = exponentialsLong(1:nTimeCh,:,1:nVecs);
+    %no incomplete decay
+    exponentialsLong(1:nTimeChOut,idxExponentialsLong) = exponentialsLong(1:nTimeChOut,idxExponentialsLong);
 end
-%% add scatter
-if((nScatter-(bp.scatterEnable && bp.scatterIRF)) > 0)
-    exponentialsOut(:,nExp+1:nExp+nScatter,1:nVecs) = scatterData(:,:,1:nVecs);
-end
+
 %% shift exponentials
-optimize4CodegenFlag = false;
-nTci = size(tcis,1);
-for j = 1:nVecs
+for j = 1:nExp*nVecs
     %temporal shift with full time channels
-    if(optimize4CodegenFlag)
-        %% use this for codegen!
-        for i = 1:nTci
-            exponentialsOut(:,i,j) = circshift(exponentialsOut(:,i,j),hShift(j) + tcis(i,j));
-        end
-    else
-        %% use this for matlab execution
-        exponentialsOut(:,1:nTci,j) = circShiftArrayNoLUT(squeeze(exponentialsOut(:,1:nTci,j)),hShift(j) + tcis(:,j));
-    end    
-    tciFlags = find(diff(tciHShiftFine(:,j)))+1;
-    %temporal shift with sub-time-channel resolution
-    %interpolate
-    if(isempty(tciFlags))
-        if(abs(tciHShiftFine(1,j)) > eps)
-            exponentialsOut(:,1:nTci,j) = qinterp1(tOut,exponentialsOut(:,1:nTci,j),tOut + (tciHShiftFine(1,j)).*tOut(2,1),optimize4CodegenFlag);
-        end
-    else
-        if(abs(tciHShiftFine(1,j)) > eps)
-            exponentialsOut(:,1:tciFlags(1)-1,j) = qinterp1(tOut,exponentialsOut(:,1:tciFlags(1)-1,j),tOut + (tciHShiftFine(1,j)).*tOut(2,1),optimize4CodegenFlag);
-        end
-        for i = 1:length(tciFlags)
-            if(abs(tciHShiftFine(tciFlags(i),j)) > eps)
-                exponentialsOut(:,tciFlags(i),j) = qinterp1(tOut,exponentialsOut(:,tciFlags(i),j),tOut + tciHShiftFine(tciFlags(i),j).*tOut(2,1),optimize4CodegenFlag);
-            end
-        end
-    end
+    exponentialsLong(1:nTimeChOut,j) = circshift(exponentialsLong(1:nTimeChOut,j),temporalShift(j));
 end
+exponentialsLong(1:nTimeChOut,:) = vectorInterp(exponentialsLong(1:nTimeChOut,:),tciHShiftFine);
+%% assemble output
+exponentialsOut(:,idxExponentialsOut) = exponentialsLong(1:nTimeChOut,idxExponentialsLong);
+%% add scatter
+if((nScatter-(scatterEnable && scatterIRF)) > 0)
+    exponentialsOut(:,idxScatterOut) = scatterData(:,1:nVecs);
+end
+%% remove not a numbers
 exponentialsOut(isnan(exponentialsOut)) = 0;
+%% reshape
+exponentialsOut = reshape(exponentialsOut,nTimeChOut,[],nVecs);
+%add offset
+exponentialsOut(:,end,:) = ones([nTimeChOut,nVecs]).*oset;
 end
 

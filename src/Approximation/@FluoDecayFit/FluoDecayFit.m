@@ -526,6 +526,16 @@ classdef FluoDecayFit < handle
                         dataNZMaskSlices{i} = dataNonZeroMask(:,idxTiles(i)+1:idxTiles(i+1));
                     end                   
                     res = cell(nrTiles,3);
+                    if(bp.reconvoluteWithIRF)
+                        irffft = apObj.myChannels{ch}.getIRFFFT(nTimeCh);
+                    else
+                        irffft = [];
+                    end                    
+                    nExp = uint16(bp.nExp);
+                    incompleteDecayFactor = uint16(bp.incompleteDecayFactor);
+                    scatterEnable = logical(bp.scatterEnable);
+                    scatterIRF = logical(bp.scatterIRF);
+                    stretchedExpMask = logical(bp.stretchedExpMask);
                     parfor i = 1:nrTiles
                         tmp = cell(1,3);
                         md = single(dataSlices{i});
@@ -538,8 +548,9 @@ classdef FluoDecayFit < handle
                             %different model for each pixel
                             %[mTmp, aTmp, ~, oTmp] = apObj.myChannels{ch}.compModel([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(1,idxTiles(i)+1:idxTiles(i+1));]);
                             [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, offset, tciHShiftFine, nVecsTmp] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch);
-                            myT = repmat(t(:,1),1,nVecsTmp);
-                            expMTmp = computeExponentials(bp,myT,apObj.myChannels{ch}.iMaxPos,apObj.myChannels{ch}.getIRFFFT(nTimeCh),[],amps, taus, tcis, betas, scAmps, scShifts, [], scOset, hShift, offset, tciHShiftFine);
+                            myT = repmat(t(:,1),1,double(nExp)*nVecsTmp);                            
+                            expMTmp = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,...
+                                myT,apObj.myChannels{ch}.iMaxPos,irffft,[],amps, taus, tcis, betas, scAmps, scShifts, [], scOset, hShift, offset, tciHShiftFine,false);
                             [ao,aTmp,oTmp] = computeAmplitudes(expMTmp,md,dnzm,offset,vcp.cMask(end)<0);
                             expMTmp(:,:,1:nVecsTmp) = bsxfun(@times,expMTmp(:,:,1:nVecsTmp),ao);
                             mTmp = squeeze(sum(expMTmp(:,:,1:nVecsTmp),2));
