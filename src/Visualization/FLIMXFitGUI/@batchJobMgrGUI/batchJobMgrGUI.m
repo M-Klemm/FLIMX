@@ -170,7 +170,7 @@ classdef batchJobMgrGUI < handle
             this.updateGUI();
             this.updateProgressbar(0,'');
             hObject.String = oldStr;
-            this.visHandles.buttonStop.String = Stop';
+            this.visHandles.buttonStop.String = 'Stop';
         end
         
         function GUI_buttonRunAll_Callback(this,hObject,eventdata)
