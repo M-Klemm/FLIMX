@@ -46,19 +46,24 @@ roiFlat = zeros(roiYLen,roiXLen,'int32');
 binLevels = zeros(roiYLen,roiXLen,'int32');
 if(nargout >= 3)
     roiFull = zeros(roiYLen,roiXLen,zR,'uint32');
-    roiFull = reshape(roiFull,roiYLen*roiXLen,1,zR);
+    roiFullTmp = reshape(roiFull,roiYLen*roiXLen,1,zR);
 end
 if(targetPhotons < 1)
-    mask = [];
+    mask = false;
     return
 end
 nPixel = roiYLen*roiXLen;
 %calculate coordinates of output grid
 [pxYcoord, pxXcoord] = ind2sub([roiYLen,roiXLen],1:nPixel);
-[binXcoord, binYcoord, binRho, binRhoU, allMasks] = makeBinMask(maxBinFactor);
+[binXcoord, binYcoord, ~, binRhoU, allMasks] = makeBinMask(maxBinFactor);
 idxCoarse = find(ismember(binRhoU,single(1:maxBinFactor)'));
 maxBinFactor = double(maxBinFactor);
 maskIdx = cell(nPixel,1);
+if(optimize4Codegen)
+    for i = 1:nPixel
+        maskIdx{i,1} = int32(0);
+    end
+end
 mask = false(roiYLen,roiXLen,dataYSz,dataXSz);
 tSz = size(allMasks,1);
 allMasks = reshape(allMasks,tSz*tSz,size(allMasks,3));
@@ -93,8 +98,7 @@ parfor px = 1:nPixel
     tile = reshape(tile,tSz*tSz,1);
     for binFactor = 1:maxBinFactor
         val = sum(tile(allMasks(:,idxCoarse(binFactor))),'native');
-        if(val >= targetPhotons)
-            %binFactor = binFactor+1;
+        if(val >= targetPhotons)            
             break
         end
     end    
@@ -123,7 +127,9 @@ parfor px = 1:nPixel
         if(isempty(binLevelEnd))
             binLevelStart = int32(length(binRhoU));
         end
-    end    
+    end
+    binLevelStart = binLevelStart(1); %for codegen
+    binLevelEnd = binLevelEnd(1); %for codegen
     for binLevel = binLevelStart:binLevelEnd
         val = sum(tile(allMasks(:,binLevel)),'native');
         if(val >= targetPhotons)
@@ -155,16 +161,16 @@ parfor px = 1:nPixel
 %     if(optimize4Codegen)
 %         %% use this for codegen!
 %         [iY,iX] = ind2sub([yR,xR],idx);
-%         tmp = zeros(length(idx),zR,rawClass);
+%         tmp = zeros(length(idx),zR,'uint32');
 %         for i = 1:length(idx)
 %             tmp(i,:) = raw(iY(i),iX(i),:);
 %         end
 %         %roiFull(pxYcoord(px),pxXcoord(px),:) = sum(tmp,1,'native');
-%         roiFull(px,1,:) = sum(tmp,1,'native');
+%         roiFullTmp(px,1,:) = sum(tmp,1,'native');
 %     else
-        %% use this for matlab execution!
-        %roiFull(px,1,:) = sum(raw(bsxfun(@plus, idx, int32(yR) * int32(xR) * ((1:int32(zR))-1))),1,'native'); %slow
-        roiFull(px,1,:) = sum(raw(idx, :),1,'native');
+        % use this for matlab execution!
+        %roiFullTmp(px,1,:) = sum(raw(idx + int32(yR) * int32(xR) * ((1:int32(zR))-1)),1,'native'); %slow
+        roiFullTmp(px,1,:) = sum(raw(idx, :),1,'native');
 %     end
 %     if(~isempty(maskTmp))
         %save the mask of the binning area
@@ -175,11 +181,13 @@ end
 if(nargout == 4)   
    for px = 1:nPixel
        maskTmp = mask(pxYcoord(px),pxXcoord(px),:,:);
-       maskTmp(maskIdx{px}) = true;
-       mask(pxYcoord(px),pxXcoord(px),:,:) = maskTmp;
+       if(maskIdx{px} > 0)
+           maskTmp(maskIdx{px}) = true;
+           mask(pxYcoord(px),pxXcoord(px),:,:) = maskTmp;
+       end
    end   
 else
-    mask = [];
+    mask = false;
 end
-roiFull = reshape(roiFull,roiYLen,roiXLen,zR);
+roiFull = reshape(roiFullTmp,roiYLen,roiXLen,zR);
 end
