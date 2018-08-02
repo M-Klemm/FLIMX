@@ -809,7 +809,11 @@ classdef measurementFile < handle
                         end
                     else
                         %get target nr of photons
-                        [~,bl,out,masks] = getAdaptiveBinROI(raw,roiX,roiY,int32(targetPhotons),int32(50),false);
+                        if(this.useMex4AdaptiveBin && this.nrTimeChannels <= 1024)
+                            [~,bl,out,masks] = getAdaptiveBinROI_mex(raw,roiX,roiY,int32(targetPhotons),int32(50),false);
+                        else
+                            [~,bl,out,masks] = getAdaptiveBinROI(raw,roiX,roiY,int32(targetPhotons),int32(50),false);
+                        end
                     end
                 end
                 this.updateProgress(1,sprintf('ROI preparation channel %d 100%% done',ch));
@@ -1065,11 +1069,11 @@ classdef measurementFile < handle
                         target = int32(this.roiAdaptiveBinThreshold);
                         maxBin = int32(this.roiAdaptiveBinMax);
                         [roiX,roiY] = compGridCoordinates(roi,0);
-%                         if(this.useMex4AdaptiveBin && this.nrTimeChannels <= 1024)
-%                             [~,binLevels,out] = getAdaptiveBinROI_mex(raw,roiX,roiY,target,maxBin,true);                            
-%                         else
+                        if(this.useMex4AdaptiveBin && this.nrTimeChannels <= 1024)
+                            [~,binLevels,out] = getAdaptiveBinROI_mex(raw,roiX,roiY,target,maxBin,true);                            
+                        else
                             [~,binLevels,out] = getAdaptiveBinROI(raw,roiX,roiY,target,maxBin,false);
-%                         end
+                        end
                         this.roiBinLevels{channel} = binLevels;
                         this.setDirtyFlags(channel,4,true);
                     else
