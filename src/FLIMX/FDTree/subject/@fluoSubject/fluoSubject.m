@@ -95,6 +95,15 @@ classdef fluoSubject < handle
             this.myMeasurement.setProgressCallback(@this.updateProgress);
             this.myResult = result4Approx(this);
         end
+                
+        function clearROAData(this)
+            %clear the results of the current subject
+            this.myMeasurement.clearROAData();
+%             chList = 1:this.nrSpectralChannels;
+%             for i = 1:length(chList)
+%                 this.myResult.allocResults(chList(i),this.getROIYSz(),this.getROIXSz());
+%             end
+        end
         
 %         function clearApproxObj(this)
 %             %clear cached approx object

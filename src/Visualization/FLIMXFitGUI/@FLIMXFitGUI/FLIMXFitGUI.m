@@ -1891,7 +1891,7 @@ classdef FLIMXFitGUI < handle
                     this.FLIMXObj.curSubject.update();                    
                     data = this.FLIMXObj.curSubject.getInitData(this.currentChannel,this.initFitParams.gridPhotons);
                     if(~isempty(data) && (this.initFitParams.gridSize ~= size(data,1) || any(any(this.initFitParams.gridPhotons > sum(data,3)))))
-                        this.FLIMXObj.curSubject.clearROIData();
+                        this.FLIMXObj.curSubject.clearROAData();
                     end
                     this.setCurrentPos(this.currentY,this.currentX);
             end

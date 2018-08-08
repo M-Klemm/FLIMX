@@ -63,7 +63,7 @@ classdef measurementReadRawData < measurementFile
             end
             this.readFluoFileInfo();
             this.ROICoord = [];
-            this.clearROIData();
+            this.clearROAData();
         end
         
         %%output methods

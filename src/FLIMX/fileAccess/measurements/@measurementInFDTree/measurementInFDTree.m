@@ -335,10 +335,10 @@ classdef measurementInFDTree < measurementFile
             end
         end
         
-        function clearROIData(this)
+        function clearROAData(this)
             %clear everything except for the measurement data
             this.roiMergedMask = [];
-            clearROIData@measurementFile(this);
+            clearROAData@measurementFile(this);
         end
     end %methods
     

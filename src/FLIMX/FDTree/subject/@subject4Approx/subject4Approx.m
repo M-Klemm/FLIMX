@@ -183,7 +183,7 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
     methods(Access = protected)
         % Override copyElement method:
         function cpObj = copyElement(this)            
-            %make sure we create the approx. obects for all channels            
+            %make sure we create the approx. objects for all channels            
             for ch = 1:this.nrSpectralChannels
                 this.getApproxObj(ch,1,1);
             end

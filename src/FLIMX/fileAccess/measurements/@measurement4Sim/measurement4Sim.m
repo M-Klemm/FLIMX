@@ -49,7 +49,7 @@ classdef measurement4Sim < measurementInFDTree
         function loadRawData(this,channel,data)
             %set raw data for channel
             this.setRawData(channel,data);
-            this.clearROIData();
+            this.clearROAData();
         end
         
         function out = getNonEmptyChannelList(this)
