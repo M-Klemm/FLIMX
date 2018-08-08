@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.coder" plugin-version="R2016a">
-  <configuration build-checksum="131909297" file="D:\Matthias Klemm\Promotion\software\FLIMX_master\src\getAdaptiveBinROIMex.prj" location="D:\Matthias Klemm\Promotion\software\FLIMX_master\src" name="getAdaptiveBinROIMex" target="target.unifiedcoder" target-name="MATLAB Coder">
+  <configuration build-checksum="4218870403" file="D:\Matthias Klemm\Promotion\software\FLIMX_master\src\getAdaptiveBinROIMex.prj" location="D:\Matthias Klemm\Promotion\software\FLIMX_master\src" name="getAdaptiveBinROIMex" target="target.unifiedcoder" target-name="MATLAB Coder">
     <profile key="profile.mex">
       <param.BuiltInstrumentedMex>false</param.BuiltInstrumentedMex>
       <param.RanInstrumentedMex>false</param.RanInstrumentedMex>
@@ -57,7 +57,7 @@
       <param.EnableOpenMP>true</param.EnableOpenMP>
       <param.InitFltsAndDblsToZero>true</param.InitFltsAndDblsToZero>
       <param.ConstantInputs>option.ConstantInputs.IgnoreValues</param.ConstantInputs>
-      <param.EnableCRICodeCoverage>true</param.EnableCRICodeCoverage>
+      <param.EnableCRICodeCoverage>false</param.EnableCRICodeCoverage>
       <param.EnableJIT>false</param.EnableJIT>
       <param.EnableJITSilentBailOut>false</param.EnableJITSilentBailOut>
       <param.CheckForIssuesJIT>true</param.CheckForIssuesJIT>
@@ -104,7 +104,6 @@
         <param.MemcpyThreshold />
         <param.EnableOpenMP />
         <param.InitFltsAndDblsToZero />
-        <param.EnableCRICodeCoverage />
         <param.EnableJITSilentBailOut />
         <param.CheckForIssuesJIT />
       </unset>
@@ -174,8 +173,8 @@
       <param.CustomLibrary />
       <param.PostCodeGenCommand />
       <param.TargetLangStandard>C89/C90 (ANSI)</param.TargetLangStandard>
-      <param.CodeReplacementLibrary>None</param.CodeReplacementLibrary>
-      <param.DeprecatedCRLFlag>false</param.DeprecatedCRLFlag>
+      <param.CodeReplacementLibrary />
+      <param.DeprecatedCRLFlag />
       <param.SameHardware>true</param.SameHardware>
       <param.Toolchain>Automatically locate an installed toolchain</param.Toolchain>
       <param.BuildConfiguration />
@@ -256,7 +255,7 @@
       <param.CustomFFTCallback />
       <param.GenerateDefaultInSwitch />
       <param.EnableTraceability />
-      <param.UseECoderFeatures>false</param.UseECoderFeatures>
+      <param.UseECoderFeatures />
       <param.psCustomPrjState />
       <param.psCustomProjectFile />
       <param.psCheckConfValue />
@@ -774,11 +773,11 @@
     <param.unifiedParamStorage />
     <var.gc.lastOutputRoot>codegen\mex\getAdaptiveBinROI</var.gc.lastOutputRoot>
     <var.gc.lastOutputType>MEX_FILE</var.gc.lastOutputType>
-    <var.gc.preBuildChecksum>131909297</var.gc.preBuildChecksum>
+    <var.gc.preBuildChecksum>3477898492</var.gc.preBuildChecksum>
     <var.cfi.lastOutputRoot />
     <var.cfi.preBuildChecksum />
     <var.outdatedOnRestore>false</var.outdatedOnRestore>
-    <var.lastUserSourceChecksum>&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;&lt;checksum&gt;&lt;includedFiles&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\adaptive\getAdaptiveBinROI.m&lt;/file&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\adaptive\makeBinMask.m&lt;/file&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\moveMaskToPixelPosition.m&lt;/file&gt;&lt;/includedFiles&gt;&lt;value&gt;1496766881&lt;/value&gt;&lt;/checksum&gt;</var.lastUserSourceChecksum>
+    <var.lastUserSourceChecksum>&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;&lt;checksum&gt;&lt;includedFiles&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\adaptive\getAdaptiveBinROI.m&lt;/file&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\adaptive\makeBinMask.m&lt;/file&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\moveMaskToPixelPosition.m&lt;/file&gt;&lt;/includedFiles&gt;&lt;value&gt;1953933346&lt;/value&gt;&lt;/checksum&gt;</var.lastUserSourceChecksum>
     <var.sourceSetState>&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;&lt;sourceModel&gt;&lt;primarySourceFiles&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\adaptive\getAdaptiveBinROI.m&lt;/file&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\adaptive\makeBinMask.m&lt;/file&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\moveMaskToPixelPosition.m&lt;/file&gt;&lt;/primarySourceFiles&gt;&lt;fixedPointSourceFiles/&gt;&lt;fixedPointSourceRegistered&gt;false&lt;/fixedPointSourceRegistered&gt;&lt;fixedPointSourceSelected&gt;false&lt;/fixedPointSourceSelected&gt;&lt;/sourceModel&gt;</var.sourceSetState>
     <param.forceMexBuild>false</param.forceMexBuild>
     <param.configImportActive>false</param.configImportActive>
