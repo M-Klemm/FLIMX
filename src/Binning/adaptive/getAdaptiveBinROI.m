@@ -132,11 +132,11 @@ parfor px = 1:nPixel
     binLevelEnd = binLevelEnd(1); %for codegen
     for binLevel = binLevelStart:binLevelEnd
         val = sum(tile(allMasks(:,binLevel)),'native');
-        if(val >= targetPhotons)
-            idx = moveMaskToPixelPosition(reshape(allMasks(:,binLevel),tSz,tSz),roiY(pxYcoord(px)),roiX(pxXcoord(px)),dataYSz,dataXSz,binXcoord,binYcoord);
+        if(val >= targetPhotons)            
             break
         end
     end
+    idx = moveMaskToPixelPosition(reshape(allMasks(:,binLevel),tSz,tSz),roiY(pxYcoord(px)),roiX(pxXcoord(px)),dataYSz,dataXSz,binXcoord,binYcoord);
     %slower version of fine search 
     %     if(binFactor > 0)
     %         binLevel = int32(find(binFactor == binRhoU,1,'first'));
