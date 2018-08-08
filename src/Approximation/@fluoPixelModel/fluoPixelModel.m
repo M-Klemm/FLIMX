@@ -213,7 +213,10 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %set volatile channel parameters
             if(any(ch == this.nonEmptyChannelList) && ~isempty(val))
                 this.params.volatileChannel{ch} = val;
-                this.myChannels{ch}.setLinearBounds([]);
+                chObj = this.myChannels{ch};
+                if(~isempty(chObj) && ~ischar(chObj))
+                    chObj.setLinearBounds([]);
+                end
             end
         end
         

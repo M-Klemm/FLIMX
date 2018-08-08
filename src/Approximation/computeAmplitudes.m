@@ -1,4 +1,4 @@
-function [ao,ampsOut,osetOut] = computeAmplitudes(expModels,measData,dataNonZeroMask,oset,fitOsetFlag)
+function [ao,ampsOut,osetOut] = computeAmplitudes(expModels,measData,dataNonZeroMask,oset,fitOsetFlag,linLB,linUB)
 %=============================================================================================================
 %
 % @file     computeAmplitudes.m
@@ -32,7 +32,7 @@ function [ao,ampsOut,osetOut] = computeAmplitudes(expModels,measData,dataNonZero
 % @brief    A function to compute amplitude of exponential functions to fit their sum to the measurement data
 
 nParams = size(expModels,2);
-nTimePoints = size(expModels,1);
+%nTimePoints = size(expModels,1);
 if(~isempty(measData) && nParams > 0)
     %data = measData(dataNonZeroMask);    
     %tmp = ones(nTimePoints,nParams,'like',expModels);
@@ -49,8 +49,10 @@ else
     nVecs = size(measData,2);
 end
 ao = zeros(1,nParams,nVecs,'like',expModels);    
-linLB = zeros(nParams,1,'like',expModels);
-linUB = inf(nParams,1,'like',expModels);
+if(isempty(linLB))
+    linLB = zeros(nParams,1,'like',expModels);
+    linUB = inf(nParams,1,'like',expModels);
+end
 if(fitOsetFlag)
     expModels(:,end,:) = 1;
 else

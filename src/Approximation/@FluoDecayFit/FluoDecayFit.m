@@ -483,7 +483,7 @@ classdef FluoDecayFit < handle
                         for i = 1:nParams
                             tauOut(:,:,i) = single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,sprintf('TauInit%d',i)));
                         end
-                        tauOut = reshape(permute(tauOut,[3,2,1]),nParams,dataYSz*dataXSz);
+                        tauOut = reshape(permute(tauOut,[3,1,2]),nParams,dataYSz*dataXSz);
                         shiftOut = reshape(single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,'hShiftInit')),1,dataYSz*dataXSz);                      
                         %apObj.basicParams.hybridFit = 0;
                         %remove taus and shift from fixed parameters
@@ -551,12 +551,12 @@ classdef FluoDecayFit < handle
                             myT = repmat(t(:,1),1,double(nExp)*nVecsTmp);                            
                             expMTmp = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,...
                                 myT,apObj.myChannels{ch}.iMaxPos,irffft,[],amps, taus, tcis, betas, scAmps, scShifts, [], scOset, hShift, offset, tciHShiftFine,false);
-                            [ao,aTmp,oTmp] = computeAmplitudes(expMTmp,md,dnzm,offset,vcp.cMask(end)<0);
+                            [ao,aTmp,oTmp] = computeAmplitudes(expMTmp,md,dnzm,offset,vcp.cMask(end)<0,zeros(size(expMTmp,2),'like',expMTmp),inf(size(expMTmp,2),'like',expMTmp));
                             expMTmp(:,:,1:nVecsTmp) = bsxfun(@times,expMTmp(:,:,1:nVecsTmp),ao);
                             mTmp = squeeze(sum(expMTmp(:,:,1:nVecsTmp),2));
                         else
                             %same model for all pixels
-                            [~,aTmp,oTmp] = computeAmplitudes(expModels,md,dnzm,oset,false);
+                            [~,aTmp,oTmp] = computeAmplitudes(expModels,md,dnzm,oset,false,zeros(size(expModels,2),'like',expModels),inf(size(expModels,2),'like',expModels));
                             mTmp = expModels * [aTmp; oTmp];
                             %expMTmp = bsxfun(@times,expModels,ao);
                             %mTmp = squeeze(sum(expMTmp(:,:,1:nVecsTmp),2));

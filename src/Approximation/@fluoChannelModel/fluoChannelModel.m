@@ -105,6 +105,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             if(length(this.basicParams.tciMask) > this.basicParams.nExp)
                 error('Number of tci too high! %d set, %d allowed (%d exponentials)',length(this.basicParams.tciMask),this.basicParams.nExp,this.basicParams.nExp);
             end
+            this.setLinearBounds([]); %initialize linear bounds
         end
         
         function setParent(this,hParent)
@@ -414,7 +415,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             end
             expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = computeExponentials(uint16(bp.nExp),uint16(bp.incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
                 logical(bp.stretchedExpMask),t,int32(this.iMaxPos),irffft,[],amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine,false,exponentialsLong(1:nTimeCh,1:bp.nExp+vpp.nScatter,1:nVecs),expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs));            
-            [ao,ampsOut,osetOut] = computeAmplitudes(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),this.getMeasurementData(),this.getDataNonZeroMask(),oset,vcp.cMask(end)<0);            
+            [ao,ampsOut,osetOut] = computeAmplitudes(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),this.getMeasurementData(),this.getDataNonZeroMask(),oset,vcp.cMask(end)<0,this.linLB,this.linUB);            
             expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = bsxfun(@times,expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),ao);
             model = squeeze(sum(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),2));
             expModelOut = expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs);
