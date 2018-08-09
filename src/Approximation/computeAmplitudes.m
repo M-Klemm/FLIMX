@@ -33,12 +33,7 @@ function [ao,ampsOut,osetOut] = computeAmplitudes(expModels,measData,dataNonZero
 
 nParams = size(expModels,2);
 %nTimePoints = size(expModels,1);
-if(~isempty(measData) && nParams > 0)
-    %data = measData(dataNonZeroMask);    
-    %tmp = ones(nTimePoints,nParams,'like',expModels);
-else
-    return
-end
+
 if(size(measData,2) == 1 && size(expModels,3) > 1)
     %use the same model for all data pixels
     multiModelsFlag = true;
@@ -48,7 +43,15 @@ else
     multiModelsFlag = false;
     nVecs = size(measData,2);
 end
-ao = zeros(1,nParams,nVecs,'like',expModels);    
+ao = zeros(1,nParams,nVecs,'like',expModels);
+if(~isempty(measData) && nParams > 0)
+    %data = measData(dataNonZeroMask);    
+    %tmp = ones(nTimePoints,nParams,'like',expModels);
+else
+    ampsOut = double(squeeze(ao(1,1:end-1,:)));
+    osetOut = double(squeeze(ao(1,end,:))');
+    return
+end
 if(isempty(linLB))
     linLB = zeros(nParams,1,'like',expModels);
     linUB = inf(nParams,1,'like',expModels);

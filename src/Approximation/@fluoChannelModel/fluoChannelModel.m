@@ -396,9 +396,10 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = getXVecComponents(this.myParent,x,true,this.myChannelNr);
             bp = this.basicParams;
             bp.incompleteDecayFactor = 2;
+            incompleteDecayFactor = max(1,bp.incompleteDecayFactor*bp.incompleteDecay);
             vpp = this.volatilePixelParams;
             nTimeCh = this.tLen;
-            nTimeChNoID = nTimeCh / bp.incompleteDecayFactor;
+            nTimeChNoID = nTimeCh / incompleteDecayFactor;
             if(isempty(t) || size(t,1) ~= this.tLen || size(t,2) < bp.nExp*nVecs)
                 t = repmat(this.time(:,1),1,bp.nExp*nVecs);
             end
@@ -406,17 +407,22 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 exponentialsLong = ones(size(t,1),bp.nExp,nVecs);
                 expModels = ones(nTimeChNoID,bp.nExp+vpp.nScatter+1,nVecs);
             end
-            vcp = this.volatileChannelParams;
-            bp.incompleteDecayFactor = 2;
+            vcp = this.volatileChannelParams;            
             if(bp.reconvoluteWithIRF)
                 irffft = this.getIRFFFT(nTimeCh);
             else
                 irffft = [];
             end
-            expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = computeExponentials(uint16(bp.nExp),uint16(bp.incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
+            expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = computeExponentials(uint16(bp.nExp),uint16(incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
                 logical(bp.stretchedExpMask),t,int32(this.iMaxPos),irffft,[],amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine,false,exponentialsLong(1:nTimeCh,1:bp.nExp+vpp.nScatter,1:nVecs),expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs));            
-            [ao,ampsOut,osetOut] = computeAmplitudes(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),this.getMeasurementData(),this.getDataNonZeroMask(),oset,vcp.cMask(end)<0,this.linLB,this.linUB);            
-            expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = bsxfun(@times,expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),ao);
+            if(~any(vcp.cMask < 0))
+                    ao(1,:,:) = [amps; scAmps; oset];
+                    ampsOut = double(squeeze(ao(1,1:bp.nExp,:)));
+                    osetOut = double(squeeze(ao(1,end,:)));
+            else
+                [ao,ampsOut,osetOut] = computeAmplitudes(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),this.getMeasurementData(),this.getDataNonZeroMask(),oset,vcp.cMask(end)<0,this.linLB,this.linUB);
+                expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = bsxfun(@times,expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),ao);
+            end            
             model = squeeze(sum(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),2));
             expModelOut = expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs);
         end
