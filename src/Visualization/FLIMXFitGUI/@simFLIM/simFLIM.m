@@ -741,7 +741,7 @@ classdef simFLIM < handle
                 set(this.visHandles.editShift,'Enable','off');
                 set(this.visHandles.editOffsetPhotons,'Enable','off');
                 set(this.visHandles.checkFixedQ,'Enable','off','Value',0);
-                %                 if(strcmp(sdc.dataSourceDatasetName,this.FLIMXObj.curFluoFile.getDatasetName()))
+                %                 if(strcmp(sdc.dataSourceDatasetName,this.FLIMXObj.curSubject.getDatasetName()))
                 %                     set(this.visHandles.checkAllChannels,'Enable','On');
                 %                     set(this.visHandles.popupChannel,'Enable','on');
                 %                 else
@@ -1354,7 +1354,7 @@ classdef simFLIM < handle
             %update basic fit paramters and fluoFile
             sdc = this.currentSynthDataCh;
             this.newSimSubject(sdc);
-            this.setupGUI();
+            %this.setupGUI();
             this.updateGUI();
         end
         
@@ -1678,7 +1678,7 @@ classdef simFLIM < handle
                         return
                     end
                 case 2 %result
-                    currentName = this.FLIMXObj.curFluoFile.getDatasetName();
+                    currentName = this.FLIMXObj.curSubject.getDatasetName();
                     if(~isempty(currentName) && ~strcmp(sdc.dataSourceDatasetName, currentName))
                         button = questdlg(sprintf('There is data in this channel present from dataset ''%s''.\n\nOverwrite?',sdc.dataSourceDatasetName),'Overwrite data','Yes','No','No');
                         switch button
@@ -1712,7 +1712,7 @@ classdef simFLIM < handle
                     sdc.dataSourcePos = [this.FLIMXObj.FLIMFitGUI.currentY,this.FLIMXObj.FLIMFitGUI.currentX];
                     [sdc.rawData, sdc.modelData] = this.makeSimMExpDec(1,1,sdc);
                 case 3 %measurement data
-                    currentName = this.FLIMXObj.curFluoFile.getDatasetName();
+                    currentName = this.FLIMXObj.curSubject.getDatasetName();
                     if(~isempty(sdc.dataSourceDatasetName))
                         %check dataset name                        
                         if(~isempty(currentName) && ~strcmp(sdc.dataSourceDatasetName, currentName))
@@ -1736,8 +1736,8 @@ classdef simFLIM < handle
                     sdc.xVec = [];
                     modelData(1,1,:) = this.FLIMXObj.FLIMFitGUI.currentDecayData;
                     sdc.channelNr = this.currentChannel;
-                    sdc.nrSpectralChannels = this.FLIMXObj.curFluoFile.nrSpectralChannels;
-                    sdc.nrTimeChannels = this.FLIMXObj.curFluoFile.nrTimeChannels;
+                    sdc.nrSpectralChannels = this.FLIMXObj.curSubject.nrSpectralChannels;
+                    sdc.nrTimeChannels = this.FLIMXObj.curSubject.nrTimeChannels;
                     sdc.nrPhotons = sum(modelData(:));
                     sdc.modelData = modelData;
                     sdc.arrayParentSDD = '';
@@ -1834,18 +1834,19 @@ classdef simFLIM < handle
                 return
             end
             varnames = sprintf('syms q%d',idx);
-            formula = sprintf('q%d = 100*a%d*t%d/(',idx,idx,idx);
+            formula = sprintf('q%d == 100*a%d*t%d/(',idx,idx,idx);
             for i = 1:length(qs)
                 varnames = [varnames sprintf(' a%d t%d',i,i)];
                 formula = [formula sprintf('a%d*t%d',i,i)];
                 if(i ~= length(qs))
                     formula = [formula '+'];
                 else
-                    formula = [formula ')'];
+                    formula = [formula ');'];
                 end
             end
             eval(varnames);
-            res = solve(formula,sprintf('a%d',idx));
+            eqn = eval(formula);
+            res = solve(eqn,eval(sprintf('a%d',idx)));
             %fill variables
             eval(sprintf('q%d = qs(%d);',idx,idx));
             for i = 1:length(qs)
