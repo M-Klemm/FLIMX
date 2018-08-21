@@ -724,6 +724,7 @@ classdef measurementFile < handle
                 out = [];
                 bl = 0;
                 masks = 0;
+                nrPixels = 0;
             else
                 out = this.initData{ch,1};
                 bl = this.initData{ch,2};

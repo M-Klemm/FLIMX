@@ -420,9 +420,9 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                     ampsOut = double(squeeze(ao(1,1:bp.nExp,:)));
                     osetOut = double(squeeze(ao(1,end,:)));
             else
-                [ao,ampsOut,osetOut] = computeAmplitudes(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),this.getMeasurementData(),this.getDataNonZeroMask(),oset,vcp.cMask(end)<0,this.linLB,this.linUB);
-                expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = bsxfun(@times,expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),ao);
-            end            
+                [ao,ampsOut,osetOut] = computeAmplitudes(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),this.getMeasurementData(),this.getDataNonZeroMask(),oset,vcp.cMask(end)<0,this.linLB,this.linUB);                
+            end
+            expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = bsxfun(@times,expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),ao);
             model = squeeze(sum(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),2));
             expModelOut = expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs);
         end
