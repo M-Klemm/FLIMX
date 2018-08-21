@@ -381,6 +381,8 @@ classdef result4Import < resultFile
                                     data_temp = ~transparency > 0.1;
                                 end
                             end
+                            %flip the image by default
+                            data_temp = flipud(data_temp);
                         catch
                             %reading image failed
                             %todo: message user
