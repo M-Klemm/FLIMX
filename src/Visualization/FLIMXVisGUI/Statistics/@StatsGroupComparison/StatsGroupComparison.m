@@ -90,10 +90,10 @@ classdef StatsGroupComparison < handle
             set(this.visHandles.menuExit,'Callback',@this.menuExit_Callback);
             set(this.visHandles.menuExcel,'Callback',@this.menuExcelExport_Callback);
             set(this.visHandles.menuAllExcel,'Callback',@this.menuExcelExportAllParams_Callback);
-            set(this.visHandles.menuSSRocCurve,'Callback',@this.menuScreenshot_Callback);
-            set(this.visHandles.menuSSRocTable,'Callback',@this.menuScreenshot_Callback);
-            set(this.visHandles.menuSSSumGrps,'Callback',@this.menuScreenshot_Callback);
-            set(this.visHandles.menuSSDiffGrps,'Callback',@this.menuScreenshot_Callback);
+            set(this.visHandles.menuSSRocCurve,'Callback',@this.menuExportFigure_Callback);
+            set(this.visHandles.menuSSRocTable,'Callback',@this.menuExportFigure_Callback);
+            set(this.visHandles.menuSSSumGrps,'Callback',@this.menuExportFigure_Callback);
+            set(this.visHandles.menuSSDiffGrps,'Callback',@this.menuExportFigure_Callback);
             %set callbacks
             set(this.visHandles.popupSelStudy1,'Callback',@this.GUI_SelStudy1Pop_Callback);
             set(this.visHandles.popupSelStudy2,'Callback',@this.GUI_SelStudy2Pop_Callback);
@@ -1017,9 +1017,9 @@ classdef StatsGroupComparison < handle
             end
         end
         
-        function menuScreenshot_Callback(this,hObject,eventdata)
-           %export screenshots
-            switch get(hObject,'Tag');
+        function menuExportFigure_Callback(this,hObject,eventdata)
+           %export figure
+            switch get(hObject,'Tag')
                 case 'menuSSRocCurve'
                     axStr = 'axesExtAnalysis';
                     set(this.visHandles.radioROC,'Value',1);

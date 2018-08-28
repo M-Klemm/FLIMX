@@ -586,8 +586,8 @@ classdef FLIMXVisGUI < handle
             this.FLIMXObj.FLIMFitGUI.checkVisWnd();
         end        
         
-        function menuScreenshot_Callback(this,hObject,eventdata)
-            %take a screenshot (therefore redraw selected axes in new figure)   
+        function menuExportFigure_Callback(this,hObject,eventdata)
+            %export figure (therefore redraw selected axes in new figure)   
             tag = get(hObject,'Tag');
             side = 'l';            
             if(contains(tag,'R'))
@@ -652,9 +652,11 @@ classdef FLIMXVisGUI < handle
                     imwrite(uint16(ssObj.mainExportXls),fn,'BitDepth',16,'Mode','lossless');
                 otherwise                    
                     if(this.exportParams.resampleImage)
+                        %resample image to desired resolution, add color bar, box, lines, ...
                         print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
                     else
-                        imwrite(ssObj.mainExportColors,fn);
+                        %export image in native resolution with color bar, box, lines, ...
+                        imwrite(flipud(ssObj.mainExportColors),fn);
                     end
             end
             if(ishandle(hFig))
@@ -1928,10 +1930,10 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.menuHolmWilcoxon,'Callback',@this.menuHolmWilcoxon_Callback);
             set(this.visHandles.menuClustering,'Callback',@this.menuClustering_Callback);
             set(this.visHandles.menuOpenStudyMgr,'Callback',@this.menuOpenStudyMgr_Callback);
-            set(this.visHandles.menuSSTL,'Callback',@this.menuScreenshot_Callback);
-            set(this.visHandles.menuSSTR,'Callback',@this.menuScreenshot_Callback);
-            set(this.visHandles.menuSSBL,'Callback',@this.menuScreenshot_Callback);
-            set(this.visHandles.menuSSBR,'Callback',@this.menuScreenshot_Callback);
+            set(this.visHandles.menuSSTL,'Callback',@this.menuExportFigure_Callback);
+            set(this.visHandles.menuSSTR,'Callback',@this.menuExportFigure_Callback);
+            set(this.visHandles.menuSSBL,'Callback',@this.menuExportFigure_Callback);
+            set(this.visHandles.menuSSBR,'Callback',@this.menuExportFigure_Callback);
             set(this.visHandles.menuMovie,'Callback',@this.menuExportMovie_Callback);
             set(this.visHandles.menuXlsTL,'Callback',@this.menuExportExcel_Callback);
             set(this.visHandles.menuXlsTR,'Callback',@this.menuExportExcel_Callback);
