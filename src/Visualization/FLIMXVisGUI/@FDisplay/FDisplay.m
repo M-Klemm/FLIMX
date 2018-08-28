@@ -706,7 +706,7 @@ classdef FDisplay < handle
                 if(dispDim == 1 || isempty(hfd{i}.getCIColor(rc,rt,rs,ri)))
                     %cTmp = hfd{i}.getColorScaling();
                     cTmp = single(this.myColorScaleObj.getCurCSInfo());
-                    if(isempty(cTmp) || length(cTmp) ~= 3)
+                    if(isempty(cTmp) || length(cTmp) ~= 3 || nrFD > 1)
                         %auto color scaling
                         cMin = zMin(i);
                         cMax = zMax(i);

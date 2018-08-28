@@ -135,7 +135,8 @@ classdef FLIMXFitResultImport < handle
                     set(this.visHandles.popupSubjectSel,'String',subjects,'Value',idx);
                 end
             else
-                this.currentSubjectName = subject;
+                %new subject?!
+                %should switch to edit field and put subject name there
             end
         end
         
@@ -162,7 +163,8 @@ classdef FLIMXFitResultImport < handle
                 set(this.visHandles.popupSubjectSel,'String','-none-','Value',1,'Enable','off');
             else
                 set(this.visHandles.popupSubjectSel,'String',str,'Value',min(length(str),get(this.visHandles.popupSubjectSel,'Value')));
-                set(this.visHandles.radioExistingSubject,'Enable','on');
+                set(this.visHandles.radioExistingSubject,'Enable','on','Value',1);
+                set(this.visHandles.radioNewSubject,'Value',0,'Enable','off');
             end
             if(get(this.visHandles.radioExistingSubject,'Value'))
                 set(this.visHandles.popupSubjectSel,'Visible','on');
@@ -171,6 +173,10 @@ classdef FLIMXFitResultImport < handle
                 idx = find(strcmp(str,this.currentSubjectName));
                 if(~isempty(idx))
                     set(this.visHandles.popupSubjectSel,'Value',idx);
+                else
+                    %we could not find the subject - this should not happen
+                    %warn user?
+                    set(this.visHandles.popupSubjectSel,'Value',1);
                 end
             else
                 set(this.visHandles.popupSubjectSel,'Visible','off');
