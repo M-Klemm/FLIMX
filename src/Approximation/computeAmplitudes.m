@@ -34,15 +34,23 @@ function [ao,ampsOut,osetOut] = computeAmplitudes(expModels,measData,dataNonZero
 nParams = size(expModels,2);
 %nTimePoints = size(expModels,1);
 
-if(size(measData,2) == 1 && size(expModels,3) > 1)
+if(size(measData,2) > 1 && size(expModels,3) == 1)
     %use the same model for all data pixels
-    multiModelsFlag = true;
+    singleModelFlag = true;
+    nVecs = size(measData,2);
+elseif(size(expModels,3) == size(measData,2))
+    %compute a different model for each pixel
+    singleModelFlag = false;
+    nVecs = size(measData,2);
+elseif(size(measData,2) == 1 && size(expModels,3) > 1)
+    %compute multiple models for one pixel
+    singleModelFlag = false;
     nVecs = size(expModels,3);
 else
-    %use a different model for each pixel
-    multiModelsFlag = false;
-    nVecs = size(measData,2);
+    %throw error
+    error('FLIMX:computeAmplitudes','Invalid model or measurement data')
 end
+nData = size(measData,2);
 ao = zeros(1,nParams,nVecs,'like',expModels);
 if(~isempty(measData) && nParams > 0)
     %data = measData(dataNonZeroMask);    
@@ -63,12 +71,12 @@ else
 end
 %determine amplitudes
 for j = 1:nVecs
-    if(multiModelsFlag)
-        idxExpModel = j;
-        idxData = 1;
-    else
+    if(singleModelFlag)
         idxExpModel = 1;
         idxData = j;
+    else
+        idxExpModel = j;
+        idxData = min(j,nData);
     end
     if(fitOsetFlag)
         %determine amplitudes and offset
@@ -86,40 +94,7 @@ for j = 1:nVecs
         %ao(1,:,j) = tmp;
     end
 end
-%compute model
-% if(bp.approximationTarget == 2 && bp.anisotropyR0Method == 3 && this.myChannelNr == 4)
-%     %%heikal
-%     z = zeros(nTimeCh,nVecs);
-%     n = zeros(nTimeCh,nVecs);
-%     for i = 1:2:nExp
-%         z = z + bsxfun(@times,squeeze(exponentialsOffset(:,i,1:nVecs)),amps(i,:)) .* bsxfun(@times,squeeze(exponentialsOffset(:,i+1,1:nVecs)),amps(i+1,:));
-%         n = n + bsxfun(@times,squeeze(exponentialsOffset(:,i,1:nVecs)),amps(i,:));
-%     end
-%     model = (z./n + bsxfun(@times,squeeze(exponentialsOffset(:,end,1:nVecs)),oset));% .* this.dMaxVal;
-%     model(isnan(model)) = 0;
-%     ampsOut = double(amps);
-%     osetOut = double(oset);
-%     scAmpsOut = zeros(0,nVecs);
-% else
-%     if(~any(vcp.cMask < 0))
-%         ao(1,:,:) = [amps; scAmps; oset];
-%     end
-%     if(vpp.nScatter > 0)
-%         scAmpsOut = double(squeeze(ao(1,bp.nExp+1:bp.nExp+vpp.nScatter,:)));
-%     else
-%         scAmpsOut = zeros(0,nVecs);
-%     end
-%     expModels(isnan(expModels)) = 0;
-%     expModels(:,:,1:nVecs) = bsxfun(@times,expModels(:,:,1:nVecs),ao);
-%     model = squeeze(sum(expModels(:,:,1:nVecs),2));
-%     if(bp.heightMode == 2)
-%         %force model to maximum of data
-%         model = bsxfun(@times,model, 1./max(model,[],1)).*this.dMaxVal;
-%     end
 ampsOut = double(squeeze(ao(1,1:end-1,:))); %double(squeeze(ao(1,1:bp.nExp,:)));
 osetOut = double(squeeze(ao(1,end,:))');
-% end
-
-
 end
 

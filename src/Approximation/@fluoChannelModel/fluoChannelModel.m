@@ -414,7 +414,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 irffft = [];
             end
             expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = computeExponentials(uint16(bp.nExp),uint16(incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
-                logical(bp.stretchedExpMask),t,int32(this.iMaxPos),irffft,[],amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine,false,exponentialsLong(1:nTimeCh,1:bp.nExp+vpp.nScatter,1:nVecs),expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs));            
+                logical(bp.stretchedExpMask),t,int32(this.iMaxPos),irffft,[], taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine,false,exponentialsLong(1:nTimeCh,1:bp.nExp+vpp.nScatter,1:nVecs),expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs));            
             if(~any(vcp.cMask < 0))
                     ao(1,:,:) = [amps; scAmps; oset];
                     ampsOut = double(squeeze(ao(1,1:bp.nExp,:)));

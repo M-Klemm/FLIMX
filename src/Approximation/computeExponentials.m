@@ -1,4 +1,4 @@
-function exponentialsOut = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,t,irfMaxPos,irfFFT,scatterData,amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine,optimize4CodegenFlag,exponentialsLong,exponentialsOut)
+function exponentialsOut = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,t,irfMaxPos,irfFFT,scatterData,taus,tcis,betas,scAmps,scShifts,scHShiftsFine,scOset,hShift,oset,tciHShiftFine,optimize4CodegenFlag,exponentialsLong,exponentialsOut)
 %=============================================================================================================
 %
 % @file     computeExponentials.m
@@ -32,7 +32,7 @@ function exponentialsOut = computeExponentials(nExp,incompleteDecayFactor,scatte
 % @brief    A function to compute exponential decays from the input parameters
 
 nTimeCh = uint16(length(t));
-nVecs = size(amps,2);
+nVecs = size(taus,2);
 if(isempty(scatterData))
     nScatter = 0;
 else

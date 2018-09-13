@@ -473,12 +473,12 @@ classdef FluoDecayFit < handle
                     bp.incompleteDecayFactor = 2;
                     nParams = bp.nExp;                    
                     fi = apObj.getFileInfoStruct(ch);
-                    t = double(linspace(0,(fi.nrTimeChannels-1)*fi.timeChannelWidth,bp.incompleteDecayFactor*fi.nrTimeChannels)'); 
+                    t = double(linspace(0,bp.incompleteDecayFactor*(fi.nrTimeChannels-1)*fi.timeChannelWidth,bp.incompleteDecayFactor*fi.nrTimeChannels)'); 
                     nTimeCh = size(t,1);
                     expModels = [];
                     oset = [];
-                    multiModelsFlag = this.FLIMXObj.curSubject.initFitParams.gridSize > 1;
-                    if(multiModelsFlag)
+                    multiModelsFlag = this.FLIMXObj.curSubject.initFitParams.gridSize == 1;
+                    if(~multiModelsFlag)
                         tauOut = zeros(dataYSz,dataXSz,nParams,'single');
                         for i = 1:nParams
                             tauOut(:,:,i) = single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,sprintf('TauInit%d',i)));
@@ -544,15 +544,15 @@ classdef FluoDecayFit < handle
                         oTmp = [];
                         mTmp = [];
                         expMTmp = [];
-                        if(multiModelsFlag)
+                        if(~multiModelsFlag)
                             %different model for each pixel
                             %[mTmp, aTmp, ~, oTmp] = apObj.myChannels{ch}.compModel([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(1,idxTiles(i)+1:idxTiles(i+1));]);
-                            [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, offset, tciHShiftFine, nVecsTmp] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch);
+                            [~, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, offset, tciHShiftFine, nVecsTmp] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch);
                             myT = repmat(t(:,1),1,double(nExp)*nVecsTmp);                            
                             expMTmp = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,...
-                                myT,apObj.myChannels{ch}.iMaxPos,irffft,[],amps, taus, tcis, betas, scAmps, scShifts, [], scOset, hShift, offset, tciHShiftFine,false);
-                            [ao,aTmp,oTmp] = computeAmplitudes(expMTmp,md,dnzm,offset,vcp.cMask(end)<0,zeros(size(expMTmp,2),'like',expMTmp),inf(size(expMTmp,2),'like',expMTmp));
-                            expMTmp(:,:,1:nVecsTmp) = bsxfun(@times,expMTmp(:,:,1:nVecsTmp),ao);
+                                myT,apObj.myChannels{ch}.iMaxPos,irffft,[],taus, tcis, betas, scAmps, scShifts, [], scOset, hShift, offset, tciHShiftFine,false);
+                            [ao,aTmp,oTmp] = computeAmplitudes(expMTmp,md,dnzm,offset,vcp.cMask(end)<0,zeros(size(expMTmp,2),1,'like',expMTmp),inf(size(expMTmp,2),1,'like',expMTmp));
+                            expMTmp(:,:,1:nVecsTmp) = expMTmp(:,:,1:nVecsTmp).*ao;                            
                             mTmp = squeeze(sum(expMTmp(:,:,1:nVecsTmp),2));
                         else
                             %same model for all pixels
