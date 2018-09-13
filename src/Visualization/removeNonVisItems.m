@@ -43,20 +43,21 @@ items = items(~strcmpi(items,'Intensity'));
 items = items(~strcmpi(items,'iVec'));
 %select specific items
 if(mode == 1) %simple
-    keep = {'Tau','AmplitudePercent','Offset','TauMean','Q','hShift','chi2','AnisotropyQuick'};    
+    %keep = {'Tau','AmplitudePercent','Offset','TauMean','Q','hShift','chi2','AnisotropyQuick'};
+    remove = {'Amplitude','AmplitudeGuess','AmplitudeInit','TauGuess','TauInit','tc','tcGuess','Beta','OffsetGuess','OffsetInit','TauMeanGuess','hShiftGuess','hShiftInit','ScatterAmplitude','ScatterShift','ScatterOffset','RAUC','RAUCIS',...
+        'MaximumPosition','MaximumPhotons','TotalPhotons','chi2Tail','AnisotropyQuick','Time','Iterations','FunctionEvaluations','StartPosition','EndPosition','standalone','SlopeStartPosition','CleanUpHitMask'};
 elseif(mode == 2) %expert
-    keep = {'Tau','AmplitudePercent','Offset','TauMean','Q','shift','hShift','chi2','RAUC','RAUCIS','Amplitude','MaximumPosition','MaximumPhotons','chi2Tail','AnisotropyQuick','tc'};    
+    %keep = {'Tau','AmplitudePercent','Offset','TauMean','Q','shift','hShift','chi2','RAUC','RAUCIS','Amplitude','MaximumPosition','MaximumPhotons','chi2Tail','AnisotropyQuick','tc'};
+    remove = {'AmplitudeGuess','AmplitudeInit','TauGuess','TauInit','tcGuess','Beta','OffsetGuess','OffsetInit','TauMeanGuess','hShiftGuess','hShiftInit','ScatterAmplitude','ScatterShift','ScatterOffset',...
+        'TotalPhotons','Time','Iterations','FunctionEvaluations','StartPosition','EndPosition','standalone','SlopeStartPosition','CleanUpHitMask'};
 else %all
     return
 end
-new = [];
-cLen = cellfun(@length,items);
-for i = 1:length(keep)
-    idxLen = cLen == length(keep{i}) | cLen == length(keep{i})+1;
-    idxStrCmp = strncmp(keep{i},items(idxLen),length(keep{i}));
-    if(any(idxStrCmp))
-        idxLen = find(idxLen);
-        new = [new; idxLen(idxStrCmp)];
-    end
+for i = 1:length(remove)
+    %find numbered elements
+    idx = cellfun(@isempty,regexpi(items,[remove{i} '\d']));
+    %find elements without number
+    idx = idx & ~strcmpi(items,remove{i});
+    items = items(idx);
 end
-items = items(new);
+            
