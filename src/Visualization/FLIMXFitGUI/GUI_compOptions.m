@@ -235,7 +235,7 @@ delete(handles.compOptionsFigure);
 function buttonMCPath_Callback(hObject, eventdata, handles)
 %
 rdh = get(handles.compOptionsFigure,'userdata');
-path = uigetdir(rdh.computation.mcShare);
+path = uigetdir_workaround(rdh.computation.mcShare);
 if(path)
     rdh.computation.mcShare = path;
     set(handles.compOptionsFigure,'userdata',rdh);

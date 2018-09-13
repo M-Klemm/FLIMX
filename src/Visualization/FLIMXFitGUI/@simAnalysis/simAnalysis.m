@@ -1816,7 +1816,7 @@ classdef simAnalysis < handle
                 return
             end            
             this.stop = false;
-            path = uigetdir('','Select Export Folder');
+            path = uigetdir_workaround('','Select Export Folder');
             if(path==0)
                 return
             end
