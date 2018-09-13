@@ -464,7 +464,7 @@ classdef FLIMXFitResultImport < handle
         function openFolderByGUI(this,studyName,subjectName)
             %open a new folder using a GUI
             this.checkVisWnd(); %make sure GUI is open
-            path = uigetdir(this.currentPath,sprintf('Select folder to import results for ''%s'' in study ''%s''',subjectName,studyName));
+            path = uigetdir_workaround(this.currentPath,sprintf('Select folder to import results for ''%s'' in study ''%s''',subjectName,studyName));
             if(isempty(path) || isequal(path,0))
                 this.closeVisWnd();
                 return

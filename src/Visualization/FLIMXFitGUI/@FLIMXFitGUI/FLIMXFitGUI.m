@@ -1626,7 +1626,7 @@ classdef FLIMXFitGUI < handle
         %% menu callbacks
         function menuExportFiles_Callback(this,hObject,eventdata)
             %write results to disc (again)
-            expDir = uigetdir(this.FLIMXObj.getWorkingDir());
+            expDir = uigetdir_workaround(this.FLIMXObj.getWorkingDir());
             if(isempty(expDir) || ~expDir)
                 return
             end
