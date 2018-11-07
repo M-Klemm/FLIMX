@@ -60,6 +60,8 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         dMaxPos = 0; %position of data max (index)
         dFWHMPos = 0; %position of full width at half maximum (index)
         dRisingIDs = []; %positions of data rising edge between 5% and 85%
+        slopeStartPos = []; %positions of data rising edge
+        offsetGuess = []; %educated guess of the offset in the data
         time = []; %vector of timepoints
         nScatter = 0;
         basicParams = 0;
@@ -91,6 +93,8 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             this.dataStorage.measurement.maxPos = [];      
             this.dataStorage.measurement.maxVal = [];
             this.dataStorage.measurement.FWHMPos = [];
+            this.dataStorage.measurement.offsetGuess = [];
+            this.dataStorage.measurement.slopeStartPos = [];
             this.dataStorage.neighbor.raw = []; %matrix with data of surrounding pixels used for chi² computation
             this.dataStorage.neighbor.rez = []; %matrix with reziproke of data of surrounding pixels used for chi² computation
             this.dataStorage.neighbor.nonZeroMask = false; %neighbor non-zero indices
@@ -179,6 +183,22 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 this.compSmoothedMaxValues();
             end
             out = this.dataStorage.measurement.risingIDs;
+        end
+        
+        function out = get.slopeStartPos(this)
+            %get positions of rising edge
+            if(isempty(this.dataStorage.measurement.slopeStartPos))
+                this.compOffsetGuess();
+            end
+            out = this.dataStorage.measurement.slopeStartPos;
+        end
+        
+        function out = get.offsetGuess(this)
+            %get educated guess of the offset in the data
+            if(isempty(this.dataStorage.measurement.offsetGuess))
+                this.compOffsetGuess();
+            end
+            out = this.dataStorage.measurement.offsetGuess;
         end
         
         function out = getIRF(this)
@@ -392,7 +412,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         function [model, ampsOut, scAmpsOut, osetOut, expModelOut] = compModel2(this,x)
             % compute model for parameters x
             persistent t exponentialsLong expModels
-            scAmpsOut = [];
+              scAmpsOut = [];
             [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = getXVecComponents(this.myParent,x,true,this.myChannelNr);
             bp = this.basicParams;
             bp.incompleteDecayFactor = 2;
@@ -413,14 +433,23 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             else
                 irffft = [];
             end
-            expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = computeExponentials(uint16(bp.nExp),uint16(incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
-                logical(bp.stretchedExpMask),t,int32(this.iMaxPos),irffft,[], taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine,false,exponentialsLong(1:nTimeCh,1:bp.nExp+vpp.nScatter,1:nVecs),expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs));            
-            if(~any(vcp.cMask < 0))
-                    ao(1,:,:) = [amps; scAmps; oset];
-                    ampsOut = double(squeeze(ao(1,1:bp.nExp,:)));
-                    osetOut = double(squeeze(ao(1,end,:)));
+            if(~isempty(this.dataStorage.scatter.raw))
+                scVec = repmat(this.getScatterData(),[1,1,nVecs]);
             else
-                [ao,ampsOut,osetOut] = computeAmplitudes(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),this.getMeasurementData(),this.getDataNonZeroMask(),oset,vcp.cMask(end)<0,this.linLB,this.linUB);                
+                scVec = zeros(nTimeChNoID,vpp.nScatter-bp.scatterIRF,nVecs);
+            end
+            expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = computeExponentials(uint16(bp.nExp),uint16(incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
+                logical(bp.stretchedExpMask),t,int32(this.iMaxPos),irffft,scVec, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, tciHShiftFine,false,exponentialsLong(1:nTimeCh,1:bp.nExp,1:nVecs),expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs));            
+            if(~any(vcp.cMask < 0))
+                ao(1,:,:) = [amps; scAmps; oset];
+                ampsOut = double(squeeze(ao(1,1:bp.nExp,:)));
+                osetOut = double(squeeze(ao(1,end,:)));
+            else
+                [ao,ampsOut,osetOut] = computeAmplitudes(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),this.getMeasurementData(),this.getDataNonZeroMask(),oset,vcp.cMask(end)<0,this.linLB,this.linUB);
+                if(vpp.nScatter > 0)
+                    scAmpsOut = ampsOut(bp.nExp+1:end,:);
+                    ampsOut(bp.nExp+1:end,:) = [];
+                end
             end
             expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = bsxfun(@times,expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),ao);
             model = squeeze(sum(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),2));
@@ -811,21 +840,23 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             %compute position and value of data maximum (smoothed data) and full width half maximum position
             dSmooth = this.dataStorage.measurement.raw;
             dSmooth(isnan(dSmooth)) = 0;
-            dSmooth = fastsmooth(dSmooth,5,3,0);
-            [~, dMaxPosTmp] = max(dSmooth(min(this.dLen,max(1,this.myStartPos)):min(floor(this.dLen/2),this.myEndPos),1));
+            dSmooth = fastsmooth(dSmooth,5,2,0);
+            dSmooth = flipud(fastsmooth(flipud(dSmooth),5,2,0));
+            [dMaxValTmp, dMaxPosTmp] = max(dSmooth(min(this.dLen,max(1,this.myStartPos)):min(floor(this.dLen/2),this.myEndPos),1));
             %look for maximum in real data around the max of the smoothed data
             dMaxPosTmp = dMaxPosTmp + this.myStartPos-1;
-            [maxVal, dMaxPosTmp2] = max(this.dataStorage.measurement.raw(min(this.dLen,max(1,dMaxPosTmp-5)):min(this.dLen,dMaxPosTmp+5),1));
-            this.dataStorage.measurement.maxPos = dMaxPosTmp-5+dMaxPosTmp2-1;
+            %[maxVal, dMaxPosTmp2] = max(this.dataStorage.measurement.raw(min(this.dLen,max(1,dMaxPosTmp-5)):min(this.dLen,dMaxPosTmp+5),1));
+            %this.dataStorage.measurement.maxPos = dMaxPosTmp-5+dMaxPosTmp2-1;
+            this.dataStorage.measurement.maxPos = dMaxPosTmp;
+            this.dataStorage.measurement.maxVal = double(dMaxValTmp);
             if(this.basicParams.fitModel ~=1)
                 this.myStartPos = max(1,this.dataStorage.measurement.maxPos-this.basicParams.tailFitPreMaxSteps-1);
-            end
-            this.dataStorage.measurement.maxVal = double(maxVal);
-            this.dataStorage.measurement.FWHMPos = find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos),maxVal*0.6),1,'last');
+            end            
+            this.dataStorage.measurement.FWHMPos = find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos),dMaxValTmp*0.6),1,'last');
             ids = (5:10:85)./100;
             this.dataStorage.measurement.risingIDs = zeros(size(ids));
-            minVal = min(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos));
-            dataRange = maxVal-minVal;
+            minVal = min(this.dataStorage.measurement.raw(max(1,min(this.myStartPos,this.slopeStartPos)):this.dataStorage.measurement.maxPos));
+            dataRange = dMaxValTmp-minVal;
             for i = 1:length(ids)
                 if(ids(i) > 0.5)
                     this.dataStorage.measurement.risingIDs(i) = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos) >= double(minVal)+double(dataRange)*ids(i),1,'first');
@@ -852,6 +883,33 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 this.dataStorage.measurement.nonZeroMask = false;
                 this.dataStorage.measurement.nonZeroMaskTail = false;
             end
-        end        
+        end
+        
+        
+        function compOffsetGuess(this)
+            %make an educated guess for the current offset
+            if(~isempty(this.dataStorage.measurement.raw))
+                this.dataStorage.measurement.realStartPos = find(this.dataStorage.measurement.raw > 0 & ~isnan(this.dataStorage.measurement.raw),1);
+                this.dataStorage.measurement.slopeStartPos = fluoPixelModel.getStartPos(this.dataStorage.measurement.raw);
+                oGuess = this.dataStorage.measurement.raw(this.dataStorage.measurement.realStartPos:max(this.dataStorage.measurement.realStartPos+1,this.dataStorage.measurement.slopeStartPos));
+                oGuess = oGuess(~isnan(oGuess));
+                % if(length(oGuess) < 10)
+                %     %we have too few datapoints for a reliable estimate, try to get more
+                %     oGuess = data(min(offsetStartPos,SlopeStartPosition):SlopeStartPosition);
+                % end
+                oGuess = mean(oGuess(oGuess ~= 0));
+                if(isempty(oGuess))
+                    oGuess = 0;
+                end
+                %scale magnitude if needed
+                if(this.basicParams.heightMode == 2)
+                    oGuess = oGuess/this.dMaxVal;
+                end
+                this.dataStorage.measurement.offsetGuess = oGuess;
+            else
+                this.dataStorage.measurement.offsetGuess = [];
+                this.dataStorage.measurement.slopeStartPos = [];
+            end                        
+        end
     end
 end % classdef

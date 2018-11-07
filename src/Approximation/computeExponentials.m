@@ -1,4 +1,4 @@
-function exponentialsOut = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,t,irfMaxPos,irfFFT,scatterData,taus,tcis,betas,scAmps,scShifts,scHShiftsFine,scOset,hShift,oset,tciHShiftFine,optimize4CodegenFlag,exponentialsLong,exponentialsOut)
+function exponentialsOut = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,t,irfMaxPos,irfFFT,scatterData,taus,tcis,betas,scAmps,scShifts,scHShiftsFine,scOset,hShift,tciHShiftFine,optimize4CodegenFlag,exponentialsLong,exponentialsOut)
 %=============================================================================================================
 %
 % @file     computeExponentials.m
@@ -51,21 +51,19 @@ taus = 1./taus;
 % end
 if((nScatter-(scatterEnable && scatterIRF)) > 0)
     %shiftAndLinearOpt function will move all components by hShift -> compensate scatter shifts here
-    tcis = [tcis; bsxfun(@minus,scShifts,hShift)];
-    tciHShiftFine = [tciHShiftFine; scHShiftsFine];
+    scShifts = bsxfun(@minus,scShifts,hShift);
 end
 %% allocate memory for temporary vatiables
 %             if(isempty(exponentialsLong) || size(exponentialsLong,1) ~= nTimeCh || size(exponentialsLong,3) < nVecs || size(exponentialsLong,2) ~= nExp || size(exponentialsShort,2) ~= nExp+vpp.nScatter)
-if(nargin < 22)
+if(nargin < 21)
     exponentialsLong = ones(nTimeCh,nExp*nVecs,'like',t);
-else
-    exponentialsLong = reshape(exponentialsLong,nTimeCh,[]);
 end
-if(nargin < 23)
+exponentialsLong = reshape(exponentialsLong,nTimeCh,[]);
+if(nargin < 22)
     exponentialsOut = ones(nTimeChOut,nExp+nScatter+1,nVecs,'like',t);
-else
-    exponentialsOut = reshape(exponentialsOut,nTimeChOut,[]);
 end
+exponentialsOut = reshape(exponentialsOut,nTimeChOut,[]);
+
 %calculate indices where the exponentials are
 idxExponentialsLong = false(nExp,1);
 idxExponentialsLong(1:nExp) = true;
@@ -80,11 +78,13 @@ idxScatterOut = repmat(idxScatterOut,nVecs,1);
 taus = reshape(taus,nVecs*nExp,1);
 temporalShift = reshape((tcis + hShift),nVecs*nExp,1);
 tciHShiftFine = reshape(tciHShiftFine,nVecs*nExp,1);
+scShifts = reshape(scShifts,nVecs*nScatter,1);
+scHShiftsFine = reshape(scHShiftsFine,nVecs*nScatter,1);
 %exponentialsOut = ones(nTimeCh,nExp,nVecs);
 %exponentialsOffset = ones(nTimeCh,nExp+vpp.nScatter+1,nVecs,'single');
 %             end
 % if(~isempty(this.dataStorage.scatter.raw))
-    scatterData = repmat(scatterData,[1,nVecs]);
+    %scatterData = repmat(scatterData,[1,nVecs]);
 % else
 %     scVec = zeros(size(exponentialsOut,1),vpp.nScatter-scatterIRF,nVecs);
 % end
@@ -164,18 +164,25 @@ for j = 1:nExp*nVecs
     %temporal shift with full time channels
     exponentialsLong(1:nTimeChOut,j) = circshift(exponentialsLong(1:nTimeChOut,j),temporalShift(j));
 end
+%shift with higher time resolution (interpolate)
 exponentialsLong(1:nTimeChOut,:) = vectorInterp(exponentialsLong(1:nTimeChOut,:),tciHShiftFine);
 %% assemble output
 exponentialsOut(:,idxExponentialsOut) = exponentialsLong(1:nTimeChOut,idxExponentialsLong);
-%% add scatter
+%% add shifted scatter
 if((nScatter-(scatterEnable && scatterIRF)) > 0)
-    exponentialsOut(:,idxScatterOut) = scatterData(:,1:nVecs);
+    for j = 1:nVecs
+        for k = 1:nScatter
+            exponentialsOut(:,j*(nExp+k)) = circshift(scatterData(:,k,j),scShifts((j-1)*nScatter+k));
+        end
+    end
+    %shift with higher time resolution (interpolate)
+    exponentialsOut(:,idxScatterOut) = vectorInterp(exponentialsOut(:,idxScatterOut),scHShiftsFine);
 end
 %% remove not a numbers
 exponentialsOut(isnan(exponentialsOut)) = 0;
 %% reshape
 exponentialsOut = reshape(exponentialsOut,nTimeChOut,[],nVecs);
 %add offset
-exponentialsOut(:,end,:) = ones([nTimeChOut,nVecs]).*oset;
+exponentialsOut(:,end,:) = ones([nTimeChOut,nVecs]);%.*oset;
 end
 

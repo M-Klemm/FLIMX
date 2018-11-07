@@ -550,7 +550,7 @@ classdef FluoDecayFit < handle
                             [~, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, offset, tciHShiftFine, nVecsTmp] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch);
                             myT = repmat(t(:,1),1,double(nExp)*nVecsTmp);                            
                             expMTmp = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,...
-                                myT,apObj.myChannels{ch}.iMaxPos,irffft,[],taus, tcis, betas, scAmps, scShifts, [], scOset, hShift, offset, tciHShiftFine,false);
+                                myT,apObj.myChannels{ch}.iMaxPos,irffft,[],taus, tcis, betas, scAmps, scShifts, [], scOset, hShift, tciHShiftFine,false);
                             [ao,aTmp,oTmp] = computeAmplitudes(expMTmp,md,dnzm,offset,vcp.cMask(end)<0,zeros(size(expMTmp,2),1,'like',expMTmp),inf(size(expMTmp,2),1,'like',expMTmp));
                             expMTmp(:,:,1:nVecsTmp) = expMTmp(:,:,1:nVecsTmp).*ao;                            
                             mTmp = squeeze(sum(expMTmp(:,:,1:nVecsTmp),2));

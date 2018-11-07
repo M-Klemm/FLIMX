@@ -65,7 +65,7 @@ if(isempty(linLB))
     linUB = inf(nParams,1,'like',expModels);
 end
 if(fitOsetFlag)
-    expModels(:,end,:) = 1;
+    expModels(:,end,:) = ones(size(expModels,1),nVecs);
 else
     ao(1,end,:) = ones(1,nVecs).*oset;
 end
@@ -82,8 +82,8 @@ for j = 1:nVecs
         %determine amplitudes and offset
 %         tmp(:,1:nParams-1) = expModels(:,:,idxExpModel);
 %         tmp(:,end) = ones(nTimePoints,1,'like',expModels);
-        ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),idxExpModel),measData(dataNonZeroMask(:,idxData),idxData)),linLB,linUB);
-        %ao(1,:,j) = checkBounds(expModels(dataNonZeroMask(:,idxData),:)\measData(dataNonZeroMask(:,idxData),idxData),linLB,linUB);
+        %ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),idxExpModel),measData(dataNonZeroMask(:,idxData),idxData)),linLB,linUB);
+        ao(1,:,j) = checkBounds(expModels(dataNonZeroMask(:,idxData),:,idxData)\measData(dataNonZeroMask(:,idxData),idxData),linLB,linUB);
     else 
         %determine amplitudes only, offset is already set
         %ao(1,1:nParams-1,j) = checkBounds(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel)\(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel)),linLB(1:nParams-1,:),linUB(1:nParams-1,:));
@@ -95,6 +95,9 @@ for j = 1:nVecs
     end
 end
 ampsOut = double(squeeze(ao(1,1:end-1,:))); %double(squeeze(ao(1,1:bp.nExp,:)));
+if(nVecs == 1)
+    ampsOut = ampsOut(:);
+end
 osetOut = double(squeeze(ao(1,end,:))');
 end
 

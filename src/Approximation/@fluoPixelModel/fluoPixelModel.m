@@ -36,7 +36,6 @@ classdef fluoPixelModel < matlab.mixin.Copyable
         myChannels = cell(0,0);
         %useGPU = false; %flag to use Matlab GPU processing features
         useMex = false; %flag to use optimized mex file for linear optimizer
-        SlopeStartPosition = 0; %todo: remove that here
     end
     properties(GetAccess = protected, SetAccess  = protected)
         params = [];
@@ -548,7 +547,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 %compute model positions of the rising edge between 5% and 85%
                 modelIDs = find(~idxIgnored);
                 risingIDsTargets = (5:10:85)./100;
-                usedRisingIDs = ones(size(risingIDsTargets)); %default: use all points; reduce in case of tail fit
+                usedRisingIDs = true(size(risingIDsTargets)); %default: use all points; reduce in case of tail fit
                 measurementRisingIDs = this.myChannels{ch}.dRisingIDs;
                 for m = 1:length(modelIDs)
                     risingIDs = zeros(1,length(risingIDsTargets));
@@ -595,7 +594,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     %for multiple tci: remove other tci-components from comparison
                     cIdx = ~bp.tciMask | tcIdx;
                     tcIdx(~tcIdx & ~cIdx) = [];
-                    [chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,exponentials(:,cIdx,~idxIgnored),tcIdx,this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
+                    [chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,exponentials(:,cIdx,~idxIgnored),tcIdx,this.myChannels{ch}.slopeStartPos,this.myChannels{ch}.dMaxPos);
                 end
             end
             %ensure that lens fluorescence is earlier on the time axis compared to the other components          
@@ -604,7 +603,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 tcIdx = false(bp.nExp+size(scAmps,1),1);
                 tcIdx(bp.nExp+1) = true;
                 nzAmpsIdx = scAmps(1,:)' > 0 & ~idxIgnored;
-                [chi2New, idxNew] = fluoPixelModel.timeShiftCheck(true,chi2,~nzAmpsIdx,exponentials(:,1:end-1,nzAmpsIdx),tcIdx,this.SlopeStartPosition,this.myChannels{ch}.dMaxPos);
+                [chi2New, idxNew] = fluoPixelModel.timeShiftCheck(true,chi2,~nzAmpsIdx,exponentials(:,1:end-1,nzAmpsIdx),tcIdx,this.myChannels{ch}.slopeStartPos,this.myChannels{ch}.dMaxPos);
                 idxIgnored(nzAmpsIdx) = idxIgnored(nzAmpsIdx) | idxNew(nzAmpsIdx);
                 chi2(nzAmpsIdx) = chi2New(nzAmpsIdx);
             end
@@ -648,8 +647,8 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     %guess mean lifetime, offset, shift
                     [rs(chIdx).MaximumPhotons, rs(chIdx).MaximumPosition] = max(dataTmp(:));%max(fastsmooth(dataTmp(:),10,3));                    
                     rs(chIdx).TauMeanGuess = fluoPixelModel.makeLifetimeGuess(dataTmp(:),this.getIRF(chList(chIdx)),rs(chIdx).MaximumPosition,this.getFileInfoStruct(chList(chIdx)));                    
-                    [rs(chIdx).OffsetGuess, rs(chIdx).SlopeStartPosition] = fluoPixelModel.makeOffsetGuess(dataTmp(:),rs(chIdx).MaximumPhotons,...
-                        this.preProcessParams.offsetStartPos,this.getFileInfoStruct(chList(chIdx)).StartPosition,this.basicParams.heightMode);
+                    rs(chIdx).OffsetGuess = this.myChannels{chList(chIdx)}.offsetGuess;
+                    rs(chIdx).SlopeStartPosition = this.myChannels{chList(chIdx)}.slopeStartPos;
                     rs(chIdx).StartPosition = this.getFileInfoStruct(chList(chIdx)).StartPosition;
                     rs(chIdx).EndPosition = max(2,min(this.getFileInfoStruct(chList(chIdx)).EndPosition,fluoPixelModel.getEndPos(dataTmp)));
                     tmp = dataTmp(rs(chIdx).StartPosition:rs(chIdx).EndPosition);
@@ -658,7 +657,6 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     [~,fwhmDPos] = max(bsxfun(@gt,dataTmp,max(dataTmp(:),[],1)*0.75),[],1);
                     [~,fwhmIPos] = max(bsxfun(@gt,irfTmp,max(irfTmp(:),[],1)*0.75),[],1);
                     rs(chIdx).hShiftGuess = (fwhmDPos-fwhmIPos-3).*this.getFileInfoStruct(chList(chIdx)).timeChannelWidth;
-                    this.SlopeStartPosition = rs(chIdx).SlopeStartPosition;
                     %TODO: check that initial values are within bounds!
                 end
                 %make bounds                
@@ -1514,28 +1512,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             mD = sum(dataT)/sum(data);
             mI = sum(irfT)/sum(irf(iPos:iPos+len));
             tauMean = abs(mD - mI);
-        end
-        
-        function [oGuess, SlopeStartPosition, d_max] = makeOffsetGuess(data,d_max,offsetStartPos,fitStartPos,heightMode)
-            %make an educated guess for the current offset
-            dataStartPos = find(data > 0 & ~isnan(data),1);
-            SlopeStartPosition = fluoPixelModel.getStartPos(data);
-            oGuess = data(dataStartPos:max(dataStartPos+1,SlopeStartPosition));
-            oGuess = oGuess(~isnan(oGuess));
-            % if(length(oGuess) < 10)
-            %     %we have too few datapoints for a reliable estimate, try to get more
-            %     oGuess = data(min(offsetStartPos,SlopeStartPosition):SlopeStartPosition);
-            % end
-            oGuess = mean(oGuess(oGuess ~= 0));
-            if(isempty(oGuess))
-                oGuess = 0;
-            end
-            %scale magnitude if needed
-            if(heightMode == 2)
-                oGuess = oGuess/d_max*1;
-                d_max = 1;
-            end
-        end
+        end        
         
         function start_pos = getStartPos(data_vec)
             % find slope starting point using sliding average (fastsmooth function) and gradient

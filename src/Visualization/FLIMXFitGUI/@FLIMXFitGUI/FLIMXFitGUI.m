@@ -727,7 +727,7 @@ classdef FLIMXFitGUI < handle
                 row = apObj.basicParams.nExp+1;
                 for l = 1:apObj.volatilePixelParams.nScatter
                     paramTable{l+row,1} = sprintf('Scatter %d',l);
-                    paramTable{l+row,2} = sprintf('%2.1f%%',100*scAmps(l)/as);
+                    paramTable{l+row,2} = sprintf('%2.1f',100*scAmps(l)/as);
                     paramTable{l+row,3} = sprintf('%2.3f',scOset(l));
                     paramTable{l+row,4} = sprintf('%3.1fps',scShifts(l));
                 end
