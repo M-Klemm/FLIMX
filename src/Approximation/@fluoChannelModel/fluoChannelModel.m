@@ -62,6 +62,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         dRisingIDs = []; %positions of data rising edge between 5% and 85%
         slopeStartPos = []; %positions of data rising edge
         offsetGuess = []; %educated guess of the offset in the data
+        dRealStartPos = []; %actual time channel where data beginns (> 0)
         time = []; %vector of timepoints
         nScatter = 0;
         basicParams = 0;
@@ -95,6 +96,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             this.dataStorage.measurement.FWHMPos = [];
             this.dataStorage.measurement.offsetGuess = [];
             this.dataStorage.measurement.slopeStartPos = [];
+            this.dataStorage.measurement.realStartPos = [];
             this.dataStorage.neighbor.raw = []; %matrix with data of surrounding pixels used for chi² computation
             this.dataStorage.neighbor.rez = []; %matrix with reziproke of data of surrounding pixels used for chi² computation
             this.dataStorage.neighbor.nonZeroMask = false; %neighbor non-zero indices
@@ -199,6 +201,14 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 this.compOffsetGuess();
             end
             out = this.dataStorage.measurement.offsetGuess;
+        end
+        
+        function out = get.dRealStartPos(this)
+            %get the actual start position of the data (in time channels)
+            if(isempty(this.dataStorage.measurement.realStartPos))
+                this.compOffsetGuess();
+            end
+            out = this.dataStorage.measurement.realStartPos;
         end
         
         function out = getIRF(this)
@@ -855,7 +865,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             this.dataStorage.measurement.FWHMPos = find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos),dMaxValTmp*0.6),1,'last');
             ids = (5:10:85)./100;
             this.dataStorage.measurement.risingIDs = zeros(size(ids));
-            minVal = min(this.dataStorage.measurement.raw(max(1,min(this.myStartPos,this.slopeStartPos)):this.dataStorage.measurement.maxPos));
+            minVal = min(this.dataStorage.measurement.raw(this.dRealStartPos:this.dataStorage.measurement.maxPos));
             dataRange = dMaxValTmp-minVal;
             for i = 1:length(ids)
                 if(ids(i) > 0.5)
