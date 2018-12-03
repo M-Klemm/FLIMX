@@ -535,7 +535,7 @@ classdef FStudy < handle
         %% removing functions
         function removeArithmeticImageDefinition(this,aiName)
             %remove arithmetic image for a study
-            this.myStudyInfoSet.removeArithmeticImageInfo(aiName);
+            this.myStudyInfoSet.removeArithmeticImageDefinition(aiName);
             %remove the arithmetic image from each subject
             %do NOT load subjects from disk
             for i = 1:this.mySubjects.queueLen
