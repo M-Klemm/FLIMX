@@ -1004,7 +1004,7 @@ classdef FDisplay < handle
             rt = this.ROIType;
             rs = this.ROISubType;
             ri = this.ROIInvertFlag;
-            if(this.mDispDim == 1)
+            if(this.mDispDim == 1 && ~isempty(hfd.rawImgXSz) && ~isempty(hfd.rawImgYSz))
                 xFullRange = hfd.rawImgXSz(end);
                 yFullRange = hfd.rawImgYSz(end);
             else

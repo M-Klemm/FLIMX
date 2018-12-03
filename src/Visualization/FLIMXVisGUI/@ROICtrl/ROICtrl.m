@@ -129,6 +129,11 @@ classdef ROICtrl < handle
             out = get(this.roi_type_popup,'Value')-1;
         end
         
+        function set.ROIType(this,val)
+            %get current ROI type
+            this.roi_type_popup.Value = max(1,min(length(this.roi_type_popup.String),val+1));
+        end
+        
         function out = get.ROISubType(this)
             %get current ROI subtype
             out = get(this.roi_subtype_popup,'Value');
@@ -414,36 +419,41 @@ classdef ROICtrl < handle
                 res = 0;%58.66666666666/1000;
                 %todo: warning/error message
             end
-            switch this.ROIType
-                case 1 %ETDRS grid
-                    set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
-                    set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
-                case {0,2,3} %rectangle
-                    set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
-                    set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
-                    set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
-                    set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
-                    d = abs(ROICoord(1,2)-ROICoord(1,1))+1;
-                    set(this.y_sz_edit,'String',num2str(d));
-                    set(this.y_szMM_edit,'String',FLIMXFitGUI.num4disp(res*double(d)));
-                    d = abs(ROICoord(2,2)-ROICoord(2,1))+1;
-                    set(this.x_sz_edit,'String',num2str(d));
-                    set(this.x_szMM_edit,'String',FLIMXFitGUI.num4disp(res*double(d)));
-                case {4,5} %circle
-                    set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
-                    set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
-                    set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
-                    set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
-                    d = 2*sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
-                    set(this.x_sz_edit,'String',FLIMXFitGUI.num4disp(d));
-                    set(this.x_szMM_edit,'String',FLIMXFitGUI.num4disp(res*d));
-                case {6,7} %polygon
-                    set(this.roi_table,'Data',num2cell(ROICoord))
-                    if(~isempty(ROICoord))
-                        set(this.roi_table,'ColumnWidth',num2cell(25*ones(1,size(ROICoord,2))));
-                    end
-                otherwise
-                    
+            if(isempty(ROICoord))
+                this.ROIType = 0;
+                this.popupCallback('');
+            else
+                switch this.ROIType
+                    case 1 %ETDRS grid
+                        set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
+                        set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
+                    case {0,2,3} %rectangle
+                        set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
+                        set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
+                        set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
+                        set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
+                        d = abs(ROICoord(1,2)-ROICoord(1,1))+1;
+                        set(this.y_sz_edit,'String',num2str(d));
+                        set(this.y_szMM_edit,'String',FLIMXFitGUI.num4disp(res*double(d)));
+                        d = abs(ROICoord(2,2)-ROICoord(2,1))+1;
+                        set(this.x_sz_edit,'String',num2str(d));
+                        set(this.x_szMM_edit,'String',FLIMXFitGUI.num4disp(res*double(d)));
+                    case {4,5} %circle
+                        set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
+                        set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
+                        set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
+                        set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
+                        d = 2*sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
+                        set(this.x_sz_edit,'String',FLIMXFitGUI.num4disp(d));
+                        set(this.x_szMM_edit,'String',FLIMXFitGUI.num4disp(res*d));
+                    case {6,7} %polygon
+                        set(this.roi_table,'Data',num2cell(ROICoord))
+                        if(~isempty(ROICoord))
+                            set(this.roi_table,'ColumnWidth',num2cell(25*ones(1,size(ROICoord,2))));
+                        end
+                    otherwise
+                        
+                end
             end
         end
         
