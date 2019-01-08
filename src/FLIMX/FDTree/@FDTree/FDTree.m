@@ -53,7 +53,7 @@ classdef FDTree < handle
         function this = FDTree(parent,rootDir)
             % Constructor for FDTree
             this.myDir = fullfile(rootDir,'studyData');
-            if(~isdir(this.myDir))
+            if(~isfolder(this.myDir))
                 [status, message, ~] = mkdir(this.myDir);
                 if(~status)
                     error('FLIMX:FDTree:createStudyDataFolder','Could not create studyData folder: %s\n%s',this.myDir,message);
@@ -188,7 +188,7 @@ classdef FDTree < handle
                 return
             end
             sDir = fullfile(this.myDir,name);
-            if(~isdir(sDir))
+            if(~isfolder(sDir))
                 [status, message, ~] = mkdir(sDir);
                 if(~status)
                     error('FLIMX:FDTree:addStudy','Could not create study folder: %s\n%s',sDir,message);

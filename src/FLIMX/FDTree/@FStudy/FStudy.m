@@ -155,7 +155,7 @@ classdef FStudy < handle
                 this.myStudyInfoSet.addSubject(subjectID);
                 %make dir if not present
                 sDir = fullfile(this.myDir,subjectID);
-                if(~isdir(sDir))
+                if(~isfolder(sDir))
                     [status, message, ~] = mkdir(sDir);
                     if(~status)
                         error('FLIMX:FDTree:addSubject','Could not create subject folder: %s\n%s',sDir,message);
@@ -1493,7 +1493,7 @@ classdef FStudy < handle
             SubFiles = {curDir.name};
             for i = 3:size(SubFiles,2)
                 subDir = fullfile(this.myDir,SubFiles{i});
-                if(isdir(subDir))
+                if(isfolder(subDir))
                     idx = this.myStudyInfoSet.subName2idx(SubFiles{i});
                     if(isempty(idx))
                         %something on disk, but we don't know the subject
@@ -1523,7 +1523,7 @@ classdef FStudy < handle
                     %we don't know this subject, try to clear it
                     this.clearSubjectFiles(subjectID)
                     return
-                elseif(~isempty(idx) && ~isdir(subDir))
+                elseif(~isempty(idx) && ~isfolder(subDir))
                     %we know the subject but there is nothing on disk
                     this.myStudyInfoSet.clearFilesList(idx);
                     this.myStudyInfoSet.clearROI(idx);
@@ -1570,7 +1570,7 @@ classdef FStudy < handle
                     this.myStudyInfoSet.clearCrossSections(idx);
                 end
                 subDir = fullfile(this.myDir,subName);
-                if(~isdir(subDir))
+                if(~isfolder(subDir))
                     return
                 end
                 [status, message, messageid] = rmdir(subDir,'s');

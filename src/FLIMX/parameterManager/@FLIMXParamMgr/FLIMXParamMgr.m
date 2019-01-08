@@ -278,7 +278,7 @@ classdef FLIMXParamMgr < paramMgr
                 %check if dir for config exists - if not: create it
                 idx = strfind(this.fileName,filesep);
                 pathstr = this.fileName(1:idx(end)-1);
-                if(~isdir(pathstr))
+                if(~isfolder(pathstr))
                     [status, message, ~] = mkdir(pathstr);
                     if(~status)
                         error('FLIMX:FLIMXParamMgr:readConfig','Could not create config folder: %s\n%s',pathstr,message);

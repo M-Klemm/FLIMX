@@ -43,7 +43,7 @@ classdef sddMgr < handle
         function this = sddMgr(flimX,myDir)
             %sdd mgr
             this.myDir = myDir;
-            if(~isdir(myDir))
+            if(~isfolder(myDir))
                 [status, message, ~] = mkdir(myDir);
                 if(~status)
                     error('FLIMX:sddMgr:createSDDFolder','Unable to create synthetic data definition root folder %s.\n%s',myDir,message);

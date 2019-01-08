@@ -655,7 +655,7 @@ classdef resultFile < handle
             end
             fn = this.getResultFileName(ch,fn);
             [pathstr, ~, ~] = fileparts(fn);
-             if(~isdir(pathstr))
+             if(~isfolder(pathstr))
                  [status, message, ~] = mkdir(pathstr);
                  if(~status)
                      error('FLIMX:resultFile:exportMatFile','Could not create path for result file export: %s\n%s',pathstr,message);

@@ -41,7 +41,7 @@ for n=3:nargin
 		searchrecursive = false;
 	elseif iscell(varargin{n})
  		excludeCell = [excludeCell, varargin{n}]; %#ok
-	elseif ischar(varargin{n}) && isdir(varargin{n})
+	elseif ischar(varargin{n}) && isfolder(varargin{n})
 		excludeCell(n+1) = varargin(n);
 	else
 		error('Directory not existing or unknown command: %s', varargin{n});

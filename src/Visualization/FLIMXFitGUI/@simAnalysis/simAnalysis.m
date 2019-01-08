@@ -98,7 +98,7 @@ classdef simAnalysis < handle
 %             %load automatically from export folder
 %             expDir = this.FLIMXObj.fitObj.folderParams.export;
 %             subDir = fullfile(expDir,sprintf('%s',paraSetName));            
-%             if(~isdir(subDir))
+%             if(~isfolder(subDir))
 %                 return
 %             end            
 %             dirs = dir(subDir);

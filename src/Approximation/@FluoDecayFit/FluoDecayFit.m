@@ -297,7 +297,7 @@ classdef FluoDecayFit < handle
             %% prepare first
             while(true)
                 folderGUI = false;
-                if(this.computationParams.useDistComp && ~isdir(this.computationParams.mcShare))
+                if(this.computationParams.useDistComp && ~isfolder(this.computationParams.mcShare))
                     folderGUI = true;
                     warndlg(sprintf('Could not find multicore-path:\n %s\n\nPlease choose valid mulitcore share folder.',this.computationParams.mcShare),...
                         'Multicore share Path not found!','modal');

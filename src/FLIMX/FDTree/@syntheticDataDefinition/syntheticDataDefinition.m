@@ -240,7 +240,7 @@ classdef syntheticDataDefinition < handle
             %save sythetic data definition to disk
             export = this.getStructFromMyData();
             dStr = fullfile(this.myDir,this.myUID);
-            if(~isdir(dStr))
+            if(~isfolder(dStr))
                 [status, message, ~] = mkdir(dStr);
                 if(~status)
                     error('FLIMX:FDTree:sytheticDataDefinition','Could not create sythetic data definition folder: %s\n%s',dStr,message);

@@ -53,7 +53,7 @@ classdef batchJobMgr < handle
         function this = batchJobMgr(flimX,myDir)
             %constructor for batchJobMgr
             this.myDir = myDir;
-            if(~isdir(myDir))
+            if(~isfolder(myDir))
                 [status, message, ~] = mkdir(myDir);
                 if(~status)
                     error('FLIMX:batchJobMgr:createRootFolder','Could not create batch job manager root folder: %s\n%s',myDir,message);
@@ -68,7 +68,7 @@ classdef batchJobMgr < handle
         function job = addJob(this,jName)
             %create a new job
             jDir = fullfile(this.myDir,jName);
-            if(~isdir(jDir))
+            if(~isfolder(jDir))
                 [status, message, ~] = mkdir(jDir);
                 if(~status)
                     error('FLIMX:batchJobMgr:addJob','Could not create folder for batch job: %s\n%s',jDir,message);

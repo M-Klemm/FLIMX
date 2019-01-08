@@ -930,7 +930,7 @@ classdef measurementFile < handle
             %save measurement data to disk
             fn = this.getMeasurementFileName(ch,folder);
             [pathstr, ~, ~]= fileparts(fn);
-            if(~isdir(pathstr))
+            if(~isfolder(pathstr))
                 [status, message, ~] = mkdir(pathstr);
                 if(~status)
                     error('FLIMX:measurementFile:exportMatFile','Could not create path for measurement file export: %s\n%s',pathstr,message);

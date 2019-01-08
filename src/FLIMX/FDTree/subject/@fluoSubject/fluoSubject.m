@@ -408,7 +408,7 @@ classdef fluoSubject < handle
 %                 expDir = this.folderParams.export;
 %                 addStr = '';
 %             end
-%             if(~isdir(expDir))
+%             if(~isfolder(expDir))
 %                 warndlg(sprintf('Could not find Export-Path:\n %s\n\nInstead results will be saved to:\n %s',expDir,cd),...
 %                     'Export Path not found!','modal');
 %                 expDir = cd;
