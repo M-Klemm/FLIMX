@@ -990,29 +990,29 @@ classdef FDTree < handle
             params = this.dataSmoothParameters;
         end  
         
-        function [MSX, MSXMin, MSXMax] = getMSX(this,studyID,subjectID)
-            %get manual scaling parameters for x in subject
-            study = this.getStudy(studyID);
-            if(~isempty(study))
-                [MSX, MSXMin, MSXMax] = study.getMSX(subjectID);
-            else
-                MSX = [];
-                MSXMin = [];
-                MSXMax = [];
-            end
-        end
-        
-        function [MSY, MSYMin, MSYMax] = getMSY(this,studyID,subjectID)
-            %get manual scaling parameters for y in subject
-            study = this.getStudy(studyID);
-            if(~isempty(study))
-                [MSY, MSYMin, MSYMax] = study.getMSY(subjectID);
-            else
-                MSY = [];
-                MSYMin = [];
-                MSYMax = [];
-            end
-        end
+%         function [MSX, MSXMin, MSXMax] = getMSX(this,studyID,subjectID)
+%             %get manual scaling parameters for x in subject
+%             study = this.getStudy(studyID);
+%             if(~isempty(study))
+%                 [MSX, MSXMin, MSXMax] = study.getMSX(subjectID);
+%             else
+%                 MSX = [];
+%                 MSXMin = [];
+%                 MSXMax = [];
+%             end
+%         end
+%         
+%         function [MSY, MSYMin, MSYMax] = getMSY(this,studyID,subjectID)
+%             %get manual scaling parameters for y in subject
+%             study = this.getStudy(studyID);
+%             if(~isempty(study))
+%                 [MSY, MSYMin, MSYMax] = study.getMSY(subjectID);
+%             else
+%                 MSY = [];
+%                 MSYMin = [];
+%                 MSYMax = [];
+%             end
+%         end
                 
         function [centers, histTable] = getGlobalHistogram(this,chan,dType,id)
             %combine all histograms of channel chan, datatype dType and 'running number' id into a single table

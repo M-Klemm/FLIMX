@@ -976,8 +976,7 @@ classdef FStudy < handle
                 return
             end
             out = subjectInfoHeaders{cNr};
-        end
-        
+        end        
         
         function out = getSubjectName(this,subjectID)
             %get subject name
@@ -1091,8 +1090,7 @@ classdef FStudy < handle
                 str = unique([subject.getChObjStr(ch);str]);
             end
         end
-        
-        
+                
         function str = getChClusterObjStr(this,subjectID,ch)
             %get a string of all cluster objects in channel ch in subject
             subject = this.getSubject(subjectID);
@@ -1132,34 +1130,34 @@ classdef FStudy < handle
             out = this.myParent.getSaveMaxMemFlag();
         end
         
-        function [alg params] = getDataSmoothFilter(this)
+        function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
-            [alg params] = this.myParent.getDataSmoothFilter();
+            [alg, params] = this.myParent.getDataSmoothFilter();
         end
         
-        function [MSX MSXMin MSXMax] = getMSX(this,subjectID)
-            %get manual scaling parameters for x in subject
-            subject = this.getSubject(subjectID);
-            if(isempty(subject))
-                MSX = [];
-                MSXMin = [];
-                MSXMax = [];
-                return
-            end
-            [MSX MSXMin MSXMax] = subject.getMSX();
-        end
-        
-        function [MSY MSYMin MSYMax] = getMSY(this,subjectID)
-            %get manual scaling parameters for y in subject
-            subject = this.getSubject(subjectID);
-            if(isempty(subject))
-                MSY = [];
-                MSYMin = [];
-                MSYMax = [];
-                return
-            end
-            [MSY MSYMin MSYMax] = subject.getMSY();
-        end
+%         function [MSX MSXMin MSXMax] = getMSX(this,subjectID)
+%             %get manual scaling parameters for x in subject
+%             subject = this.getSubject(subjectID);
+%             if(isempty(subject))
+%                 MSX = [];
+%                 MSXMin = [];
+%                 MSXMax = [];
+%                 return
+%             end
+%             [MSX MSXMin MSXMax] = subject.getMSX();
+%         end
+%         
+%         function [MSY, MSYMin, MSYMax] = getMSY(this,subjectID)
+%             %get manual scaling parameters for y in subject
+%             subject = this.getSubject(subjectID);
+%             if(isempty(subject))
+%                 MSY = [];
+%                 MSYMin = [];
+%                 MSYMax = [];
+%                 return
+%             end
+%             [MSY, MSYMin, MSYMax] = subject.getMSY();
+%         end
         
         function data = getStudyPayload(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,dataProc)
             %get merged payload from all subjects of channel chan, datatype dType and 'running number' within a study for a certain ROI
@@ -1441,9 +1439,9 @@ classdef FStudy < handle
             end
         end
                 
-        function [cimg lblx lbly colors logColors] = makeGlobalCluster(this,chan,clusterID)
+        function [cimg, lblx, lbly, colors, logColors] = makeGlobalCluster(this,chan,clusterID)
             %make global cluster object
-            [cimg lblx lbly colors logColors] = this.myParent.makeGlobalCluster(chan,clusterID);
+            [cimg, lblx, lbly, colors, logColors] = this.myParent.makeGlobalCluster(chan,clusterID);
         end
         
         function makeObjMerged(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)

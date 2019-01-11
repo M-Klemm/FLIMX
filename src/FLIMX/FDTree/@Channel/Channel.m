@@ -335,31 +335,31 @@ classdef Channel < handle
 %             items = this.items;
 %         end
         
-        function [MSX, MSXMin, MSXMax] = getMSX(this)
-            %get manual scaling parameters for x
-            MSX = [];
-            MSXMin = [];
-            MSXMax = [];
-            for i = 1:this.myChunks.queueLen
-                [MSX, MSXMin, MSXMax] = this.myChunks.getDataByPos(i).getMSX();
-                if(~isempty(MSX))
-                    return
-                end
-            end 
-        end
-        
-        function [MSY, MSYMin, MSYMax] = getMSY(this)
-            %get manual scaling parameters for y
-            MSY = [];
-            MSYMin = [];
-            MSYMax = [];
-            for i = 1:this.myChunks.queueLen
-                [MSY, MSYMin, MSYMax] = this.myChunks.getDataByPos(i).getMSY();
-                if(~isempty(MSY))
-                    return
-                end
-            end
-        end
+%         function [MSX, MSXMin, MSXMax] = getMSX(this)
+%             %get manual scaling parameters for x
+%             MSX = [];
+%             MSXMin = [];
+%             MSXMax = [];
+%             for i = 1:this.myChunks.queueLen
+%                 [MSX, MSXMin, MSXMax] = this.myChunks.getDataByPos(i).getMSX();
+%                 if(~isempty(MSX))
+%                     return
+%                 end
+%             end 
+%         end
+%         
+%         function [MSY, MSYMin, MSYMax] = getMSY(this)
+%             %get manual scaling parameters for y
+%             MSY = [];
+%             MSYMin = [];
+%             MSYMax = [];
+%             for i = 1:this.myChunks.queueLen
+%                 [MSY, MSYMin, MSYMax] = this.myChunks.getDataByPos(i).getMSY();
+%                 if(~isempty(MSY))
+%                     return
+%                 end
+%             end
+%         end
         
         function out = channelResultIsLoaded(this)
             %get isLoaded flag

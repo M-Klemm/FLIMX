@@ -312,31 +312,31 @@ classdef Chunk < handle
             [alg, params] = this.myParent.getDataSmoothFilter();
         end
         
-        function [MSX, MSXMin, MSXMax] = getMSX(this)
-            %get manual scaling parameters for x
-            MSX = [];
-            MSXMin = [];
-            MSXMax = [];
-            for i = 1:this.mySlices.queueLen
-                [MSX, MSXMin, MSXMax] = this.mySlices.getDataByPos(i).getMSX();
-                if(~isempty(MSX))
-                    return
-                end
-            end 
-        end
-        
-        function [MSY, MSYMin, MSYMax] = getMSY(this)
-            %get manual scaling parameters for y
-            MSY = [];
-            MSYMin = [];
-            MSYMax = [];
-            for i = 1:this.mySlices.queueLen
-                [MSY, MSYMin, MSYMax] = this.mySlices.getDataByPos(i).getMSY();
-                if(~isempty(MSY))
-                    return
-                end
-            end
-        end
+%         function [MSX, MSXMin, MSXMax] = getMSX(this)
+%             %get manual scaling parameters for x
+%             MSX = [];
+%             MSXMin = [];
+%             MSXMax = [];
+%             for i = 1:this.mySlices.queueLen
+%                 [MSX, MSXMin, MSXMax] = this.mySlices.getDataByPos(i).getMSX();
+%                 if(~isempty(MSX))
+%                     return
+%                 end
+%             end 
+%         end
+%         
+%         function [MSY, MSYMin, MSYMax] = getMSY(this)
+%             %get manual scaling parameters for y
+%             MSY = [];
+%             MSYMin = [];
+%             MSYMax = [];
+%             for i = 1:this.mySlices.queueLen
+%                 [MSY, MSYMin, MSYMax] = this.mySlices.getDataByPos(i).getMSY();
+%                 if(~isempty(MSY))
+%                     return
+%                 end
+%             end
+%         end
         
         function out = get.FLIMXParamMgrObj(this)
             %get handle to parameter manager object
