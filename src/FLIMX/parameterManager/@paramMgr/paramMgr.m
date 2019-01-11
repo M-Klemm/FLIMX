@@ -723,7 +723,7 @@ classdef paramMgr < handle
         end
         
         function [volatilePixel, volatileChannel] = makeVolatileParams(basicParams,nrSpectralChannels)
-            %compute volatile paramters
+            %compute volatile parameters
             if(isempty(nrSpectralChannels) || nrSpectralChannels < 1)
                 nrSpectralChannels = 1;
             end

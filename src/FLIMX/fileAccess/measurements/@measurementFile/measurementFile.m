@@ -32,7 +32,7 @@ classdef measurementFile < handle
     % @brief    A class to represent the measurementFile class
     %
     properties(GetAccess = public, SetAccess = protected)
-        paramMgrObj = []; %handle to parameter manager
+        myParamMgr = []; %handle to parameter manager or function to return handle
         progressCb = cell(0,0); %callback function handles for progress bars
         sourceFile = '';    %name of the source file (not path!)
         ROICoord = [];
@@ -60,6 +60,7 @@ classdef measurementFile < handle
     end
     
     properties (Dependent = true)
+        paramMgrObj = [];
         useGPU4StaticBin = [];
         useGPU4AdaptiveBin = [];
         useMex4StaticBin = [];
@@ -136,7 +137,7 @@ classdef measurementFile < handle
         
         function setParamMgrHandle(this,hPM)
             %set handle to parameter manager
-            this.paramMgrObj = hPM;
+            this.myParamMgr = hPM;
         end
         
         function setReflectionMask(this,channel,val)
@@ -428,6 +429,11 @@ classdef measurementFile < handle
                 out.ROIAdaptiveBinThreshold = [];
                 out.ROISupport = [];
             end
+        end
+        
+        function params = get.paramMgrObj(this)
+            %get parameter manager
+            params = this.getMyParamMgr();
         end
         
         function params = get.FLIMXAboutInfo(this)
@@ -992,6 +998,12 @@ classdef measurementFile < handle
             %returns working folder
             %supposed to be overloaded by childs
             out = cd;
+        end
+        
+        function out = getMyParamMgr(this)
+            %returns parameter manager
+            %supposed to be overloaded by childs
+            out = this.myParamMgr;
         end
         
         %% computation methods

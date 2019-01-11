@@ -332,6 +332,12 @@ classdef FluoDecayFit < handle
                 end
                 return
             end            
+            if(strcmp(this.FLIMXObj.curSubject.getResultType(),'ASCII'))
+                this.FLIMXObj.curSubject.clearROAResults(); 
+                this.FLIMXObj.curSubject.initParamMgr();
+                this.FLIMXObj.curSubject.update();
+                this.FLIMXObj.curSubject.clearCachedApproxObj();
+            end
             tStart = clock;            
             %% initialization fit
             if((this.basicParams.optimizerInitStrategy == 2 || ~isempty(this.basicParams.fix2InitTargets)) && ~this.FLIMXObj.curSubject.isInitResult(ch))                

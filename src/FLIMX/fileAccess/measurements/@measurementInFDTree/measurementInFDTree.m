@@ -286,6 +286,15 @@ classdef measurementInFDTree < measurementFile
             end
         end
         
+        function out = getMyParamMgr(this)
+            %return current parameter manager
+            if(ischar(this.myParamMgr))
+                out = this.myParamMgr;
+            else
+                out = feval(this.myParamMgr);
+            end
+        end
+        
         function out = getNonEmptyChannelList(this)
             %return a list of channel numbers "with data"
             out = find(this.filesOnHDD);

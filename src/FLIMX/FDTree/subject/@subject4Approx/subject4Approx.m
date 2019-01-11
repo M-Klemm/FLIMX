@@ -64,6 +64,11 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
             this.myResult.setDirty(ch,flag);
         end
         
+        function setResultType(this,val)
+            %set the result type string; only 'FluoDecayFit' (default) and 'ASCII' are valid
+            this.myResult.setResultType(val);
+        end
+        
         function setEffectiveTime(this,ch,t)
             %set the effective run time for the approximation of ch
             this.myResult.setEffectiveTime(ch,t);
@@ -107,6 +112,18 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
             this.myResult.addResultRow(ch,row,resultStruct);
         end
         
+        function clearROA(this)
+            %clears measurement data and results of current region of approximation
+            this.myMeasurement.clearROAData();
+            this.clearROAResults();
+        end
+        
+        function clearROAResults(this)
+            %clear the results of current region of approximation
+            %this.myMeasurement.clearROAData();
+            roa = this.ROICoordinates;
+            this.myResult.allocResults(1:this.nrSpectralChannels,roa(4)-roa(3)+1,roa(2)-roa(1)+1);
+        end
         
         %% output
         function out = getApproximationPixelIDs(this,ch)
@@ -147,26 +164,13 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
                 else %y
                     [idx(:,1), idx(:,2)] = ind2sub([y x],pixelPool);
                 end
-                %subject = this.FLIMXObj.curSubject;
                 for i = 1:nPixel %loop over roi pixel
                     apObjs{i} = getApproxObj(this,ch,idx(i,1),idx(i,2));
                 end
             end
-%             %% build init vector
-%             if(isvector(initVec) && nPixel > 1)
-%                 initVec = repmat(initVec,1,nPixel);
-%             elseif((~isvector(initVec) && nPixel ~= size(initVec,2)) || isempty(initVec))
-%                 %we have more than one initVec but not one for each pixel
-%                 initVec = zeros(this.volatilePixelParams.nApproxParamsAllCh,nPixel);
-%             end
             %% assemble cell
             parameterCell(1) = {apObjs};
             parameterCell(2) = {optimizationParams};
-%             if(initFit)
-%                 parameterCell(3) = {initVec};
-%             else
-%                 parameterCell(3) = {initVec(:,1:length(pixelPool))};
-%             end
             parameterCell(3) = {aboutInfo};
         end
 
@@ -182,17 +186,17 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
     end
     methods(Access = protected)
         % Override copyElement method:
-        function cpObj = copyElement(this)            
-            %make sure we create the approx. obects for all channels            
-            for ch = 1:this.nrSpectralChannels
-                this.getApproxObj(ch,1,1);
-            end
-            % Make a shallow copy of all properties
-            cpObj = copyElement@matlab.mixin.Copyable(this);
-            % Make a deep copy of the DeepCp object
-            cpObj.myParent = []; 
-            cpObj.progressCb = cell(0,0);
-        end
+%         function cpObj = copyElement(this)            
+%             %make sure we create the approx. obects for all channels            
+%             for ch = 1:this.nrSpectralChannels
+%                 this.getApproxObj(ch,1,1);
+%             end
+%             % Make a shallow copy of all properties
+%             cpObj = copyElement@matlab.mixin.Copyable(this);
+%             % Make a deep copy of the DeepCp object
+%             cpObj.myParent = []; 
+%             cpObj.progressCb = cell(0,0);
+%         end
     end
     
 end

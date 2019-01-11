@@ -41,7 +41,7 @@ classdef measurement4Approx < measurementInFDTree
     methods
         function this = measurement4Approx(hSubject)
             %constructor
-            this = this@measurementInFDTree(hSubject.myParamMgr,@hSubject.getMyFolder);
+            this = this@measurementInFDTree(@hSubject.getMyParamMgr,@hSubject.getMyFolder);
             this.myParent = hSubject;
         end
         %% input methods

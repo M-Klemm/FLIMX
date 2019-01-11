@@ -166,19 +166,15 @@ classdef resultFile < handle
             if(isvector(chList) && ~isscalar(chList))                
                 this.allocInitResult(chList);
                 this.allocPixelResult(chList);
-                %this.results.about = this.aboutInfo; %do we need that??
                 for i = 1:length(chList)
                     this.loadedChannels(chList(i),1) = false;
                 end
             elseif(isscalar(chList))
-%                 if(all(this.resultSize) && ~all(this.resultSize == [ROIYSz,ROIXSz]))
-%                     return
-%                 end
-                %this.resultSize = [ROIYSz,ROIXSz];
                 this.allocInitResult(chList);
                 this.allocPixelResult(chList);
                 this.loadedChannels(chList,1) = false;
-            end            
+            end
+            this.resultType = 'FluoDecayFit';
         end
         
         function allocInitResult(this,ch)
@@ -189,7 +185,31 @@ classdef resultFile < handle
                 return
             end
             if(isscalar(ch))
-                this.results.init(ch,1) = {this.makeResultStructs(this.initFitParams.gridSize,this.initFitParams.gridSize)};
+                new = this.makeResultStructs(this.initFitParams.gridSize,this.initFitParams.gridSize);
+                if(~isempty(this.results.init) && length(this.results.init) >= ch)
+                    old = this.results.init{ch,1};
+                    if(~isempty(old) && isfield(old,'Amplitude1') && size(old.Amplitude1,1) == this.initFitParams.gridSize)
+                        %there is an old result where some data might have to be preserved
+                        oldSn = fieldnames(old);
+                        newSn = fieldnames(new);
+                        sd = setdiff(oldSn,newSn);
+                        if(~isempty(sd))
+                            olsSnLen = cellfun(@length,oldSn);
+                            flag = false(length(oldSn),1);
+                            fieldsToRemove = {'Amplitude','AmplitudeGuess','Tau','TauGuess','RAUC','RAUCIS','tc','tcGuess','Beta','ScatterAmplitude','ScatterShift','ScatterOffset','shift','offset','scatter','Intensity'};
+                            for i = 1:length(fieldsToRemove)
+                                flag = flag | (strncmpi(oldSn,fieldsToRemove{i},length(fieldsToRemove{i})) & (olsSnLen == length(fieldsToRemove{i}) | olsSnLen == length(fieldsToRemove{i}) +1));
+                            end
+                            old = rmfield(old,oldSn(flag));
+                            sd = setdiff(oldSn(~flag),newSn);
+                            %copy old data
+                            for i = 1:length(sd)
+                                new.(sd{i}) = old.(sd{i});
+                            end
+                        end
+                    end
+                end
+                this.results.init(ch,1) = {new};
                 this.initApproximated(ch,1) = false;
             else
                 for i = ch
@@ -205,7 +225,31 @@ classdef resultFile < handle
                 this.pixelApproximated = false;
                 return
             elseif(isscalar(ch))
-                this.results.pixel(ch,1) = {this.makeResultStructs(this.resultSize(1),this.resultSize(2))};
+                new = this.makeResultStructs(this.resultSize(1),this.resultSize(2));
+                if(~isempty(this.results.pixel) && length(this.results.pixel) >= ch)
+                    old = this.results.pixel{ch,1};
+                    if(~isempty(old) && isfield(old,'Amplitude1') && size(old.Amplitude1,1) == this.resultSize(1) && size(old.Amplitude1,2) == this.resultSize(2))
+                        %there is an old result where some data might have to be preserved
+                        oldSn = fieldnames(old);
+                        newSn = fieldnames(new);
+                        sd = setdiff(oldSn,newSn);
+                        if(~isempty(sd))
+                            olsSnLen = cellfun(@length,oldSn);
+                            flag = false(length(oldSn),1);
+                            fieldsToRemove = {'Amplitude','AmplitudeGuess','Tau','TauGuess','RAUC','RAUCIS','tc','tcGuess','Beta','ScatterAmplitude','ScatterShift','ScatterOffset','shift','offset','scatter','Intensity'};
+                            for i = 1:length(fieldsToRemove)
+                                flag = flag | (strncmpi(oldSn,fieldsToRemove{i},length(fieldsToRemove{i})) & (olsSnLen == length(fieldsToRemove{i}) | olsSnLen == length(fieldsToRemove{i}) +1));
+                            end
+                            old = rmfield(old,oldSn(flag));
+                            sd = setdiff(oldSn(~flag),newSn);
+                            %copy old data
+                            for i = 1:length(sd)
+                                new.(sd{i}) = old.(sd{i});
+                            end
+                        end
+                    end
+                end
+                this.results.pixel(ch,1) = {new};
                 this.pixelApproximated(ch,1) = false;
             else
                 for i = ch

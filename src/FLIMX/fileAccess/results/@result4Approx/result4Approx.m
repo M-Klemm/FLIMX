@@ -44,12 +44,20 @@ classdef result4Approx < resultFile
             %this.checkMyFiles();
         end
         
+        function setResultType(this,val)
+            %set the result type string; only 'FluoDecayFit' (default) and 'ASCII' are valid
+            if(strcmp(val,'ASCII') || strcmp(val,'FluoDecayFit') && ~strcmp(val,this.resultType))
+                this.resultType = val;
+                this.setDirty(1:length(this.results.pixel),true);
+            end
+        end
+        
         function setEffectiveTime(this,ch,t)
             %set the effective time the approximation of ch took
             if(ch <= length(this.results.pixel))
                 this.results.pixel{ch,1}.EffectiveTime = t;
-            end
-            this.setDirty(ch,true);
+                this.setDirty(ch,true);
+            end            
         end
         
 %         function addFLIMItems(this,ch,resultStruct)
@@ -527,8 +535,7 @@ classdef result4Approx < resultFile
                     this.addInitResult(ch,indices,resultStruct(ch));
                 end
                 return
-            end            
-            %bp = this.basicParams;
+            end
             ip = this.initFitParams;
             fn = fieldnames(resultStruct);
             if(size(indices,1) ~= length(resultStruct.(fn{1})) || any(indices(:) > ip.gridSize))
@@ -546,7 +553,7 @@ classdef result4Approx < resultFile
             end
             if(isempty(newIdx))
                 return
-            end            
+            end
             fn = fn(~strcmpi(fn,'ROI_merge_result'));
             fn = fn(~strcmpi(fn,'Message'));
             fn = fn(~strcmpi(fn,'reflectionMask'));
@@ -587,7 +594,7 @@ classdef result4Approx < resultFile
                 %todo: check if indices are out of bounds...
                 tmp.(fn{l})(idx) = resultStruct.(fn{l})(newIdx);
             end
-            this.results.init{ch,1} = tmp;            
+            this.results.init{ch,1} = tmp;
             this.setDirty(ch,true);
             %compute interpolation grid
             if(~all(tmp.Tau1(:)))

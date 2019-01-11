@@ -1760,14 +1760,14 @@ classdef FLIMXFitGUI < handle
             new = GUI_preProcessOptions(this.FLIMXObj.paramMgr.getParamSection('pre_processing'),this.FLIMXObj.curSubject,'On');
             if(~isempty(new))
                 this.FLIMXObj.paramMgr.setParamSection('pre_processing',new.preProcessing);
-                this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
+                this.FLIMXObj.curSubject.clearROAResults(); %clear old results
                 this.FLIMXObj.curSubject.update(); 
                 this.setupGUI();
                 this.updateGUI(1);
             end
         end
         
-        function menuFitOpt_Callback(this,hObject,eventdata)
+          function menuFitOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
             [str, mask] = this.FLIMXObj.irfMgr.getIRFNames(this.FLIMXObj.curSubject.nrTimeChannels);
@@ -1789,7 +1789,7 @@ classdef FLIMXFitGUI < handle
                 if(new.isDirty(3) == 1)
                     this.FLIMXObj.paramMgr.setParamSection('pixel_fit',new.pixel);
                 end
-                this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
+                this.FLIMXObj.curSubject.clearROAResults(); %clear old results
                 this.FLIMXObj.curSubject.update(); 
                 this.setupGUI();
                 this.updateGUI(1);
@@ -1802,7 +1802,7 @@ classdef FLIMXFitGUI < handle
             new = GUI_boundsOptions(this.FLIMXObj.paramMgr.getParamSection('bounds'),'On');
             if(~isempty(new))
                 this.FLIMXObj.paramMgr.setParamSection('bounds',new.bounds);
-                this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
+                this.FLIMXObj.curSubject.clearROAResults(); %clear old results
                 this.FLIMXObj.curSubject.update(); 
                 this.setupGUI();
                 this.updateGUI(1);
@@ -1815,7 +1815,7 @@ classdef FLIMXFitGUI < handle
             new = GUI_optOptions(this.FLIMXObj.paramMgr.getParamSection('optimization'),'On');
             if(~isempty(new))
                 this.FLIMXObj.paramMgr.setParamSection('optimization',new.optParams);
-                this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
+                this.FLIMXObj.curSubject.clearROAResults(); %clear old results
                 this.FLIMXObj.curSubject.update(); 
                 this.setupGUI();
                 this.updateGUI(1);
@@ -1887,11 +1887,12 @@ classdef FLIMXFitGUI < handle
             button = questdlg(sprintf('Clear approximation results in all channels for current subject?'),'Clear approximation results?','Clear','Abort','Abort');
             switch button
                 case 'Clear'
-                    this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);
+                    this.FLIMXObj.curSubject.clearROAResults(); 
                     this.FLIMXObj.curSubject.update();                    
                     data = this.FLIMXObj.curSubject.getInitData(this.currentChannel,this.initFitParams.gridPhotons);
                     if(~isempty(data) && (this.initFitParams.gridSize ~= size(data,1) || any(any(this.initFitParams.gridPhotons > sum(data,3)))))
-                        this.FLIMXObj.curSubject.clearROIData();
+                        %clear measurement and results of ROA
+                        this.FLIMXObj.curSubject.clearROA();
                     end
                     this.setCurrentPos(this.currentY,this.currentX);
             end
@@ -1907,7 +1908,7 @@ classdef FLIMXFitGUI < handle
             %start fitting for current channel
             cla(this.visHandles.axesRes);
             cla(this.visHandles.axesResHis);
-            this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
+            this.FLIMXObj.curSubject.clearROAResults(); %clear old results
             this.FLIMXObj.curSubject.update(); 
             this.updateGUI(true);
             %start actual fitting process
