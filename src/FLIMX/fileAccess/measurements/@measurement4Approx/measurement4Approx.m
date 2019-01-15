@@ -36,14 +36,20 @@ classdef measurement4Approx < measurementInFDTree
     end
     
     properties (Dependent = true)
+%         initMode = false;        
     end
     
     methods
         function this = measurement4Approx(hSubject)
-            %constructor
+            %constructor            
             this = this@measurementInFDTree(@hSubject.getMyParamMgr,@hSubject.getMyFolder);
             this.myParent = hSubject;
         end
+        
+%         function out = get.initMode(this)
+%             %return init mode flag
+%             out = this.myParent.initMode;
+%         end
         %% input methods
         
     end %methods

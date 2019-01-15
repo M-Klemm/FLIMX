@@ -767,12 +767,13 @@ classdef FStudy < handle
         end
         
         function out = getSubject4Approx(this,subjectID)
-            %get subject object which includes measurements and results            
+            %get subject object which includes measurements and results
             if(~ischar(subjectID))
                 subjectID = this.myStudyInfoSet.idx2SubName(subjectID);
             end
-            if(any(strcmp(subjectID,this.getSubjectsNames(FDTree.defaultConditionName()))))
-                out = subject4Approx(this,subjectID);
+            subject = this.getSubject(subjectID);
+            if(~isempty(subject))
+                out = subject.getSubject4Approx();
             else
                 out = [];
             end

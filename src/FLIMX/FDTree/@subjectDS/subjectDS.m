@@ -37,6 +37,7 @@ classdef subjectDS < handle
         height = [];
         myParent = [];
         myChannels = [];
+        myFluoSubjectObj = [];
         myFileInfo = cell(0,0);
     end
     properties (Dependent = true)
@@ -422,6 +423,14 @@ classdef subjectDS < handle
                 return
             end
             h = chObj.getFDataObj(dType,id,sType);
+        end
+        
+        function out = getSubject4Approx(this)
+            %return fluoSubject object
+            if(isempty(this.myFluoSubjectObj))
+                this.myFluoSubjectObj = subject4Approx(this.myParent,this.name);
+            end
+            out = this.myFluoSubjectObj;
         end
         
         function nr = getNrChannels(this)

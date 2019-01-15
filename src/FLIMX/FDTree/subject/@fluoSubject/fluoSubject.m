@@ -40,6 +40,7 @@ classdef fluoSubject < handle
         myParamMgr = [];        
         progressCb = cell(0,0); %callback function handles for progress bars
         lastApproxObj = cell(0,0);
+        initMode = false;
     end
     
     properties (Dependent = true)
@@ -81,8 +82,10 @@ classdef fluoSubject < handle
             else
                 error('fluoSubject: No handle to study or parameter manager given');
             end
+            this.initMode = true;
             this.init();
             this.loadParameters();
+            this.initMode = false;
         end
         
         %% input methods

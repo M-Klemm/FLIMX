@@ -40,6 +40,7 @@ classdef subjectParamMgr < paramMgr
     properties (Dependent = true)
         fluoFileObj = [];
         resultObj = [];
+        initMode = false;
     end
     
     methods
@@ -92,6 +93,22 @@ classdef subjectParamMgr < paramMgr
             if(~isempty(this.mySubject))
                 out = this.mySubject.myResult;
             end
+        end
+        
+        function out = get.initMode(this)
+            %return init mode flag
+            out = false;
+            if(~isempty(this.mySubject))
+                out = this.mySubject.initMode;
+            end
+%             mo = this.fluoFileObj;
+%             ro = this.resultObj;
+%             if(~isempty(mo))
+%                 out = mo.initMode;
+%             end
+%             if(~isempty(ro))
+%                 out = out || ro.initMode;
+%             end
         end
         
         function out = getVolatileChannelParams(this,ch)
@@ -158,52 +175,54 @@ classdef subjectParamMgr < paramMgr
                 end
                 this.data.(sStr) = tmp;
                 %update other objects if necessary
-                switch sStr
-                    case 'pre_processing'
-                        %possible binning change
-                        if(~isempty(this.fluoFileObj))
-                            %check if something has changed
-                            for j = 1:length(fields)
-                                if(old.(fields{j}) ~= new.(fields{j}))
-                                    this.fluoFileObj.clearROIData();
-                                    break
+                if(~this.initMode)
+                    switch sStr
+                        case 'pre_processing'
+                            %possible binning change
+                            if(~isempty(this.fluoFileObj))
+                                %check if something has changed
+                                for j = 1:length(fields)
+                                    if(old.(fields{j}) ~= new.(fields{j}))
+                                        this.fluoFileObj.clearROIData();
+                                        break
+                                    end
                                 end
-                            end                            
-                        end
-                    case 'basic_fit'
-                        this.volatileChannelParams{1}.cVec = [];
-                        this.volatileChannelParams{2}.cVec = [];
-                        if(~isempty(this.fluoFileObj))
-                            this.makeVolatileParams();
-                            if(resetResults)
+                            end
+                        case 'basic_fit'
+                            this.volatileChannelParams{1}.cVec = [];
+                            this.volatileChannelParams{2}.cVec = [];
+                            if(~isempty(this.fluoFileObj))
+                                this.makeVolatileParams();
+                                if(resetResults)
+                                    for ch = 1:this.fluoFileObj.nrSpectralChannels
+                                        this.resultObj.allocResults(ch,this.fluoFileObj.getROIYSz(),this.fluoFileObj.getROIXSz());
+                                    end
+                                end
+                            end
+                        case 'init_fit'
+                            if(~isempty(this.fluoFileObj) && (isfield(new,'gridSize') && new.gridSize ~= old.gridSize || isfield(new,'gridPhotons') && new.gridPhotons ~= old.gridPhotons))
+                                this.fluoFileObj.clearInitData();
                                 for ch = 1:this.fluoFileObj.nrSpectralChannels
                                     this.resultObj.allocResults(ch,this.fluoFileObj.getROIYSz(),this.fluoFileObj.getROIXSz());
                                 end
                             end
-                        end
-                    case 'init_fit'
-                        if(~isempty(this.fluoFileObj) && (isfield(new,'gridSize') && new.gridSize ~= old.gridSize || isfield(new,'gridPhotons') && new.gridPhotons ~= old.gridPhotons))
-                            this.fluoFileObj.clearInitData();
-                            for ch = 1:this.fluoFileObj.nrSpectralChannels
-                                this.resultObj.allocResults(ch,this.fluoFileObj.getROIYSz(),this.fluoFileObj.getROIXSz());
-                            end
-                        end
-                    case 'computation'
-                        %check GPU support
-%                         warning('off','parallel:gpu:DeviceCapability');
-%                         if(isfield(new,'useGPU') && new.useGPU && isempty(this.volatilePixelParams.compatibleGPUs) && isGpuAvailable())
-%                             GPUList = [];
-%                             for i = 1:gpuDeviceCount
-%                                 info = gpuDevice(i);
-%                                 if(info.DeviceSupported)
-%                                     GPUList = [GPUList i];
-%                                 end
-%                             end
-%                             this.volatilePixelParams.compatibleGPUs = GPUList;
-%                         elseif(isfield(new,'useGPU') && ~new.useGPU)
-%                             this.volatilePixelParams.compatibleGPUs = [];
-%                         end
-%                         warning('on','parallel:gpu:DeviceCapability');
+                        case 'computation'
+                            %check GPU support
+                            %                         warning('off','parallel:gpu:DeviceCapability');
+                            %                         if(isfield(new,'useGPU') && new.useGPU && isempty(this.volatilePixelParams.compatibleGPUs) && isGpuAvailable())
+                            %                             GPUList = [];
+                            %                             for i = 1:gpuDeviceCount
+                            %                                 info = gpuDevice(i);
+                            %                                 if(info.DeviceSupported)
+                            %                                     GPUList = [GPUList i];
+                            %                                 end
+                            %                             end
+                            %                             this.volatilePixelParams.compatibleGPUs = GPUList;
+                            %                         elseif(isfield(new,'useGPU') && ~new.useGPU)
+                            %                             this.volatilePixelParams.compatibleGPUs = [];
+                            %                         end
+                            %                         warning('on','parallel:gpu:DeviceCapability');
+                    end
                 end
             else
                 goOn = false;

@@ -50,8 +50,57 @@ classdef measurementInFDTree < measurementFile
             this.checkMyFiles();
             if(any(this.filesOnHDD))
                 %load file info of an available channel
-                this.getFileInfoStruct([]);
+                this.initMode = true;
+                %this.getFileInfoStruct([]);
+                chList = this.nonEmptyChannelList();                
                 %this.loadROIInfo(this.nonEmptyChannelList(1));
+                for i = 1:length(chList)
+                    ch = chList(i);
+                    %load ROA info
+                    if(this.filesOnHDD(ch) && this.openChannel(ch))
+                        %load intensity image
+                        this.rawFluoDataFlat{ch,1} = this.myFiles{1,ch}.rawDataFlat;
+                        this.rawMaskData{ch,1} = this.myFiles{1,ch}.rawMaskData;
+                        %load file info
+                        this.setFileInfoStruct(this.myFiles{1,ch}.fluoFileInfo);
+                        %load the ROA
+                        ri = this.myFiles{1,ch}.ROIInfo;
+                        this.ROIDataType = ri.ROIDataType;
+                        %this.setROICoord(ri.ROICoordinates);
+                        coord = ri.ROICoordinates;
+                        if(~isempty(this.rawXSz))
+                            coord(2) = min(coord(2),this.rawXSz);
+                        end
+                        if(~isempty(this.rawYSz))
+                            coord(4) = min(coord(4),this.rawYSz);
+                        end
+                        this.ROICoord = coord(:);
+                        if(this.roiAdaptiveBinEnable && ~isempty(ri.ROIAdaptiveBinThreshold) && ri.ROIAdaptiveBinThreshold == this.roiAdaptiveBinThreshold && isfield(ri,'ROISupport'))
+                            if(isfield(ri.ROISupport,'roiFluoDataFlat'))
+                                this.roiFluoDataFlat{ch} = ri.ROISupport.roiFluoDataFlat;
+                            end
+                            if(isfield(ri.ROISupport,'roiAdaptiveBinLevels'))
+                                this.roiBinLevels{ch} = ri.ROISupport.roiAdaptiveBinLevels;
+                            end
+                        end
+                        this.roiMerged{ch} = ri.ROIMerged;
+                        if(length(this.roiInfoLoaded) < ch || ~this.roiInfoLoaded(ch))
+                            
+                        end
+                        this.roiInfoLoaded(ch) = true;
+                    end
+                end
+                %load aux info
+                ai = this.myFiles{1,ch}.auxInfo;
+                this.sourceFile = ai.sourceFile;
+%                 %load the fileinfo for all channels
+%                 for i = 2:length(chList)
+%                     ch = chList(i);
+%                     if(this.filesOnHDD(ch) && this.openChannel(ch))
+%                         this.setFileInfoStruct(this.myFiles{1,ch}.fluoFileInfo);
+%                     end
+%                 end
+                this.initMode = false;
             end
         end
         
@@ -130,9 +179,39 @@ classdef measurementInFDTree < measurementFile
                 auxInfo.sourceFile = measurement.sourceFile;
                 auxInfo.revision = FLIMX.getVersionInfo().measurement_revision;
                 %overwrite old file
+                %close open file first?
                 save(fn,'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo','-v7.3');
                 success = this.openChannel(ch);
                 return
+            end
+            auxInfo = this.myFiles{1,ch}.auxInfo;
+            if(auxInfo.revision < 205)
+                %save some addition raw data info
+                %make intensity images (rawDataFlat) and store them in the measurement file
+                rawData = this.myFiles{1,ch}.rawData;
+                ROIInfo = this.myFiles{1,ch}.ROIInfo;
+                if(isempty(rawData))
+                    rawDataFlat = [];
+                    ROIInfo.ROIMerged = [];
+                else
+                    rawDataFlat = int32(sum(rawData,3));
+                    if(~isempty(ROIInfo.ROICoordinates))
+                        ROIInfo.ROIMerged = sum(reshape(rawData(ROIInfo.ROICoordinates(3):ROIInfo.ROICoordinates(4),ROIInfo.ROICoordinates(1):ROIInfo.ROICoordinates(2),:),[],size(rawData,3)),1)';
+                    else
+                        ROIInfo.ROIMerged = squeeze(sum(rawData,1:2));
+                    end
+                end
+                auxInfo.revision = FLIMX.getVersionInfo().measurement_revision;
+                %enable write access
+                this.myFiles{1,ch}.Properties.Writable = true;
+                this.myFiles{1,ch}.rawDataFlat = rawDataFlat;
+                if(~any(ismember(who(this.myFiles{1,ch}),{'rawMaskData'})))
+                    %make sure there is always a rawDatMask field
+                    this.myFiles{1,ch}.rawMaskData = [];
+                end
+                this.myFiles{1,ch}.ROIInfo = ROIInfo;
+                this.myFiles{1,ch}.auxInfo = auxInfo;
+                this.myFiles{1,ch}.Properties.Writable = false;
             end
             if(sum(ismember(who(this.myFiles{1,ch}),{'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'})) < 4)
                 %something went wrong

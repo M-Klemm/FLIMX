@@ -57,6 +57,7 @@ classdef measurementFile < handle
         useMexFlags = [];
         useGPUFlags = [];
         dirtyFlags = false(1,4); %rawData, fluoFileInfo, auxInfo, ROIInfo
+        initMode = false;
     end
     
     properties (Dependent = true)
@@ -87,7 +88,9 @@ classdef measurementFile < handle
         function this = measurementFile(hPM)
             %constructor
             this.setParamMgrHandle(hPM);
+            this.initMode = true;
             this.setFileInfoStruct(measurementFile.getDefaultFileInfo());
+            this.initMode = false;
             this.fileInfoLoaded = false;
         end
         
@@ -421,6 +424,7 @@ classdef measurementFile < handle
             out.ROICoordinates = this.ROICoordinates;
             out.ROIDataType = this.ROIDataType;
             out.ROIAdaptiveBinEnable = this.roiAdaptiveBinEnable;
+            out.ROIMerged = this.getROIMerged(ch);
             if(out.ROIAdaptiveBinEnable)
                 out.ROIAdaptiveBinThreshold = this.roiAdaptiveBinThreshold;
                 out.ROISupport.roiFluoDataFlat = this.getROIDataFlat(ch,false);
@@ -495,7 +499,7 @@ classdef measurementFile < handle
             out = this.fileInfo.EndPosition{channel};
         end
         
-        function out = getRawDataFlat(this,channel)
+          function out = getRawDataFlat(this,channel)
             %get intensity image of (raw) measurement data
             if(length(this.rawFluoDataFlat) < channel || isempty(this.rawFluoDataFlat{channel}))
                 if(this.paramMgrObj.basicParams.approximationTarget == 2 && ~isMultipleCall() && channel > 2)
@@ -503,7 +507,7 @@ classdef measurementFile < handle
                 else
                     out = this.getRawData(channel);
                     if(~isempty(out))
-                        out = sum(out,3);
+                        out = int32(sum(out,3));
                         this.rawFluoDataFlat(channel,1) = {out};
                     end
                 end
@@ -515,20 +519,19 @@ classdef measurementFile < handle
         function [out, binFactors] = getROIDataFlat(this,channel,noBinFlag)
             %get intensity of roi for channel, return ROI without binning if noBinFlag is true
             bp = this.paramMgrObj.basicParams;
-            raw = this.getRawData(channel);
-            if(isempty(raw) && bp.approximationTarget == 1)
+            rawDataFlat = this.getRawDataFlat(channel);
+            if(isempty(rawDataFlat) && bp.approximationTarget == 1)
                 out = [];
                 return
             end
-            [yR, xR, zR] = size(raw);
             roi = this.ROICoordinates;
             if(length(roi) ~= 4)
                 roi = ones(4,1);
-                roi(2) = xR;
-                roi(4) = yR;
+                roi(2) = this.rawXSz;
+                roi(4) = this.rawYSz;
             end
-            if(noBinFlag && ~isempty(raw))
-                out = int32(sum(raw(roi(3):roi(4),roi(1):roi(2),:),3));
+            if(noBinFlag && ~isempty(rawDataFlat))
+                out = int32(rawDataFlat(roi(3):roi(4),roi(1):roi(2)));
                 return
             end
             if(length(this.roiFluoDataFlat) < channel || isempty(this.roiFluoDataFlat{channel}))
@@ -565,12 +568,12 @@ classdef measurementFile < handle
                     %this.roiBinLevels{channel} = binFactors;
                 else
                     bin = this.roiStaticBinningFactor;
-                    if(isempty(raw))
+                    if(isempty(rawDataFlat))
                         out = [];
                     elseif(bin == 0)
-                        out = int32(sum(raw(roi(3):roi(4),roi(1):roi(2),:),3));
+                        out = int32(rawDataFlat(roi(3):roi(4),roi(1):roi(2)));
                     else
-                        out = sffilt(@sum,sum(raw(roi(3):roi(4),roi(1):roi(2),:),3),[2*bin+1 2*bin+1]);
+                        out = sffilt(@sum,rawDataFlat(roi(3):roi(4),roi(1):roi(2)),[2*bin+1 2*bin+1]);
                     end
                     this.roiFluoDataFlat(channel) = {out};
                 end
@@ -946,20 +949,29 @@ classdef measurementFile < handle
             df = this.getDirtyFlags(ch,1:4);
             if(all(df) || ~exist(fn,'file'))
                 rawData = this.getRawData(ch,false);
+                rawDataFlat = this.getRawDataFlat(ch);
                 rawMaskData = this.getRawMaskData(ch);
                 fluoFileInfo = this.getFileInfoStruct(ch);
                 auxInfo.revision = this.FLIMXAboutInfo.measurement_revision;
                 [~, name, ext] = fileparts(this.getSourceFile());
                 auxInfo.sourceFile = [name ext];
                 ROIInfo = this.getROIInfo(ch);
-                save(fn,'rawData','rawMaskData','fluoFileInfo','auxInfo','ROIInfo','-v7.3');
+                save(fn,'rawData','rawMaskData','rawDataFlat','fluoFileInfo','auxInfo','ROIInfo','-v7.3');
             else
+                try
+                    file = matfile(fn,'Writable',true);
+                catch ME
+                    %todo: error handling
+                    return
+                end
                 if(df(1,1))
                     %rawData
                     rawData = this.getRawData(ch,false);
                     rawMaskData = this.getRawMaskData(ch);
                     if(~isempty(rawData))
-                        save(fn,'rawData','rawMaskData','-append');
+                        file.rawData = rawData;
+                        file.rawMaskData = rawMaskData;
+                        file.rawDataFlat = rawDataFlat;
                     end
                 end
                 if(df(1,2))
@@ -969,7 +981,7 @@ classdef measurementFile < handle
                         %revert artificial change of spectral channels
                         fluoFileInfo.nrSpectralChannels = 2;
                     end
-                    save(fn,'fluoFileInfo','-append');
+                    file.fluoFileInfo = fluoFileInfo;
                 end
                 if(df(1,3))
                     %auxInfo
@@ -977,21 +989,15 @@ classdef measurementFile < handle
                     %out.channel = ch;
                     [~, name, ext] = fileparts(this.getSourceFile());
                     auxInfo.sourceFile = [name ext];
-                    save(fn,'auxInfo','-append');
+                    file.auxInfo = auxInfo;
                 end
                 if(df(1,4))
                     %ROIInfo
                     ROIInfo = this.getROIInfo(ch);
-                    save(fn,'ROIInfo','-append');
+                    file.ROIInfo = ROIInfo;
                 end
             end
             this.setDirtyFlags(ch,1:4,false);
-            %              saveVars = saveVars(this.dirtyFlags);
-            %              if(~isempty(saveVars))
-            % %                  file = matfile(fn,'Writable',true);
-            % %                  file.ROIInfo = ROIInfo;
-            %                  save(fn,saveVars{:},'-append');
-            %              end
         end
         
         function out = getMyFolder(this)
@@ -1208,7 +1214,7 @@ classdef measurementFile < handle
             this.fileInfo.tacRange = fileInfo.tacRange;
             this.fileInfo.nrTimeChannels = fileInfo.nrTimeChannels;
             this.fileInfo.nrSpectralChannels = fileInfo.nrSpectralChannels;
-            if(~this.fileInfoLoaded || old.tacRange ~= fileInfo.tacRange || old.nrTimeChannels ~= fileInfo.nrTimeChannels || old.nrSpectralChannels ~= fileInfo.nrSpectralChannels)
+            if(~this.initMode && (~this.fileInfoLoaded || old.tacRange ~= fileInfo.tacRange || old.nrTimeChannels ~= fileInfo.nrTimeChannels || old.nrSpectralChannels ~= fileInfo.nrSpectralChannels))
                 this.clearROIData();
             end
             if(~isfield(fileInfo,'reflectionMask'))
@@ -1220,7 +1226,9 @@ classdef measurementFile < handle
             this.fileInfo.position = fileInfo.position;
             this.fileInfo.pixelResolution = fileInfo.pixelResolution;
             this.fileInfoLoaded = true;
-            this.setDirtyFlags([],2,true);
+            if(~this.initMode)
+                this.setDirtyFlags([],2,true);
+            end
         end
         
         function setSEPosRM(this,channel,startP,endP,RM)
@@ -1235,7 +1243,9 @@ classdef measurementFile < handle
                 this.fileInfo.StartPosition{channel} = startP;
                 this.fileInfo.EndPosition{channel} = endP;
             end
-            this.setDirtyFlags([],2,true);
+            if(~this.initMode)
+                this.setDirtyFlags([],2,true);
+            end
         end
         
         function setRawData(this,channel,data)
