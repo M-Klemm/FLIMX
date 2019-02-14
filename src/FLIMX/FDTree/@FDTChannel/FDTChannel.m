@@ -1,10 +1,10 @@
-classdef Channel < handle
+classdef FDTChannel < FDTreeNode
     %=============================================================================================================
     %
-    % @file     Channel.m
+    % @file     FDTChannel.m
     % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
     % @version  1.0
-    % @date     July, 2015
+    % @date     January, 2019
     %
     % @section  LICENSE
     %
@@ -29,42 +29,43 @@ classdef Channel < handle
     % POSSIBILITY OF SUCH DAMAGE.
     %
     %
-    % @brief    A class to represent a (spectral) channel.
+    % @brief    A class to represent a (spectral) channel in FDTree.
     %
     properties(SetAccess = private,GetAccess = public)
 %         items = [];
 %         isLoaded = false;
     end
     properties(SetAccess = protected,GetAccess = protected)
-        myParent = [];
-        myChunks = [];
+        %myParent = [];
+        %myChunks = [];
     end
     properties (Dependent = true)
         FLIMXParamMgrObj = [];
     end
     
     methods
-        function this = Channel(parent)
-            % Constructor for Channel.
-            this.myParent = parent;
-            this.myChunks = LinkedList();
+        function this = FDTChannel(parent,ch)
+            % Constructor for FDTChannel
+            this = this@FDTreeNode(parent,num2str(ch));
+            %this.myParent = parent;
+            %this.myChunks = LinkedList();
         end
         
-        function out = getSize(this)
-            %determine memory size of the channel
-            out = 0;
-            for i = 1:this.myChunks.queueLen
-                chunk = this.myChunks.getDataByPos(i);
-                if(~isempty(chunk))
-                    out = out + chunk.getSize();
-                end
-            end
-            %fprintf(1, 'Channel size %d bytes\n', out);
-        end
+%         function out = getSize(this)
+%             %determine memory size of the channel
+%             out = 0;
+%             for i = 1:this.nrChildren
+%                 chunk = this.getChildAtPos(i);
+%                 if(~isempty(chunk))
+%                     out = out + chunk.getSize();
+%                 end
+%             end
+%             %fprintf(1, 'Channel size %d bytes\n', out);
+%         end
         
         function addObj(this,dType,gScale,data)
             %add an object to FDTree and generate id (running number) automatically
-            chunk = this.getChunk(dType);
+            chunk = this.getChild(dType);
             if(isempty(chunk))
                 chunk = this.addChunk(dType,gScale);
             end
@@ -73,7 +74,7 @@ classdef Channel < handle
         
         function addObjID(this,nr,dType,gScale,data)
             %add an object to FDTree with specific id (running number)
-            chunk = this.getChunk(dType);
+            chunk = this.getChild(dType);
             if(isempty(chunk))
                 chunk = this.addChunk(dType,gScale);
             end
@@ -82,7 +83,7 @@ classdef Channel < handle
         
         function addObjMergeID(this,nr,dType,gScale,data)
             %
-            chunk = this.getChunk(dType);
+            chunk = this.getChild(dType);
             if(isempty(chunk))
                 chunk = this.addChunk(dType,gScale);
             end
@@ -91,16 +92,16 @@ classdef Channel < handle
                        
         function chunk = addChunk(this,dType,gScale)
             %add a new chunk
-            chunk = this.getChunk(dType);
+            chunk = this.getChild(dType);
             if(isempty(chunk))
-                chunk = Chunk(this,dType,gScale);
-                this.myChunks.insertEnd(chunk,dType);
+                chunk = FDTChunk(this,dType,gScale);
+                this.addChildAtEnd(chunk);
             end
         end
         
         function removeObj(this,dType,id)
             %remove object
-            [chunk, chuckPos] = this.getChunk(dType);
+            [chunk, chuckPos] = this.getChild(dType);
             if(isempty(chunk))
                 return
             end
@@ -108,7 +109,7 @@ classdef Channel < handle
                 chunk.removeObj(id);
                 if(chunk.getNrElements == 0)
                     %nothing in there anymore -> remove it from channel
-                    this.myChunks.removePos(chuckPos);
+                    this.deleteChildByPos(chuckPos);
                 end
             end
         end
@@ -116,26 +117,26 @@ classdef Channel < handle
         %% input functions
         function setdType(this,dType,val)
             %set dType (name of chunk)
-            chunk = this.getChunk(dType);
+            chunk = this.getChild(dType);
             if(isempty(chunk))
                 return
             end
             chunk.setdType(val);
             %change ID in linked list
-            this.myChunks.changeID(dType,val);
+            this.renameChild(dType,val);
         end        
         
         function setResultROICoordinates(this,dType,ROIType,ROICoord)
             %set the ROI vector for dimension dim
-            chunk = this.getChunk(dType);
+            chunk = this.getChild(dType);
             if(isempty(chunk))
                 return
             end
             if(chunk.getGlobalScale())
                 %set ROI vec for all global scaled chunks
-                for i = 1:this.myChunks.queueLen
-                    if(this.myChunks.getDataByPos(i).globalScale)
-                        this.myChunks.getDataByPos(i).setResultROICoordinates(ROIType,ROICoord);
+                for i = 1:this.nrChildren
+                    if(this.getChildAtPos(i).globalScale)
+                        this.getChildAtPos(i).setResultROICoordinates(ROIType,ROICoord);
                     end
                 end
             else
@@ -146,9 +147,9 @@ classdef Channel < handle
         
         function setResultCrossSection(this,dim,csDef)
             %set the cross section for dimension dim
-            for i = 1:this.myChunks.queueLen
-                if(this.myChunks.getDataByPos(i).globalScale)
-                    this.myChunks.getDataByPos(i).setResultCrossSection(dim,csDef);
+            for i = 1:this.nrChildren
+                if(this.getChildAtPos(i).globalScale)
+                    this.getChildAtPos(i).setResultCrossSection(dim,csDef);
                 end
             end
         end
@@ -163,15 +164,16 @@ classdef Channel < handle
             %clear current immages of datatype dType in all subjects
             if(isempty(dType))
                 %clear all
-                for i = 1:this.myChunks.queueLen
-                    this.myChunks.getDataByPos(i).clearAllCIs();
-                end
+                clearAllCIs@FDTreeNode(this,dType);
+%                 for i = 1:this.nrChildren
+%                     this.getChildAtPos(i).clearAllCIs();
+%                 end
             elseif(iscell(dType))
                 for i = 1:length(dType)
                     this.clearAllCIs(dType{i})
                 end                
             elseif(ischar(dType))
-                chunk = this.getChunk(dType);
+                chunk = this.getChild(dType);
                 if(isempty(chunk))
                     return
                 end
@@ -184,15 +186,16 @@ classdef Channel < handle
             %clear filtered raw immages of datatype dType in all subjects
             if(isempty(dType))
                 %clear all
-                for i = 1:this.myChunks.queueLen
-                    this.myChunks.getDataByPos(i).clearAllFIs();
-                end
+                clearAllFIs@FDTreeNode(this,dType);
+%                 for i = 1:this.nrChildren
+%                     this.getChildAtPos(i).clearAllFIs();
+%                 end
             elseif(iscell(dType))
                 for i = 1:length(dType)
                     this.clearAllFIs(dType{i})
                 end                
             elseif(ischar(dType))
-                chunk = this.getChunk(dType);
+                chunk = this.getChild(dType);
                 if(isempty(chunk))
                     return
                 end
@@ -205,15 +208,16 @@ classdef Channel < handle
             %clear raw images of datatype dType in all subjects
             if(isempty(dType))
                 %clear all
-                for i = 1:this.myChunks.queueLen
-                    this.myChunks.getDataByPos(i).clearAllRIs();
-                end
+                clearAllRIs@FDTreeNode(this,dType);
+%                 for i = 1:this.nrChildren
+%                     this.getChildAtPos(i).clearAllRIs();
+%                 end
             elseif(iscell(dType))
                 for i = 1:length(dType)
                     this.clearAllRIs(dType{i})
                 end                
             elseif(ischar(dType))
-                chunk = this.getChunk(dType);
+                chunk = this.getChild(dType);
                 if(isempty(chunk))
                     return
                 end
@@ -221,15 +225,10 @@ classdef Channel < handle
                 chunk.clearAllRIs();
             end
         end                
-        %% output functions
-        function [chunk, chuckPos] = getChunk(this,dType)
-            %check if dType is available and return chuck object
-            [chunk, chuckPos] = this.myChunks.getDataByID(dType);
-        end
-        
+        %% output functions        
         function h = getFDataObj(this,dType,nr,sType)
             %get FData object
-            chunk = this.getChunk(dType);
+            chunk = this.getChild(dType);
             if(isempty(chunk))
                 if(strncmp(dType,'MVGroup',7) || strncmp(dType,'ConditionMVGroup',16)...
                         || strncmp(dType,'MVGroupGlobal',13))
@@ -251,12 +250,12 @@ classdef Channel < handle
         
         function out = getZScaling(this,dType,dTypeNr)
             %get z scaling
-            out = this.myParent.getZScaling(dType,this.getMyChannelNr(),dTypeNr);
+            out = this.myParent.getZScaling(dType,this.getMyPositionInParent(),dTypeNr);
         end
         
         function out = getColorScaling(this,dType,dTypeNr)
             %get color scaling
-            out = this.myParent.getColorScaling(dType,this.getMyChannelNr(),dTypeNr);
+            out = this.myParent.getColorScaling(dType,this.getMyPositionInParent(),dTypeNr);
         end
         
         function out = getStatsParams(this)
@@ -266,33 +265,33 @@ classdef Channel < handle
         
         function out = getFileInfoStruct(this)
             %get fileinfo struct
-            out = this.myParent.getFileInfoStruct(this.getMyChannelNr());
+            out = this.myParent.getFileInfoStruct(this.getMyPositionInParent());
         end
         
-        function nr = getMySubjectName(this)
+        function out = getMySubjectName(this)
             %return the current subject name
-            nr = this.myParent.getSubjectName();
+            out = this.myParent.name;
         end
         
         function nr = getMyChannelNr(this)
             %return the current channel number
-            nr = this.myParent.getMyChannelNr(this);
+            nr = str2double(this.name);%this.getChildName(this);
         end
         
         function nr = getNrElements(this)
             %get number of channels in subject
-            nr = this.myChunks.queueLen;
+            nr = this.nrChildren;
         end 
         
         function str = getChObjStr(this)
             %get a string of all objects in this channel
             str = cell(0,0);
-            for i=1:this.myChunks.queueLen
-                if(strncmp('MVGroup',this.myChunks.getDataByPos(i).getDType,7))
+            for i=1:this.nrChildren
+                if(strncmp('MVGroup',this.getChildAtPos(i).getDType,7))
                     %skip cluster objects
                     continue
                 end                    
-                tmp = this.myChunks.getDataByPos(i).getChObjStr;
+                tmp = this.getChildAtPos(i).getChObjStr;
                 for j=1:length(tmp)
                     str(end+1,1) = tmp(j,:);
                 end
@@ -303,8 +302,8 @@ classdef Channel < handle
         function str = getChClusterObjStr(this)
             %get a string of all non-empty cluster objects in this channel            
             str = cell(0,0);
-            for i=1:this.myChunks.queueLen
-                chunk = this.myChunks.getDataByPos(i);
+            for i=1:this.nrChildren
+                chunk = this.getChildAtPos(i);
                 if(~strcmp('MVGroup',chunk.getDType))
                     %get only cluster objects
                     continue
@@ -319,12 +318,7 @@ classdef Channel < handle
                 end
             end            
         end                
-        
-        function out = getSaveMaxMemFlag(this)
-            %get saveMaxMem flag from parent
-            out = this.myParent.getSaveMaxMemFlag();
-        end
-        
+                
         function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
             [alg, params] = this.myParent.getDataSmoothFilter();
@@ -333,51 +327,19 @@ classdef Channel < handle
 %         function items = getChannelItems(this)
 %             %get the selected items of a resultfile
 %             items = this.items;
-%         end
-        
-%         function [MSX, MSXMin, MSXMax] = getMSX(this)
-%             %get manual scaling parameters for x
-%             MSX = [];
-%             MSXMin = [];
-%             MSXMax = [];
-%             for i = 1:this.myChunks.queueLen
-%                 [MSX, MSXMin, MSXMax] = this.myChunks.getDataByPos(i).getMSX();
-%                 if(~isempty(MSX))
-%                     return
-%                 end
-%             end 
-%         end
-%         
-%         function [MSY, MSYMin, MSYMax] = getMSY(this)
-%             %get manual scaling parameters for y
-%             MSY = [];
-%             MSYMin = [];
-%             MSYMax = [];
-%             for i = 1:this.myChunks.queueLen
-%                 [MSY, MSYMin, MSYMax] = this.myChunks.getDataByPos(i).getMSY();
-%                 if(~isempty(MSY))
-%                     return
-%                 end
-%             end
-%         end
-        
-        function out = channelResultIsLoaded(this)
-            %get isLoaded flag
-            tmp = this.getChObjStr();
-            out = ~isempty(tmp) && ~all(strcmp('Intensity',tmp));
-        end
+%         end        
         
         function out = isMember(this,dType)
             %function checks combination of channel and datatype
             out = true;
-            if(~isempty(dType) && isempty(this.getChunk(dType)))
+            if(~isempty(dType) && isempty(this.getChild(dType)))
                 out = false;
             end
         end
         
         function out = getGlobalScale(this,dType)
             %return global scale flag for dType
-            chunk = this.getChunk(dType);
+            chunk = this.getChild(dType);
             if(isempty(chunk))
                 out = false;
             else
@@ -417,7 +379,7 @@ classdef Channel < handle
                 CImaxs(1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIInvertFlag);
                 CImins(1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIInvertFlag);
                 %get reference classwidth
-                cw = getHistParams(this.getStatsParams(),this.getMyChannelNr(),dType{1},dTypeNr(1));
+                cw = getHistParams(this.getStatsParams(),this.getMyPositionInParent(),dType{1},dTypeNr(1));
             end
             %get FLIM items for y-axis
             if(~isempty(cMVs.y))
@@ -448,12 +410,12 @@ classdef Channel < handle
         
         function [cimg, lblx, lbly, cw] = makeConditionCluster(this,clusterID)
             %make condition cluster for current channel
-            [cimg, lblx, lbly, cw] = this.myParent.makeConditionCluster(this.getMyChannelNr,clusterID);
+            [cimg, lblx, lbly, cw] = this.myParent.makeConditionCluster(this.getMyPositionInParent(),clusterID);
         end        
         
         function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalCluster(this,clusterID)
             %make global cluster for current channel
-            [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(this.getMyChannelNr,clusterID);
+            [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(this.getMyPositionInParent(),clusterID);
         end        
         
 %         function setIsLoaded(this)

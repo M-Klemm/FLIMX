@@ -1,10 +1,10 @@
-classdef Chunk < handle
+classdef FDTChunk < FDTreeNode
     %=============================================================================================================
     %
-    % @file     Chunk.m
+    % @file     FDTChunk.m
     % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
     % @version  1.0
-    % @date     July, 2015
+    % @date     January, 2019
     %
     % @section  LICENSE
     %
@@ -34,8 +34,8 @@ classdef Chunk < handle
     properties(SetAccess = protected,GetAccess = public)
         dType = [];
         globalScale = [];
-        myParent = [];
-        mySlices = [];
+%         myParent = [];
+%         mySlices = [];
     end
     properties(SetAccess = protected,GetAccess = protected)
         
@@ -45,29 +45,30 @@ classdef Chunk < handle
     end
 
     methods
-        function this = Chunk(parent,dType,globalScale)
-            % Constructor for Chunk.
-            this.myParent = parent;
-            this.mySlices = LinkedList();   %LinkedList of FData objects
+        function this = FDTChunk(parent,dType,globalScale)
+            % Constructor for Chunk
+            this = this@FDTreeNode(parent,dType);
+%             this.myParent = parent;
+%             this.mySlices = LinkedList();   %LinkedList of FData objects
             this.dType = dType;
             this.globalScale = logical(globalScale);
         end
         
-        function out = getSize(this)
-            %determine memory size of the chunk
-            out = 0;
-            for i = 1:this.mySlices.queueLen
-                slice = this.mySlices.getDataByID(i);
-                if(~isempty(slice))
-                    out = out + slice.getSize();
-                end
-            end
-            %fprintf(1, 'Chunk size %d bytes\n', out);
-        end
+%         function out = getSize(this)
+%             %determine memory size of the chunk
+%             out = 0;
+%             for i = 1:this.nrChildren
+%                 slice = this.getChildAtPos(i);
+%                 if(~isempty(slice))
+%                     out = out + slice.getSize();
+%                 end
+%             end
+%             %fprintf(1, 'Chunk size %d bytes\n', out);
+%         end
         
         function addObj(this,data)            
             %add an object to FDTree and generate id (running number) automatically
-            this.mySlices.insertEnd(FDataNormal(this,this.mySlices.queueLen+1,data));            
+            this.addChildAtEnd(FDataNormal(this,this.nrChildren+1,data));            
         end
         
         function addObjID(this,id,data)            
@@ -75,7 +76,7 @@ classdef Chunk < handle
             h = this.getFDataObj(id,1);
             if(isempty(h))
                 %add FData object
-                this.mySlices.insertID(FDataNormal(this,id,data),id,true);
+                this.addChildByName(FDataNormal(this,id,data),num2str(id)); %true); %with overwrite flag
             else
                 %update FData object
                 h.setRawData(data);
@@ -87,7 +88,7 @@ classdef Chunk < handle
             h = this.getFDataObj(id,1);
             if(isempty(h))
                 %add merged FData object
-                this.mySlices.insertID(FDataMerge(this,id,data),id,true);
+                this.addChildByName(FDataMerge(this,id,data),num2str(id)); % ,id,true); %with overwrite flag
             else
                 %update merged FData object
                 h.setRawData(data);
@@ -98,63 +99,63 @@ classdef Chunk < handle
         end        
         
         function removeObj(this,id)
-            %remove object
-            this.mySlices.removeID(id);
+            %remove FData object
+            this.deleteChildByName(id);
         end
         
         %% input functions 
         function setdType(this,val)
-            %set dType
+            %set data type (dType)
             this.dType = val;
         end
         
         function setResultROICoordinates(this,ROIType,ROICoord)
             %set the ROI vector for dimension dim
-            for i = 1:this.mySlices.queueLen
-                this.mySlices.getDataByPos(i).setResultROICoordinates(ROIType,ROICoord);
+            for i = 1:this.nrChildren
+                this.getChildAtPos(i).setResultROICoordinates(ROIType,ROICoord);
             end
         end
         
         function setResultCrossSection(this,dim,csDef)
             %set the cross section for dimension dim
-            for i = 1:this.mySlices.queueLen
-                this.mySlices.getDataByPos(i).setResultCrossSection(dim,csDef);
+            for i = 1:this.nrChildren
+                this.getChildAtPos(i).setResultCrossSection(dim,csDef);
             end
         end
         
         function clearAllCIs(this)
             %clear all current images
-            for i = 1:this.mySlices.queueLen
-                this.mySlices.getDataByPos(i).clearCachedImage();
+            for i = 1:this.nrChildren
+                this.getChildAtPos(i).clearCachedImage();
             end
         end
         
         function clearAllFIs(this)
             %clear filtered raw images of datatype dType in all subjectss
-            for i = 1:this.mySlices.queueLen
-                this.mySlices.getDataByPos(i).clearFilteredImage();
+            for i = 1:this.nrChildren
+                this.getChildAtPos(i).clearFilteredImage();
             end
         end 
         
         function clearAllRIs(this)
             %clear raw images of datatype dType in all subjectss
-            for i = 1:this.mySlices.queueLen
-                this.mySlices.getDataByPos(i).clearRawImage();
-                this.mySlices.getDataByPos(i).clearFilteredImage();
+            for i = 1:this.nrChildren
+                this.getChildAtPos(i).clearRawImage();
+                this.getChildAtPos(i).clearFilteredImage();
             end
         end                
         
         %% output functions
         function h = getFDataObj(this,id,sType)
             %get FData object with scaling sType                        
-            h = this.mySlices.getDataByID(id);            
+            h = this.getChild(num2str(id));            
             
             if(strncmp(this.dType,'MVGroup',7))
                 %check if cluster has to be computed                
                 if(isempty(h))
                     [cimg, lblx, lbly, cw] = this.myParent.makeCluster(this.dType);
-                    this.mySlices.insertID(FDataNormal(this,id,cimg),id,true);
-                    h = this.mySlices.getDataByID(id);  
+                    this.addChildByName(FDataNormal(this,id,cimg),num2str(id)); %,id,true);  %with overwrite flag
+                    h = this.getChildAtPos(id);  
                     %set labels for condition cluster computation
                     h.setupXLbl(lblx,cw);
                     h.setupYLbl(lbly,cw);
@@ -174,8 +175,8 @@ classdef Chunk < handle
                 clusterID = this.dType(10:end);
                 if(isempty(h))                                        
                     [cimg, lblx, lbly, cw] = this.myParent.makeConditionCluster(clusterID);
-                    this.mySlices.insertID(FDataScatterPlot(this,id,cimg),id,true);
-                    h = this.mySlices.getDataByID(id);
+                    this.addChildByName(FDataScatterPlot(this,id,cimg),num2str(id)); %,id,true);  %with overwrite flag
+                    h = this.getChild(id);
                     %set labels
                     h.setupXLbl(lblx,cw);
                     h.setupYLbl(lbly,cw);
@@ -195,8 +196,8 @@ classdef Chunk < handle
                 clusterID = this.dType(7:end);
                 if(isempty(h))                                        
                     [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(clusterID);
-                    this.mySlices.insertID(FDataScatterPlot(this,id,cimg),id,true);
-                    h = this.mySlices.getDataByID(id);
+                    this.addChildByName(FDataScatterPlot(this,id,cimg),num2str(id)); %,id,true);  %with overwrite flag
+                    h = this.getChild(id);
                     %set labels
                     h.setupXLbl(lblx,cw);
                     h.setupYLbl(lbly,cw);
@@ -238,7 +239,7 @@ classdef Chunk < handle
         
         function nr = getNrElements(this)
             %get number of slices in this chunk
-            nr = this.mySlices.queueLen;
+            nr = this.nrChildren;
         end  
         
         function nr = getMySubjectName(this)
@@ -253,26 +254,24 @@ classdef Chunk < handle
         
         function ids = getMyIDs(this)
             %return a list of all ids in this chunk
-            ids = zeros(this.mySlices.queueLen,1);
-            for i = 1:this.mySlices.queueLen
-                ids(i) = this.mySlices.getIDByPos(i);
-            end
+            %ids = cellfun(@str2double,this.getNamesOfAllChildren());
+            ids = cell2mat(this.getIDsOfAllChildren());
         end
         
         function id = getMyID(this,caller)
             %return the current id (running number)
-            id = this.mySlices.getIDByData(caller);
+            id = this.getChildName(caller);
         end
         
         function str = getChObjStr(this)
             %get a string of all objects in this chunk
-            str = cell(this.mySlices.queueLen,1);
-            for i=1:this.mySlices.queueLen
-                id = this.mySlices.getIDByPos(i);
-                if(id == 0)
-                    str(i,1) = {this.dType};
-                else
-                    str(i,1) = {sprintf('%s %d',this.dType,id)};
+            ids = this.getMyIDs();
+            if(length(ids) == 1 && ids(1) == 0)
+                str = {this.dType};
+            else
+                str = cell(this.nrChildren,1);
+                for i = 1:length(ids)
+                    str{i,1} = sprintf('%s %d',this.dType,ids(i));
                 end
             end
         end
@@ -300,11 +299,6 @@ classdef Chunk < handle
         function out = getFileInfoStruct(this)
             %get fileinfo struct
             out = this.myParent.getFileInfoStruct();
-        end        
-        
-        function out = getSaveMaxMemFlag(this)
-            %get saveMaxMem flag from parent
-            out = this.myParent.getSaveMaxMemFlag();
         end
         
         function [alg, params] = getDataSmoothFilter(this)
@@ -317,8 +311,8 @@ classdef Chunk < handle
 %             MSX = [];
 %             MSXMin = [];
 %             MSXMax = [];
-%             for i = 1:this.mySlices.queueLen
-%                 [MSX, MSXMin, MSXMax] = this.mySlices.getDataByPos(i).getMSX();
+%             for i = 1:this.nrChildren
+%                 [MSX, MSXMin, MSXMax] = this.getChildAtPos(i).getMSX();
 %                 if(~isempty(MSX))
 %                     return
 %                 end
@@ -330,8 +324,8 @@ classdef Chunk < handle
 %             MSY = [];
 %             MSYMin = [];
 %             MSYMax = [];
-%             for i = 1:this.mySlices.queueLen
-%                 [MSY, MSYMin, MSYMax] = this.mySlices.getDataByPos(i).getMSY();
+%             for i = 1:this.nrChildren
+%                 [MSY, MSYMin, MSYMax] = this.getChildAtPos(i).getMSY();
 %                 if(~isempty(MSY))
 %                     return
 %                 end

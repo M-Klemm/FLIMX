@@ -32,11 +32,11 @@ classdef measurementInFDTree < measurementFile
     % @brief    A class to represent the measurementInFDTree class
     %
     properties(GetAccess = public, SetAccess = private)
-        myFolder = '';
-        filesOnHDD = false(1,0);
+        myFolder = '';        
         myFiles = cell(0,0);
         roiInfoLoaded = false;
         roiMergedMask = [];
+        uid = 0;
     end
     
     properties (Dependent = true)
@@ -47,61 +47,34 @@ classdef measurementInFDTree < measurementFile
             %constructor
             this = this@measurementFile(hPM);
             this.myFolder = myFolder;
-            this.checkMyFiles();
-            if(any(this.filesOnHDD))
-                %load file info of an available channel
-                this.initMode = true;
-                %this.getFileInfoStruct([]);
-                chList = this.nonEmptyChannelList();                
-                %this.loadROIInfo(this.nonEmptyChannelList(1));
-                for i = 1:length(chList)
-                    ch = chList(i);
-                    %load ROA info
-                    if(this.filesOnHDD(ch) && this.openChannel(ch))
-                        %load intensity image
-                        this.rawFluoDataFlat{ch,1} = this.myFiles{1,ch}.rawDataFlat;
-                        this.rawMaskData{ch,1} = this.myFiles{1,ch}.rawMaskData;
-                        %load file info
-                        this.setFileInfoStruct(this.myFiles{1,ch}.fluoFileInfo);
-                        %load the ROA
-                        ri = this.myFiles{1,ch}.ROIInfo;
-                        this.ROIDataType = ri.ROIDataType;
-                        %this.setROICoord(ri.ROICoordinates);
-                        coord = ri.ROICoordinates;
-                        if(~isempty(this.rawXSz))
-                            coord(2) = min(coord(2),this.rawXSz);
-                        end
-                        if(~isempty(this.rawYSz))
-                            coord(4) = min(coord(4),this.rawYSz);
-                        end
-                        this.ROICoord = coord(:);
-                        if(this.roiAdaptiveBinEnable && ~isempty(ri.ROIAdaptiveBinThreshold) && ri.ROIAdaptiveBinThreshold == this.roiAdaptiveBinThreshold && isfield(ri,'ROISupport'))
-                            if(isfield(ri.ROISupport,'roiFluoDataFlat'))
-                                this.roiFluoDataFlat{ch} = ri.ROISupport.roiFluoDataFlat;
-                            end
-                            if(isfield(ri.ROISupport,'roiAdaptiveBinLevels'))
-                                this.roiBinLevels{ch} = ri.ROISupport.roiAdaptiveBinLevels;
-                            end
-                        end
-                        this.roiMerged{ch} = ri.ROIMerged;
-                        if(length(this.roiInfoLoaded) < ch || ~this.roiInfoLoaded(ch))
-                            
-                        end
-                        this.roiInfoLoaded(ch) = true;
-                    end
-                end
-                %load aux info
-                ai = this.myFiles{1,ch}.auxInfo;
-                this.sourceFile = ai.sourceFile;
-%                 %load the fileinfo for all channels
-%                 for i = 2:length(chList)
-%                     ch = chList(i);
-%                     if(this.filesOnHDD(ch) && this.openChannel(ch))
-%                         this.setFileInfoStruct(this.myFiles{1,ch}.fluoFileInfo);
-%                     end
-%                 end
-                this.initMode = false;
+            try
+                this.uid = datenummx(clock);  %fast
+            catch
+                this.uid = now;  %slower
             end
+            this.checkMyFiles();            
+        end       
+        
+%         function flag = eq(obj1,obj2)
+%             %compare two result objects
+%             if(abs(obj1.uid - obj2.uid) < eps('double'))
+%                 flag = true;
+%             else
+%                 flag = false;
+%             end
+%         end
+        
+        function deleteChannel(this,ch)
+            %delete channel from memory and disk
+            deleteChannel@measurementFile(this,ch);
+            this.filesOnHDD(1,ch) = false;
+            this.myFiles{1,ch} = [];
+            fn = this.getMeasurementFileName(ch,'');
+            try
+                delete(fn);
+            catch ME
+                %todo
+            end            
         end
         
         %% input methods
@@ -188,30 +161,39 @@ classdef measurementInFDTree < measurementFile
             if(auxInfo.revision < 205)
                 %save some addition raw data info
                 %make intensity images (rawDataFlat) and store them in the measurement file
-                rawData = this.myFiles{1,ch}.rawData;
-                ROIInfo = this.myFiles{1,ch}.ROIInfo;
-                if(isempty(rawData))
-                    rawDataFlat = [];
-                    ROIInfo.ROIMerged = [];
-                else
-                    rawDataFlat = int32(sum(rawData,3));
-                    if(~isempty(ROIInfo.ROICoordinates))
-                        ROIInfo.ROIMerged = sum(reshape(rawData(ROIInfo.ROICoordinates(3):ROIInfo.ROICoordinates(4),ROIInfo.ROICoordinates(1):ROIInfo.ROICoordinates(2),:),[],size(rawData,3)),1)';
+                try
+                    %the whole update procedure in one try block to make
+                    %sure it either works completely or not at all
+                    rawData = this.myFiles{1,ch}.rawData;
+                    ROIInfo = this.myFiles{1,ch}.ROIInfo;
+                    if(isempty(rawData))
+                        rawDataFlat = [];
+                        ROIInfo.ROIMerged = [];
                     else
-                        ROIInfo.ROIMerged = squeeze(sum(rawData,1:2));
+                        rawDataFlat = int32(sum(rawData,3));
+                        if(~isempty(ROIInfo.ROICoordinates))
+                            ROIInfo.ROIMerged = sum(reshape(rawData(ROIInfo.ROICoordinates(3):ROIInfo.ROICoordinates(4),ROIInfo.ROICoordinates(1):ROIInfo.ROICoordinates(2),:),[],size(rawData,3)),1)';
+                        else
+                            ROIInfo.ROIMerged = squeeze(sum(rawData,1:2));
+                        end
                     end
+                    auxInfo.revision = FLIMX.getVersionInfo().measurement_revision;
+                    if(~isfield(auxInfo,'sourceFile'))
+                        auxInfo.sourceFile = '';
+                    end
+                    %enable write access
+                    this.myFiles{1,ch}.Properties.Writable = true;
+                    this.myFiles{1,ch}.rawDataFlat = rawDataFlat;
+                    if(~any(ismember(who(this.myFiles{1,ch}),{'rawMaskData'})))
+                        %make sure there is always a rawDatMask field
+                        this.myFiles{1,ch}.rawMaskData = [];
+                    end
+                    this.myFiles{1,ch}.ROIInfo = ROIInfo;
+                    this.myFiles{1,ch}.auxInfo = auxInfo;
+                    this.myFiles{1,ch}.Properties.Writable = false;
+                catch ME
+                    %todo: error handling
                 end
-                auxInfo.revision = FLIMX.getVersionInfo().measurement_revision;
-                %enable write access
-                this.myFiles{1,ch}.Properties.Writable = true;
-                this.myFiles{1,ch}.rawDataFlat = rawDataFlat;
-                if(~any(ismember(who(this.myFiles{1,ch}),{'rawMaskData'})))
-                    %make sure there is always a rawDatMask field
-                    this.myFiles{1,ch}.rawMaskData = [];
-                end
-                this.myFiles{1,ch}.ROIInfo = ROIInfo;
-                this.myFiles{1,ch}.auxInfo = auxInfo;
-                this.myFiles{1,ch}.Properties.Writable = false;
             end
             if(sum(ismember(who(this.myFiles{1,ch}),{'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'})) < 4)
                 %something went wrong
@@ -220,35 +202,6 @@ classdef measurementInFDTree < measurementFile
             end
             %check revision
             success = true;
-        end
-        
-        function success = loadRawData(this,ch)
-            %load raw data for current measurement
-            success = false;
-            if(this.openChannel(ch))
-                fi = this.myFiles{1,ch}.fluoFileInfo;
-                if(isempty(fi))
-                    %file load did not work correctly
-                    return
-                end
-                %just a security check before we load the data
-                if(fi.channel == ch)
-                    content = whos(this.myFiles{1,ch});
-                    if(any(strcmp('rawData',{content.name})))
-                        this.setRawData(ch,this.myFiles{1,ch}.rawData);
-                        this.setDirtyFlags(ch,1,false);
-                        if(length(this.roiInfoLoaded) < ch || ~this.roiInfoLoaded(ch))
-                            this.loadROIInfo(ch);
-                            this.setDirtyFlags(ch,4,false);
-                        end
-                        success = true;
-                        if(any(strcmp('rawMaskData',{content.name})))
-                            this.setRawMaskData(ch,this.myFiles{1,ch}.rawMaskData);
-                            this.setDirtyFlags(ch,1,false);
-                        end
-                    end                    
-                end
-            end
         end
         
         function success = loadFileInfo(this)
@@ -303,9 +256,22 @@ classdef measurementInFDTree < measurementFile
             end
         end
         
+        %% output methods
+        function out = getCacheMemorySize(this)
+            %get the size in bytes of the data that can be re-read from disk
+            raw = this.rawFluoData;
+            wRaw = whos('raw');
+            roi = this.roiFluoData;
+            wRoi = whos('roi');
+            out = wRaw.bytes + wRoi.bytes;
+        end
+        
         function fileInfo = getFileInfoStruct(this,ch)
             %get file info struct
-            if(~this.fileInfoLoaded || (~isempty(ch) && any(ch == this.nonEmptyChannelList) && length(this.myFiles) <= ch && isempty(this.myFiles{1,ch})))
+            if(~this.fileInfoLoaded)
+                this.init();
+            end
+            if(~this.fileInfoLoaded)% || (~isempty(ch) && any(ch == this.nonEmptyChannelList) && length(this.myFiles) <= ch && isempty(this.myFiles{1,ch})))
                 if(isempty(ch))
                     ch = this.nonEmptyChannelList(1);
                 end
@@ -314,8 +280,11 @@ classdef measurementInFDTree < measurementFile
             fileInfo = getFileInfoStruct@measurementFile(this,ch);
         end
         
-        function out = getROIInfo(this,ch)
+        function out = getROIInfo(this,ch)            
             %get info about ROI
+            if(~this.fileInfoLoaded)
+                this.init();
+            end
             if(length(this.roiInfoLoaded) < ch || ~this.roiInfoLoaded(ch) || (~isempty(ch) && any(ch == this.nonEmptyChannelList) && length(this.myFiles) <= ch && isempty(this.myFiles{1,ch})))
                 if(isempty(ch))
                     ch = this.nonEmptyChannelList(1);
@@ -326,8 +295,19 @@ classdef measurementInFDTree < measurementFile
             
         end
         
+        function out = getRawDataFlat(this,ch)
+            %get intensity image of (raw) measurement data
+            if(~this.fileInfoLoaded)
+                this.init();
+            end
+            out = getRawDataFlat@measurementFile(this,ch);
+        end
+        
         function raw = getRawData(this,ch,useMaskFlag)
             %get raw data for channel
+            if(~this.fileInfoLoaded)
+                this.init();
+            end
             if(nargin < 3)
                 useMaskFlag = true;
             end
@@ -344,15 +324,16 @@ classdef measurementInFDTree < measurementFile
                         %                         end
                         if(any(this.loadedChannelList == ch))
                             raw = getRawData@measurementFile(this,ch,useMaskFlag);
-                            %raw = this.rawFluoData{ch};
                         end
                     end
                 else
                     raw = getRawData@measurementFile(this,ch,useMaskFlag);
-                    %raw = this.rawFluoData{ch};
                 end
             elseif(this.paramMgrObj.basicParams.approximationTarget == 2 && ch > 2)
                 raw = getRawData@measurementFile(this,ch,useMaskFlag);
+            end
+            if(~isempty(this.myParent))
+                this.myParent.pingLRUCacheTable(this);
             end
         end
         
@@ -376,11 +357,14 @@ classdef measurementInFDTree < measurementFile
         
         function out = getNonEmptyChannelList(this)
             %return a list of channel numbers "with data"
-            out = find(this.filesOnHDD);
+            out = unique([getNonEmptyChannelList@measurementFile(this),find(this.filesOnHDD)]);
         end
         
         function out = getLoadedChannelList(this)
             %return a list of channels in memory
+            if(~this.fileInfoLoaded) %need this here?
+                this.init();
+            end
             if(isempty(this.rawFluoData))
                 out = false(size(this.nonEmptyChannelList));
             else
@@ -390,6 +374,9 @@ classdef measurementInFDTree < measurementFile
         
         function out = getROIMerged(this,channel)
             %get the ROI merged to a single decay
+            if(~this.fileInfoLoaded)
+                this.init();
+            end
             bp = this.paramMgrObj.basicParams;
             if(bp.approximationTarget == 2)
                 if(length(this.roiMerged) < channel || isempty(this.roiMerged{channel}))
@@ -425,12 +412,109 @@ classdef measurementInFDTree < measurementFile
         
         function clearROIData(this)
             %clear everything except for the measurement data
+            if(~this.fileInfoLoaded)
+                this.init();
+            end
             this.roiMergedMask = [];
             clearROIData@measurementFile(this);
+        end
+        
+        function clearCacheMemory(this)
+            %remove raw and roi data from RAM as this can be read from disk and recomputed
+            this.rawFluoData = cell(0,0);
+            this.roiFluoData = cell(0,0);
+            fprintf('cleared cache of %s measurement\n',this.myParent.name);
         end
     end %methods
     
     methods (Access = protected)
+        function init(this)
+            %initialize object with data from disk (file info, ROA info, aux info, cached data)
+            if(any(this.filesOnHDD))
+                %load file info of an available channel
+                this.initMode = true;
+                %this.getFileInfoStruct([]);
+                chList = this.nonEmptyChannelList();                
+                %this.loadROIInfo(this.nonEmptyChannelList(1));
+                for i = 1:length(chList)
+                    ch = chList(i);
+                    %load ROA info
+                    if(this.filesOnHDD(ch) && this.openChannel(ch))
+                        %load intensity image
+                        this.rawFluoDataFlat{ch,1} = this.myFiles{1,ch}.rawDataFlat;
+                        this.rawMaskData{ch,1} = this.myFiles{1,ch}.rawMaskData;
+                        %load file info
+                        this.setFileInfoStruct(this.myFiles{1,ch}.fluoFileInfo);
+                        %load the ROA
+                        ri = this.myFiles{1,ch}.ROIInfo;
+                        this.ROIDataType = ri.ROIDataType;
+                        %this.setROICoord(ri.ROICoordinates);
+                        coord = ri.ROICoordinates;
+                        if(~isempty(this.rawXSz))
+                            coord(2) = min(coord(2),this.rawXSz);
+                        end
+                        if(~isempty(this.rawYSz))
+                            coord(4) = min(coord(4),this.rawYSz);
+                        end
+                        this.ROICoord = coord(:);
+                        if(this.roiAdaptiveBinEnable && ~isempty(ri.ROIAdaptiveBinThreshold) && ri.ROIAdaptiveBinThreshold == this.roiAdaptiveBinThreshold && isfield(ri,'ROISupport'))
+                            if(isfield(ri.ROISupport,'roiFluoDataFlat'))
+                                this.roiFluoDataFlat{ch} = ri.ROISupport.roiFluoDataFlat;
+                            end
+                            if(isfield(ri.ROISupport,'roiAdaptiveBinLevels'))
+                                this.roiBinLevels{ch} = ri.ROISupport.roiAdaptiveBinLevels;
+                            end
+                        end
+                        this.roiMerged{ch} = ri.ROIMerged;
+                        if(length(this.roiInfoLoaded) < ch || ~this.roiInfoLoaded(ch))
+                            
+                        end
+                        this.roiInfoLoaded(ch) = true;
+                    end
+                end
+                %load aux info
+                ai = this.myFiles{1,ch}.auxInfo;
+                this.sourceFile = ai.sourceFile;
+%                 %load the fileinfo for all channels
+%                 for i = 2:length(chList)
+%                     ch = chList(i);
+%                     if(this.filesOnHDD(ch) && this.openChannel(ch))
+%                         this.setFileInfoStruct(this.myFiles{1,ch}.fluoFileInfo);
+%                     end
+%                 end                
+            end
+            this.initMode = false;
+        end
+        
+        function success = loadRawData(this,ch)
+            %load raw data for current measurement            
+            success = false;
+            if(this.openChannel(ch))
+                fi = this.myFiles{1,ch}.fluoFileInfo;
+                if(isempty(fi))
+                    %file load did not work correctly
+                    return
+                end
+                %just a security check before we load the data
+                if(fi.channel == ch)
+                    content = whos(this.myFiles{1,ch});
+                    if(any(strcmp('rawData',{content.name})))
+                        this.setRawData(ch,this.myFiles{1,ch}.rawData);
+                        this.setDirtyFlags(ch,1,false);
+                        if(length(this.roiInfoLoaded) < ch || ~this.roiInfoLoaded(ch))
+                            this.loadROIInfo(ch);
+                            this.setDirtyFlags(ch,4,false);
+                        end
+                        success = true;
+                        if(any(strcmp('rawMaskData',{content.name})))
+                            this.setRawMaskData(ch,this.myFiles{1,ch}.rawMaskData);
+                            this.setDirtyFlags(ch,1,false);
+                        end
+                    end                    
+                end
+            end
+        end
+        
         function setPosition(this,val)
             %set position
             for i = 1:length(this.nonEmptyChannelList)

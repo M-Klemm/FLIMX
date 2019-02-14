@@ -190,7 +190,9 @@ classdef paramMgr < handle
         function def = getDefaults(this)
             %get default FluoDecayFit parameters
             def.about.config_revision = this.about.config_revision;
-            def.about.client_revision = this.about.client_revision;
+            def.about.client_revision_major = this.about.client_revision_major;
+            def.about.client_revision_minor = this.about.client_revision_minor;
+            def.about.client_revision_fix = this.about.client_revision_fix;
             def.about.core_revision =  this.about.core_revision;
             def.about.results_revision = this.about.results_revision;
             
@@ -636,9 +638,9 @@ classdef paramMgr < handle
             def.general.cmInvert                = 1;            
             def.general.cmPercentileLB          = 0.1;
             def.general.cmPercentileUB          = 98;
-            def.general.saveMaxMem              = 0;
             def.general.flimParameterView       = 1; %1: simple, 2: expert, 3: all
             def.general.reverseYDir             = 0;
+            def.general.maxMemoryCacheSize      = 500000000; %0.5 GB default cache size
         end
 
     end %methods

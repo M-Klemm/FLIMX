@@ -32,7 +32,7 @@ classdef measurementReadRawData < measurementFile
     % @brief    A class to represent the measurementReadRawData class
     %
     properties(GetAccess = public, SetAccess = protected)
-        sourcePath = '';
+        %sourcePath = '';
         SDTIOObj = [];
     end
     
@@ -54,7 +54,6 @@ classdef measurementReadRawData < measurementFile
             this.clearRawData([]);
             this.setFileInfoStruct(measurementFile.getDefaultFileInfo());
             this.fileInfoLoaded = false;
-            this.sourcePath = fileparts(fn);
             if(this.isSDTFile)
                 %create SDTIO object
                 this.SDTIOObj = SDTIO(fn);

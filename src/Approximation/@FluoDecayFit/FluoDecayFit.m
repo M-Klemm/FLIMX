@@ -333,7 +333,7 @@ classdef FluoDecayFit < handle
                 return
             end            
             if(strcmp(this.FLIMXObj.curSubject.getResultType(),'ASCII'))
-                this.FLIMXObj.curSubject.clearROAResults(); 
+                this.FLIMXObj.curSubject.clearROAResults(true); 
                 this.FLIMXObj.curSubject.initParamMgr();
                 this.FLIMXObj.curSubject.update();
                 this.FLIMXObj.curSubject.clearCachedApproxObj();
@@ -362,7 +362,7 @@ classdef FluoDecayFit < handle
                         studyName = this.FLIMXObj.curSubject.getStudyName();
                         subjectName = this.FLIMXObj.curSubject.getDatasetName();
 %                         if(this.FLIMXObj.fdt.isMember(studyName,subjectName,ch,[]))
-                            this.FLIMXObj.fdt.removeChannel(studyName,subjectName,ch);
+                            this.FLIMXObj.fdt.deleteChannel(studyName,subjectName,ch,'result');
 %                         end
                         this.FLIMXObj.curSubject.updateSubjectChannel(ch,'result');%,removeNonVisItems(fieldnames(rs.results.pixel)));
                         this.FLIMXObj.fdt.saveStudy(studyName);
@@ -429,9 +429,9 @@ classdef FluoDecayFit < handle
             nWorkers = 1;
             if(this.computationParams.useMatlabDistComp)
                 pool = gcp('nocreate');
-                 if(~isempty(pool))
-                     nWorkers = pool.NumWorkers;
-                 end
+                if(~isempty(pool))
+                    nWorkers = pool.NumWorkers;
+                end
             end
             %fit dimension
             if(initFit)

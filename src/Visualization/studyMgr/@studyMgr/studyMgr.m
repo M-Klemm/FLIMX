@@ -197,12 +197,16 @@ classdef studyMgr < handle
         end
         
         function checkVisWnd(this)
-            %
+            %check if figure is open, if not, open it, if it is open, bring it to the front            
             if(~this.isOpenVisWnd())
                 %no study manager window - open one
                 this.createVisWnd();
             end
+            this.visHandles.studyMgrFigure.Pointer = 'watch';
+            %drawnow
             this.updateGUI();
+            this.visHandles.studyMgrFigure.Pointer = 'arrow';
+            %drawnow
             figure(this.visHandles.studyMgrFigure);
         end
         
@@ -211,6 +215,8 @@ classdef studyMgr < handle
             if(~this.isOpenVisWnd())
                 return
             end
+            this.visHandles.studyMgrFigure.Pointer = 'watch';
+            drawnow
             sStr = this.allStudiesStr;
             if(isempty(sStr))
                 set(this.visHandles.popupStudySelection,'String','no studies found');
@@ -259,6 +265,8 @@ classdef studyMgr < handle
                     this.setSelectedSubjects(this.selectedSubjects);
                 end
             end
+            this.visHandles.studyMgrFigure.Pointer = 'arrow';
+            drawnow
         end
         
         function addStudy(this,sName)
@@ -409,8 +417,8 @@ classdef studyMgr < handle
                 opt.fdt = this.fdt;
                 subject = this.fdt.getSubject4Approx(this.curStudyName,subjects(i));
                 fi = [];
-                if(~isempty(subject) && ~isempty(subject.nonEmptyResultChannelList))
-                    fi = subject.getFileInfoStruct(subject.nonEmptyResultChannelList(1));
+                if(~isempty(subject) && ~isempty(subject.nonEmptyChannelList))
+                    fi = subject.getFileInfoStruct(subject.nonEmptyChannelList(1));
                 end
                 if(isempty(subject) || isempty(fi))
                     fi = measurementFile.getDefaultFileInfo();
@@ -1128,7 +1136,7 @@ classdef studyMgr < handle
                     %                     this.FLIMXObj.fdt.clearSubjectCI(this.curStudyName,subNrs(i));
                     
                     this.plotProgressbar(0.50,[],'50% - Updating File Info');
-                    chList = subject.nonEmptyResultChannelList;
+                    chList = subject.nonEmptyChannelList;
                     for chIdx = 1:length(chList)
                         subject.updateSubjectChannel(chList(chIdx),'');
                         this.plotProgressbar(0.50+0.5*chIdx/length(chList),[],sprintf('%2.0f%% - Updating File Info',(0.50+0.5*chIdx/length(chList))*100));
@@ -1438,6 +1446,10 @@ classdef studyMgr < handle
             if(this.isOpenVisWnd())
                 studies = get(this.visHandles.popupStudySelection,'String');
                 idx = find(strcmp(val,studies),1);
+                if(~isempty(idx) && idx == this.visHandles.popupStudySelection.Value)
+                    %target study is already selected -> nothing to do
+                    return
+                end
                 if(~isempty(idx))
                     set(this.visHandles.popupStudySelection,'Value',idx);
                 end

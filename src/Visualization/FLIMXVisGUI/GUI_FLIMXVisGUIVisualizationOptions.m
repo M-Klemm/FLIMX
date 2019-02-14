@@ -66,6 +66,7 @@ function GUI_FLIMXVisGUIVisualizationOptions_OpeningFcn(hObject, eventdata, hand
 rdh.flimvis = varargin{1};
 rdh.general = varargin{2};
 rdh.defaults = varargin{3};
+rdh.fdt = varargin{4};
 rdh.isDirty = [0 0]; %1: flimvis, 2: general
 [mapNames, iconPaths] = FLIMX.getColormaps();
 if(~isempty(iconPaths))
@@ -74,6 +75,31 @@ if(~isempty(iconPaths))
     set(handles.popupColormapFLIMItems,'String',htmlStr);
     set(handles.popupColormapIntensity,'String',htmlStr);
 end
+handles.cacheSlider = controllib.widget.Slider(handles.uipaneCacheMemory, [110,21,160,45], unique([0.250:0.25:FLIMX.getMaxSystemCacheSize()/1e9,FLIMX.getMaxSystemCacheSize()/1e9]));
+handles.cacheSlider.FontSize = 10;
+handles.cacheSlider.Value = rdh.general.maxMemoryCacheSize/1e9;
+addlistener(handles.cacheSlider, 'ValueChanged', @cacheSlider_Callback);%,handles.cacheSlider, handles});
+%prepare patch for cache level
+set(handles.axesCacheMemory,'XLim',[0 100],...
+    'YLim',[0 1],...
+    'Box','on', ...
+    'FontSize', get(0,'FactoryAxesFontSize'),...
+    'XTickMode','manual',...
+    'YTickMode','manual',...
+    'XTick',[],...
+    'YTick',[],...
+    'XTickLabelMode','manual',...
+    'XTickLabel',[],...
+    'YTickLabelMode','manual',...
+    'YTickLabel',[]);
+xpatch = [0 0 0 0];
+ypatch = [0 0 1 1];
+handles.patchCacheMemory = patch(xpatch,ypatch,'m','EdgeColor','m','Parent',handles.axesCacheMemory);%,'EraseMode','normal'
+handles.textCacheMemory = text(1,0,'','Parent',handles.axesCacheMemory);
+rdh.handles = handles;
+%set tooltips
+handles.textCacheMemorySize = 'Set abount of memory (RAM) used to cache measurements and results';
+handles.textCacheMemoryUtilization = 'Shows the current utilization of the cache memory';
 updateGUI(handles, rdh);
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 
@@ -206,6 +232,29 @@ else
 end
 set(handles.checkAutoWindowSize,'Value',data.general.autoWindowSize);
 set(handles.popupWindowSize,'Value',data.general.windowSize,'Enable',enFlag);
+%cache level
+[~,sz] = data.fdt.getLRUCacheTableSize();
+x = sz / data.general.maxMemoryCacheSize * 100;
+xpatch = [0 x x 0];
+set(handles.patchCacheMemory,'XData',xpatch,'Parent',handles.axesCacheMemory)
+yl = ylim(handles.axesCacheMemory);
+set(handles.textCacheMemory,'Position',[1,yl(2)/2,0],'String',sprintf('%02.1f%%',x),'Parent',handles.axesCacheMemory);
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%sliders
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function cacheSlider_Callback(hObject, eventdata)
+hFig = gcf;
+rdh = get(hFig,'userdata');
+rdh.general.maxMemoryCacheSize = hObject.Value*1e9;
+[~,curCacheSz] = rdh.fdt.getLRUCacheTableSize();
+if(rdh.general.maxMemoryCacheSize < curCacheSz)
+    rdh.fdt.checkLRUCacheTableSize(rdh.general.maxMemoryCacheSize);
+end
+rdh.isDirty(2) = 1;
+set(hFig,'userdata',rdh);
+updateGUI(rdh.handles,rdh);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

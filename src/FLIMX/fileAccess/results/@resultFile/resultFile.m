@@ -34,17 +34,19 @@ classdef resultFile < handle
     properties(GetAccess = public, SetAccess = protected)        
         fileStub = 'result_';
         fileExt = '.mat';   
-        mySubject = [];
+        myParent = [];
+        uid = 0;
         %myFolder = '';
         filesOnHDD = false(1,0);
         loadedChannels = false(1,0);
         results = [];
         resultSize = zeros(1,2);
+        resultMemorySize = 0;
         initApproximated = false(1,1);
         pixelApproximated = false(1,1);
         auxiliaryData = cell(0,0);
         resultType = 'FluoDecayFit';
-        isDirty = false(1,0);
+        dirtyFlags = false(1,0);        
     end
     
     properties (Dependent = true)
@@ -61,21 +63,57 @@ classdef resultFile < handle
         volatilePixelParams = [];  
         nonEmptyChannelList = [];
         loadedChannelList = [];
+        isDirty = false;
     end
     
     methods
         function this = resultFile(hSubject)
             %constructor
-            this.mySubject = hSubject;                       
+            this.myParent = hSubject;                       
             this.results.init = cell(1,0);
             this.results.pixel = cell(1,0);
             this.results.about = FLIMX.getVersionInfo();
+            try
+                this.uid = datenummx(clock);  %fast
+            catch
+                this.uid = now;  %slower
+            end
             this.checkMyFiles();
+        end
+        
+        function flag = eq(obj1,obj2)
+            %compare two result objects
+            if(abs(obj1.uid - obj2.uid) < eps('double'))
+                flag = true;
+            else
+                flag = false;
+            end
+        end
+        
+        function deleteChannel(this,ch)
+            %delete channel from memory and disk
+            if(isempty(ch))
+                %delete all channels
+                chList = this.nonEmptyChannelList;
+                for i = 1:length(chList)
+                    this.deleteChannel(chList(i));
+                end
+            else
+                fn = this.getResultFileName(ch,'');
+                try
+                    delete(fn);
+                catch ME
+                    %todo
+                end
+                this.allocResults(ch,this.resultSize(1),this.resultSize(2));
+                this.checkMyFiles();
+                this.setDirty(ch,false);
+            end
         end
         
         function setDirty(this,ch,val)
             %set dirty flag for this result
-            this.isDirty(ch) = logical(val);
+            this.dirtyFlags(ch) = logical(val);
         end
         
         %% input methods
@@ -89,7 +127,7 @@ classdef resultFile < handle
                 end
                 this.loadResult(rs);
                 %check if we have the IRF used for the result
-                IRFMgr = this.mySubject.myIRFMgr;
+                IRFMgr = this.myParent.myIRFMgr;
                 aux = this.getAuxiliaryData(ch);
                 if(strcmp('FluoDecayFit',rs.resultType) && ~isempty(IRFMgr) && ~isempty(aux) && isempty(IRFMgr.getIRF(aux.fileInfo.nrTimeChannels,aux.IRF.name,aux.fileInfo.tacRange,ch)) )
                     %we don't have this IRF yet -> add it to our IRF manager
@@ -136,10 +174,10 @@ classdef resultFile < handle
                     parameters.basic_fit.stretchedExpMask(1,end+1:parameters.basic_fit.nExp) = 0;
                 end
                 parameters.basic_fit.stretchedExpMask = parameters.basic_fit.stretchedExpMask(1,1:parameters.basic_fit.nExp);                
-                this.paramMgrObj.setParamSection('result',parameters);
-                this.paramMgrObj.setParamSection('bounds',parameters);
-                this.paramMgrObj.setParamSection('optimization',parameters);
-            end
+                this.paramMgrObj.setParamSection('result',parameters,~this.myParent.initMode);
+                this.paramMgrObj.setParamSection('bounds',parameters,~this.myParent.initMode);
+                this.paramMgrObj.setParamSection('optimization',parameters,~this.myParent.initMode);
+            end            
             if(isfield(rs.results,'init'))
                 this.results.init{rs.channel,1} = rs.results.init;
                 this.initApproximated = true(rs.channel,1);
@@ -156,8 +194,22 @@ classdef resultFile < handle
             this.results.about = rs.about;
             this.resultType = rs.resultType;
             this.resultSize = rs.size;
+            myRS = this.results;
+            wRS = whos('myRS');
+            this.resultMemorySize = wRS.bytes;
             this.loadedChannels(rs.channel,1) = true;
             %this.resultFileInfo = result.fileInfo;
+        end
+        
+        function clearCacheMemory(this)
+            %remove result data from RAM as this can be read from disk and recomputed
+            this.results.init = cell(1,0);
+            this.results.pixel = cell(1,0);
+            this.resultMemorySize = 0;
+            this.loadedChannels = false(size(this.loadedChannels));
+            this.initApproximated = false(size(this.initApproximated));
+            this.pixelApproximated = false(size(this.pixelApproximated));
+            fprintf('cleared cache of %s result\n',this.myParent.name);
         end
         
         function allocResults(this,chList,ROIYSz,ROIXSz)
@@ -175,6 +227,9 @@ classdef resultFile < handle
                 this.loadedChannels(chList,1) = false;
             end
             this.resultType = 'FluoDecayFit';
+            myRS = this.results;
+            wRS = whos('myRS');
+            this.resultMemorySize = wRS.bytes;
         end
         
         function allocInitResult(this,ch)
@@ -390,11 +445,24 @@ classdef resultFile < handle
                 %             elseif(~isempty(ch) && any(ch == this.nonEmptyChannelList))%length(this.results.pixel) >= ch && ~isempty(this.results.pixel{ch,1}))
                 %                 if(~any(ch == this.loadedChannelList))
                 %                     this.openChannel(ch);
-            elseif(~isempty(ch) && length(this.results.pixel) >= ch && ~isempty(this.results.pixel{ch,1}))
-                out = fieldnames(this.results.pixel{ch,1});
+            elseif(~isempty(ch) && ismember(ch,this.nonEmptyChannelList))
+                if(~ismember(ch,find(this.loadedChannels)))
+                    this.openChannel(ch);
+                end
+                if(length(this.results.pixel) >= ch && ~isempty(this.results.pixel{ch,1}))
+                    out = fieldnames(this.results.pixel{ch,1});
+                end
             end
             if(~isempty(out))
-                for i = 1:this.basicParams.nExp
+%                 if(strcmp(this.resultType,'ASCII'))
+%                     idx = strncmp(out,'Amplitude',9);
+%                     strLen = cellfun(@length,out);
+%                     idx(idx) = strLen(idx) <= 11; %Amplitude + 2 digits
+%                     nExp = sum(idx);
+%                 else
+                    nExp = this.basicParams.nExp;
+%                 end
+                for i = 1:nExp
                     out(end+1) = {sprintf('AmplitudePercent%d',i)};
                     out(end+1) = {sprintf('Q%d',i)};
                 end
@@ -642,11 +710,14 @@ classdef resultFile < handle
             end
             %post processing
             if(strncmp(pStr,'MaximumPosition',15) && ~isempty(out))
-                out = out .* this.mySubject.timeChannelWidth;                
+                out = out .* this.myParent.timeChannelWidth;                
             end
             %optional: select only one pixel
             if(nargin == 5 && ~isempty(out))
                 out = squeeze(out(max(1,min(size(out,1),y)),max(1,min(size(out,2),x)),:));
+            end
+            if(~isempty(this.myParent))
+                this.myParent.pingLRUCacheTable(this);
             end
         end
         
@@ -673,13 +744,13 @@ classdef resultFile < handle
             out.auxiliaryData = this.getAuxiliaryData(ch);
             out.results.init = this.getInitResult(ch);
             %additional info
-            out.name = this.mySubject.name;
-            [~, fileName, ext] = fileparts(this.mySubject.getSourceFile());
-            roi = this.mySubject.ROICoordinates;
+            out.name = this.myParent.name;
+            [~, fileName, ext] = fileparts(this.myParent.getSourceFile());
+            roi = this.myParent.ROICoordinates;
             if(~any(roi))
                 roi = [1, out.size(2), 1, out.size(1)];
             end
-            int = this.mySubject.getRawDataFlat(ch);
+            int = this.myParent.getRawDataFlat(ch);
             if(length(roi) == 4 && ~isempty(int) && size(int,1) >= roi(4) && size(int,2) >= roi(2))
                 int = int(roi(3):roi(4),roi(1):roi(2));
             else
@@ -688,16 +759,22 @@ classdef resultFile < handle
             out.sourceFile = [fileName ext];
             out.roiCoordinates =  roi;
             out.results.pixel.Intensity = int;
-            out.results.reflectionMask = this.mySubject.getReflectionMask(ch);
+            out.results.reflectionMask = this.myParent.getReflectionMask(ch);
         end        
         
         function exportMatFile(this,ch,fn)
             %save result channel to disk
             result = this.makeExportStruct(ch);
-            if(isempty(result))
-                return
-            end
             fn = this.getResultFileName(ch,fn);
+            if(isempty(result))
+                %there is nothing to save
+                %delete an old result file there might be
+                if(existfile(fn))
+                    delete(fn);
+                    this.checkMyFiles();
+                end
+                return
+            end            
             [pathstr, ~, ~] = fileparts(fn);
              if(~isfolder(pathstr))
                  [status, message, ~] = mkdir(pathstr);
@@ -706,6 +783,7 @@ classdef resultFile < handle
                  end
              end
             save(fn,'result');
+            this.setDirty(ch,false);
         end
         
         function results = makeResultStructs(this,y,x)
@@ -788,11 +866,20 @@ classdef resultFile < handle
         
         function out = getMyFolder(this)
             %return current working folder
-            out = this.mySubject.getMyFolder();
+            out = this.myParent.getMyFolder();
+        end
+        
+        function out = getCacheMemorySize(this)
+            %get the size in bytes of the data that can be re-read from disk
+            out = this.resultMemorySize;
+%             rs = this.results;
+%             wRS = whos('rs');
+%             out = wRS.bytes;           
         end
         
         function checkMyFiles(this)
             %check in my folder for result files
+            this.filesOnHDD = false(1,0);
             if(isempty(this.getMyFolder()))
                 return
             end
@@ -821,9 +908,16 @@ classdef resultFile < handle
         
         function saveMatFile2Disk(this,ch)
             %save result channel to disk
-            %fn = this.getResultFileName(ch,'');
-            this.exportMatFile(ch,'');
-            this.setDirty(ch,false);
+            if(isempty(ch))
+                %save all channels
+                for ch = this.nonEmptyChannelList
+                    this.exportMatFile(ch,'');
+                    this.filesOnHDD(ch,1) = true;
+                end
+            else
+                this.exportMatFile(ch,'');
+                this.filesOnHDD(ch,1) = true;
+            end            
         end
                 
         function [apObj, xVec, hShift, oset, chi2, chi2Tail, TotalPhotons, FunctionEvaluations, time, slopeStart, iVec] = getVisParams(this,apObj,ch,y,x,initFit)
@@ -914,7 +1008,7 @@ classdef resultFile < handle
         %% dependent properties  
         function out = get.paramMgrObj(this)
             %return handle to parameter manager
-            out = this.mySubject.myParamMgr;
+            out = this.myParent.myParamMgr;
         end
         
         function params = get.aboutInfo(this)
@@ -978,6 +1072,11 @@ classdef resultFile < handle
             out = find(this.loadedChannels);
         end
         
+        function out = get.isDirty(this)
+            %return true if something has to be saved to disk
+            out = any(this.dirtyFlags(:));
+        end
+        
     end %methods
     
     methods (Access = protected)
@@ -993,10 +1092,14 @@ classdef resultFile < handle
         function out = getInitResult(this,ch)
             %return init result structure
             out = [];
-            if(isempty(this.results.init{ch,1}) && ~ismember(ch,this.nonEmptyChannelList))
+            if(strcmp(this.resultType,'ASCII'))
+                %ASCII results do not have an init result
                 return
             end
-            if(isempty(this.results.init{ch,1}) && ~ismember(ch,this.loadedChannelList))
+            %if(isempty(this.results.init{ch,1}) && ~ismember(ch,this.nonEmptyChannelList))
+            if(~ismember(ch,this.nonEmptyChannelList))
+                return
+            elseif(length(this.results.init) < ch || isempty(this.results.init{ch,1}))                
                 %what if channel is dirty?
                 this.openChannel(ch);
             end
@@ -1006,10 +1109,9 @@ classdef resultFile < handle
         function out = getPixelResult(this,ch)
             %return pixel result structure
             out = [];
-            if(isempty(this.results.pixel{ch,1}) && ~ismember(ch,this.nonEmptyChannelList))
+            if(~ismember(ch,this.nonEmptyChannelList))
                 return
-            end
-            if(isempty(this.results.pixel{ch,1}) && ~ismember(ch,this.loadedChannelList))
+            elseif(length(this.results.pixel) < ch || isempty(this.results.pixel{ch,1}))
                 %what if channel is dirty?
                 this.openChannel(ch);
             end
@@ -1110,7 +1212,9 @@ classdef resultFile < handle
                 %if ASCII result: make about info complete and we're finished
                 if(strcmp(result.resultType,'ASCII'))
                     result.about.config_revision = 100;
-                    result.about.client_revision = 100;
+                    result.client_revision_major = 4;
+                    result.client_revision_minor = 0;
+                    result.client_revision_fix = 0;
                     result.about.core_revision = 100;
                 end
                 %make struct for new data file

@@ -32,7 +32,7 @@ classdef FData < handle
     % @brief    A class to represent a base class of a fluorescence lifetime parameter
     %
     properties(SetAccess = protected,GetAccess = public)
-        uid = []; %unique object identifier
+        %uid = []; %unique object identifier
         id = 0; %running number        
         sType = [];
         rawImage = [];
@@ -43,7 +43,10 @@ classdef FData < handle
         rawImgYSz = [];  
         rawImgZSz = [];
     end
-    properties(Dependent = true, SetAccess = public,GetAccess = public) 
+    properties(Dependent = true, SetAccess = protected, GetAccess = public) 
+        name = '';
+    end
+    properties(Dependent = true, SetAccess = public, GetAccess = public) 
         dType = [];
         globalScale = [];       
         subjectName = [];
@@ -60,7 +63,7 @@ classdef FData < handle
     methods
         function this = FData(parent,nr,rawImage)
             %constructor of the FData class
-            this.uid = datenum(clock);
+            %this.uid = datenum(clock);
             this.id = nr;            
             this.sType = 1; %default to linear data scaling
             this.myParent = parent;
@@ -70,7 +73,7 @@ classdef FData < handle
             this.logColor_data = [];
         end
         
-        function out = getSize(this)
+        function out = getMemorySize(this)
             %determine memory size of the FData
             props = properties(this);
             props{11} = 'cachedImage';
@@ -111,14 +114,14 @@ classdef FData < handle
             this.cachedImage = ci;
         end
         
-        function flag = eq(obj1,obj2)
-            %compare two FData objects            
-            if(obj1.uid - obj2.uid < eps('double'))
-                flag = true;
-            else
-                flag = false;
-            end
-        end
+%         function flag = eq(obj1,obj2)
+%             %compare two FData objects
+%             if(obj1.uid - obj2.uid < eps('double'))
+%                 flag = true;
+%             else
+%                 flag = false;
+%             end
+%         end
            
         %% input functions
         function setRawData(this,val)
@@ -209,6 +212,11 @@ classdef FData < handle
         end          
         
         %% output functions
+        function out = get.name(this)
+            %return my ID as string
+            out = num2str(this.id);
+        end
+        
         function out = get.dType(this)
             %get current data type
             out = this.myParent.getDType();
@@ -650,12 +658,7 @@ classdef FData < handle
             this.setSType(2);
             out = this;
         end
-        
-        function out = getSaveMaxMemFlag(this)
-            %get saveMaxMem flag from parent
-            out = this.myParent.getSaveMaxMemFlag();
-        end
-        
+                
         function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
             [alg, params] = this.myParent.getDataSmoothFilter();

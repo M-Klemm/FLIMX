@@ -524,7 +524,7 @@ classdef FLIMXFitResultImport < handle
                 case 'Keep existing results and add new items'                    
                 case 'Delete all existing results and import new channel(s)'
                     %clear old result data and add new channel(s)
-                    this.FLIMXObj.fdt.removeSubjectResult(this.currentStudyName,this.currentSubjectName);
+                    this.FLIMXObj.fdt.deleteChannel(this.currentStudyName,this.currentSubjectName,[],'result');
                     %this.FLIMXObj.fdt.clearSubjectFiles(this.currentStudyName,this.currentSubjectName);
                 otherwise                    
             end            
@@ -914,15 +914,15 @@ classdef FLIMXFitResultImport < handle
                     return
             end
             %% do actual import
-            is = this.FLIMXObj.fdt.getSubject4Import(this.currentStudyName,this.currentSubjectName);
+            subObj = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudyName,this.currentSubjectName);
             %update position and scaling if needed
             pos = this.visHandles.popupPosition.String{this.visHandles.popupPosition.Value};
             res = str2double(this.visHandles.editResolution.String);
-            if(~strcmp(is.myMeasurement.position,pos))
-                is.myMeasurement.position = pos;
+            if(~strcmp(subObj.position,pos))
+                subObj.position = pos;
             end
-            if(is.myMeasurement.pixelResolution - res > eps)
-                is.myMeasurement.pixelResolution = res;
+            if(subObj.pixelResolution - res > eps)
+                subObj.pixelResolution = res;
             end
             %import channels
             for chId = 1:length(this.myChannelNrs)
@@ -953,10 +953,10 @@ classdef FLIMXFitResultImport < handle
                     end
                     if(any([data{:,5}])) 
                         %we have existing results
-                        is.addFLIMItems(this.myChannelNrs(chId),rs.results.pixel);
+                        subObj.addFLIMItems(this.myChannelNrs(chId),rs.results.pixel);
                     else
                         %the subject does not have any results
-                        is.importResultStruct(rs,this.myChannelNrs(chId),pos,res);
+                        subObj.importResultStruct(rs,this.myChannelNrs(chId),pos,res);
                     end
                 end
             end

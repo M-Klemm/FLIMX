@@ -642,9 +642,9 @@ classdef FDisplay < handle
             %make current main plot
             [hfd, hfdInt] = this.gethfd();
             hAx = this.h_m_ax;
+            cla(hAx);
+            axis(hAx,'off');
             if(isempty(hfd{1}))
-                cla(hAx);
-                axis(hAx,'off');
                 return
             end
             dispDim = this.mDispDim;
@@ -674,7 +674,7 @@ classdef FDisplay < handle
                     %ROI in 2D / 3D
                     current_img = hfd{i}.getROIImage(rc,rt,rs,ri);
                 end
-                if(isempty(current_img))
+                if(isempty(current_img) || all(isnan(current_img(:))) || all(isinf(current_img(:))))
                     return
                 end
                 %z scaling

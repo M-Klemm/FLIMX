@@ -94,9 +94,14 @@ classdef FLIMX < handle
                 params = 0;
             end
             this.fdt.setDataSmoothFilter(alg,params);
+            this.fdt.maxMemoryCacheSize = this.paramMgr.generalParams.maxMemoryCacheSize;
             %set window size
             if(this.paramMgr.generalParams.autoWindowSize)
                 this.paramMgr.generalParams.windowSize = FLIMX.getAutoWindowSize();
+            end
+            %set max cache size
+            if(this.paramMgr.generalParams.maxMemoryCacheSize > FLIMX.getMaxSystemCacheSize())
+                this.paramMgr.generalParams.maxMemoryCacheSize = FLIMX.getMaxSystemCacheSize();
             end
             %load a subject
             this.updateSplashScreenProgressLong(0.5,'Load first subject...');
@@ -469,8 +474,10 @@ classdef FLIMX < handle
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
-            out.config_revision = 264;
-            out.client_revision = 389;
+            out.config_revision = 265;
+            out.client_revision_major = 4;
+            out.client_revision_minor = 0;
+            out.client_revision_fix = 0;
             out.core_revision = 369;
             out.results_revision = 256;
             out.measurement_revision = 205;
@@ -488,6 +495,33 @@ classdef FLIMX < handle
                 out = 2; %small
             end
         end
+        
+        function out = getMaxSystemCacheSize()
+            %determine system memory size and guess a reasonable cache size
+            persistent maxSysCacheSz
+            if(isempty(maxSysCacheSz))
+                if(ispc)
+                    [~,sv] = memory;
+                    systemRAM = sv.PhysicalMemory.Total;
+                else
+                    %thanks to angainor: https://stackoverflow.com/questions/12350598/how-to-access-memory-information-in-matlab-on-unix-equivalent-of-user-view-max
+                    [~,w] = unix('free | grep Mem');
+                    stats = str2double(regexp(w, '[0-9]*', 'match'));
+                    systemRAM = stats(1)*1024;
+                end
+                %check if there is a Matlab pool
+                pool = gcp('nocreate');
+                if(~isempty(pool))
+                    nWorkers = pool.NumWorkers;
+                else
+                    nWorkers = 0;
+                end
+                %minimum cache size is 256 MB
+                maxSysCacheSz = max(256e6,(systemRAM - 1e9 - nWorkers*0.5e9) / 2); %substract 1 GB for Matlab, 0,5 GB per worker, allow half of the remainder as max cache
+            end
+            out = maxSysCacheSz;
+        end
+        
         
         function MatlabPoolIdleFcn()
             %function to keep matlab pool from timing out

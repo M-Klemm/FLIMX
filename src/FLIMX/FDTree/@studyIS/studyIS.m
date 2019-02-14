@@ -1175,7 +1175,7 @@ classdef studyIS < handle
         function [aiNames, aiParams] = getArithmeticImageDefinition(this)
             %
             if(isempty(this.arithmeticImageInfo))
-                aiNames = {[]}; aiParams = {[]};
+                aiNames = {''}; aiParams = {''};
                 return
             end
             aiNames = this.arithmeticImageInfo(:,1);
@@ -1958,6 +1958,7 @@ classdef studyIS < handle
                 %no element --> add first info header
                 testStudy.subjectInfoColumnNames(1,1) = {'column 1'};
                 testStudy.subjectInfoConditionDefinition(1,1) = {[]};
+                testStudy.subjectInfo(:,1) = cell(max(1,size(testStudy.subjectInfo,1)),1);
                 dirty = true;
             else
                 %column header exist -> check names
@@ -2049,13 +2050,7 @@ classdef studyIS < handle
             end
             %             [testStudy.allFLIMItems,dTmp] = studyIS.checkFLIMItems(testStudy.allFLIMItems);
             %             dirty = dirty || dTmp;
-            %condition colors
-            if(isempty(testStudy.conditionColors))
-                %set color for "default" condition
-                testStudy.conditionColors(1,1) = {FDTree.defaultConditionName()};
-                testStudy.conditionColors(2,1) = {studyIS.makeRndColor()};
-                dirty = true;
-            end
+            %condition colors            
             newColors = setdiff(testStudy.subjectInfoColumnNames(~conditionCol,1),testStudy.conditionColors(1,:));
             for i = 1:length(newColors)
                 testStudy.conditionColors(1,end+1) = newColors(i);
@@ -2065,13 +2060,19 @@ classdef studyIS < handle
             delColors = delColors(~strcmp(delColors,FDTree.defaultConditionName()));
             for i = 1:length(delColors)
                 idx = find(strcmp(delColors{i},testStudy.conditionColors(1,:)), 1);
-                if(isempty(idx))
+                if(~isempty(idx))
                     testStudy.conditionColors(:,idx) = [];
                 end
             end
             if(~isempty(newColors) || ~isempty(delColors))
                 dirty = true;
             end
+            if(isempty(testStudy.conditionColors))
+                %set color for "default" condition
+                testStudy.conditionColors(1,1) = {FDTree.defaultConditionName()};
+                testStudy.conditionColors(2,1) = {studyIS.makeRndColor()};
+                dirty = true;
+            end            
         end
         
         %         function [FLIMItems,dirty] = checkFLIMItems(FLIMItems)

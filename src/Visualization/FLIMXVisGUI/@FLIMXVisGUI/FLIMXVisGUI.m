@@ -523,7 +523,7 @@ classdef FLIMXVisGUI < handle
             %Open GUI to configure FLIMXVis visualization options
             defaults.flimvis = this.visParams;
             defaults.general = this.generalParams; %todo
-            new = GUI_FLIMXVisGUIVisualizationOptions(defaults.flimvis,defaults.general,defaults);
+            new = GUI_FLIMXVisGUIVisualizationOptions(defaults.flimvis,defaults.general,defaults,this.FLIMXObj.fdt);
             if(~isempty(new))
                 %save to disc
                 if(new.isDirty(1) == 1)

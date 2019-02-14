@@ -182,7 +182,7 @@ classdef subjectParamMgr < paramMgr
                             if(~isempty(this.fluoFileObj))
                                 %check if something has changed
                                 for j = 1:length(fields)
-                                    if(old.(fields{j}) ~= new.(fields{j}))
+                                    if(old.(fields{j}) ~= new.(fields{j}) && resetResults)
                                         this.fluoFileObj.clearROIData();
                                         break
                                     end
@@ -195,13 +195,13 @@ classdef subjectParamMgr < paramMgr
                                 this.makeVolatileParams();
                                 if(resetResults)
                                     for ch = 1:this.fluoFileObj.nrSpectralChannels
-                                        this.resultObj.allocResults(ch,this.fluoFileObj.getROIYSz(),this.fluoFileObj.getROIXSz());
+                                        this.resultObj.allocResults(ch,this.mySubject.YSz,this.mySubject.height.XSz);
                                     end
                                 end
                             end
                         case 'init_fit'
                             if(~isempty(this.fluoFileObj) && (isfield(new,'gridSize') && new.gridSize ~= old.gridSize || isfield(new,'gridPhotons') && new.gridPhotons ~= old.gridPhotons))
-                                this.fluoFileObj.clearInitData();
+                                this.fluoFileObj.clearInitFitData();
                                 for ch = 1:this.fluoFileObj.nrSpectralChannels
                                     this.resultObj.allocResults(ch,this.fluoFileObj.getROIYSz(),this.fluoFileObj.getROIXSz());
                                 end

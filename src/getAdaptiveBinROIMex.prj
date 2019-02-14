@@ -1,7 +1,7 @@
 <deployment-project plugin="plugin.coder" plugin-version="R2016a">
   <configuration build-checksum="4218870403" file="D:\Matthias Klemm\Promotion\software\FLIMX_master\src\getAdaptiveBinROIMex.prj" location="D:\Matthias Klemm\Promotion\software\FLIMX_master\src" name="getAdaptiveBinROIMex" target="target.unifiedcoder" target-name="MATLAB Coder">
     <profile key="profile.mex">
-      <param.BuiltInstrumentedMex>false</param.BuiltInstrumentedMex>
+      <param.BuiltInstrumentedMex />
       <param.RanInstrumentedMex>false</param.RanInstrumentedMex>
       <param.WorkingFolder>option.WorkingFolder.Project</param.WorkingFolder>
       <param.SpecifiedWorkingFolder />
@@ -33,7 +33,7 @@
       <param.VerificationMode>option.VerificationMode.None</param.VerificationMode>
       <param.VerificationStatus>option.VerificationStatus.Inactive</param.VerificationStatus>
       <param.EnableMexProfiling>false</param.EnableMexProfiling>
-      <var.BuiltWithMexProfiling>false</var.BuiltWithMexProfiling>
+      <var.BuiltWithMexProfiling />
       <param.CustomSourceCode />
       <param.CustomHeaderCode />
       <param.CustomInitializer />
@@ -59,7 +59,7 @@
       <param.ConstantInputs>option.ConstantInputs.IgnoreValues</param.ConstantInputs>
       <param.EnableCRICodeCoverage>false</param.EnableCRICodeCoverage>
       <param.EnableJIT>false</param.EnableJIT>
-      <param.EnableJITSilentBailOut>false</param.EnableJITSilentBailOut>
+      <param.EnableJITSilentBailOut />
       <param.CheckForIssuesJIT>true</param.CheckForIssuesJIT>
       <unset>
         <param.BuiltInstrumentedMex />
@@ -138,13 +138,13 @@
       <param.EnableSignedRightShifts />
       <param.ParenthesesLevel />
       <param.MaxIdLength />
-      <param.CustomSymbolStrGlobalVar>$M$N</param.CustomSymbolStrGlobalVar>
-      <param.CustomSymbolStrType>$M$N</param.CustomSymbolStrType>
-      <param.CustomSymbolStrField>$M$N</param.CustomSymbolStrField>
-      <param.CustomSymbolStrFcn>$M$N</param.CustomSymbolStrFcn>
-      <param.CustomSymbolStrTmpVar>$M$N</param.CustomSymbolStrTmpVar>
-      <param.CustomSymbolStrMacro>$M$N</param.CustomSymbolStrMacro>
-      <param.CustomSymbolStrEMXArray>emxArray_$M$N</param.CustomSymbolStrEMXArray>
+      <param.CustomSymbolStrGlobalVar />
+      <param.CustomSymbolStrType />
+      <param.CustomSymbolStrField />
+      <param.CustomSymbolStrFcn />
+      <param.CustomSymbolStrTmpVar />
+      <param.CustomSymbolStrMacro />
+      <param.CustomSymbolStrEMXArray />
       <param.CustomSymbolStrEMXArrayFcn />
       <param.ReservedNameArray />
       <param.RuntimeChecks>false</param.RuntimeChecks>
@@ -232,13 +232,13 @@
       <param.CompileTimeRecursionLimit>50</param.CompileTimeRecursionLimit>
       <param.EnableRuntimeRecursion>true</param.EnableRuntimeRecursion>
       <param.IncludeTerminateFcn />
-      <param.GenerateExampleMain>option.GenerateExampleMain.GenerateCodeOnly</param.GenerateExampleMain>
+      <param.GenerateExampleMain />
       <param.PreserveVariableNames>option.PreserveVariableNames.None</param.PreserveVariableNames>
-      <param.TargetLang>option.TargetLang.C</param.TargetLang>
+      <param.TargetLang />
       <param.CCompilerOptimization />
       <param.CCompilerCustomOptimizations />
       <param.GenerateMakefile />
-      <param.BuildToolEnable>false</param.BuildToolEnable>
+      <param.BuildToolEnable />
       <param.MakeCommand />
       <param.TemplateMakefile />
       <param.BuildToolConfiguration />
@@ -255,7 +255,7 @@
       <param.CustomFFTCallback />
       <param.GenerateDefaultInSwitch />
       <param.EnableTraceability />
-      <param.UseECoderFeatures />
+      <param.UseECoderFeatures>false</param.UseECoderFeatures>
       <param.psCustomPrjState />
       <param.psCustomProjectFile />
       <param.psCheckConfValue />
@@ -745,24 +745,24 @@
       </unset>
     </profile>
     <param.objective>option.objective.c</param.objective>
-    <param.WorkflowStep>workflowSummary</param.WorkflowStep>
+    <param.WorkflowStep>generateCode</param.WorkflowStep>
     <param.TestSnippets />
-    <param.DefaultImportExportVariable>config</param.DefaultImportExportVariable>
-    <param.ExternalFcnMajority>column</param.ExternalFcnMajority>
+    <param.DefaultImportExportVariable />
+    <param.ExternalFcnMajority />
     <param.UseGlobals>option.UseGlobals.No</param.UseGlobals>
     <param.outputfile>${PROJECT_ROOT}\getAdaptiveBinROI_mex.mexw64</param.outputfile>
-    <param.version>R2012a</param.version>
+    <param.version />
     <param.HasECoderFeatures>false</param.HasECoderFeatures>
     <param.HasGpuCoder>false</param.HasGpuCoder>
     <param.mex.mainhtml />
     <param.grt.mainhtml />
     <param.CallGeneratedCodeFromTest>true</param.CallGeneratedCodeFromTest>
     <param.AutoInferDefaultFile />
-    <param.AutoInferUseVariableSize>false</param.AutoInferUseVariableSize>
-    <param.AutoInferUseUnboundedSize>false</param.AutoInferUseUnboundedSize>
-    <param.AutoInferVariableSizeThreshold>1024</param.AutoInferVariableSizeThreshold>
-    <param.AutoInferUnboundedSizeThreshold>2048</param.AutoInferUnboundedSizeThreshold>
-    <param.EnableFixedPointStep>false</param.EnableFixedPointStep>
+    <param.AutoInferUseVariableSize />
+    <param.AutoInferUseUnboundedSize />
+    <param.AutoInferVariableSizeThreshold />
+    <param.AutoInferUnboundedSizeThreshold />
+    <param.EnableFixedPointStep />
     <param.EnableScreener>true</param.EnableScreener>
     <param.AnnotationChecksum>1380548679</param.AnnotationChecksum>
     <var.LegacyTarget>target.matlab.coder</var.LegacyTarget>
@@ -776,7 +776,7 @@
     <var.gc.preBuildChecksum>3477898492</var.gc.preBuildChecksum>
     <var.cfi.lastOutputRoot />
     <var.cfi.preBuildChecksum />
-    <var.outdatedOnRestore>false</var.outdatedOnRestore>
+    <var.outdatedOnRestore />
     <var.lastUserSourceChecksum>&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;&lt;checksum&gt;&lt;includedFiles&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\adaptive\getAdaptiveBinROI.m&lt;/file&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\adaptive\makeBinMask.m&lt;/file&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\moveMaskToPixelPosition.m&lt;/file&gt;&lt;/includedFiles&gt;&lt;value&gt;1953933346&lt;/value&gt;&lt;/checksum&gt;</var.lastUserSourceChecksum>
     <var.sourceSetState>&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;&lt;sourceModel&gt;&lt;primarySourceFiles&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\adaptive\getAdaptiveBinROI.m&lt;/file&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\adaptive\makeBinMask.m&lt;/file&gt;&lt;file&gt;D:\Matthias Klemm\Promotion\software\FLIMX_master\src\Binning\moveMaskToPixelPosition.m&lt;/file&gt;&lt;/primarySourceFiles&gt;&lt;fixedPointSourceFiles/&gt;&lt;fixedPointSourceRegistered&gt;false&lt;/fixedPointSourceRegistered&gt;&lt;fixedPointSourceSelected&gt;false&lt;/fixedPointSourceSelected&gt;&lt;/sourceModel&gt;</var.sourceSetState>
     <param.forceMexBuild>false</param.forceMexBuild>
@@ -792,24 +792,24 @@
     <param.UsePreconditions>false</param.UsePreconditions>
     <param.FeatureFlags />
     <param.FixedPointMode>option.FixedPointMode.None</param.FixedPointMode>
-    <param.AutoScaleLoopIndexVariables>false</param.AutoScaleLoopIndexVariables>
+    <param.AutoScaleLoopIndexVariables />
     <param.ComputedFixedPointData>
       <ComputedEntities />
     </param.ComputedFixedPointData>
     <param.UserFixedPointData>
       <UserEntities />
     </param.UserFixedPointData>
-    <param.DefaultWordLength>16</param.DefaultWordLength>
-    <param.DefaultFractionLength>4</param.DefaultFractionLength>
-    <param.FixedPointSafetyMargin>0</param.FixedPointSafetyMargin>
-    <param.FixedPointFimath>fimath('RoundingMethod', 'Floor', 'OverflowAction', 'Wrap', 'ProductMode', 'FullPrecision', 'MaxProductWordLength', 128, 'SumMode', 'FullPrecision', 'MaxSumWordLength', 128)</param.FixedPointFimath>
-    <param.FixedPointTypeSource>option.FixedPointTypeSource.SimAndDerived</param.FixedPointTypeSource>
+    <param.DefaultWordLength />
+    <param.DefaultFractionLength />
+    <param.FixedPointSafetyMargin />
+    <param.FixedPointFimath />
+    <param.FixedPointTypeSource />
     <param.StaticAnalysisTimeout />
-    <param.StaticAnalysisGlobalRangesOnly>false</param.StaticAnalysisGlobalRangesOnly>
-    <param.LogAllIOValues>false</param.LogAllIOValues>
-    <param.DetectOverflows>false</param.DetectOverflows>
-    <param.LogHistogram>false</param.LogHistogram>
-    <param.ShowCoverage>true</param.ShowCoverage>
+    <param.StaticAnalysisGlobalRangesOnly />
+    <param.LogAllIOValues />
+    <param.DetectOverflows />
+    <param.LogHistogram />
+    <param.ShowCoverage />
     <param.ExcludedFixedPointVerificationFiles />
     <param.ExcludedFixedPointSimulationFiles />
     <param.InstrumentedBuildChecksum />
@@ -820,16 +820,16 @@
     <param.FixedPointFunctionReplacements>
       <FunctionReplacements />
     </param.FixedPointFunctionReplacements>
-    <param.OptimizeWholeNumbers>true</param.OptimizeWholeNumbers>
-    <param.ContainerTypes>false</param.ContainerTypes>
+    <param.OptimizeWholeNumbers />
+    <param.ContainerTypes />
     <param.GeneratedFixedPointFileSuffix>_fixpt</param.GeneratedFixedPointFileSuffix>
     <param.PlotFunction />
-    <param.SDIPlot>false</param.SDIPlot>
-    <param.EnableCodeEfficiencyChecks>false</param.EnableCodeEfficiencyChecks>
-    <param.DefaultFixedPointSignedness>option.DefaultFixedPointSignedness.Automatic</param.DefaultFixedPointSignedness>
-    <param.FixedPointTypeProposalMode>option.FixedPointTypeProposalMode.ProposeFractionLengths</param.FixedPointTypeProposalMode>
-    <param.EnableFixedPointStep>false</param.EnableFixedPointStep>
-    <var.lastFixedPointAction>option.fixedPointAction.none</var.lastFixedPointAction>
+    <param.SDIPlot />
+    <param.EnableCodeEfficiencyChecks />
+    <param.DefaultFixedPointSignedness />
+    <param.FixedPointTypeProposalMode />
+    <param.EnableFixedPointStep />
+    <var.lastFixedPointAction />
     <var.lastSimContext />
     <var.lastVerifyContext />
     <param.fpDataRoot />
@@ -837,19 +837,19 @@
     <var.snapshotChecksum />
     <param.fpLastConvertChecksum />
     <var.functionBlockSid />
-    <param.fptSignedness>false</param.fptSignedness>
-    <var.FixedPointAnalysisMode>option.FixedPointAnalysisMode.Sim</var.FixedPointAnalysisMode>
-    <param.FixedPointUseDesignRanges>false</param.FixedPointUseDesignRanges>
+    <param.fptSignedness />
+    <var.FixedPointAnalysisMode />
+    <param.FixedPointUseDesignRanges />
     <param.gpu.Enabled>false</param.gpu.Enabled>
     <param.gpu.KernelNamePrefix />
     <param.gpu.MallocMode />
-    <param.gpu.MallocThreshold>200</param.gpu.MallocThreshold>
-    <param.gpu.StackLimitPerThread>1024</param.gpu.StackLimitPerThread>
+    <param.gpu.MallocThreshold />
+    <param.gpu.StackLimitPerThread />
     <param.gpu.EnableCUBLAS>false</param.gpu.EnableCUBLAS>
     <param.gpu.EnableCUSOLVER>false</param.gpu.EnableCUSOLVER>
     <param.gpu.EnableCUFFT>false</param.gpu.EnableCUFFT>
     <param.gpu.Benchmarking>false</param.gpu.Benchmarking>
-    <param.gpu.SafeBuild>false</param.gpu.SafeBuild>
+    <param.gpu.SafeBuild />
     <param.gpu.ComputeCapability />
     <param.gpu.CustomComputeCapability />
     <param.gpu.CompilerFlags />

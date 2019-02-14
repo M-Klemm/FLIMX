@@ -1,10 +1,10 @@
-classdef FDTree < handle
+classdef FDTree < FDTreeNode
     %=============================================================================================================
     %
     % @file     FDTree.m
     % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
-    % @version  1.0
-    % @date     July, 2015
+    % @version  2.0
+    % @date     January, 2019
     %
     % @section  LICENSE
     %
@@ -33,25 +33,29 @@ classdef FDTree < handle
     %
     properties(SetAccess = protected,GetAccess = protected)
         myFileLock = [];
-        myParent = [];
+        %myParent = [];
         myDir = '';             %FStudyMgr's working directory
-        myStudies = [];         %list of studies
+        %myStudies = [];         %list of studies
         myConditionsMerged = [];     %global statistics and global cluster objects
         myClusterTargets = [];  %global cluster targets        
         cancelFlag = false; %flag to stop an operation
-        saveMaxMem = false;    %max memory saving flag
+        LRUTableObjs = cell(0,1);
+        LRUTableInfo = [];
+        myMaxMemoryCacheSize = 250e6;
         dataSmoothAlgorithm = 0; %select data smoothing algorithm
         dataSmoothParameters = 1; %parameters for data smoothing algorithm
         shortProgressCb = cell(0,0); %list of callback functions for progressbar update (short)
         longProgressCb = cell(0,0); %list of callback functions for progressbar update (long)
-    end
+    end    
     properties (Dependent = true)
         FLIMXParamMgrObj = [];
+        maxMemoryCacheSize = 0;
     end
     
     methods
         function this = FDTree(parent,rootDir)
             % Constructor for FDTree
+            this = this@FDTreeNode(parent,'FDTRoot');
             this.myDir = fullfile(rootDir,'studyData');
             if(~isfolder(this.myDir))
                 [status, message, ~] = mkdir(this.myDir);
@@ -65,64 +69,106 @@ classdef FDTree < handle
                 delete(this.myFileLock);
                 error('FLIMX:FDTree:fileLock','Could not establish file lock for database');
             end
-            this.myParent = parent;
-            this.myStudies = LinkedList();
+            %this.myParent = parent;
+            %this.myStudies = LinkedList();
             this.myConditionsMerged = subjectDS(this,'GlobalMergedSubjects');
             this.myClusterTargets = LinkedList();
-            this.saveMaxMem = this.getSaveMaxMemFlag();
             %Add default study as container for not assigned subjects
-            if(this.myStudies.queueLen == 0)
-                this.addStudy('Default');
-            end
+%             if(this.myStudies.queueLen == 0)
+%                 this.addStudy('Default');
+%             end
             try
                 this.setShortProgressCallback(@parent.updateSplashScreenProgressShort);
             end
             this.scanForStudies();
         end
-        
-        function out = getSize(this)
-            %determine memory size of the tree
-            out = 0;
-            for i = 1:this.myStudies.queueLen
-                study = this.getStudy(i);
-                if(~isempty(study))
-                    out = out + study.getSize();
+
+        function pingLRUCacheTable(this,obj)
+            %ping LRU table for object obj
+            %find obj in LRU table
+            try
+                t = datenummx(clock);  %fast
+            catch
+                t = now;  %slower
+            end
+            if(isempty(this.LRUTableObjs))
+                this.LRUTableObjs(1) = {obj};
+                this.LRUTableInfo(1,1:3) = [obj.uid,t,obj.getCacheMemorySize()];
+            else
+                id = obj.uid == this.LRUTableInfo(:,1);
+                if(any(id))
+                    %there should be only one hit in the list
+                    this.LRUTableInfo(id,2:3) = [t,obj.getCacheMemorySize()];
+                else
+                    %obj not found -> add obj to list
+                    id = size(this.LRUTableObjs,1) + 1;
+                    this.LRUTableObjs(id) = {obj};
+                    this.LRUTableInfo(id,1:3) = [obj.uid,t,obj.getCacheMemorySize()];
                 end
             end
-            %fprintf(1, 'FDTree size %d bytes\n', out);
+            this.checkLRUCacheTableSize(this.myMaxMemoryCacheSize);
         end
         
+        function checkLRUCacheTableSize(this,threshold)
+            %check size of cached data and remove objects from RAM if necessary
+            %check total size
+            if(isempty(this.LRUTableInfo))
+                return
+            end
+            while(sum(this.LRUTableInfo(:,3)) > threshold)
+                %for i = 1:size(this.LRUTableObjs,1)-1
+                %find oldest entry
+                [~, id] = min([this.LRUTableObjs{:,2}]);
+                obj = this.LRUTableObjs{id,1};
+                if(obj.isDirty)
+                    obj.saveMatFile2Disk([]);
+                end
+                obj.clearCacheMemory(); %free RAM
+                this.LRUTableObjs(id) = []; %remove obj from table
+                this.LRUTableInfo(id,1:3) = []; %remove objs info from table
+                if(size(this.LRUTableInfo,1) == 1)
+                    %keep at least one entry (the just added obj)
+                    break
+                end
+            end
+        end
+        
+        function [entrySizes, total] = getLRUCacheTableSize(this)
+            %get the current size of the cache memory
+            entrySizes = this.LRUTableInfo(:,3);
+            total = sum(entrySizes(:));
+        end
         
         function removeObj(this,studyID,subjectID,chan,dType,id)
             %remove object from subject
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.removeObj(subjectID,chan,dType,id);
                 this.removeObjMerged();
             end
         end
         
-        function removeChannel(this,studyID,subjectID,ch)
-            %remove channel of a subject
-            study = this.getStudy(studyID);
+        function deleteChannel(this,studyID,subjectID,ch,type)
+            %delete result or measurement channel of a subject (or both if type is empty)
+            study = this.getChild(studyID);
             if(~isempty(study))
-                study.removeChannel(subjectID,ch);
+                study.deleteChannel(subjectID,ch,type);
                 this.removeObjMerged();
             end
         end
         
         function removeSubjectResult(this,studyID,subjectID)
             %remove all results of a subject
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
-                study.removeSubjectResult(subjectID);
+                study.deleteChannel(subjectID,[],'result');
                 this.removeObjMerged();
             end
         end
         
         function removeSubject(this,studyID,subjectID)
             %remove a subject
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.removeSubject(subjectID);
                 this.removeObjMerged();
@@ -131,19 +177,20 @@ classdef FDTree < handle
         
         function removeCluster(this,studyID,clusterID)
             %
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.removeCluster(clusterID);
             end
         end
         
         function removeStudy(this,studyID)
-            %remove a study
-            [study, studyID] = this.getStudy(studyID);
+            %delete a study
+            [study, studyID] = this.getChild(studyID);
             if(~isempty(study) && ~strcmp(study.name,'Default'))
                 %don't remove default study
                 [status, message, messageid] = rmdir(study.myDir,'s');
-                this.myStudies.removePos(studyID);
+                %todo: error handling
+                this.deleteChildByPos(studyID);
                 this.removeObjMerged();
             end
         end
@@ -178,15 +225,15 @@ classdef FDTree < handle
         
         %% input functions
         function study = addStudy(this,name)
-            %add a study to studyMgr
-            %check name
-            name = studyMgr.checkFolderName(name);
-            %make folder for study
-            study = this.getStudy(name);
+            %add a study to FDTree
+            %make sure name is valid
+            name = studyMgr.checkFolderName(name);            
+            study = this.getChild(name);
             if(~isempty(study))
                 %study alread in tree
                 return
             end
+            %make folder for study
             sDir = fullfile(this.myDir,name);
             if(~isfolder(sDir))
                 [status, message, ~] = mkdir(sDir);
@@ -194,18 +241,18 @@ classdef FDTree < handle
                     error('FLIMX:FDTree:addStudy','Could not create study folder: %s\n%s',sDir,message);
                 end
             end
-            this.myStudies.insertID(FStudy(this,sDir,name),name);
+            this.addChildByName(FDTStudy(this,sDir,name),name);
             %try to load the study data
-            study = this.getStudy(name);
+            study = this.getChild(name);
             if(isempty(study))
                 return
             end
-            study.load();
+            %study.load();
         end
         
         function loadStudy(this,studyID)
             % (re)load study (used by studyMgr)
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.load();
             end
@@ -249,20 +296,10 @@ classdef FDTree < handle
         function addSubject(this,studyID,subjectID)
             %add empty subject by studyMgr
             subjectID = studyMgr.checkFolderName(subjectID);
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.addSubject(subjectID);
             end
-        end
-        
-        function setSaveMaxMemFlag(this,val)
-            %set save maximal memory flag an clear all current images
-            val = logical(val);
-            if(val ~= this.saveMaxMem && val == true) %val = true -> Save-Mode = 'on'
-                %clear all current images to save memory
-                this.clearAllCIs([]);
-            end
-            this.saveMaxMem = val;
         end
         
         function setDataSmoothFilter(this,alg,params)
@@ -296,7 +333,7 @@ classdef FDTree < handle
             if(isempty(val))
                 return
             end
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.setSubjectName(subjectID,val);
             end
@@ -304,7 +341,7 @@ classdef FDTree < handle
         
         function setClusterTargets(this,studyID,clusterID,val)
             %set multivariate targets
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.setClusterTargets(clusterID,val);
             end
@@ -321,7 +358,7 @@ classdef FDTree < handle
         
         function setClusterName(this,studyID,clusterID,val)
             %set cluster name
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.setClusterName(clusterID,val);
             end
@@ -331,31 +368,46 @@ classdef FDTree < handle
                 
         function clearSubjectCI(this,studyID,subjectID)
             %clear current images (result ROI) of a subject
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.clearSubjectCI(subjectID);
             end
         end
         
         function clearAllCIs(this,dType)
-            %clear current immages of datatype dType in all subjects
-            for i = 1:this.myStudies.queueLen
-                this.myStudies.getDataByPos(i).clearAllCIs(dType);
-            end
+            %clear current images of datatype dType in all subjects
+            clearAllCIs@FDTreeNode(this,dType);
+%             for i = 1:this.myStudies.queueLen
+%                 this.myStudies.getDataByPos(i).clearAllCIs(dType);
+%             end
             this.myConditionsMerged.clearAllCIs(dType);
         end
         
         function clearAllFIs(this,dType)
-            %clear filtered raw immages of datatype dType in all subjects
-            for i = 1:this.myStudies.queueLen
-                this.myStudies.getDataByPos(i).clearAllFIs(dType);
-            end
+            %clear filtered raw images of datatype dType in all subjects
+            clearAllFIs@FDTreeNode(this,dType);
+%             for i = 1:this.myStudies.queueLen
+%                 this.myStudies.getDataByPos(i).clearAllFIs(dType);
+%             end
             this.myConditionsMerged.clearAllFIs(dType);
+        end
+        
+        function clearAllRIs(this,studyID,dType)
+            %clear raw images of datatype dType in all subjects in a study
+            study = this.getChild(studyID);
+            if(~isempty(study))
+                study.clearAllRIs(dType);
+                if(strncmp(dType,'MVGroup',7))
+                    %clear corresponding global cluster object
+                    globalClusterID = sprintf('Global%s',dType);
+                    this.myConditionsMerged.clearAllRIs(globalClusterID);
+                end
+            end
         end
         
         function clearClusters(this,studyID,subjectID,dType,dTypeNr)
             %clear clusters if ROI changes
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.clearClusters(subjectID,dType,dTypeNr);
             end
@@ -363,7 +415,7 @@ classdef FDTree < handle
                 
         function setResultROICoordinates(this,studyName,subjectID,dType,dTypeNr,ROIType,ROICoord)
             %set the ROI coordinates for study studyName at subject subjectID and ROIType
-            study = this.getStudy(studyName);
+            study = this.getChild(studyName);
             if(~isempty(study))
                 study.setResultROICoordinates(subjectID,dType,dTypeNr,ROIType,ROICoord);
                 this.clearGlobalObjMerged(dType);
@@ -372,7 +424,7 @@ classdef FDTree < handle
         
         function setResultZScaling(this,studyName,subjectID,ch,dType,dTypeNr,zValues)
             %set the z scaling for study studyName at subject subjectID and ROIType
-            study = this.getStudy(studyName);
+            study = this.getChild(studyName);
             if(~isempty(study))
                 study.setResultZScaling(subjectID,ch,dType,dTypeNr,zValues);
                 this.clearGlobalObjMerged(dType);
@@ -381,7 +433,7 @@ classdef FDTree < handle
         
         function setResultColorScaling(this,studyName,subjectID,ch,dType,dTypeNr,colorBorders)
             %set the z scaling for study studyName at subject subjectID and ROIType
-            study = this.getStudy(studyName);
+            study = this.getChild(studyName);
             if(~isempty(study))
                 study.setResultColorScaling(subjectID,ch,dType,dTypeNr,colorBorders);
             end
@@ -389,7 +441,7 @@ classdef FDTree < handle
         
         function setResultCrossSection(this,studyName,subjectID,dim,csDef)
             %set the cross section for study studyName at subject subjectID and dimension dim
-            study = this.getStudy(studyName);
+            study = this.getChild(studyName);
             if(~isempty(study))
                 study.setResultCrossSection(subjectID,dim,csDef);
             end
@@ -397,19 +449,19 @@ classdef FDTree < handle
                 
         function setStudyName(this,studyID,newStudyName)
             %set new study name
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.setName(newStudyName);
                 newPath = fullfile(this.myDir,newStudyName);
                 study.setStudyDir(newPath);
             end
-            this.myStudies.changeID(studyID,newStudyName);
+            this.renameChild(studyID,newStudyName);
         end
         
         function addSubjectInfoColumnNames(this,destinationStudyName,originStudyName)
             %add column names from origin to destination study
-            destStudy = this.getStudy(destinationStudyName);
-            originStudy = this.getStudy(originStudyName);
+            destStudy = this.getChild(destinationStudyName);
+            originStudy = this.getChild(originStudyName);
             if(~isempty(destStudy) && ~isempty(originStudy))
                 %check and update conditional columns
                 newInfoCombi = originStudy.getSubjectInfoConditionalColumnDefinitions();
@@ -459,8 +511,8 @@ classdef FDTree < handle
         
         function copySubject(this,originStudy,oldSubjectID,destinationStudy,newSubjectID)
             %insert subjects from origin in destination study
-            destStudy = this.getStudy(destinationStudy);
-            orgStudy = this.getStudy(originStudy);
+            destStudy = this.getChild(destinationStudy);
+            orgStudy = this.getChild(originStudy);
             if(~isempty(destStudy) && ~isempty(orgStudy))
                 %check subject
                 if(~isempty(this.getSubjectNr(destinationStudy,newSubjectID)))
@@ -485,8 +537,8 @@ classdef FDTree < handle
         
         function copySubjectROI(this,originStudy,destinationStudy,subjectID)
             %copy ROI corrdinates of a subject from one study to another (if subject exists there)
-            orgStudy = this.getStudy(originStudy);
-            destStudy = this.getStudy(destinationStudy);            
+            orgStudy = this.getChild(originStudy);
+            destStudy = this.getChild(destinationStudy);            
             if(~isempty(destStudy) && ~isempty(orgStudy))
                 %check if subjects exist in studies 
                 orgSubject = orgStudy.getSubject(subjectID);
@@ -502,7 +554,7 @@ classdef FDTree < handle
         
         function setSubjectInfoColumnName(this,studyID,newColumnName,idx)
             %give column at idx in study a new name
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.setSubjectInfoColumnName(newColumnName,idx);
             end
@@ -510,7 +562,7 @@ classdef FDTree < handle
         
         function importStudyInfo(this,studyName,file,mode)
             %import study info (subject info table) from excel file
-            study = this.getStudy(studyName);
+            study = this.getChild(studyName);
             if(~isempty(study))
                 study.importStudyInfo(file,mode);
             end
@@ -518,7 +570,7 @@ classdef FDTree < handle
         
         function importSubject(this,subjectObj)
             %import a new subject object (and possibly study)
-            study = this.getStudy(subjectObj.getStudyName());
+            study = this.getChild(subjectObj.getStudyName());
             if(isempty(study))
                 study = this.addStudy(subjectObj.getStudyName());
             end
@@ -539,7 +591,7 @@ classdef FDTree < handle
                 catch
                     tNow = now;  %slower
                 end
-                study = this.getStudy(studyNames{i});
+                study = this.getChild(studyNames{i});
                 if(~isempty(study))
                     study.unloadAllChannels();
                 end
@@ -552,22 +604,22 @@ classdef FDTree < handle
             this.updateLongProgress(0,'');
         end
         
-        function updateSubjectChannel(this,subjectObj,ch,flag)
-            %update a specific channel of a subject, flag signalizes 'measurement', 'result' or '' for both
-            study = this.getStudy(subjectObj.getStudyName());
-            if(isempty(study))
-                study = this.addStudy(subjectObj.getStudyName());
-            end
-            if(~isempty(study))
-                study.updateSubjectChannel(subjectObj,ch,flag);
-                %study.removeChannel(subjectID,ch);
-                this.removeObjMerged();
-            end            
-        end
+%         function updateSubjectChannel(this,subjectObj,ch,flag)
+%             %update a specific channel of a subject, flag signalizes 'measurement', 'result' or '' for both
+%             study = this.getChild(subjectObj.getStudyName());
+%             if(isempty(study))
+%                 study = this.addStudy(subjectObj.getStudyName());
+%             end
+%             if(~isempty(study))
+%                 study.updateSubjectChannel(subjectObj,ch,flag);
+%                 %study.removeResultChannelFromMemory(subjectID,ch);
+%                 this.removeObjMerged();
+%             end            
+%         end
         
 %         function importResultStruct(this,studyName,subjectName,import,itemsTarget)
 %             %import a new subject (and possibly study)
-%             study = this.getStudy(studyName);
+%             study = this.getChild(studyName);
 %             if(isempty(study))
 %                 study = this.addStudy(studyName);
 %             end
@@ -579,7 +631,7 @@ classdef FDTree < handle
 %         
 %         function importResultObj(this,studyName,subjectName,resultObj)
 %             %import a result of a new subject (and possibly study)
-%             study = this.getStudy(studyName);
+%             study = this.getChild(studyName);
 %             if(isempty(study))
 %                 study = this.addStudy(studyName);
 %             end
@@ -591,7 +643,7 @@ classdef FDTree < handle
 %         
 %         function importMeasurementObj(this,fluoFileObj)
 %             %import a measurement of a new subject (and possibly study)
-%             study = this.getStudy(fluoFileObj.getStudyName());
+%             study = this.getChild(fluoFileObj.getStudyName());
 %             if(isempty(study))
 %                 study = this.addStudy(fluoFileObj.getStudyName());
 %             end
@@ -603,7 +655,7 @@ classdef FDTree < handle
         
         function addColumn(this,studyID,name)
             %add column to study info data
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.addColumn(name);
             end
@@ -611,7 +663,7 @@ classdef FDTree < handle
         
         function addConditionalColumn(this,studyID,val)
             %add new conditional column with definition val
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.addConditionalColumn(val);
             end
@@ -619,7 +671,7 @@ classdef FDTree < handle
         
         function setConditionalColumnDefinition(this,studyID,colName,val)
             %set definition for conditional column in study
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.setConditionalColumnDefinition(colName,val);
             end
@@ -627,7 +679,7 @@ classdef FDTree < handle
         
         function removeColumn(this,studyID,colName)
             %
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.removeColumn(colName);
             end
@@ -635,7 +687,7 @@ classdef FDTree < handle
         
         function setSubjectInfo(this,studyID,irow,icol,newData)
             %
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.setSubjectInfo(irow,icol,newData);
             end
@@ -643,7 +695,7 @@ classdef FDTree < handle
         
         function setArithmeticImageDefinition(this,studyID,aiName,aiParam)
             %set name and definition of arithmetic image for a study
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.setArithmeticImageDefinition(aiName,aiParam);
             end
@@ -651,7 +703,7 @@ classdef FDTree < handle
         
         function removeArithmeticImageDefinition(this,studyID,aiName)
             %remove arithmetic image for a study
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.removeArithmeticImageDefinition(aiName);
             end
@@ -659,7 +711,7 @@ classdef FDTree < handle
         
         function setConditionColor(this,studyID,cName,val)
             %set condition color in study
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.setConditionColor(cName,val);
             end
@@ -674,7 +726,7 @@ classdef FDTree < handle
         
         function saveStudy(this,studyID)
             %save study with studyID
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.save();
             end
@@ -687,7 +739,7 @@ classdef FDTree < handle
         
         function out = getFDataObj(this,studyID,subjectID,chan,dType,id,sType)
             %get FData object
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.getFDataObj(subjectID,chan,dType,id,sType);
             else
@@ -697,7 +749,7 @@ classdef FDTree < handle
                 
 %         function out = getResultObj(this,studyID,subjectID,chan)
 %             %get fluoDecayFitResult object, chan = [] loads all channels
-%             study = this.getStudy(studyID);
+%             study = this.getChild(studyID);
 %             if(~isempty(study))
 %                 out = study.getResultObj(subjectID,chan);            
 %             else
@@ -707,7 +759,7 @@ classdef FDTree < handle
 %         
 %         function out = getMeasurementObj(this,studyID,subjectID,chan)
 %             %get fluoFile object containing measurement data, chan = [] loads all channels
-%             study = this.getStudy(studyID);
+%             study = this.getChild(studyID);
 %             if(~isempty(study))
 %                 out = study.getMeasurementObj(subjectID,chan);
 %             else
@@ -717,7 +769,7 @@ classdef FDTree < handle
         
         function out = getSubject4Approx(this,studyID,subjectID)
             %get subject object for approximation which includes measurements and results
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(isempty(study))
                 study = this.addStudy(studyID);
             end
@@ -732,7 +784,7 @@ classdef FDTree < handle
                 out = [];
                 return
             end
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(isempty(study))
                 study = this.addStudy(studyID);
             end            
@@ -773,7 +825,7 @@ classdef FDTree < handle
         
         function out = getStudyObjMerged(this,studyID,cName,chan,dType,id,sType)
             %get merged subjectDS of a certain study
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.getFDataMergedObj(cName,chan,dType,id,sType);
             else
@@ -783,7 +835,7 @@ classdef FDTree < handle
         
         %         function out = getStudyObjs(this,studyID,cName,chan,dType,id)
         %             %get all objects of datatype dType from a study
-        %             study = this.getStudy(studyID);
+        %             study = this.getChild(studyID);
         %             if(~isempty(study))
         %                 out = study.getStudyObjs(cName,chan,dType,id);
         %             else
@@ -792,39 +844,37 @@ classdef FDTree < handle
         %
         %         end
         
-        function [nr, study] = getStudyNr(this,name)
-            %get study number
-            for nr=1:this.myStudies.queueLen
-                study = this.myStudies.getDataByPos(nr);
-                if(strcmp(name,study.name))
-                    return
-                end
-            end
-            nr = [];
-            study = [];
-        end
+%         function [nr, study] = getStudyNr(this,name)
+%             %get study number
+%             [study,nr] = this.myStudies.getDataByID(name);
+%             for nr=1:this.myStudies.queueLen
+%                 study = this.myStudies.getDataByPos(nr);
+%                 if(strcmp(name,study.name))
+%                     return
+%                 end
+%             end
+%             nr = [];
+%             study = [];
+%         end
         
         function out = getStatsParams(this)
             %get statistics parameters
             out = this.FLIMXParamMgrObj.getParamSection('statistics');
         end
         
-        function nr = getNrStudies(this)
+        function out = getNrStudies(this)
             % get number of studies in FDTree
-            nr = this.myStudies.queueLen;
+            out = this.getNrOfChildren();
         end
         
-        function str = getStudyNames(this)
+        function out = getStudyNames(this)
             % get string of all studies
-            str = cell(this.myStudies.queueLen,1);
-            for i=1:this.myStudies.queueLen
-                str(i,1) = {this.myStudies.getDataByPos(i).name};
-            end
+            out = this.getNamesOfAllChildren();
         end
         
         function out = getStudyConditionsStr(this,studyID)
             % get conditions of study
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(isempty(studyID))
                 out = FDTree.defaultConditionName();
                 return
@@ -834,7 +884,7 @@ classdef FDTree < handle
                 
         function out = getSubjectName(this,studyID,subjectID)
             %get subject name
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.getSubjectName(subjectID);
             else
@@ -844,7 +894,7 @@ classdef FDTree < handle
         
         function out = getSubjectNr(this,studyID,name)
             %get subject nr
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.getSubjectNr(name);
             else
@@ -854,7 +904,7 @@ classdef FDTree < handle
         
         function [measurementChs, resultChs] = getSubjectFilesStatus(this,studyID,subjectID)
             %returns which channels are available for a subject in a study
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 [measurementChs, resultChs] = study.getSubjectFilesStatus(subjectID);
             else
@@ -865,7 +915,7 @@ classdef FDTree < handle
         
         function out = getClusterTargets(this,studyID,clusterID)
             %get multivariate targets
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.getClusterTargets(clusterID);
             else
@@ -900,7 +950,7 @@ classdef FDTree < handle
         
         function nr = getNrSubjects(this,studyID,cName)
             %get number of subjects in study with studyID
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 nr = study.getNrSubjects(cName);
             else
@@ -910,7 +960,7 @@ classdef FDTree < handle
         
         function out = makeStudyInfoSetExportStruct(this,studyID,subjectID)
             %get data from study clipboard
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.makeInfoSetExportStruct(subjectID);
             else
@@ -920,7 +970,7 @@ classdef FDTree < handle
         
         function dStr = getSubjectsNames(this,studyID,cName)
             %get a string of all subjects
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 dStr = study.getSubjectsNames(cName);
             else
@@ -930,7 +980,7 @@ classdef FDTree < handle
         
         function [str, nrs] = getChStr(this,studyID,subjectID)
             %get a string and numbers of all channels in subject
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 [str, nrs] = study.getChStr(subjectID);
             else
@@ -941,7 +991,7 @@ classdef FDTree < handle
         
         function str = getChObjStr(this,studyID,subjectID,ch)
             %get a string of all objects in channel ch in subject
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 str = study.getChObjStr(subjectID,ch);
             else
@@ -951,7 +1001,7 @@ classdef FDTree < handle
         
         function str = getChClusterObjStr(this,studyID,subjectID,ch)
             %get a string of all cluster objects in channel ch in subject
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 str = study.getChClusterObjStr(subjectID,ch);
             else
@@ -961,7 +1011,7 @@ classdef FDTree < handle
         
         function out = getHeight(this,studyID,subjectID)
             %get image height in a subject
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.getHeight(subjectID);
             else
@@ -971,19 +1021,14 @@ classdef FDTree < handle
         
         function out = getWidth(this,studyID,subjectID)
             %get image width in a subject
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.getWidth(subjectID);
             else
                 out = [];
             end
         end
-        
-        function out = getSaveMaxMemFlag(this)
-            %get saveMaxMem flag from parent
-            out = this.saveMaxMem;
-        end
-        
+                
         function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
             alg = this.dataSmoothAlgorithm ;
@@ -992,7 +1037,7 @@ classdef FDTree < handle
         
 %         function [MSX, MSXMin, MSXMax] = getMSX(this,studyID,subjectID)
 %             %get manual scaling parameters for x in subject
-%             study = this.getStudy(studyID);
+%             study = this.getChild(studyID);
 %             if(~isempty(study))
 %                 [MSX, MSXMin, MSXMax] = study.getMSX(subjectID);
 %             else
@@ -1004,7 +1049,7 @@ classdef FDTree < handle
 %         
 %         function [MSY, MSYMin, MSYMax] = getMSY(this,studyID,subjectID)
 %             %get manual scaling parameters for y in subject
-%             study = this.getStudy(studyID);
+%             study = this.getChild(studyID);
 %             if(~isempty(study))
 %                 [MSY, MSYMin, MSYMax] = study.getMSY(subjectID);
 %             else
@@ -1032,7 +1077,7 @@ classdef FDTree < handle
         
         function [centers, histMerge, histTable, colDescription] = getStudyHistogram(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
             %combine all histograms of study studyID, channel chan, datatype dType and 'running number' id into a single table
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 if(nargout == 2)
                     [centers, histMerge] = study.getStudyHistogram(cName,chan,dType,id);
@@ -1046,7 +1091,7 @@ classdef FDTree < handle
         
         function [stats, statsDesc, subjectDesc] = getStudyStatistics(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,strictFlag)
             %get statistics for all subjects in study studyID, Condition cName and channel chan of datatype dType with 'running number' id
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 [stats, statsDesc, subjectDesc] = study.getStudyStatistics(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,strictFlag);
             else
@@ -1056,7 +1101,7 @@ classdef FDTree < handle
         
         function data = getStudyPayload(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,dataProc)
             %get merged payload from all subjects of study studyID, channel chan, datatype dType and 'running number' within a study for a certain ROI
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 data = study.getStudyPayload(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,dataProc);
             else
@@ -1076,7 +1121,7 @@ classdef FDTree < handle
         
 %         function out = getSubjectInfoHeaders(this,studyID)
 %             %get subject info headers from study data
-%             study = this.getStudy(studyID);
+%             study = this.getChild(studyID);
 %             if(~isempty(study))
 %                 out = study.myStudyInfoSet.getDataFromStudyInfo('subjectInfoAllColumnNames');
 %             else
@@ -1086,7 +1131,7 @@ classdef FDTree < handle
 %         
 %         function out = getSubjectInfo(this,studyID,idx)
 %             %get subject info from study data
-%             study = this.getStudy(studyID);
+%             study = this.getChild(studyID);
 %             if(~isempty(study))
 %                 out = study.getSubjectInfo(idx);
 %             else
@@ -1096,7 +1141,7 @@ classdef FDTree < handle
         
 %         function out = getSubjectFilesHeaders(this,studyID)
 %             %get subject file headers from study data
-%             study = this.getStudy(studyID);
+%             study = this.getChild(studyID);
 %             if(~isempty(study))
 %                 out = study.getSubjectFilesHeaders();
 %             else
@@ -1106,7 +1151,7 @@ classdef FDTree < handle
         
         function out = getSubjectFilesData(this,studyID)
             %get subject files data from study data
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.getSubjectFilesData();
             else
@@ -1116,7 +1161,7 @@ classdef FDTree < handle
         
 %         function out = getSubjectFiles(this,studyID,idx)
 %             %get subject files from study data
-%             study = this.getStudy(studyID);
+%             study = this.getChild(studyID);
 %             if(~isempty(study))
 %                 out = study.getSubjectFiles(idx);
 %             else
@@ -1128,7 +1173,7 @@ classdef FDTree < handle
             %get list of clusters in study
             %mode 0 - get all subject clusters
             %mode 1 - get only calculable clusters
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.getStudyClustersStr(mode);
             else
@@ -1138,7 +1183,7 @@ classdef FDTree < handle
         
 %         function out = getSubjectInfoConditionalColumnDefinitions(this,studyID)
 %             %get subject info combi from study data
-%             study = this.getStudy(studyID);
+%             study = this.getChild(studyID);
 %             if(~isempty(study))
 %                 out = study.getSubjectInfoConditionalColumnDefinitions();
 %             else
@@ -1148,7 +1193,7 @@ classdef FDTree < handle
         
         function out = getStudyRevision(this,studyID)
             %get study revision
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.revision;
             else
@@ -1158,7 +1203,7 @@ classdef FDTree < handle
         
         function items = getAllFLIMItems(this,studyID,subjectID,chan)
             %get all items of a study, subject and channel
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 items = study.getAllFLIMItems(subjectID,chan);
             else
@@ -1168,7 +1213,7 @@ classdef FDTree < handle
                 
 %         function out = getSubjectScalings(this,studyID,idx)
 %             %get subject scalings from study data
-%             study = this.getStudy(studyID);
+%             study = this.getChild(studyID);
 %             if(~isempty(study))
 %                 out = study.getSubjectScalings(idx);
 %             else
@@ -1178,7 +1223,7 @@ classdef FDTree < handle
 %         
 %         function out = getSubjectCuts(this,studyID,idx)
 %             %
-%             study = this.getStudy(studyID);
+%             study = this.getChild(studyID);
 %             if(~isempty(study))
 %                 out = study.getSubjectCuts(idx);
 %             else
@@ -1188,7 +1233,7 @@ classdef FDTree < handle
         
         function out = getDataFromStudyInfo(this,studyID,descriptor,subName,colName)
             %get data from study info defined by descriptor
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 switch nargin
                 case 3
@@ -1207,7 +1252,7 @@ classdef FDTree < handle
         
         function out = getConditionalColumnDefinition(this,studyID,idx)
             %return definition of a conditional column with index idx in study
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(studyID))
                 out = study.getConditionalColumnDefinition(idx);
             else
@@ -1217,7 +1262,7 @@ classdef FDTree < handle
         
         function idx = subjectInfoColumnName2idx(this,studyID,columnName)
             %get the index of a subject info column or check if index is valid
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 idx = study.subjectInfoColumnName2idx(columnName);
             end
@@ -1225,7 +1270,7 @@ classdef FDTree < handle
         
         function out = getAllIRFInfo(this,studyID)
             %
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.getAllIRFInfo();
             else
@@ -1236,7 +1281,7 @@ classdef FDTree < handle
 %         function [data isBH chNrs] = getFLIMData(this,studyID,subjectID,chan)
 %             %
 %             data = []; isBH = false;
-%             study = this.getStudy(studyID);
+%             study = this.getChild(studyID);
 %             if(~isempty(study))
 %                 [data isBH chNrs] = study.getFLIMData(subjectID,chan);
 %             end
@@ -1246,10 +1291,23 @@ classdef FDTree < handle
             %get handle to parameter manager object
             out = this.myParent.paramMgr;
         end
+        
+        function out = get.maxMemoryCacheSize(this)
+            %get maximum memory size used to cache data
+            out = this.myMaxMemoryCacheSize;
+        end
+        
+        function set.maxMemoryCacheSize(this,val)
+            %get maximum memory size used to cache data
+            if(isnumeric(val) && val > 250e6)
+                this.myMaxMemoryCacheSize = val;
+                this.checkLRUCacheTableSize(val);
+            end
+        end
                 
         function oldStudy = updateStudyVer(this,studyID,oldStudy)
             %make old study data compatible with current version
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 oldStudy = study.updateStudyVer(oldStudy);
             end
@@ -1257,7 +1315,7 @@ classdef FDTree < handle
         
         function isDirty = checkStudyDirtyFlag(this,studyID)
             %check if dirty flag of study is set
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 isDirty = study.isDirty;
             else
@@ -1270,7 +1328,7 @@ classdef FDTree < handle
             nStudies = length(list);            
             h_wait = waitbar(0,'Exporting studies...');
             for i = 1:nStudies
-                study = this.getStudy(list{i});
+                study = this.getChild(list{i});
                 if(isempty(study))
                     continue
                 end
@@ -1314,7 +1372,7 @@ classdef FDTree < handle
         
         function exportStudyInfo(this,studyID,file)
             %export study info (subject info table) to excel file
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.exportStudyInfo(file);
             end
@@ -1322,7 +1380,7 @@ classdef FDTree < handle
         
         function [aiStr, aiParam] = getArithmeticImageDefinition(this,studyID)
             %get names and definitions of arithmetic images for a study
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             aiStr = []; aiParam = [];
             if(~isempty(study))
                 [aiStr, aiParam] = study.getArithmeticImageDefinition();
@@ -1331,7 +1389,7 @@ classdef FDTree < handle
         
         function out = getConditionColor(this,studyID,cName)
             %get color of Condition in study
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             out = [];
             if(~isempty(study))
                 out = study.getConditionColor(cName);
@@ -1340,7 +1398,7 @@ classdef FDTree < handle
         
         function out = isMember(this,studyID,subjectID,chan,dType)
             %checks combination of study, subject, channel and datatype on results only
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(isempty(study))
                 out = false;
             elseif(isempty(subjectID))
@@ -1370,9 +1428,9 @@ classdef FDTree < handle
         function makeGlobalObjMerged(this,chan,dType,id)
             %make global merged FData object
             ciMerged = [];
-            for i=1:this.myStudies.queueLen
+            for i=1:this.nrChildren
                 %merge image of all subjects in all studies
-                hg = this.myStudies.getDataByPos(i).getStudyObjs(FDTree.defaultConditionName(),chan,dType,id,1);
+                hg = this.getChildAtPos(i).getStudyObjs(FDTree.defaultConditionName(),chan,dType,id,1);
                 for j=1:length(hg)
                     ci = hg{j}.getROIImage(); %[],0,1,0
                     ciMerged = [ciMerged; ci(:);];
@@ -1387,7 +1445,7 @@ classdef FDTree < handle
             cimg = []; lblx = []; lbly = []; cw = []; colorCluster = []; logColorCluster = [];            
             clusterTargets = this.getGlobalClusterTargets(clusterID);
             for i=1:size(clusterTargets,1)
-                study = this.getStudy(clusterTargets{i,1});
+                study = this.getChild(clusterTargets{i,1});
                 conditionClusterObj = study.getFDataMergedObj(clusterTargets{i,2},chan,sprintf('Condition%s',clusterID),0,1);
                 if(isempty(conditionClusterObj) || isempty(conditionClusterObj.getROIImage([],0,1,0)))
                     continue
@@ -1408,7 +1466,7 @@ classdef FDTree < handle
             logColorCluster = zeros(size(cimg,1),size(cimg,2),3);
             cimg = zeros(size(cimg));
             for i=1:size(clusterTargets,1)
-                study = this.getStudy(clusterTargets{i,1});
+                study = this.getChild(clusterTargets{i,1});
                 conditionClusterObj = study.getFDataMergedObj(clusterTargets{i,2},chan,sprintf('Condition%s',clusterID),0,1);
                 curImg = mergeScatterPlotData(cimg,lblx,lbly,conditionClusterObj.getROIImage([],0,1,0),conditionClusterObj.getCIXLbl([],0,1,0),conditionClusterObj.getCIYLbl([],0,1,0),cw);
                 curImg = curImg/(max(curImg(:))-min(curImg(:)))*(size(this.getColorMap(),1)-1)+1;
@@ -1459,24 +1517,24 @@ classdef FDTree < handle
         end
         
         
-        function [study, studyID] = getStudy(this,studyID)
-            %check if study is in myStudies
-            if(ischar(studyID))
-                %study name is input data
-                [studyID, study] = this.getStudyNr(studyID);
-            elseif(isnumeric(studyID))
-                if(studyID > this.myStudies.queueLen)
-                    %study is not in FDTree
-                    studyID = [];
-                    study = [];
-                else
-                    study = this.myStudies.getDataByPos(studyID);
-                end
-            else
-                studyID = [];
-                study = [];
-            end
-        end
+%         function [study, studyID] = getStudy(this,studyID)
+%             %check if study is in myStudies
+%             if(ischar(studyID))
+%                 %study name is input data
+%                 [studyID, study] = this.getStudyNr(studyID);
+%             elseif(isnumeric(studyID))
+%                 if(studyID > this.myStudies.queueLen)
+%                     %study is not in FDTree
+%                     studyID = [];
+%                     study = [];
+%                 else
+%                     study = this.myStudies.getDataByPos(studyID);
+%                 end
+%             else
+%                 studyID = [];
+%                 study = [];
+%             end
+%         end
         
         function scanForStudies(this)
             %scan the disk for studies
@@ -1495,23 +1553,10 @@ classdef FDTree < handle
         end
         
         function swapColumn(this,studyID,col,idx)
-            %
-            study = this.getStudy(studyID);
+            %swap column in study info
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.swapColumn(col,idx);
-            end
-        end
-        
-        function clearAllRIs(this,studyID,dType)
-            %clear raw images of datatype dType in all subjects
-            study = this.getStudy(studyID);
-            if(~isempty(study))
-                study.clearAllRIs(dType);
-                if(strncmp(dType,'MVGroup',7))
-                    %clear corresponding global cluster object
-                    globalClusterID = sprintf('Global%s',dType);
-                    this.myConditionsMerged.clearAllRIs(globalClusterID);
-                end
             end
         end
         
@@ -1522,7 +1567,7 @@ classdef FDTree < handle
         
         function checkConditionRef(this,studyID,colN)
             %
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.checkConditionRef(colN);
             end
@@ -1530,7 +1575,7 @@ classdef FDTree < handle
         
         function clearSubjectFiles(this,studyID,subjectID)
             %delete data files for subject
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.clearSubjectFiles(subjectID);
             end
@@ -1538,7 +1583,7 @@ classdef FDTree < handle
         
         function checkSubjectFiles(this,studyID,subjectID)
             %check the data files on disk in a study for a specific subject or all subjects (subjectID = []) and update internal structs
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.checkSubjectFiles(subjectID);
             end
@@ -1546,7 +1591,7 @@ classdef FDTree < handle
         
         function checkStudyFiles(this,studyID)
             %check data files on disk for subject and update this.subjectFiles
-            study = this.getStudy(studyID);
+            study = this.getChild(studyID);
             if(~isempty(study))
                 study.checkStudyFiles();
             end
