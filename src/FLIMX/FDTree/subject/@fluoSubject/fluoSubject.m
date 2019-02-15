@@ -76,15 +76,17 @@ classdef fluoSubject < FDTreeNode
     end
     
     methods
-        function this = fluoSubject(study,name)
+        function this = fluoSubject(parentObj,name)
             %constructor
-            this = this@FDTreeNode(study,name);           
-            if(isa(study,'FDTStudy'))
-                %this.setStudy(study);
+            this = this@FDTreeNode(parentObj,name);           
+            if(isa(parentObj,'FDTStudy'))
                 this.initParamMgr();
-            elseif(isa(study,'paramMgr'))
+            elseif(isa(parentObj,'FDTree'))
+                this.initParamMgr();
                 this.myParent = [];
-                this.myParamMgr = subjectParamMgr(this,study.getParamSection('about'));
+            elseif(isa(parentObj,'paramMgr'))
+                this.myParent = [];
+                this.myParamMgr = subjectParamMgr(this,parentObj.getParamSection('about'));
             else
                 error('fluoSubject: No handle to study or parameter manager given');
             end            
@@ -114,7 +116,7 @@ classdef fluoSubject < FDTreeNode
             %reset parameter manager
             hp = this.getParentParamMgr();
             if(~isempty(hp))
-                this.myParamMgr = subjectParamMgr(this,hp.getParamSection('about'));                
+                this.myParamMgr = subjectParamMgr(this,hp.getParamSection('about'));
             end            
         end        
         
@@ -424,6 +426,11 @@ classdef fluoSubject < FDTreeNode
         
         function saveMatFile2Disk(this,ch)
             %save measurements and results to disk, if ch is empty, save all channels
+            if(isempty(this.getMyFolder()))
+                %there is no path to write to -> nothing to do
+                %set dirty flags to false?
+                return
+            end            
             if(isempty(ch))
                 for ch = 1:this.nrSpectralChannels
                     this.saveMatFile2Disk(ch);
@@ -697,7 +704,11 @@ classdef fluoSubject < FDTreeNode
         
         function out = getMyFolder(this)
             %return subjects working folder
-            out = fullfile(this.myParent.myDir,this.name);
+            if(isempty(this.myParent))
+                out = '';                
+            else
+                out = fullfile(this.myParent.myDir,this.name);
+            end
         end
         
         function out = getMyParamMgr(this)

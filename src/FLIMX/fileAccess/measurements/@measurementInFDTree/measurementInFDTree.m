@@ -341,8 +341,10 @@ classdef measurementInFDTree < measurementFile
             %return current working folder
             if(ischar(this.myFolder))
                 out = this.myFolder;
-            else
+            elseif(isa(this.myFolder, 'function_handle'))
                 out = feval(this.myFolder);
+            else
+                out = '';
             end
         end
         

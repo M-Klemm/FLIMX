@@ -552,9 +552,9 @@ classdef FDisplay < handle
                     %get merged view cluster object
                     clusterID = sprintf('Condition%s',dType{1});
                     hfd{1} = this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),clusterID,dTypeNr(1),scale);
-                case 4 %global clusters
-                    clusterID = sprintf('Global%s',dType{1});
-                    hfd{1} = this.visObj.fdt.getGlobalClusterObj(this.visObj.getChannel(this.mySide),clusterID,scale);
+%                 case 4 %global clusters
+%                     clusterID = sprintf('Global%s',dType{1});
+%                     hfd{1} = this.visObj.fdt.getGlobalClusterObj(this.visObj.getChannel(this.mySide),clusterID,scale);
             end            
             %save new hfd(s)            
             this.myhfdMain = hfd;
@@ -567,16 +567,16 @@ classdef FDisplay < handle
                     case 2 %study view histogram
                         if(~(dTypeNr == 0))
                             this.sethfdSupp(this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
-                                this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1));
+                                this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1,this.ROIType,this.ROISubType,this.ROIInvertFlag));
                         else
                             this.sethfdSupp({[]});
                         end
-                    case 3 %global histogram
-                        if(~isnan(dTypeNr))
-                            this.sethfdSupp(this.visObj.fdt.getGlobalObjMerged(this.visObj.getChannel(this.mySide),dType{1},dTypeNr));
-                        else
-                            this.sethfdSupp(hfd);
-                        end
+%                     case 3 %global histogram
+%                         if(~isnan(dTypeNr))
+%                             this.sethfdSupp(this.visObj.fdt.getGlobalObjMerged(this.visObj.getChannel(this.mySide),dType{1},dTypeNr,this.ROIType,this.ROISubType,this.ROIInvertFlag));
+%                         else
+%                             this.sethfdSupp(hfd);
+%                         end
                 end
             else
                 %crossSections                    
@@ -1217,7 +1217,7 @@ classdef FDisplay < handle
                                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(char(list(typeSel,:)));
                                 [centers, histo] = this.visObj.fdt.getStudyHistogram(...
                                     this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),...
-                                    this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1));
+                                    this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1),this.ROIType,this.ROISubType,this.ROIInvertFlag);
                             case 3 %global histogram
                                 list = get(this.h_m_p,'String');
                                 typeSel = get(this.h_m_p,'Value');

@@ -413,10 +413,10 @@ classdef FDTChannel < FDTreeNode
             [cimg, lblx, lbly, cw] = this.myParent.makeConditionCluster(this.getMyPositionInParent(),clusterID);
         end        
         
-        function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalCluster(this,clusterID)
-            %make global cluster for current channel
-            [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(this.getMyPositionInParent(),clusterID);
-        end        
+%         function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalCluster(this,clusterID)
+%             %make global cluster for current channel
+%             [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(this.getMyPositionInParent(),clusterID);
+%         end        
         
 %         function setIsLoaded(this)
 %             %set isLoaded flag of his channel

@@ -134,6 +134,27 @@ classdef FDataMerge < FData
             %get type of grid roi (number corresponding to type)
             out = this.ROISubType;
         end
+        
+        function [hist,centers] = getCIHist(this,varargin)
+            %return histogram and its centers
+            if(nargin == 4)
+                ROICoordinates = zeros(2,2,'int16');
+                ROIType = varargin{1};
+                ROISubType = varargin{2};
+                ROIInvertFlag = varargin{3};
+            else
+                ROICoordinates = varargin{1};
+                ROIType = varargin{2};
+                ROISubType = varargin{3};
+                ROIInvertFlag = varargin{4};
+            end            
+            [hist,centers] = getCIHist@FData(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+        end
+        
+        function out = ROIIsCached(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+            %check if this ROI is in my cache
+            out = true;
+        end
           
     end %methods
                 

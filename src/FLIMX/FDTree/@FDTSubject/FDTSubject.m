@@ -968,7 +968,7 @@ classdef FDTSubject < subject4Approx
             out.y = cell(0,0);
             if(~isstruct(gMVs) || isstruct(gMVs) && ~all(isfield(gMVs,{'x','y','ROI'})))
                 %we did not get cluster targets
-                warning('subjectDS:getClusterTargets','Could not get cluster targets for subject ''%s'' in study ''%s''',this.name,this.myParent.name);
+                warning('FDTSubject:getClusterTargets','Could not get cluster targets for subject ''%s'' in study ''%s''',this.name,this.myParent.name);
                 return
             end
             out.ROI = gMVs.ROI;
@@ -1312,10 +1312,10 @@ classdef FDTSubject < subject4Approx
             [cimg, lblx, cw, lbly] = this.myParent.makeConditionCluster(this.name,chan,clusterID);
         end
         
-        function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalCluster(this,chan,clusterID)
-            %make global cluster for a spectral channel
-            [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(chan,clusterID);
-        end
+%         function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalCluster(this,chan,clusterID)
+%             %make global cluster for a spectral channel
+%             [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(chan,clusterID);
+%         end
         
 %         function flag = eq(ds1,ds2)
 %             %compare two subjectDS objects

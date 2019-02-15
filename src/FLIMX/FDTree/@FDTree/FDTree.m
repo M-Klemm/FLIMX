@@ -71,7 +71,7 @@ classdef FDTree < FDTreeNode
             end
             %this.myParent = parent;
             %this.myStudies = LinkedList();
-            this.myConditionsMerged = subjectDS(this,'GlobalMergedSubjects');
+            this.myConditionsMerged = FDTSubject(this,'','GlobalMergedSubjects');
             this.myClusterTargets = LinkedList();
             %Add default study as container for not assigned subjects
 %             if(this.myStudies.queueLen == 0)
@@ -198,7 +198,7 @@ classdef FDTree < FDTreeNode
         function removeObjMerged(this)
             %remove merged FData objects
             this.myConditionsMerged = [];
-            this.myConditionsMerged = subjectDS(this,'GlobalMergedSubjects');
+            this.myConditionsMerged = FDTSubject(this,'','GlobalMergedSubjects');
         end
         
         function updateShortProgress(this,prog,text)
@@ -347,14 +347,14 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function setGlobalClusterTargets(this,clusterID,targets)
-            %set global cluster targets, i.e. selected study conditions
-            clusterTargets.name = clusterID;
-            clusterTargets.targets = targets;
-            this.myClusterTargets.insertID(clusterTargets,clusterID);
-            %clear old cluster object
-            this.myConditionsMerged.clearAllRIs(sprintf('Global%s',clusterID));
-        end
+%         function setGlobalClusterTargets(this,clusterID,targets)
+%             %set global cluster targets, i.e. selected study conditions
+%             clusterTargets.name = clusterID;
+%             clusterTargets.targets = targets;
+%             this.myClusterTargets.insertID(clusterTargets,clusterID);
+%             %clear old cluster object
+%             this.myConditionsMerged.clearAllRIs(sprintf('Global%s',clusterID));
+%         end
         
         function setClusterName(this,studyID,clusterID,val)
             %set cluster name
@@ -399,8 +399,8 @@ classdef FDTree < FDTreeNode
                 study.clearAllRIs(dType);
                 if(strncmp(dType,'MVGroup',7))
                     %clear corresponding global cluster object
-                    globalClusterID = sprintf('Global%s',dType);
-                    this.myConditionsMerged.clearAllRIs(globalClusterID);
+%                     globalClusterID = sprintf('Global%s',dType);
+%                     this.myConditionsMerged.clearAllRIs(globalClusterID);
                 end
             end
         end
@@ -418,7 +418,7 @@ classdef FDTree < FDTreeNode
             study = this.getChild(studyName);
             if(~isempty(study))
                 study.setResultROICoordinates(subjectID,dType,dTypeNr,ROIType,ROICoord);
-                this.clearGlobalObjMerged(dType);
+%                 this.clearGlobalObjMerged(dType);
             end
         end
         
@@ -427,7 +427,7 @@ classdef FDTree < FDTreeNode
             study = this.getChild(studyName);
             if(~isempty(study))
                 study.setResultZScaling(subjectID,ch,dType,dTypeNr,zValues);
-                this.clearGlobalObjMerged(dType);
+%                 this.clearGlobalObjMerged(dType);
             end
         end
         
@@ -715,11 +715,11 @@ classdef FDTree < FDTreeNode
             if(~isempty(study))
                 study.setConditionColor(cName,val);
             end
-            str = this.getGlobalClustersStr();
-            for i = 1:length(str)
-                globalClusterID = sprintf('Global%s',str{i});
-                this.myConditionsMerged.clearAllRIs(globalClusterID);
-            end
+%             str = this.getGlobalClustersStr();
+%             for i = 1:length(str)
+%                 globalClusterID = sprintf('Global%s',str{i});
+%                 this.myConditionsMerged.clearAllRIs(globalClusterID);
+%             end
         end
         
         %% output functions
@@ -791,43 +791,43 @@ classdef FDTree < FDTreeNode
             out = study.getSubject4Import(subjectID);
         end
         
-        function out = getGlobalObjMerged(this,chan,dType,id)
-            %get merged subjectDS of all studies
-            out = this.myConditionsMerged.getFDataObj(chan,dType,id,1);
-            if(isempty(out))
-                %try to merge subjects
-                this.makeGlobalObjMerged(chan,dType,id);
-                out = this.myConditionsMerged.getFDataObj(chan,dType,id,1);
-            end
-        end
+%         function out = getGlobalObjMerged(this,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
+%             %get merged subjectDS of all studies
+%             out = this.myConditionsMerged.getFDataObj(chan,dType,id,1);
+%             if(isempty(out))
+%                 %try to merge subjects
+%                 this.makeGlobalObjMerged(chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
+%                 out = this.myConditionsMerged.getFDataObj(chan,dType,id,1);
+%             end
+%         end
         
-        function out = getGlobalClusterObj(this,chan,dType,sType)
-            %get global cluster object
-            out = this.myConditionsMerged.getFDataObj(chan,dType,0,sType);
-            if(isempty(out))
-                %try to make global cluster
-                clusterID = dType(7:end);
-                [cimg, lblx, lbly, cw, colors, logColors] = this.makeGlobalCluster(chan,clusterID);
-                %add cluster
-                this.myConditionsMerged.addObjID(0,chan,dType,0,cimg);
-                out = this.myConditionsMerged.getFDataObj(chan,dType,0,sType);
-                if(length(lblx) >= 2)
-                    out.setupXLbl(lblx(1),lblx(2)-lblx(1));
-                end
-                if(length(lbly) >= 2)
-                    out.setupYLbl(lbly(1),lbly(2)-lbly(1));
-                end
-                %out.setLblX(lblx);
-                %out.setLblY(lbly);
-                out.setColor_data(colors,logColors);
-            end
-        end
+%         function out = getGlobalClusterObj(this,chan,dType,sType)
+%             %get global cluster object
+%             out = this.myConditionsMerged.getFDataObj(chan,dType,0,sType);
+%             if(isempty(out))
+%                 %try to make global cluster
+%                 clusterID = dType(7:end);
+%                 [cimg, lblx, lbly, cw, colors, logColors] = this.makeGlobalCluster(chan,clusterID);
+%                 %add cluster
+%                 this.myConditionsMerged.addObjID(0,chan,dType,0,cimg);
+%                 out = this.myConditionsMerged.getFDataObj(chan,dType,0,sType);
+%                 if(length(lblx) >= 2)
+%                     out.setupXLbl(lblx(1),lblx(2)-lblx(1));
+%                 end
+%                 if(length(lbly) >= 2)
+%                     out.setupYLbl(lbly(1),lbly(2)-lbly(1));
+%                 end
+%                 %out.setLblX(lblx);
+%                 %out.setLblY(lbly);
+%                 out.setColor_data(colors,logColors);
+%             end
+%         end
         
-        function out = getStudyObjMerged(this,studyID,cName,chan,dType,id,sType)
+        function out = getStudyObjMerged(this,studyID,cName,chan,dType,id,sType,ROIType,ROISubType,ROIInvertFlag)
             %get merged subjectDS of a certain study
             study = this.getChild(studyID);
             if(~isempty(study))
-                out = study.getFDataMergedObj(cName,chan,dType,id,sType);
+                out = study.getFDataMergedObj(cName,chan,dType,id,sType,ROIType,ROISubType,ROIInvertFlag);
             else
                 out = [];
             end
@@ -923,30 +923,30 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function out = getGlobalClusterTargets(this,clusterID)
-            %get global cluster targets, i.e. selected study Conditions
-            out = [];
-            clusterTargets = this.myClusterTargets.getDataByID(clusterID);
-            if(isempty(clusterTargets))
-                return
-            end
-            out = clusterTargets.targets;
-        end
-        
-        function str = getGlobalClustersStr(this)
-            %get string with all global cluster names if computable
-            str = cell(0,1);
-            for i=1:this.myClusterTargets.queueLen
-                clusterTargets = this.myClusterTargets.getDataByPos(i);
-                if(size(clusterTargets.targets,1) >= 1)
-                    cMVs = this.getClusterTargets(clusterTargets.targets{1,1},clusterTargets.name);
-                    if(~isempty(cMVs) && ~isempty(cMVs.y))
-                        %cluster is computable
-                        str(end+1,1) = {this.myClusterTargets.getDataByPos(i).name};
-                    end
-                end
-            end
-        end
+%         function out = getGlobalClusterTargets(this,clusterID)
+%             %get global cluster targets, i.e. selected study Conditions
+%             out = [];
+%             clusterTargets = this.myClusterTargets.getDataByID(clusterID);
+%             if(isempty(clusterTargets))
+%                 return
+%             end
+%             out = clusterTargets.targets;
+%         end
+%         
+%         function str = getGlobalClustersStr(this)
+%             %get string with all global cluster names if computable
+%             str = cell(0,1);
+%             for i=1:this.myClusterTargets.queueLen
+%                 clusterTargets = this.myClusterTargets.getDataByPos(i);
+%                 if(size(clusterTargets.targets,1) >= 1)
+%                     cMVs = this.getClusterTargets(clusterTargets.targets{1,1},clusterTargets.name);
+%                     if(~isempty(cMVs) && ~isempty(cMVs.y))
+%                         %cluster is computable
+%                         str(end+1,1) = {this.myClusterTargets.getDataByPos(i).name};
+%                     end
+%                 end
+%             end
+%         end
         
         function nr = getNrSubjects(this,studyID,cName)
             %get number of subjects in study with studyID
@@ -1059,28 +1059,28 @@ classdef FDTree < FDTreeNode
 %             end
 %         end
                 
-        function [centers, histTable] = getGlobalHistogram(this,chan,dType,id)
-            %combine all histograms of channel chan, datatype dType and 'running number' id into a single table
-            hg = this.getGlobalObjMerged(chan,dType,id);
-            if(isempty(hg) || hg.isEmptyStat)
-                %try to build merged object
-                this.makeGlobalObjMerged(chan,dType,id);
-                hg = this.getGlobalObjMerged(chan,dType,id);
-            end
-            if(~isempty(hg))
-                centers = hg.getCIHistCenters();
-                histTable = hg.getCIHist();
-            else
-                centers = []; histTable = [];
-            end
-        end
+%         function [centers, histTable] = getGlobalHistogram(this,chan,dType,id)
+%             %combine all histograms of channel chan, datatype dType and 'running number' id into a single table
+%             hg = this.getGlobalObjMerged(chan,dType,id);
+%             if(isempty(hg) || hg.isEmptyStat)
+%                 %try to build merged object
+%                 this.makeGlobalObjMerged(chan,dType,id);
+%                 hg = this.getGlobalObjMerged(chan,dType,id);
+%             end
+%             if(~isempty(hg))
+%                 centers = hg.getCIHistCenters();
+%                 histTable = hg.getCIHist();
+%             else
+%                 centers = []; histTable = [];
+%             end
+%         end
         
         function [centers, histMerge, histTable, colDescription] = getStudyHistogram(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
             %combine all histograms of study studyID, channel chan, datatype dType and 'running number' id into a single table
             study = this.getChild(studyID);
             if(~isempty(study))
                 if(nargout == 2)
-                    [centers, histMerge] = study.getStudyHistogram(cName,chan,dType,id);
+                    [centers, histMerge] = study.getStudyHistogram(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
                 else
                     [centers, histMerge, histTable, colDescription] = study.getStudyHistogram(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
                 end
@@ -1425,96 +1425,101 @@ classdef FDTree < FDTreeNode
         end
         
         %% compute functions                
-        function makeGlobalObjMerged(this,chan,dType,id)
-            %make global merged FData object
-            ciMerged = [];
-            for i=1:this.nrChildren
-                %merge image of all subjects in all studies
-                hg = this.getChildAtPos(i).getStudyObjs(FDTree.defaultConditionName(),chan,dType,id,1);
-                for j=1:length(hg)
-                    ci = hg{j}.getROIImage(); %[],0,1,0
-                    ciMerged = [ciMerged; ci(:);];
-                end
-            end
-            %add subjectDSMerged
-            this.myConditionsMerged.addObjMergeID(id,chan,dType,1,ciMerged);
-        end
+%         function makeGlobalObjMerged(this,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
+%             %make global merged FData object
+%             ciMerged = [];
+%             for i=1:this.nrChildren
+%                 %merge image of all subjects in all studies
+%                 %hg = this.getChildAtPos(i).getStudyObjs(FDTree.defaultConditionName(),chan,dType,id,1);
+%                 study = this.getChild(i);
+%                 if(isempty(study))
+%                     continue
+%                 end
+%                 ciMergedStudy = study.makeObjMerged(FDTree.defaultConditionName(),chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
+% %                 for j=1:length(hg)
+% %                     ci = hg{j}.getROIImage(); %[],0,1,0
+%                     ciMerged = [ciMerged; ciMergedStudy(:);];
+% %                 end
+%             end
+%             %add subjectDSMerged
+%             this.myConditionsMerged.addObjMergeID(id,chan,dType,1,ciMerged);
+%         end
         
-        function [cimg, lblx, lbly, cw, colorCluster, logColorCluster] = makeGlobalCluster(this,chan,clusterID)
-            %make global cluster object
-            cimg = []; lblx = []; lbly = []; cw = []; colorCluster = []; logColorCluster = [];            
-            clusterTargets = this.getGlobalClusterTargets(clusterID);
-            for i=1:size(clusterTargets,1)
-                study = this.getChild(clusterTargets{i,1});
-                conditionClusterObj = study.getFDataMergedObj(clusterTargets{i,2},chan,sprintf('Condition%s',clusterID),0,1);
-                if(isempty(conditionClusterObj) || isempty(conditionClusterObj.getROIImage([],0,1,0)))
-                    continue
-                end
-                %get reference classwidth
-                cMVs = this.getClusterTargets(clusterTargets{i,1},clusterID);
-                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
-                cw = getHistParams(this.getStatsParams(),chan,dType{1},dTypeNr(1));
-                %get merged clusters from subjects of condition
-                %use whole image for scatter plots, ignore any ROIs
-                [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,conditionClusterObj.getROIImage([],0,1,0)./conditionClusterObj.getCImax([],0,1,0)*1000,conditionClusterObj.getCIXLbl([],0,1,0),conditionClusterObj.getCIYLbl([],0,1,0),cw);
-            end            
-            if(isempty(cimg))
-                return
-            end
-            %create colored cluster
-            colorCluster = zeros(size(cimg,1),size(cimg,2),3);
-            logColorCluster = zeros(size(cimg,1),size(cimg,2),3);
-            cimg = zeros(size(cimg));
-            for i=1:size(clusterTargets,1)
-                study = this.getChild(clusterTargets{i,1});
-                conditionClusterObj = study.getFDataMergedObj(clusterTargets{i,2},chan,sprintf('Condition%s',clusterID),0,1);
-                curImg = mergeScatterPlotData(cimg,lblx,lbly,conditionClusterObj.getROIImage([],0,1,0),conditionClusterObj.getCIXLbl([],0,1,0),conditionClusterObj.getCIYLbl([],0,1,0),cw);
-                curImg = curImg/(max(curImg(:))-min(curImg(:)))*(size(this.getColorMap(),1)-1)+1;
-                %prepare cluster coloring
-                color = study.getConditionColor(clusterTargets{i,2});
-                cm = repmat([0:1/(size(this.getColorMap(),1)-1):1]',1,3);
-                cm = [cm(:,1).*color(1) cm(:,2).*color(2) cm(:,3).*color(3)];                
-                %get merged colors
-                colors = cm(round(reshape(curImg,[],1)),:);
-                colors = reshape(colors,[size(curImg) 3]);                
-                if(sum(colorCluster(:)) > 0)
-                    colorCluster = imfuse(colors,colorCluster,'blend');
-                else
-                    colorCluster = colors;
-                end                
-%                 idx = repmat(sum(colors,3) ~= 0 & sum(colorCluster,3) ~= 0, [1 1 3]);
-%                 colorCluster = colorCluster + colors;
-%                 colorCluster(idx) = colorCluster(idx)./2;
-                %create log10 color cluster
-                curImgLog = log10(curImg);
-                tmp = curImgLog(curImgLog ~= -inf);
-                tmp = min(tmp(:));
-                curImgLog(curImgLog == -inf) = tmp;                
-                curImgLog = (curImgLog-tmp)/(max(curImgLog(:))-tmp)*(size(this.getColorMap(),1)-1)+1;
-                colorsLog = cm(round(reshape(curImgLog,[],1)),:);
-                colorsLog = reshape(colorsLog,[size(curImgLog) 3]);
-                logColorCluster = logColorCluster + colorsLog;
-                idxLog = repmat(sum(colorsLog,3) ~= 0 & sum(logColorCluster,3) ~= 0, [1 1 3]);
-                logColorCluster(idxLog) = logColorCluster(idxLog)./2;
-            end
-            %set brightness to max
-            %linear scaling
-            t = rgb2hsv(colorCluster);
-            t2 = t(:,:,3);
-            idx = logical(sum(colorCluster,3));
-            %t2(idx) = t2(idx) + 1-max(t2(:));
-            t2(idx) = 1;
-            t(:,:,3) = t2;
-            colorCluster = hsv2rgb(t);
-            %log scaling
-            t = rgb2hsv(logColorCluster);
-            t2 = t(:,:,3);
-            idx = logical(sum(logColorCluster,3));
-            %t2(idx) = t2(idx) + 1-max(t2(:));
-            t2(idx) = 1;
-            t(:,:,3) = t2;
-            logColorCluster = hsv2rgb(t);
-        end
+%         function [cimg, lblx, lbly, cw, colorCluster, logColorCluster] = makeGlobalCluster(this,chan,clusterID)
+%             %make global cluster object
+%             cimg = []; lblx = []; lbly = []; cw = []; colorCluster = []; logColorCluster = [];            
+%             clusterTargets = this.getGlobalClusterTargets(clusterID);
+%             for i=1:size(clusterTargets,1)
+%                 study = this.getChild(clusterTargets{i,1});
+%                 conditionClusterObj = study.getFDataMergedObj(clusterTargets{i,2},chan,sprintf('Condition%s',clusterID),0,1);
+%                 if(isempty(conditionClusterObj) || isempty(conditionClusterObj.getROIImage([],0,1,0)))
+%                     continue
+%                 end
+%                 %get reference classwidth
+%                 cMVs = this.getClusterTargets(clusterTargets{i,1},clusterID);
+%                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
+%                 cw = getHistParams(this.getStatsParams(),chan,dType{1},dTypeNr(1));
+%                 %get merged clusters from subjects of condition
+%                 %use whole image for scatter plots, ignore any ROIs
+%                 [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,conditionClusterObj.getROIImage([],0,1,0)./conditionClusterObj.getCImax([],0,1,0)*1000,conditionClusterObj.getCIXLbl([],0,1,0),conditionClusterObj.getCIYLbl([],0,1,0),cw);
+%             end            
+%             if(isempty(cimg))
+%                 return
+%             end
+%             %create colored cluster
+%             colorCluster = zeros(size(cimg,1),size(cimg,2),3);
+%             logColorCluster = zeros(size(cimg,1),size(cimg,2),3);
+%             cimg = zeros(size(cimg));
+%             for i=1:size(clusterTargets,1)
+%                 study = this.getChild(clusterTargets{i,1});
+%                 conditionClusterObj = study.getFDataMergedObj(clusterTargets{i,2},chan,sprintf('Condition%s',clusterID),0,1);
+%                 curImg = mergeScatterPlotData(cimg,lblx,lbly,conditionClusterObj.getROIImage([],0,1,0),conditionClusterObj.getCIXLbl([],0,1,0),conditionClusterObj.getCIYLbl([],0,1,0),cw);
+%                 curImg = curImg/(max(curImg(:))-min(curImg(:)))*(size(this.getColorMap(),1)-1)+1;
+%                 %prepare cluster coloring
+%                 color = study.getConditionColor(clusterTargets{i,2});
+%                 cm = repmat([0:1/(size(this.getColorMap(),1)-1):1]',1,3);
+%                 cm = [cm(:,1).*color(1) cm(:,2).*color(2) cm(:,3).*color(3)];                
+%                 %get merged colors
+%                 colors = cm(round(reshape(curImg,[],1)),:);
+%                 colors = reshape(colors,[size(curImg) 3]);                
+%                 if(sum(colorCluster(:)) > 0)
+%                     colorCluster = imfuse(colors,colorCluster,'blend');
+%                 else
+%                     colorCluster = colors;
+%                 end                
+% %                 idx = repmat(sum(colors,3) ~= 0 & sum(colorCluster,3) ~= 0, [1 1 3]);
+% %                 colorCluster = colorCluster + colors;
+% %                 colorCluster(idx) = colorCluster(idx)./2;
+%                 %create log10 color cluster
+%                 curImgLog = log10(curImg);
+%                 tmp = curImgLog(curImgLog ~= -inf);
+%                 tmp = min(tmp(:));
+%                 curImgLog(curImgLog == -inf) = tmp;                
+%                 curImgLog = (curImgLog-tmp)/(max(curImgLog(:))-tmp)*(size(this.getColorMap(),1)-1)+1;
+%                 colorsLog = cm(round(reshape(curImgLog,[],1)),:);
+%                 colorsLog = reshape(colorsLog,[size(curImgLog) 3]);
+%                 logColorCluster = logColorCluster + colorsLog;
+%                 idxLog = repmat(sum(colorsLog,3) ~= 0 & sum(logColorCluster,3) ~= 0, [1 1 3]);
+%                 logColorCluster(idxLog) = logColorCluster(idxLog)./2;
+%             end
+%             %set brightness to max
+%             %linear scaling
+%             t = rgb2hsv(colorCluster);
+%             t2 = t(:,:,3);
+%             idx = logical(sum(colorCluster,3));
+%             %t2(idx) = t2(idx) + 1-max(t2(:));
+%             t2(idx) = 1;
+%             t(:,:,3) = t2;
+%             colorCluster = hsv2rgb(t);
+%             %log scaling
+%             t = rgb2hsv(logColorCluster);
+%             t2 = t(:,:,3);
+%             idx = logical(sum(logColorCluster,3));
+%             %t2(idx) = t2(idx) + 1-max(t2(:));
+%             t2(idx) = 1;
+%             t(:,:,3) = t2;
+%             logColorCluster = hsv2rgb(t);
+%         end
         
         
 %         function [study, studyID] = getStudy(this,studyID)
@@ -1560,10 +1565,10 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function clearGlobalObjMerged(this,dType)
-            %clear global cluster object and statistics
-            this.myConditionsMerged.clearAllRIs(dType);
-        end
+%         function clearGlobalObjMerged(this,dType)
+%             %clear global cluster object and statistics
+%             this.myConditionsMerged.clearAllRIs(dType);
+%         end
         
         function checkConditionRef(this,studyID,colN)
             %

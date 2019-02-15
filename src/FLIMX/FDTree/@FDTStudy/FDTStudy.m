@@ -772,14 +772,14 @@ classdef FDTStudy < FDTreeNode
                         this.myConditionStatistics.getDataByPos(i).clearAllRIs(sprintf('Condition%s',dType));
                     end
                 end
-                this.myParent.clearGlobalObjMerged(sprintf('Global%s',dType));
+%                 this.myParent.clearGlobalObjMerged(sprintf('Global%s',dType));
             elseif(strncmp('ConditionMVGroup',dType,16))
                 for i = 1:this.myConditionStatistics.queueLen
                     this.myConditionStatistics.getDataByPos(i).clearAllRIs(dType);
                 end
-                this.myParent.clearGlobalObjMerged(sprintf('Global%s',dType(5:end)));
-            elseif(strncmp('GlobalMVGroup',dType,13))
-                this.myParent.clearGlobalObjMerged(dType);
+%                 this.myParent.clearGlobalObjMerged(sprintf('Global%s',dType(5:end)));
+%             elseif(strncmp('GlobalMVGroup',dType,13))
+%                 this.myParent.clearGlobalObjMerged(dType);
             else
                 %normal dType
                 curGS = subject.getGlobalScale(dType);
@@ -799,7 +799,7 @@ classdef FDTStudy < FDTreeNode
                                 this.myConditionStatistics.getDataByPos(j).clearAllRIs(sprintf('Condition%s',clusterStr{i}));
                             end
                         end
-                        this.myParent.clearGlobalObjMerged(sprintf('Global%s',clusterStr{i}));
+%                         this.myParent.clearGlobalObjMerged(sprintf('Global%s',clusterStr{i}));
                     end
                 end
             end
@@ -1145,14 +1145,16 @@ classdef FDTStudy < FDTreeNode
             nr = this.myStudyInfoSet.subName2idx(subjectID);
         end
         
-        function [measurementChs, resultChs] = getSubjectFilesStatus(this,subjectID)
+        function [measurementChs, resultChs, position, resolution] = getSubjectFilesStatus(this,subjectID)
             %returns which channels are available for a subject in a study            
             subject = this.getChild(subjectID);
             if(~isempty(subject))
                 %measurements
                 measurementChs = subject.nonEmptyMeasurementChannelList;
                 %results
-                resultChs = subject.nonEmptyResultChannelList;                
+                resultChs = subject.nonEmptyResultChannelList;  
+                position = subject.position;
+                resolution = subject.pixelResolution;
             end            
 %             measurements = cell2mat(this.myStudyInfoSet.getMeasurementFileChs(subjectID));
 %             results = cell2mat(this.myStudyInfoSet.getResultFileChs(subjectID));            
@@ -1383,8 +1385,7 @@ classdef FDTStudy < FDTreeNode
                     end
                 else
                     %2 output arguments -> non-strict version
-                    centers = hg.getCIHistCenters();
-                    histMerge = hg.getCIHist();
+                    [histMerge, centers] = hg.getCIHist(ROIType,ROISubType,ROIInvertFlag);
                     histTable = [];
                     colDescription = cell(0,0);
                 end
@@ -1524,12 +1525,12 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end            
-            data = cell(this.nrChildren,3);
+            data = cell(this.nrChildren,5);
             for i = 1:this.nrChildren
                 subject = this.getChildAtPos(i);
                 if(~isempty(subject))
                     data{i,1} = subject.name;
-                    [msChannels, rsChannels] = this.getSubjectFilesStatus(i);
+                    [msChannels, rsChannels, pos, res] = this.getSubjectFilesStatus(i);
                     %measurements
                     %msChannels = subject.nonEmptyMeasurementChannelList;
                     if(isempty(msChannels))
@@ -1552,6 +1553,8 @@ classdef FDTStudy < FDTreeNode
                         end
                         data{i,3} = str;
                     end
+                    data{i,4} = pos;
+                    data{i,5} = res;
                 end
             end
         end
@@ -1677,15 +1680,15 @@ classdef FDTStudy < FDTreeNode
             end
         end
                 
-        function [cimg, lblx, lbly, colors, logColors] = makeGlobalCluster(this,chan,clusterID)
-            %make global cluster object
-            if(~this.isLoaded)
-                this.load();
-            end
-            [cimg, lblx, lbly, colors, logColors] = this.myParent.makeGlobalCluster(chan,clusterID);
-        end
+%         function [cimg, lblx, lbly, colors, logColors] = makeGlobalCluster(this,chan,clusterID)
+%             %make global cluster object
+%             if(~this.isLoaded)
+%                 this.load();
+%             end
+%             [cimg, lblx, lbly, colors, logColors] = this.myParent.makeGlobalCluster(chan,clusterID);
+%         end
         
-        function makeObjMerged(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
+        function ciMerged = makeObjMerged(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
             %compute and save merged subject object for statistics
             %get subjects
             if(~this.isLoaded)

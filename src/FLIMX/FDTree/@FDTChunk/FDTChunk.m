@@ -191,30 +191,30 @@ classdef FDTChunk < FDTreeNode
                 end
             end
             
-            if(strncmp(this.dType,'GlobalMVGroup',13))
-                %check if global cluster has to be computed
-                clusterID = this.dType(7:end);
-                if(isempty(h))                                        
-                    [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(clusterID);
-                    this.addChildByName(FDataScatterPlot(this,id,cimg),num2str(id)); %,id,true);  %with overwrite flag
-                    h = this.getChild(id);
-                    %set labels
-                    h.setupXLbl(lblx,cw);
-                    h.setupYLbl(lbly,cw);
-                    %set combined colors
-                    h.setColor_data(colors,logColors);                    
-                else
-                    if(isempty(h.getFullImage()))
-                        [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(clusterID);
-                        h.setRawData(cimg);
-                        %set labels
-                        h.setupXLbl(lblx,cw);
-                        h.setupYLbl(lbly,cw);
-                        %set combined colors
-                        h.setColor_data(colors,logColors);                        
-                    end
-                end
-            end            
+%             if(strncmp(this.dType,'GlobalMVGroup',13))
+%                 %check if global cluster has to be computed
+%                 clusterID = this.dType(7:end);
+%                 if(isempty(h))                                        
+%                     [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(clusterID);
+%                     this.addChildByName(FDataScatterPlot(this,id,cimg),num2str(id)); %,id,true);  %with overwrite flag
+%                     h = this.getChild(id);
+%                     %set labels
+%                     h.setupXLbl(lblx,cw);
+%                     h.setupYLbl(lbly,cw);
+%                     %set combined colors
+%                     h.setColor_data(colors,logColors);                    
+%                 else
+%                     if(isempty(h.getFullImage()))
+%                         [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(clusterID);
+%                         h.setRawData(cimg);
+%                         %set labels
+%                         h.setupXLbl(lblx,cw);
+%                         h.setupYLbl(lbly,cw);
+%                         %set combined colors
+%                         h.setColor_data(colors,logColors);                        
+%                     end
+%                 end
+%             end            
             
             if(isempty(h))                    
                 return

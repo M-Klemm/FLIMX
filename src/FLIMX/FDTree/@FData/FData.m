@@ -734,7 +734,17 @@ classdef FData < handle
             %make statistics
             if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag) || this.isEmptyStat)%calculate statistics only if necessary
                 [statistics.descriptive, statistics.histogram, statistics.histogramCenters] = this.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIInvertFlag,false);
+                if(isempty(statistics.histogramCenters) || sum(statistics.histogram(:)) == 0)
+                    statistics.descriptive = [];
+                    statistics.histogram = [];
+                    this.cachedImage.statistics = statistics;
+                    return
+                end
                 this.cachedImage.statistics = statistics;
+                this.cachedImage.ROI.ROICoordinates = ROICoordinates;
+                this.cachedImage.ROI.ROIType = ROIType;
+                this.cachedImage.ROI.ROISubType = ROISubType;
+                this.cachedImage.ROI.ROIInvertFlag = ROIInvertFlag;
             end
         end              
         
