@@ -70,14 +70,14 @@ classdef FDTree < FDTreeNode
             end
             this.myConditionsMerged = FDTSubject(this,'','GlobalMergedSubjects');
             this.myGlobalMVGroupTargets = LinkedList();
-            %Add default study as container for not assigned subjects
-%             if(this.myStudies.queueLen == 0)
-%                 this.addStudy('Default');
-%             end
             try
                 this.setShortProgressCallback(@parent.updateSplashScreenProgressShort);
             end
             this.scanForStudies();
+            if(this.nrChildren == 0)
+                %add default study as container for not assigned subjects
+                this.addStudy('Default');
+            end
         end
 
         function pingLRUCacheTable(this,obj)
