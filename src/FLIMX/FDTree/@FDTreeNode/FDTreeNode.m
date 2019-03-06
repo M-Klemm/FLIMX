@@ -1,7 +1,7 @@
 classdef FDTreeNode < handle
     %=============================================================================================================
     %
-    % @file     FDTree.m
+    % @file     FDTreeNode.m
     % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
     % @version  1.0
     % @date     January, 2019

@@ -3,7 +3,7 @@ classdef FDTChunk < FDTreeNode
     %
     % @file     FDTChunk.m
     % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
-    % @version  1.0
+    % @version  2.0
     % @date     January, 2019
     %
     % @section  LICENSE
@@ -34,11 +34,8 @@ classdef FDTChunk < FDTreeNode
     properties(SetAccess = protected,GetAccess = public)
         dType = [];
         globalScale = [];
-%         myParent = [];
-%         mySlices = [];
     end
-    properties(SetAccess = protected,GetAccess = protected)
-        
+    properties(SetAccess = protected,GetAccess = protected)        
     end
     properties (Dependent = true)
         FLIMXParamMgrObj = [];
@@ -46,10 +43,8 @@ classdef FDTChunk < FDTreeNode
 
     methods
         function this = FDTChunk(parent,dType,globalScale)
-            % Constructor for Chunk
+            % Constructor for FDTChunk
             this = this@FDTreeNode(parent,dType);
-%             this.myParent = parent;
-%             this.mySlices = LinkedList();   %LinkedList of FData objects
             this.dType = dType;
             this.globalScale = logical(globalScale);
         end
@@ -148,41 +143,39 @@ classdef FDTChunk < FDTreeNode
         %% output functions
         function h = getFDataObj(this,id,sType)
             %get FData object with scaling sType                        
-            h = this.getChild(num2str(id));            
-            
+            h = this.getChild(num2str(id)); 
             if(strncmp(this.dType,'MVGroup',7))
-                %check if cluster has to be computed                
+                %check if MVGroup has to be computed
                 if(isempty(h))
-                    [cimg, lblx, lbly, cw] = this.myParent.makeCluster(this.dType);
+                    [cimg, lblx, lbly, cw] = this.myParent.makeMVGroupObj(this.dType);
                     this.addChildByName(FDataNormal(this,id,cimg),num2str(id)); %,id,true);  %with overwrite flag
-                    h = this.getChildAtPos(id);  
-                    %set labels for condition cluster computation
+                    h = this.getChild(num2str(id));
+                    %set labels for condition MVGroup computation
                     h.setupXLbl(lblx,cw);
                     h.setupYLbl(lbly,cw);
                 else
                     if(isempty(h.getFullImage()))
-                        [cimg, lblx, lbly, cw] = this.myParent.makeCluster(this.dType);
+                        [cimg, lblx, lbly, cw] = this.myParent.makeMVGroupObj(this.dType);
                         h.setRawData(cimg);
-                        %set labels for condition cluster computation
+                        %set labels for condition MVGroup computation
                         h.setupXLbl(lblx,cw);
                         h.setupYLbl(lbly,cw);
                     end
                 end
-            end                        
-            
+            end
             if(strncmp(this.dType,'ConditionMVGroup',16))
-                %check if condition cluster has to be computed
-                clusterID = this.dType(10:end);
-                if(isempty(h))                                        
-                    [cimg, lblx, lbly, cw] = this.myParent.makeConditionCluster(clusterID);
+                %check if condition MVGroup has to be computed
+                MVGroupID = this.dType(10:end);
+                if(isempty(h))
+                    [cimg, lblx, lbly, cw] = this.myParent.makeConditionMVGroupObj(MVGroupID);
                     this.addChildByName(FDataScatterPlot(this,id,cimg),num2str(id)); %,id,true);  %with overwrite flag
-                    h = this.getChild(id);
+                    h = this.getChild(num2str(id));
                     %set labels
                     h.setupXLbl(lblx,cw);
                     h.setupYLbl(lbly,cw);
                 else
                     if(isempty(h.getFullImage()))
-                        [cimg, lblx, lbly, cw] = this.myParent.makeConditionCluster(clusterID);
+                        [cimg, lblx, lbly, cw] = this.myParent.makeConditionMVGroupObj(MVGroupID);
                         h.setRawData(cimg);
                         %set labels
                         h.setupXLbl(lblx,cw);
@@ -190,35 +183,33 @@ classdef FDTChunk < FDTreeNode
                     end
                 end
             end
-            
-%             if(strncmp(this.dType,'GlobalMVGroup',13))
-%                 %check if global cluster has to be computed
-%                 clusterID = this.dType(7:end);
-%                 if(isempty(h))                                        
-%                     [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(clusterID);
-%                     this.addChildByName(FDataScatterPlot(this,id,cimg),num2str(id)); %,id,true);  %with overwrite flag
-%                     h = this.getChild(id);
-%                     %set labels
-%                     h.setupXLbl(lblx,cw);
-%                     h.setupYLbl(lbly,cw);
-%                     %set combined colors
-%                     h.setColor_data(colors,logColors);                    
-%                 else
-%                     if(isempty(h.getFullImage()))
-%                         [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(clusterID);
-%                         h.setRawData(cimg);
-%                         %set labels
-%                         h.setupXLbl(lblx,cw);
-%                         h.setupYLbl(lbly,cw);
-%                         %set combined colors
-%                         h.setColor_data(colors,logColors);                        
-%                     end
-%                 end
-%             end            
-            
-            if(isempty(h))                    
-                return
+            if(strncmp(this.dType,'GlobalMVGroup',13))
+                %check if global MVGroup has to be computed
+                MVGroupID = this.dType(7:end);
+                if(isempty(h))
+                    [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalMVGroupObj(MVGroupID);
+                    this.addChildByName(FDataScatterPlot(this,id,cimg),num2str(id)); %,id,true);  %with overwrite flag
+                    h = this.getChild(num2str(id));
+                    %set labels
+                    h.setupXLbl(lblx,cw);
+                    h.setupYLbl(lbly,cw);
+                    %set combined colors
+                    h.setColor_data(colors,logColors);
+                else
+                    if(isempty(h.getFullImage()))
+                        [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalMVGroupObj(MVGroupID);
+                        h.setRawData(cimg);
+                        %set labels
+                        h.setupXLbl(lblx,cw);
+                        h.setupYLbl(lbly,cw);
+                        %set combined colors
+                        h.setColor_data(colors,logColors);
+                    end
+                end
             end            
+            if(isempty(h))
+                return
+            end
             %set Scale Flag depending on selected scale
             if sType == 1
                 h.setSType(1);
@@ -305,33 +296,7 @@ classdef FDTChunk < FDTreeNode
             %get filtering method to smooth data
             [alg, params] = this.myParent.getDataSmoothFilter();
         end
-        
-%         function [MSX, MSXMin, MSXMax] = getMSX(this)
-%             %get manual scaling parameters for x
-%             MSX = [];
-%             MSXMin = [];
-%             MSXMax = [];
-%             for i = 1:this.nrChildren
-%                 [MSX, MSXMin, MSXMax] = this.getChildAtPos(i).getMSX();
-%                 if(~isempty(MSX))
-%                     return
-%                 end
-%             end 
-%         end
-%         
-%         function [MSY, MSYMin, MSYMax] = getMSY(this)
-%             %get manual scaling parameters for y
-%             MSY = [];
-%             MSYMin = [];
-%             MSYMax = [];
-%             for i = 1:this.nrChildren
-%                 [MSY, MSYMin, MSYMax] = this.getChildAtPos(i).getMSY();
-%                 if(~isempty(MSY))
-%                     return
-%                 end
-%             end
-%         end
-        
+                
         function out = get.FLIMXParamMgrObj(this)
             %get handle to parameter manager object
             out = this.myParent.FLIMXParamMgrObj;

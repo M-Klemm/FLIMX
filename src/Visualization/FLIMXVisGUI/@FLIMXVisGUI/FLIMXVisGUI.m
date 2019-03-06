@@ -75,16 +75,16 @@ classdef FLIMXVisGUI < handle
             end
             if(this.generalParams.cmIntensityInvert)
                 this.dynParams.cmIntensity = flipud(this.dynVisParams.cmIntensity);
-            end            
+            end
             this.dynParams.mouseButtonDown = false;
             %this.dynParams.mouseButtonUp = false;
             this.dynParams.mouseButtonDownROI = [];
             this.dynParams.mouseButtonIsLeft = false;
             this.dynParams.mouseButtonIsInsideROI = false;
             this.dynParams.lastExportFile = 'image.png';
-            %init objects            
+            %init objects
             this.fdt.setShortProgressCallback(@this.updateShortProgressbar);
-            this.fdt.setLongProgressCallback(@this.updateLongProgressbar);            
+            this.fdt.setLongProgressCallback(@this.updateLongProgressbar);
         end %constructor
         
         %% input functions        
@@ -235,7 +235,7 @@ classdef FLIMXVisGUI < handle
                     %setup main popup menus
                     chObj = this.fdt.getChObjStr(curStudy,curSubject,this.getChannel(s));
                     if(~isempty(chObj))
-                        MVGroupNames = this.fdt.getStudyClustersStr(curStudy,1);
+                        MVGroupNames = this.fdt.getMVGroupNames(curStudy,1);
                         idx = strncmp('MVGroup_',MVGroupNames,8);
                         if(~isempty(idx))
                             MVGroupNames = MVGroupNames(idx);
@@ -281,33 +281,33 @@ classdef FLIMXVisGUI < handle
                             set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
                             set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
-%                         case 4 %global clusters
-%                             globalMVGroupNames = this.fdt.getGlobalClustersStr();
-%                             idx = strncmp('MVGroup_',globalMVGroupNames,8);
-%                             if(~isempty(idx))
-%                                 globalMVGroupNames = globalMVGroupNames(idx);
-%                             end
-%                             if(isempty(globalMVGroupNames))
-%                                 %global cluster not created yet
-%                                 errordlg('No multivariate group in mulitple studies available! Please define in Statistics -> Multivariate Groups.','Error Multivariate Groups');
-%                                 set(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Value',1);
-%                                 chObj = unique([chObj;MVGroupNames]);
-%                                 set(this.visHandles.(sprintf('dataset_%s_pop',s)),'Visible','on');
-%                                 set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','on');
-%                                 set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','on');
-%                                 set(this.visHandles.(sprintf('main_axes_pdim_%s_pop',s)),'Enable','on');
-%                                 set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','on');
-%                                 set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
-%                                 set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
-%                             else
-%                                 chObj = globalMVGroupNames;
-%                                 set(this.visHandles.(sprintf('dataset_%s_pop',s)),'Visible','off');
-%                                 set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','off');
-%                                 set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','off');
-%                                 set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','off');
-%                                 set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','off');
-%                                 set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','off');
-%                             end
+                        case 4 %global clusters
+                            globalMVGroupNames = this.fdt.getGlobalMVGroupNames();
+                            idx = strncmp('MVGroup_',globalMVGroupNames,8);
+                            if(~isempty(idx))
+                                globalMVGroupNames = globalMVGroupNames(idx);
+                            end
+                            if(isempty(globalMVGroupNames))
+                                %global cluster not created yet
+                                errordlg('No multivariate group in mulitple studies available! Please define in Statistics -> Multivariate Groups.','Error Multivariate Groups');
+                                set(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Value',1);
+                                chObj = unique([chObj;MVGroupNames]);
+                                set(this.visHandles.(sprintf('dataset_%s_pop',s)),'Visible','on');
+                                set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','on');
+                                set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','on');
+                                set(this.visHandles.(sprintf('main_axes_pdim_%s_pop',s)),'Enable','on');
+                                set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','on');
+                                set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
+                                set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
+                            else
+                                chObj = globalMVGroupNames;
+                                set(this.visHandles.(sprintf('dataset_%s_pop',s)),'Visible','off');
+                                set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','off');
+                                set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','off');
+                                set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','off');
+                                set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','off');
+                                set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','off');
+                            end
                     end
                     %supplementary plot histogram selection
                     if(get(this.visHandles.(sprintf('supp_axes_%s_pop',s)),'Value') == 2)
@@ -735,7 +735,7 @@ classdef FLIMXVisGUI < handle
                 case {1,3,4} %univariate / condition cluster
                     [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(list(ma_pop_sel,:));
                 case 2 %multivariate
-                    cMVs = this.fdt.getClusterTargets(this.getStudy(s),list{ma_pop_sel});
+                    cMVs = this.fdt.getStudyMVGroupTargets(this.getStudy(s),list{ma_pop_sel});
                     %get multivariate targets out of cluster targets
                     MVTargets = unique([cMVs.x,cMVs.y]);
                     dType = cell(length(MVTargets),1);
@@ -1168,7 +1168,7 @@ classdef FLIMXVisGUI < handle
             %% main axes
             if(~isempty(cpMain) && this.getROIDisplayMode(thisSide) < 3)
                 %user clicked in a main axes
-                %this.dynParams.mouseButtonUp = false;
+                ROIBorderID = 0;
                 if(this.getROIType(thisSide) >= 1)
                     %there is an ROI active
                     thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));

@@ -33,11 +33,9 @@ classdef FDTree < FDTreeNode
     %
     properties(SetAccess = protected,GetAccess = protected)
         myFileLock = [];
-        %myParent = [];
-        myDir = '';             %FStudyMgr's working directory
-        %myStudies = [];         %list of studies
-        myConditionsMerged = [];     %global statistics and global cluster objects
-        myClusterTargets = [];  %global cluster targets        
+        myDir = '';             %FDTree's working directory
+        myConditionsMerged = [];     %global statistics and global MVGroup objects
+        myGlobalMVGroupTargets = [];  %global MVGroup targets        
         cancelFlag = false; %flag to stop an operation
         LRUTableObjs = cell(0,1);
         LRUTableInfo = [];
@@ -46,6 +44,7 @@ classdef FDTree < FDTreeNode
         dataSmoothParameters = 1; %parameters for data smoothing algorithm
         shortProgressCb = cell(0,0); %list of callback functions for progressbar update (short)
         longProgressCb = cell(0,0); %list of callback functions for progressbar update (long)
+        studyMgrProgressCb = cell(0,0); %callback function for progressbar update of study manager
     end    
     properties (Dependent = true)
         FLIMXParamMgrObj = [];
@@ -69,10 +68,8 @@ classdef FDTree < FDTreeNode
                 delete(this.myFileLock);
                 error('FLIMX:FDTree:fileLock','Could not establish file lock for database');
             end
-            %this.myParent = parent;
-            %this.myStudies = LinkedList();
             this.myConditionsMerged = FDTSubject(this,'','GlobalMergedSubjects');
-            this.myClusterTargets = LinkedList();
+            this.myGlobalMVGroupTargets = LinkedList();
             %Add default study as container for not assigned subjects
 %             if(this.myStudies.queueLen == 0)
 %                 this.addStudy('Default');
@@ -175,11 +172,11 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function removeCluster(this,studyID,clusterID)
+        function removeMVGroup(this,studyID,MVGroupID)
             %
             study = this.getChild(studyID);
             if(~isempty(study))
-                study.removeCluster(clusterID);
+                study.removeMVGroup(MVGroupID);
             end
         end
         
@@ -223,6 +220,14 @@ classdef FDTree < FDTreeNode
             end
         end
         
+        function updateStudyMgrProgress(this,prog,text)
+            %update the progress bar of study manager
+            try
+                this.studyMgrProgressCb(prog,text);
+            catch
+            end
+        end
+        
         %% input functions
         function study = addStudy(this,name)
             %add a study to FDTree
@@ -247,7 +252,6 @@ classdef FDTree < FDTreeNode
             if(isempty(study))
                 return
             end
-            %study.load();
         end
         
         function loadStudy(this,studyID)
@@ -324,8 +328,13 @@ classdef FDTree < FDTreeNode
         end
                 
         function setLongProgressCallback(this,cb)
-            %set callback function for short progress bar
+            %set callback function for long progress bar
             this.longProgressCb(end+1) = {cb};
+        end
+        
+        function setStudyMgrProgressCb(this,cb)
+            %set callback function for study manager progress bar
+            this.studyMgrProgressCb = cb;
         end
         
         function setSubjectName(this,studyID,subjectID,val)
@@ -339,31 +348,31 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function setClusterTargets(this,studyID,clusterID,val)
+        function setStudyMVGroupTargets(this,studyID,MVGroupID,val)
             %set multivariate targets
             study = this.getChild(studyID);
             if(~isempty(study))
-                study.setClusterTargets(clusterID,val);
+                study.setMVGroupTargets(MVGroupID,val);
             end
         end
         
-%         function setGlobalClusterTargets(this,clusterID,targets)
-%             %set global cluster targets, i.e. selected study conditions
-%             clusterTargets.name = clusterID;
-%             clusterTargets.targets = targets;
-%             this.myClusterTargets.insertID(clusterTargets,clusterID);
-%             %clear old cluster object
-%             this.myConditionsMerged.clearAllRIs(sprintf('Global%s',clusterID));
-%         end
+        function setGlobalMVGroupTargets(this,MVGroupID,targets)
+            %set global MVGroup targets, i.e. selected study conditions
+            MVGroupTargets.name = MVGroupID;
+            MVGroupTargets.targets = targets;
+            this.myGlobalMVGroupTargets.insertID(MVGroupTargets,MVGroupID);
+            %clear old MVGroup object
+            this.myConditionsMerged.clearAllRIs(sprintf('Global%s',MVGroupID));
+        end
         
-        function setClusterName(this,studyID,clusterID,val)
-            %set cluster name
+        function setMVGroupName(this,studyID,MVGroupID,val)
+            %set MVGroup name
             study = this.getChild(studyID);
             if(~isempty(study))
-                study.setClusterName(clusterID,val);
+                study.setMVGroupName(MVGroupID,val);
             end
-            %change ID of global cluster
-            this.myClusterTargets.changeID(clusterID,val);
+            %change ID of global MVGroup
+            this.myGlobalMVGroupTargets.changeID(MVGroupID,val);
         end
                 
         function clearSubjectCI(this,studyID,subjectID)
@@ -398,18 +407,18 @@ classdef FDTree < FDTreeNode
             if(~isempty(study))
                 study.clearAllRIs(dType);
                 if(strncmp(dType,'MVGroup',7))
-                    %clear corresponding global cluster object
-%                     globalClusterID = sprintf('Global%s',dType);
-%                     this.myConditionsMerged.clearAllRIs(globalClusterID);
+                    %clear corresponding global MVGroup object
+                    globalMVGroupID = sprintf('Global%s',dType);
+                    this.myConditionsMerged.clearAllRIs(globalMVGroupID);
                 end
             end
         end
         
-        function clearClusters(this,studyID,subjectID,dType,dTypeNr)
-            %clear clusters if ROI changes
+        function clearMVGroups(this,studyID,subjectID,dType,dTypeNr)
+            %clear MVGroups if ROI changes
             study = this.getChild(studyID);
             if(~isempty(study))
-                study.clearClusters(subjectID,dType,dTypeNr);
+                study.clearMVGroups(subjectID,dType,dTypeNr);
             end
         end
                 
@@ -486,7 +495,7 @@ classdef FDTree < FDTreeNode
                         oldCol = oldInfoCombi{idx};
                         identFlag = strcmp(newCol.colA,oldCol.colA) && strcmp(newCol.colB,oldCol.colB) && strcmp(newCol.logOp,oldCol.logOp)...
                             && strcmp(newCol.relA,oldCol.relA) && strcmp(newCol.relB,oldCol.relB)...
-                            && newCol.valA == oldCol.valA && newCol.valB == oldCol.valB;
+                            && all(newCol.valA == oldCol.valA) && all(newCol.valB == oldCol.valB);
                         if(~identFlag && ~overWriteAllFlag)
                             choice = questdlg(sprintf('Condition ''%s'' already exists in study ''%s'' but is different from study ''%s''.\n\nDo you want to overwrite the definition in study ''%s''?',...
                                 condName,destinationStudyName,originStudyName,destinationStudyName),'Inserting Conditional Column','Yes','All','No','Yes');
@@ -523,8 +532,7 @@ classdef FDTree < FDTreeNode
                     %data to copy
                     data = orgStudy.makeInfoSetExportStruct(oldSubjectID);
                     data.subjects = {newSubjectID};
-                    destStudy.insertSubject(newSubjectID,data);
-                    
+                    destStudy.insertSubject(newSubjectID,data);                    
                     %copy Data for FLIMXVisGUI
                     oldpath = fullfile(orgStudy.myDir,oldSubjectID);
                     newpath = fullfile(destStudy.myDir,newSubjectID);
@@ -715,15 +723,14 @@ classdef FDTree < FDTreeNode
             if(~isempty(study))
                 study.setConditionColor(cName,val);
             end
-%             str = this.getGlobalClustersStr();
-%             for i = 1:length(str)
-%                 globalClusterID = sprintf('Global%s',str{i});
-%                 this.myConditionsMerged.clearAllRIs(globalClusterID);
-%             end
+            str = this.getGlobalMVGroupNames();
+            for i = 1:length(str)
+                globalMVGroupID = sprintf('Global%s',str{i});
+                this.myConditionsMerged.clearAllRIs(globalMVGroupID);
+            end
         end
         
-        %% output functions
-        
+        %% output functions        
         function saveStudy(this,studyID)
             %save study with studyID
             study = this.getChild(studyID);
@@ -745,27 +752,7 @@ classdef FDTree < FDTreeNode
             else
                 out = [];
             end
-        end
-                
-%         function out = getResultObj(this,studyID,subjectID,chan)
-%             %get fluoDecayFitResult object, chan = [] loads all channels
-%             study = this.getChild(studyID);
-%             if(~isempty(study))
-%                 out = study.getResultObj(subjectID,chan);            
-%             else
-%                 out = [];
-%             end
-%         end
-%         
-%         function out = getMeasurementObj(this,studyID,subjectID,chan)
-%             %get fluoFile object containing measurement data, chan = [] loads all channels
-%             study = this.getChild(studyID);
-%             if(~isempty(study))
-%                 out = study.getMeasurementObj(subjectID,chan);
-%             else
-%                 out = [];
-%             end
-%         end
+        end        
         
         function out = getSubject4Approx(this,studyID,subjectID)
             %get subject object for approximation which includes measurements and results
@@ -801,27 +788,27 @@ classdef FDTree < FDTreeNode
 %             end
 %         end
         
-%         function out = getGlobalClusterObj(this,chan,dType,sType)
-%             %get global cluster object
-%             out = this.myConditionsMerged.getFDataObj(chan,dType,0,sType);
-%             if(isempty(out))
-%                 %try to make global cluster
-%                 clusterID = dType(7:end);
-%                 [cimg, lblx, lbly, cw, colors, logColors] = this.makeGlobalCluster(chan,clusterID);
-%                 %add cluster
-%                 this.myConditionsMerged.addObjID(0,chan,dType,0,cimg);
-%                 out = this.myConditionsMerged.getFDataObj(chan,dType,0,sType);
-%                 if(length(lblx) >= 2)
-%                     out.setupXLbl(lblx(1),lblx(2)-lblx(1));
-%                 end
-%                 if(length(lbly) >= 2)
-%                     out.setupYLbl(lbly(1),lbly(2)-lbly(1));
-%                 end
-%                 %out.setLblX(lblx);
-%                 %out.setLblY(lbly);
-%                 out.setColor_data(colors,logColors);
-%             end
-%         end
+        function out = getGlobalMVGroupObj(this,chan,dType,sType)
+            %get global scatter plot object
+            out = this.myConditionsMerged.getFDataObj(chan,dType,0,sType);
+            if(isempty(out))
+                %try to make global MVGroup
+                MVGroupID = dType(7:end);
+                [cimg, lblx, lbly, ~, colors, logColors] = this.makeGlobalMVGroupObj(chan,MVGroupID);
+                %add MVGroup
+                this.myConditionsMerged.addObjID(0,chan,dType,0,cimg);
+                out = this.myConditionsMerged.getFDataObj(chan,dType,0,sType);
+                if(length(lblx) >= 2)
+                    out.setupXLbl(lblx(1),lblx(2)-lblx(1));
+                end
+                if(length(lbly) >= 2)
+                    out.setupYLbl(lbly(1),lbly(2)-lbly(1));
+                end
+                %out.setLblX(lblx);
+                %out.setLblY(lbly);
+                out.setColor_data(colors,logColors);
+            end
+        end
         
         function out = getStudyObjMerged(this,studyID,cName,chan,dType,id,sType,ROIType,ROISubType,ROIInvertFlag)
             %get merged subjectDS of a certain study
@@ -913,40 +900,40 @@ classdef FDTree < FDTreeNode
             end            
         end
         
-        function out = getClusterTargets(this,studyID,clusterID)
+        function out = getStudyMVGroupTargets(this,studyID,MVGroupID)
             %get multivariate targets
             study = this.getChild(studyID);
             if(~isempty(study))
-                out = study.getClusterTargets(clusterID);
+                out = study.getMVGroupTargets(MVGroupID);
             else
                 out = [];
             end
         end
         
-%         function out = getGlobalClusterTargets(this,clusterID)
-%             %get global cluster targets, i.e. selected study Conditions
-%             out = [];
-%             clusterTargets = this.myClusterTargets.getDataByID(clusterID);
-%             if(isempty(clusterTargets))
-%                 return
-%             end
-%             out = clusterTargets.targets;
-%         end
-%         
-%         function str = getGlobalClustersStr(this)
-%             %get string with all global cluster names if computable
-%             str = cell(0,1);
-%             for i=1:this.myClusterTargets.queueLen
-%                 clusterTargets = this.myClusterTargets.getDataByPos(i);
-%                 if(size(clusterTargets.targets,1) >= 1)
-%                     cMVs = this.getClusterTargets(clusterTargets.targets{1,1},clusterTargets.name);
-%                     if(~isempty(cMVs) && ~isempty(cMVs.y))
-%                         %cluster is computable
-%                         str(end+1,1) = {this.myClusterTargets.getDataByPos(i).name};
-%                     end
-%                 end
-%             end
-%         end
+        function out = getGlobalMVGroupTargets(this,MVGroupID)
+            %get global MVGroup targets, i.e. selected study Conditions
+            out = [];
+            MVGroupTargets = this.myGlobalMVGroupTargets.getDataByID(MVGroupID);
+            if(isempty(MVGroupTargets))
+                return
+            end
+            out = MVGroupTargets.targets;
+        end
+        
+        function str = getGlobalMVGroupNames(this)
+            %get string with all global MVGroup names if computable
+            str = cell(0,1);
+            for i=1:this.myGlobalMVGroupTargets.queueLen
+                MVGroupTargets = this.myGlobalMVGroupTargets.getDataByPos(i);
+                if(size(MVGroupTargets.targets,1) >= 1)
+                    cMVs = this.getStudyMVGroupTargets(MVGroupTargets.targets{1,1},MVGroupTargets.name);
+                    if(~isempty(cMVs) && ~isempty(cMVs.y))
+                        %MVGroup is computable
+                        str(end+1,1) = {this.myGlobalMVGroupTargets.getDataByPos(i).name};
+                    end
+                end
+            end
+        end
         
         function nr = getNrSubjects(this,studyID,cName)
             %get number of subjects in study with studyID
@@ -999,15 +986,15 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function str = getChClusterObjStr(this,studyID,subjectID,ch)
-            %get a string of all cluster objects in channel ch in subject
-            study = this.getChild(studyID);
-            if(~isempty(study))
-                str = study.getChClusterObjStr(subjectID,ch);
-            else
-                str = [];
-            end
-        end
+%         function str = getMVGroupNames(this,studyID,subjectID,ch)
+%             %get a string of all MVGroup objects in channel ch in subject
+%             study = this.getChild(studyID);
+%             if(~isempty(study))
+%                 str = study.getMVGroupNames(subjectID,ch);
+%             else
+%                 str = [];
+%             end
+%         end
         
         function out = getHeight(this,studyID,subjectID)
             %get image height in a subject
@@ -1034,31 +1021,7 @@ classdef FDTree < FDTreeNode
             alg = this.dataSmoothAlgorithm ;
             params = this.dataSmoothParameters;
         end  
-        
-%         function [MSX, MSXMin, MSXMax] = getMSX(this,studyID,subjectID)
-%             %get manual scaling parameters for x in subject
-%             study = this.getChild(studyID);
-%             if(~isempty(study))
-%                 [MSX, MSXMin, MSXMax] = study.getMSX(subjectID);
-%             else
-%                 MSX = [];
-%                 MSXMin = [];
-%                 MSXMax = [];
-%             end
-%         end
-%         
-%         function [MSY, MSYMin, MSYMax] = getMSY(this,studyID,subjectID)
-%             %get manual scaling parameters for y in subject
-%             study = this.getChild(studyID);
-%             if(~isempty(study))
-%                 [MSY, MSYMin, MSYMax] = study.getMSY(subjectID);
-%             else
-%                 MSY = [];
-%                 MSYMin = [];
-%                 MSYMax = [];
-%             end
-%         end
-                
+                        
 %         function [centers, histTable] = getGlobalHistogram(this,chan,dType,id)
 %             %combine all histograms of channel chan, datatype dType and 'running number' id into a single table
 %             hg = this.getGlobalObjMerged(chan,dType,id);
@@ -1169,13 +1132,13 @@ classdef FDTree < FDTreeNode
 %             end
 %         end
         
-        function out = getStudyClustersStr(this,studyID,mode)
-            %get list of clusters in study
-            %mode 0 - get all subject clusters
-            %mode 1 - get only calculable clusters
+        function out = getMVGroupNames(this,studyID,mode)
+            %get list of MVGroups in study
+            %mode 0 - get all subject MVGroups
+            %mode 1 - get only calculable MVGroups
             study = this.getChild(studyID);
             if(~isempty(study))
-                out = study.getStudyClustersStr(mode);
+                out = study.getMVGroupNames(mode);
             else
                 out = [];
             end
@@ -1210,26 +1173,6 @@ classdef FDTree < FDTreeNode
                 items = [];
             end
         end
-                
-%         function out = getSubjectScalings(this,studyID,idx)
-%             %get subject scalings from study data
-%             study = this.getChild(studyID);
-%             if(~isempty(study))
-%                 out = study.getSubjectScalings(idx);
-%             else
-%                 out = [];
-%             end
-%         end
-%         
-%         function out = getSubjectCuts(this,studyID,idx)
-%             %
-%             study = this.getChild(studyID);
-%             if(~isempty(study))
-%                 out = study.getSubjectCuts(idx);
-%             else
-%                 out = [];
-%             end
-%         end
         
         function out = getDataFromStudyInfo(this,studyID,descriptor,subName,colName)
             %get data from study info defined by descriptor
@@ -1445,102 +1388,82 @@ classdef FDTree < FDTreeNode
 %             this.myConditionsMerged.addObjMergeID(id,chan,dType,1,ciMerged);
 %         end
         
-%         function [cimg, lblx, lbly, cw, colorCluster, logColorCluster] = makeGlobalCluster(this,chan,clusterID)
-%             %make global cluster object
-%             cimg = []; lblx = []; lbly = []; cw = []; colorCluster = []; logColorCluster = [];            
-%             clusterTargets = this.getGlobalClusterTargets(clusterID);
-%             for i=1:size(clusterTargets,1)
-%                 study = this.getChild(clusterTargets{i,1});
-%                 conditionClusterObj = study.getFDataMergedObj(clusterTargets{i,2},chan,sprintf('Condition%s',clusterID),0,1);
-%                 if(isempty(conditionClusterObj) || isempty(conditionClusterObj.getROIImage([],0,1,0)))
-%                     continue
-%                 end
-%                 %get reference classwidth
-%                 cMVs = this.getClusterTargets(clusterTargets{i,1},clusterID);
-%                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
-%                 cw = getHistParams(this.getStatsParams(),chan,dType{1},dTypeNr(1));
-%                 %get merged clusters from subjects of condition
-%                 %use whole image for scatter plots, ignore any ROIs
-%                 [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,conditionClusterObj.getROIImage([],0,1,0)./conditionClusterObj.getCImax([],0,1,0)*1000,conditionClusterObj.getCIXLbl([],0,1,0),conditionClusterObj.getCIYLbl([],0,1,0),cw);
-%             end            
-%             if(isempty(cimg))
-%                 return
-%             end
-%             %create colored cluster
-%             colorCluster = zeros(size(cimg,1),size(cimg,2),3);
-%             logColorCluster = zeros(size(cimg,1),size(cimg,2),3);
-%             cimg = zeros(size(cimg));
-%             for i=1:size(clusterTargets,1)
-%                 study = this.getChild(clusterTargets{i,1});
-%                 conditionClusterObj = study.getFDataMergedObj(clusterTargets{i,2},chan,sprintf('Condition%s',clusterID),0,1);
-%                 curImg = mergeScatterPlotData(cimg,lblx,lbly,conditionClusterObj.getROIImage([],0,1,0),conditionClusterObj.getCIXLbl([],0,1,0),conditionClusterObj.getCIYLbl([],0,1,0),cw);
-%                 curImg = curImg/(max(curImg(:))-min(curImg(:)))*(size(this.getColorMap(),1)-1)+1;
-%                 %prepare cluster coloring
-%                 color = study.getConditionColor(clusterTargets{i,2});
-%                 cm = repmat([0:1/(size(this.getColorMap(),1)-1):1]',1,3);
-%                 cm = [cm(:,1).*color(1) cm(:,2).*color(2) cm(:,3).*color(3)];                
-%                 %get merged colors
-%                 colors = cm(round(reshape(curImg,[],1)),:);
-%                 colors = reshape(colors,[size(curImg) 3]);                
-%                 if(sum(colorCluster(:)) > 0)
-%                     colorCluster = imfuse(colors,colorCluster,'blend');
-%                 else
-%                     colorCluster = colors;
-%                 end                
-% %                 idx = repmat(sum(colors,3) ~= 0 & sum(colorCluster,3) ~= 0, [1 1 3]);
-% %                 colorCluster = colorCluster + colors;
-% %                 colorCluster(idx) = colorCluster(idx)./2;
-%                 %create log10 color cluster
-%                 curImgLog = log10(curImg);
-%                 tmp = curImgLog(curImgLog ~= -inf);
-%                 tmp = min(tmp(:));
-%                 curImgLog(curImgLog == -inf) = tmp;                
-%                 curImgLog = (curImgLog-tmp)/(max(curImgLog(:))-tmp)*(size(this.getColorMap(),1)-1)+1;
-%                 colorsLog = cm(round(reshape(curImgLog,[],1)),:);
-%                 colorsLog = reshape(colorsLog,[size(curImgLog) 3]);
-%                 logColorCluster = logColorCluster + colorsLog;
-%                 idxLog = repmat(sum(colorsLog,3) ~= 0 & sum(logColorCluster,3) ~= 0, [1 1 3]);
-%                 logColorCluster(idxLog) = logColorCluster(idxLog)./2;
-%             end
-%             %set brightness to max
-%             %linear scaling
-%             t = rgb2hsv(colorCluster);
-%             t2 = t(:,:,3);
-%             idx = logical(sum(colorCluster,3));
-%             %t2(idx) = t2(idx) + 1-max(t2(:));
-%             t2(idx) = 1;
-%             t(:,:,3) = t2;
-%             colorCluster = hsv2rgb(t);
-%             %log scaling
-%             t = rgb2hsv(logColorCluster);
-%             t2 = t(:,:,3);
-%             idx = logical(sum(logColorCluster,3));
-%             %t2(idx) = t2(idx) + 1-max(t2(:));
-%             t2(idx) = 1;
-%             t(:,:,3) = t2;
-%             logColorCluster = hsv2rgb(t);
-%         end
-        
-        
-%         function [study, studyID] = getStudy(this,studyID)
-%             %check if study is in myStudies
-%             if(ischar(studyID))
-%                 %study name is input data
-%                 [studyID, study] = this.getStudyNr(studyID);
-%             elseif(isnumeric(studyID))
-%                 if(studyID > this.myStudies.queueLen)
-%                     %study is not in FDTree
-%                     studyID = [];
-%                     study = [];
-%                 else
-%                     study = this.myStudies.getDataByPos(studyID);
-%                 end
-%             else
-%                 studyID = [];
-%                 study = [];
-%             end
-%         end
-        
+        function [cimg, lblx, lbly, cw, colorMVGroup, logColorMVGroup] = makeGlobalMVGroupObj(this,chan,MVGroupID)
+            %make global MVGroup object
+            cimg = []; lblx = []; lbly = []; cw = []; colorMVGroup = []; logColorMVGroup = [];            
+            MVGroupTargets = this.getGlobalMVGroupTargets(MVGroupID);
+            for i=1:size(MVGroupTargets,1)
+                study = this.getChild(MVGroupTargets{i,1});
+                conditionMVGroupObj = study.getFDataMergedObj(MVGroupTargets{i,2},chan,sprintf('Condition%s',MVGroupID),0,1);
+                if(isempty(conditionMVGroupObj) || isempty(conditionMVGroupObj.getROIImage([],0,1,0)))
+                    continue
+                end
+                %get reference classwidth
+                cMVs = this.getStudyMVGroupTargets(MVGroupTargets{i,1},MVGroupID);
+                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
+                cw = getHistParams(this.getStatsParams(),chan,dType{1},dTypeNr(1));
+                %get merged MVGroups from subjects of condition
+                %use whole image for scatter plots, ignore any ROIs
+                [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,conditionMVGroupObj.getROIImage([],0,1,0)./conditionMVGroupObj.getCImax([],0,1,0)*1000,conditionMVGroupObj.getCIXLbl([],0,1,0),conditionMVGroupObj.getCIYLbl([],0,1,0),cw);
+            end            
+            if(isempty(cimg))
+                return
+            end
+            %create colored MVGroup
+            colorMVGroup = zeros(size(cimg,1),size(cimg,2),3);
+            logColorMVGroup = zeros(size(cimg,1),size(cimg,2),3);
+            cimg = zeros(size(cimg));
+            for i=1:size(MVGroupTargets,1)
+                study = this.getChild(MVGroupTargets{i,1});
+                conditionMVGroupObj = study.getFDataMergedObj(MVGroupTargets{i,2},chan,sprintf('Condition%s',MVGroupID),0,1);
+                curImg = mergeScatterPlotData(cimg,lblx,lbly,conditionMVGroupObj.getROIImage([],0,1,0),conditionMVGroupObj.getCIXLbl([],0,1,0),conditionMVGroupObj.getCIYLbl([],0,1,0),cw);
+                curImg = curImg/(max(curImg(:))-min(curImg(:)))*(size(this.getColorMap(),1)-1)+1;
+                %prepare MVGroup coloring
+                color = study.getConditionColor(MVGroupTargets{i,2});
+                cm = repmat([0:1/(size(this.getColorMap(),1)-1):1]',1,3);
+                cm = [cm(:,1).*color(1) cm(:,2).*color(2) cm(:,3).*color(3)];                
+                %get merged colors
+                colors = cm(round(reshape(curImg,[],1)),:);
+                colors = reshape(colors,[size(curImg) 3]);                
+                if(sum(colorMVGroup(:)) > 0)
+                    colorMVGroup = imfuse(colors,colorMVGroup,'blend');
+                else
+                    colorMVGroup = colors;
+                end                
+%                 idx = repmat(sum(colors,3) ~= 0 & sum(colorMVGroup,3) ~= 0, [1 1 3]);
+%                 colorMVGroup = colorMVGroup + colors;
+%                 colorMVGroup(idx) = colorMVGroup(idx)./2;
+                %create log10 color MVGroup
+                curImgLog = log10(curImg);
+                tmp = curImgLog(curImgLog ~= -inf);
+                tmp = min(tmp(:));
+                curImgLog(curImgLog == -inf) = tmp;                
+                curImgLog = (curImgLog-tmp)/(max(curImgLog(:))-tmp)*(size(this.getColorMap(),1)-1)+1;
+                colorsLog = cm(round(reshape(curImgLog,[],1)),:);
+                colorsLog = reshape(colorsLog,[size(curImgLog) 3]);
+                logColorMVGroup = logColorMVGroup + colorsLog;
+                idxLog = repmat(sum(colorsLog,3) ~= 0 & sum(logColorMVGroup,3) ~= 0, [1 1 3]);
+                logColorMVGroup(idxLog) = logColorMVGroup(idxLog)./2;
+            end
+            %set brightness to max
+            %linear scaling
+            t = rgb2hsv(colorMVGroup);
+            t2 = t(:,:,3);
+            idx = logical(sum(colorMVGroup,3));
+            %t2(idx) = t2(idx) + 1-max(t2(:));
+            t2(idx) = 1;
+            t(:,:,3) = t2;
+            colorMVGroup = hsv2rgb(t);
+            %log scaling
+            t = rgb2hsv(logColorMVGroup);
+            t2 = t(:,:,3);
+            idx = logical(sum(logColorMVGroup,3));
+            %t2(idx) = t2(idx) + 1-max(t2(:));
+            t2(idx) = 1;
+            t(:,:,3) = t2;
+            logColorMVGroup = hsv2rgb(t);
+        end
+                
         function scanForStudies(this)
             %scan the disk for studies
             dirs = dir(this.myDir);
@@ -1566,7 +1489,7 @@ classdef FDTree < FDTreeNode
         end
         
 %         function clearGlobalObjMerged(this,dType)
-%             %clear global cluster object and statistics
+%             %clear global MVGroup object and statistics
 %             this.myConditionsMerged.clearAllRIs(dType);
 %         end
         

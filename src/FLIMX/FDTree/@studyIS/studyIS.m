@@ -174,32 +174,32 @@ classdef studyIS < handle
             end
         end
         
-        function setClusterTargets(this,clusterID,targets)
-            %set cluster parameter for subject(s)
+        function setMVGroupTargets(this,MVGroupID,targets)
+            %set MVGroup parameter for subject(s)
             if(nargin < 2)
-                %set all cluster parameter (initial case)
+                %set all MVGroup parameter (initial case)
                 this.studyClusters = [];
                 this.studyClusters = targets;
             else
                 %set single value
-                clusterNr = this.clusterName2idx(clusterID);
-                if(isempty(clusterNr))
-                    %add cluster
+                MVGroupNr = this.MVGroupName2idx(MVGroupID);
+                if(isempty(MVGroupNr))
+                    %add MVGroup
                     this.studyClusters(:,end+1) = cell(2,1);
-                    clusterNr = size(this.studyClusters,2);
-                    this.studyClusters(1,clusterNr) = {clusterID};
+                    MVGroupNr = size(this.studyClusters,2);
+                    this.studyClusters(1,MVGroupNr) = {MVGroupID};
                 end
                 %set targets
-                this.studyClusters(2,clusterNr) = {targets};
+                this.studyClusters(2,MVGroupNr) = {targets};
                 this.setDirty(true);
             end
         end
         
-        function setClusterName(this,clusterID,name)
-            %set new cluster name
-            clusterNr = this.clusterName2idx(clusterID);
-            if(~isempty(clusterNr))
-                this.studyClusters(1,clusterNr) = {name};
+        function setMVGroupName(this,MVGroupID,name)
+            %set new MVGroup name
+            MVGroupNr = this.MVGroupName2idx(MVGroupID);
+            if(~isempty(MVGroupNr))
+                this.studyClusters(1,MVGroupNr) = {name};
             end
         end
         
@@ -838,42 +838,42 @@ classdef studyIS < handle
             end
         end
         
-%         function out = getStudyClusters(this)
-%             %get study clusters
-%             out = this.studyClusters;
-%         end
+        function out = getStudyMVGroups(this)
+            %get study MVGroups
+            out = this.studyClusters;
+        end
         
-        function out = getStudyClustersStr(this,mode)
-            %get string of study clusters
-            %mode 0 - get all subject clusters
-            %mode 1 - get only calculable clusters
+        function out = getMVGroupNames(this,mode)
+            %get string of study MVGroups
+            %mode 0 - get all subject MVGroups
+            %mode 1 - get only calculable MVGroups
             out = cell(0,0);
             if(isempty(this.studyClusters))
                 return
             end            
-            clusterStr = this.studyClusters(1,:);
-            clusterTargets = this.studyClusters(2,:);
+            MVGroupStr = this.studyClusters(1,:);
+            MVGroupTargets = this.studyClusters(2,:);
             if(mode == 0)
-                out = clusterStr;
+                out = MVGroupStr;
                 return
             end            
-            %get only computable clusters
-            for i=1:length(clusterStr)
-                if(isempty(clusterTargets{i}.x) || isempty(clusterTargets{i}.y))
+            %get only computable MVGroups
+            for i=1:length(MVGroupStr)
+                if(isempty(MVGroupTargets{i}.x) || isempty(MVGroupTargets{i}.y))
                     continue
                 end
-                out(end+1,1) = clusterStr(i);
+                out(end+1,1) = MVGroupStr(i);
             end
         end
         
-        function out = getClusterTargets(this,clusterID)
-            %get multivariate targets of a cluster
-            clusterNr = this.clusterName2idx(clusterID);
-            if(isempty(clusterNr))
+        function out = getMVGroupTargets(this,MVGroupID)
+            %get multivariate targets of a MVGroup
+            MVGroupNr = this.MVGroupName2idx(MVGroupID);
+            if(isempty(MVGroupNr))
                 out = [];
                 return
             end
-            targets = this.studyClusters{2,clusterNr};
+            targets = this.studyClusters{2,MVGroupNr};
             if(isempty(targets))
                 %no targets
                 out = cell(0,0);
@@ -1284,10 +1284,10 @@ classdef studyIS < handle
             this.setDirty(true);
         end
         
-        function removeCluster(this,clusterID)
+        function removeMVGroup(this,MVGroupID)
             %remove MVGroup
-            clusterNr = this.clusterName2idx(clusterID);
-            this.studyClusters(:,clusterNr) = [];
+            MVGroupNr = this.MVGroupName2idx(MVGroupID);
+            this.studyClusters(:,MVGroupNr) = [];
             this.setDirty(true);
         end
         
@@ -1340,24 +1340,53 @@ classdef studyIS < handle
                     %reference is a non-updated condition column
                     this.checkConditionRef(a);
                 end                
-                colA = this.subjectInfo(:,a);                
+                colA = this.subjectInfo(:,a);
+                %determine column class
+                cellclass = cellfun(@ischar,colA);
+                if(any(cellclass))
+                    colADoubleFlag = false;
+                else
+                    colADoubleFlag = true;
+                end                
                 for j=1:size(colA,1)
                     if(isempty(colA{j,1}) || all(isnan(colA{j,1})))
                         if(isempty(this.getConditionalColumnDefinition(a)))
                             %non logical reference
-                            colA(j,1) = {0};
+                            if(colADoubleFlag)
+                                colA(j,1) = {0};
+                            else
+                                colA(j,1) = {''};
+                            end
                         else
                             %logical reference
                             colA(j,1) = {false};
                         end
                     end
-                end                
-                colA = cell2mat(colA);
-                if(~(isa(colA,'double') || isa(colA,'logical')))
-                    %try to convert to double
-                    colA = str2num(colA);
                 end
-                eval(sprintf('colA = colA %s %f;',ref.relA,ref.valA));                
+                if(colADoubleFlag)
+                    colA = cell2mat(colA);
+                    if(~(isa(colA,'double') || isa(colA,'logical')))
+                        %try to convert to double
+                        colA = str2num(colA);
+                    end
+                    if(ischar(ref.valA))
+                        %comparison value for A does not fit
+                        colA = false(size(colA));
+                    else
+                        eval(sprintf('colA = colA %s %f;',ref.relA,ref.valA));
+                    end
+                else
+                    if(~ischar(ref.valA))
+                        %try to convert to char
+                        ref.valA = num2str(ref.valA);
+                    end
+                    %column of characters
+                    if(strcmp(ref.relA,'=='))
+                        colA = strcmp(colA,ref.valA);
+                    else
+                        colA = ~strcmp(colA,ref.valA);
+                    end
+                end
                 %conditional column with 2 reference columns
                 if(~isempty(op))
                     %create condition result for reference coulmn B
@@ -1370,26 +1399,54 @@ classdef studyIS < handle
                         %reference is a non-updated condition column
                         this.checkConditionRef(b);
                     end
-                    colB = this.subjectInfo(:,b);                    
+                    colB = this.subjectInfo(:,b);
+                    cellclass = cellfun(@ischar,colB);
+                    if(any(cellclass))
+                        colBDoubleFlag = false;
+                    else
+                        colBDoubleFlag = true;
+                    end
                     for j=1:size(colB,1)
                         if(isempty(colB{j,1}) || isnan(colB{j,1}))
                             if(isempty(this.getConditionalColumnDefinition(b)))
                                 %non-logical reference
-                                colB(j,1) = {0};
+                                if(colBDoubleFlag)
+                                    colB(j,1) = {0};
+                                else
+                                    colB(j,1) = {''};
+                                end
                             else
                                 %logical reference
                                 colB(j,1) = {false};
                             end
                         end
                     end
-                    colB = cell2mat(colB);
-                    if(~(isa(colB,'double') || isa(colB,'logical')))
-                        %try to convert to double
-                        colA = str2num(colB);
+                    if(colBDoubleFlag)
+                        colB = cell2mat(colB);
+                        if(~(isa(colB,'double') || isa(colB,'logical')))
+                            %try to convert to double
+                            colB = str2num(colB);
+                        end
+                        if(ischar(ref.valB))
+                            %comparison value for A does not fit
+                            colB = false(size(colB));
+                        else
+                            eval(sprintf('colB = colB %s %f;',ref.relB,ref.valB));                            
+                        end
+                    else
+                        if(~ischar(ref.valB))
+                            %try to convert to char
+                            ref.valB = num2str(ref.valB);
+                        end
+                        %column of characters
+                        if(strcmp(ref.relB,'=='))
+                            colA = strcmp(colB,ref.valB);
+                        else
+                            colA = ~strcmp(colB,ref.valB);
+                        end
                     end
-                    eval(sprintf('colB = colB %s %f;',ref.relB,ref.valB));
                     eval(sprintf('colA = %s(colA %s colB);',neg,op));
-                end
+                end                
                 %update values in conditional column
                 this.subjectInfo(:,colN) = num2cell(colA);
             end
@@ -1407,17 +1464,17 @@ classdef studyIS < handle
             end
         end
         
-        function idx = clusterName2idx(this,clusterName)
-            %get the index of a cluster or check if index is valid
+        function idx = MVGroupName2idx(this,MVGroupName)
+            %get the index of a MVGroup or check if index is valid
             idx = [];
             if(isempty(this.studyClusters))
                 return
             end
-            if(ischar(clusterName))
-                idx = find(strcmp(clusterName,this.studyClusters(1,:)),1);
-            elseif(isnumeric(clusterName))
-                if(clusterName <= length(this.studyClusters(1,:)))
-                    idx = clusterName;
+            if(ischar(MVGroupName))
+                idx = find(strcmp(MVGroupName,this.studyClusters(1,:)),1);
+            elseif(isnumeric(MVGroupName))
+                if(MVGroupName <= length(this.studyClusters(1,:)))
+                    idx = MVGroupName;
                 end
             end
         end
@@ -1919,22 +1976,22 @@ classdef studyIS < handle
                             end
                         end
                         dirty = true;
-                    elseif(all(cellclass) && ~cTypeDouble)
-                        %check if we can convert all chars to double
-                        %testDouble = zeros(size(cellclass));
-                        cellempty = cellfun('isempty',testStudy.subjectInfo(:,i));
-                        testStr = [testStudy.subjectInfo{:,i}];
-                        testStr(isstrprop(testStr,'punct')) = '.';
-                        testStr(isstrprop(testStr,'wspace')) = '0';
-                        testDouble = zeros(size(cellclass));
-                        converted = str2num(testStr);
-                        if(length(converted) == sum(~cellempty))
-                            testDouble(~cellempty) = converted;
-                            if(any(testDouble) && all(~isnan(testDouble)) && length(testDouble) == length(cellclass))
-                                testStudy.subjectInfo(:,i) = num2cell(testDouble);
-                                dirty = true;
-                            end
-                        end
+%                     elseif(all(cellclass) && ~cTypeDouble)
+%                         %check if we can convert all chars to double
+%                         %testDouble = zeros(size(cellclass));
+%                         cellempty = cellfun('isempty',testStudy.subjectInfo(:,i));
+%                         testStr = [testStudy.subjectInfo{:,i}];
+%                         testStr(isstrprop(testStr,'punct')) = '.';
+%                         testStr(isstrprop(testStr,'wspace')) = '0';
+%                         testDouble = zeros(size(cellclass));
+%                         converted = str2num(testStr);
+%                         if(length(converted) == sum(~cellempty))
+%                             testDouble(~cellempty) = converted;
+%                             if(any(testDouble) && all(~isnan(testDouble)) && length(testDouble) == length(cellclass))
+%                                 testStudy.subjectInfo(:,i) = num2cell(testDouble);
+%                                 dirty = true;
+%                             end
+%                         end
                     end
                 else %condition colum
                     %not all elemtents are logical -> convert them

@@ -3,7 +3,7 @@ classdef FDTSubject < subject4Approx
     %
     % @file     FDTSubject.m
     % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
-    % @version  1.0
+    % @version  2.0
     % @date     January, 2019
     %
     % @section  LICENSE
@@ -32,12 +32,7 @@ classdef FDTSubject < subject4Approx
     % @brief    A class to subject in the FDTree
     %
     properties(SetAccess = protected, GetAccess = public)
-        %name = [];
         myDir = '';             %subjects's working directory
-        
-        %myParent = [];
-        %myChannels = [];
-        %myFluoSubjectObj = [];
     end
     properties (Dependent = true)
         FLIMXParamMgrObj = [];  
@@ -47,20 +42,10 @@ classdef FDTSubject < subject4Approx
     
     methods
         function this = FDTSubject(parent,sDir,name)
-            % Constructor for DS.           
+            % Constructor for FDTSubject           
             this = this@subject4Approx(parent,name);
             this.myDir = sDir;
-            this.reset();            
-            %this.myParent = parent;
-            %this.name = name;
-            %this.myChannels = LinkedList();
-%             %add empty channels
-%                 for j=1:length(channels)
-%                     if(~isempty(channels{j}))
-%                         %this.checkIRFInfo(channels{j});
-%                         this.addObj(subjectID,channels{j},[],[],[]);
-%                     end
-%                 end
+            this.reset();
         end
         
         function updateFileStatus(this)
@@ -466,7 +451,7 @@ classdef FDTSubject < subject4Approx
         end
         
         function addClusterID(this,ch,id,data)
-            % add cluster object to channel
+            % add MVGroup object to channel
             chObj = this.getChild(ch);
             if(isempty(chObj))
                 %should not be empty --> return?
@@ -933,31 +918,15 @@ classdef FDTSubject < subject4Approx
             end
             h = chObj.getFDataObj(dType,id,sType);
         end
-        
-%         function out = getSubject4Approx(this)
-%             %return fluoSubject object
-%             if(isempty(this.myFluoSubjectObj))
-%                 this.myFluoSubjectObj = subject4Approx(this.myParent,this.name);
-%             end
-%             out = this.myFluoSubjectObj;
-%         end
-        
+                
         function nr = getNrChannels(this)
             %get number of channels in subject
             nr = this.nrChildren;
         end
-        
-%         function out = getSubjectName(this)
-%             %get subject name
-%             out = this.name;
-%         end
-        
-        function out = getClusterTargets(this,clusterNr)
+                
+        function out = getMVGroupTargets(this,MVGroupNr)
             %get multivariate targets
-            if(~this.channelResultIsLoaded(ch))
-                this.loadChannel(ch,false);
-            end
-            gMVs = this.myParent.getClusterTargets(clusterNr);
+            gMVs = this.myParent.getMVGroupTargets(MVGroupNr);
             chObj = this.getChild(1);
             if(~isempty(chObj))
                 myObjs = chObj.getChObjStr();
@@ -967,8 +936,8 @@ classdef FDTSubject < subject4Approx
             out.x = cell(0,0);
             out.y = cell(0,0);
             if(~isstruct(gMVs) || isstruct(gMVs) && ~all(isfield(gMVs,{'x','y','ROI'})))
-                %we did not get cluster targets
-                warning('FDTSubject:getClusterTargets','Could not get cluster targets for subject ''%s'' in study ''%s''',this.name,this.myParent.name);
+                %we did not get MVGroup targets
+                warning('FDTSubject:getMVGroupTargets','Could not get MVGroup targets for subject ''%s'' in study ''%s''',this.name,this.myParent.name);
                 return
             end
             out.ROI = gMVs.ROI;
@@ -999,20 +968,8 @@ classdef FDTSubject < subject4Approx
         
         function [str, nrs] = getChStr(this)
             %get a string of all channels in subject
-%             str = cell(0,0);
-%             nrs = [];
-%             subObj = this.getSubject4Approx();
-%             if(~isempty(subObj))
-                nrs = this.nonEmptyChannelList(:);
-                str = sprintfc('Ch %d',nrs);
-%             end
-%             for i = 1:this.nrChildren
-%                 [chObj, nr] = this.getChildAtPos(i);
-%                 if(~isempty(chObj))
-%                     str(i,1) = {sprintf('Ch %d',nr)};
-%                     nrs = [nrs nr];
-%                 end
-%             end
+            nrs = this.nonEmptyChannelList(:);
+            str = sprintfc('Ch %d',nrs);
         end
         
         function str = getChObjStr(this,ch)
@@ -1029,19 +986,19 @@ classdef FDTSubject < subject4Approx
             end
         end
         
-        function str = getChClusterObjStr(this,ch)
-            %get a string of all cluster objects in a channel
-            if(~this.channelResultIsLoaded(ch))
-                this.loadChannel(ch,false);
-            end
-            chObj = this.getChild(ch);
-            if(isempty(chObj))
-                str = '';
-                return
-            else
-                str = chObj.getChClusterObjStr();
-            end
-        end
+%         function str = getMVGroupNames(this,ch)
+%             %get a string of all MVGroup objects in a channel
+%             if(~this.channelResultIsLoaded(ch))
+%                 this.loadChannel(ch,false);
+%             end
+%             chObj = this.getChild(ch);
+%             if(isempty(chObj))
+%                 str = '';
+%                 return
+%             else
+%                 str = chObj.getMVGroupNames();
+%             end
+%         end
                       
         function out = getHeight(this)
             %get height of subject
@@ -1052,16 +1009,7 @@ classdef FDTSubject < subject4Approx
             %get width of subject
             out = this.XSz;
         end
-        
-%         function out = getFileInfoStruct(this,ch)
-%             %get fileinfo struct
-% %             out = [];
-% %             subObj = this.getSubject4Approx();
-% %             if(~isempty(subObj))
-%                 out = this.getFileInfoStruct(ch);
-% %             end
-%         end
-        
+                
         function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
             [alg, params] = this.myParent.getDataSmoothFilter();
@@ -1307,15 +1255,15 @@ classdef FDTSubject < subject4Approx
             end
         end
         
-        function [cimg, lblx, cw, lbly] = makeConditionCluster(this,chan,clusterID)
-            %make condition cluster for a spectral channel
-            [cimg, lblx, cw, lbly] = this.myParent.makeConditionCluster(this.name,chan,clusterID);
+        function [cimg, lblx, cw, lbly] = makeConditionMVGroupObj(this,chan,MVGroupID)
+            %make condition MVGroup for a spectral channel
+            [cimg, lblx, cw, lbly] = this.myParent.makeConditionMVGroupObj(this.name,chan,MVGroupID);
         end
         
-%         function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalCluster(this,chan,clusterID)
-%             %make global cluster for a spectral channel
-%             [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(chan,clusterID);
-%         end
+        function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalMVGroupObj(this,chan,MVGroupID)
+            %make global MVGroup for a spectral channel
+            [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalMVGroupObj(chan,MVGroupID);
+        end
         
 %         function flag = eq(ds1,ds2)
 %             %compare two subjectDS objects

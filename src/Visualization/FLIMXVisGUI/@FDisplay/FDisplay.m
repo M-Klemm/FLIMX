@@ -551,10 +551,10 @@ classdef FDisplay < handle
                 case 3  %view clusters
                     %get merged view cluster object
                     clusterID = sprintf('Condition%s',dType{1});
-                    hfd{1} = this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),clusterID,dTypeNr(1),scale);
-%                 case 4 %global clusters
-%                     clusterID = sprintf('Global%s',dType{1});
-%                     hfd{1} = this.visObj.fdt.getGlobalClusterObj(this.visObj.getChannel(this.mySide),clusterID,scale);
+                    hfd{1} = this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),clusterID,dTypeNr(1),scale,this.ROIType,this.ROISubType,this.ROIInvertFlag);
+                case 4 %global clusters
+                    clusterID = sprintf('Global%s',dType{1});
+                    hfd{1} = this.visObj.fdt.getGlobalMVGroupObj(this.visObj.getChannel(this.mySide),clusterID,scale);
             end            
             %save new hfd(s)            
             this.myhfdMain = hfd;
@@ -1218,12 +1218,12 @@ classdef FDisplay < handle
                                 [centers, histo] = this.visObj.fdt.getStudyHistogram(...
                                     this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),...
                                     this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1),this.ROIType,this.ROISubType,this.ROIInvertFlag);
-                            case 3 %global histogram
-                                list = get(this.h_m_p,'String');
-                                typeSel = get(this.h_m_p,'Value');
-                                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(char(list(typeSel,:)));
-                                [centers, histo] = this.visObj.fdt.getGlobalHistogram(...
-                                    this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1));
+%                             case 3 %global histogram
+%                                 list = get(this.h_m_p,'String');
+%                                 typeSel = get(this.h_m_p,'Value');
+%                                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(char(list(typeSel,:)));
+%                                 [centers, histo] = this.visObj.fdt.getGlobalHistogram(...
+%                                     this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1));
                         end
                         if(isempty(centers))
                             cla(this.h_s_ax);

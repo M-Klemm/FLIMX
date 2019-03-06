@@ -3,7 +3,7 @@ classdef FDTChannel < FDTreeNode
     %
     % @file     FDTChannel.m
     % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
-    % @version  1.0
+    % @version  2.0
     % @date     January, 2019
     %
     % @section  LICENSE
@@ -32,12 +32,8 @@ classdef FDTChannel < FDTreeNode
     % @brief    A class to represent a (spectral) channel in FDTree.
     %
     properties(SetAccess = private,GetAccess = public)
-%         items = [];
-%         isLoaded = false;
     end
     properties(SetAccess = protected,GetAccess = protected)
-        %myParent = [];
-        %myChunks = [];
     end
     properties (Dependent = true)
         FLIMXParamMgrObj = [];
@@ -47,8 +43,6 @@ classdef FDTChannel < FDTreeNode
         function this = FDTChannel(parent,ch)
             % Constructor for FDTChannel
             this = this@FDTreeNode(parent,num2str(ch));
-            %this.myParent = parent;
-            %this.myChunks = LinkedList();
         end
         
 %         function out = getSize(this)
@@ -232,9 +226,9 @@ classdef FDTChannel < FDTreeNode
             if(isempty(chunk))
                 if(strncmp(dType,'MVGroup',7) || strncmp(dType,'ConditionMVGroup',16)...
                         || strncmp(dType,'MVGroupGlobal',13))
-                    %add (condition) cluster chunk
-                    chunk = this.addChunk(dType,nr);
-                    h = chunk.getFDataObj(nr,sType);                    
+                    %add (condition) MVGroup chunk
+                    chunk = this.addChunk(dType,0);
+                    h = chunk.getFDataObj(1,sType);                    
                 else
                     h = [];                    
                 end
@@ -288,7 +282,7 @@ classdef FDTChannel < FDTreeNode
             str = cell(0,0);
             for i=1:this.nrChildren
                 if(strncmp('MVGroup',this.getChildAtPos(i).getDType,7))
-                    %skip cluster objects
+                    %skip MVGroup objects
                     continue
                 end                    
                 tmp = this.getChildAtPos(i).getChObjStr;
@@ -299,25 +293,25 @@ classdef FDTChannel < FDTreeNode
             %str = sort(str); %will be sorted by FStudy
         end
         
-        function str = getChClusterObjStr(this)
-            %get a string of all non-empty cluster objects in this channel            
-            str = cell(0,0);
-            for i=1:this.nrChildren
-                chunk = this.getChildAtPos(i);
-                if(~strcmp('MVGroup',chunk.getDType))
-                    %get only cluster objects
-                    continue
-                end                    
-                ids = chunk.getMyIDs();
-                for j=1:length(ids)
-                    hfd = chunk.getFDataObj(ids(j),1);
-                    %get only non-empty cluster objects
-                    if(~isempty(hfd.rawImage))
-                        str(end+1,1) = {sprintf('Cluster %d',ids(j))};
-                    end
-                end
-            end            
-        end                
+%         function str = getMVGroupNames(this)
+%             %get a string of all non-empty MVGroup objects in this channel            
+%             str = cell(0,0);
+%             for i=1:this.nrChildren
+%                 chunk = this.getChildAtPos(i);
+%                 if(~strcmp('MVGroup',chunk.getDType))
+%                     %get only MVGroup objects
+%                     continue
+%                 end                    
+%                 ids = chunk.getMyIDs();
+%                 for j=1:length(ids)
+%                     hfd = chunk.getFDataObj(ids(j),1);
+%                     %get only non-empty MVGroup objects
+%                     if(~isempty(hfd.rawImage))
+%                         str(end+1,1) = {sprintf('MVGroup %d',ids(j))};
+%                     end
+%                 end
+%             end            
+%         end                
                 
         function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
@@ -353,10 +347,10 @@ classdef FDTChannel < FDTreeNode
         end
         
         %% compute functions                
-        function [cimg, lblx, lbly, cw] = makeCluster(this,clusterID)
-            % make and update cluster for spectral channel using cMVs                
+        function [cimg, lblx, lbly, cw] = makeMVGroupObj(this,MVGroupID)
+            %make and update MVGroup for spectral channel using cMVs                
             cimg = []; lblx = []; lbly = []; cw = [];
-            cMVs = this.myParent.getClusterTargets(clusterID);
+            cMVs = this.myParent.getMVGroupTargets(MVGroupID);
             CImaxs = zeros(length(cMVs.y)+1,1);
             CImins = zeros(length(cMVs.y)+1,1);
             %get ROI coordinates for current subject
@@ -408,20 +402,15 @@ classdef FDTChannel < FDTreeNode
             end
         end       
         
-        function [cimg, lblx, lbly, cw] = makeConditionCluster(this,clusterID)
-            %make condition cluster for current channel
-            [cimg, lblx, lbly, cw] = this.myParent.makeConditionCluster(this.getMyPositionInParent(),clusterID);
+        function [cimg, lblx, lbly, cw] = makeConditionMVGroupObj(this,MVGroupID)
+            %make condition MVGroup for current channel
+            [cimg, lblx, lbly, cw] = this.myParent.makeConditionMVGroupObj(this.getMyPositionInParent(),MVGroupID);
         end        
         
-%         function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalCluster(this,clusterID)
-%             %make global cluster for current channel
-%             [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalCluster(this.getMyPositionInParent(),clusterID);
-%         end        
-        
-%         function setIsLoaded(this)
-%             %set isLoaded flag of his channel
-%             this.isLoaded = true;
-%         end
+        function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalMVGroupObj(this,MVGroupID)
+            %make global MVGroup for current channel
+            [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalMVGroupObj(this.getMyPositionInParent(),MVGroupID);
+        end        
         
     end %methods
     

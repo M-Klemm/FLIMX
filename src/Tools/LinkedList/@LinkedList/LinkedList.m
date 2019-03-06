@@ -137,7 +137,7 @@ classdef LinkedList < handle
         
         function [data, id] = getDataByPos(this,pos)
             %get data at position pos in list
-            if(this.queueLen == 0 || isempty(pos) || pos > this.queueLen)
+            if(this.queueLen == 0 || isempty(pos) || pos < 1 || pos > this.queueLen)
                 data = [];
                 id = [];
                 return
