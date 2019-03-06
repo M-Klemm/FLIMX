@@ -1559,7 +1559,7 @@ classdef FDTStudy < FDTreeNode
                     lastUpdate = clock;
                 end
             end
-            this.updateLongProgress(0,'');            
+            this.updateStudyMgrProgress(0,'');            
         end
         
         function out = getDataFromStudyInfo(this,descriptor,subName,colName)
