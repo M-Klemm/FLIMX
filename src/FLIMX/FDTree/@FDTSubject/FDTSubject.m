@@ -1073,10 +1073,10 @@ classdef FDTSubject < subject4Approx
             %return global scale flag for dType
             out = false;
             for ch = 1:this.nrChildren
-                chObj = this.getChild(ch);
-                if(~chObj.channelResultIsLoaded())
+                if(~this.channelResultIsLoaded(ch))
                     this.loadChannel(ch,false);
                 end
+                chObj = this.getChild(ch);                
                 if(~isempty(chObj))
                     out = chObj.getGlobalScale(dType);
                     return
@@ -1177,10 +1177,11 @@ classdef FDTSubject < subject4Approx
                 if(aiParams.normalizeA)
                     dataA = dataA ./ max(dataA(:));
                 end
+                idx = ~isnan(dataA);
                 [op, neg] = studyIS.str2logicOp(aiParams.opA);
                 if(strcmp(aiParams.compAgainst,'val'))
                     if(any(strcmp(op,{'&','|','xor'})))
-                        eval(sprintf('idx = logical(dataA) %s %slogical(aiParams.valA);',op,neg));
+                        eval(sprintf('idx = idx & logical(dataA) %s %slogical(aiParams.valA);',op,neg));
                         data = dataA;
                         data(~idx) = nan;
                     else
@@ -1188,7 +1189,7 @@ classdef FDTSubject < subject4Approx
                     end
                     [op, neg] = studyIS.str2logicOp(aiParams.valCombi);
                     if(~isempty(op))
-                        eval(sprintf('data = %s(data %s (dataA %s %f));',neg,op,aiParams.opB,single(aiParams.valB)));
+                        eval(sprintf('data(idx) = %s(data(idx) %s (dataA(idx) %s %f));',neg,op,aiParams.opB,single(aiParams.valB)));
                     end
                 else %compare against another FLIMItem
                     if(strncmp(aiParams.FLIMItemB,'subjectInfo->',13))
