@@ -96,11 +96,11 @@ xpatch = [0 0 0 0];
 ypatch = [0 0 1 1];
 handles.patchCacheMemory = patch(xpatch,ypatch,'m','EdgeColor','m','Parent',handles.axesCacheMemory);%,'EraseMode','normal'
 handles.textCacheMemory = text(1,0,'','Parent',handles.axesCacheMemory);
-rdh.handles = handles;
 %set tooltips
 handles.textCacheMemorySize = 'Set abount of memory (RAM) used to cache measurements and results';
 handles.textCacheMemoryUtilization = 'Shows the current utilization of the cache memory';
-updateGUI(handles, rdh);
+rdh.handles = handles;
+updateGUI(rdh);
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 
 % UIWAIT makes GUI_Rosediagram_options wait for user response (see UIRESUME)
@@ -129,7 +129,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %other functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function updateGUI(handles,data)
+function updateGUI(data)
+handles = data.handles;
 set(handles.plot_bg_color_button,'Backgroundcolor',data.flimvis.supp_plot_bg_color);
 set(handles.plot_cutXLine_color_button,'Backgroundcolor',data.flimvis.crossSectionXColor);
 set(handles.plot_cutYLine_color_button,'Backgroundcolor',data.flimvis.crossSectionYColor);
@@ -193,13 +194,13 @@ set(handles.popupROILinestyle,'Value',lineStyle2id(data.flimvis.ROILinestyle));
 set(handles.editROILinewidth,'String',data.flimvis.ROILinewidth);
 set(handles.popupETDRSSubfieldValues,'Value',val);
 if(val > 1 && data.flimvis.ETDRS_subfield_bg_enable) %sum(data.flimvis.ETDRS_subfield_bg_color(:)) < 1)
-    set(handles.checkEDTRSSubfieldBg,'Value',1);
+    set(handles.checkEDTRSSubfieldBg,'Value',1,'Visible','on');
     set(handles.textSubfieldBGColor,'Visible','on');
     %set(handles.textSubfieldBGTrans,'Visible','on');
     set(handles.buttonETDRSBgColor,'Visible','on','Backgroundcolor',data.flimvis.ETDRS_subfield_bg_color(1:3));
     %set(handles.editETDRSBgTrans,'Visible','on','String',data.flimvis.ETDRS_subfield_bg_color(4));
 else
-    set(handles.checkEDTRSSubfieldBg,'Value',0);
+    set(handles.checkEDTRSSubfieldBg,'Value',0,'Visible','off');
     set(handles.textSubfieldBGColor,'Visible','off');
     %set(handles.textSubfieldBGTrans,'Visible','off');
     set(handles.buttonETDRSBgColor,'Visible','off');
@@ -254,7 +255,7 @@ if(rdh.general.maxMemoryCacheSize < curCacheSz)
 end
 rdh.isDirty(2) = 1;
 set(hFig,'userdata',rdh);
-updateGUI(rdh.handles,rdh);
+updateGUI(rdh);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -266,7 +267,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.offset_sc = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in radioOffsetAdaptive.
 function radioOffsetAdaptive_Callback(hObject, eventdata, handles)
@@ -274,7 +275,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.offset_sc = double(~get(hObject,'Value'));
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -290,7 +291,7 @@ else
 end
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on selection change in popupColormapFLIMItems.
 function popupColormapFLIMItems_Callback(hObject, eventdata, handles)
@@ -301,7 +302,7 @@ str = regexprep(str, '<html><.*">', '');
 rdh.general.cmType = str{:};
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on selection change in popupColormapIntensity.
 function popupColormapIntensity_Callback(hObject, eventdata, handles)
@@ -312,7 +313,7 @@ str = regexprep(str, '<html><.*">', '');
 rdh.general.cmIntensityType = str{:};
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on selection change in popupFLIMItems.
 function popupFLIMItems_Callback(hObject, eventdata, handles)
@@ -320,7 +321,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.general.flimParameterView = get(hObject,'Value');       
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on selection change in popupStartupGUIs.
 function popupStartupGUIs_Callback(hObject, eventdata, handles)
@@ -338,7 +339,7 @@ switch get(hObject,'Value')
 end
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on selection change in popupWindowSize.
 function popupWindowSize_Callback(hObject, eventdata, handles)
@@ -346,7 +347,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.general.windowSize = get(hObject,'Value');
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on selection change in popupETDRSSubfieldValues.
 function popupETDRSSubfieldValues_Callback(hObject, eventdata, handles)
@@ -355,7 +356,7 @@ str = get(hObject,'String');
 rdh.flimvis.ETDRS_subfield_values = strtrim(str{get(hObject,'Value')});
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on selection change in popupROILinestyle.
 function popupROILinestyle_Callback(hObject, eventdata, handles)
@@ -363,7 +364,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.ROILinestyle = id2LineStyle(get(hObject,'Value'));
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %checkboxes
@@ -374,7 +375,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.ROI_fill_enable = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in checkEDTRSSubfieldBg.
 function checkEDTRSSubfieldBg_Callback(hObject, eventdata, handles)
@@ -382,7 +383,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.ETDRS_subfield_bg_enable = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in checkGrid3D.
 function checkGrid3D_Callback(hObject, eventdata, handles)
@@ -390,7 +391,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.grid = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in checkSuppGrid.
 function checkSuppGrid_Callback(hObject, eventdata, handles)
@@ -398,7 +399,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.grid = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in checkInvertColormapFLIMItems.
 function checkInvertColormapFLIMItems_Callback(hObject, eventdata, handles)
@@ -406,7 +407,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.general.cmInvert = get(hObject,'Value');
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in checkInvertColormapIntensity.
 function checkInvertColormapIntensity_Callback(hObject, eventdata, handles)
@@ -414,7 +415,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.general.cmIntensityInvert = get(hObject,'Value');
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in checkPaddZero.
 function checkPaddZero_Callback(hObject, eventdata, handles)
@@ -422,7 +423,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.padd = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in checkOffsetM3D.
 function checkOffsetM3D_Callback(hObject, eventdata, handles)
@@ -430,7 +431,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.offset_m3d = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in checkColorCrossSections.
 function checkColorCrossSections_Callback(hObject, eventdata, handles)
@@ -438,7 +439,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.color_crossSections = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in checkSuppShowCrossSectionPos.
 function checkSuppShowCrossSectionPos_Callback(hObject, eventdata, handles)
@@ -446,7 +447,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.show_crossSection = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in checkReverseYDir.
 function checkReverseYDir_Callback(hObject, eventdata, handles)
@@ -454,7 +455,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.general.reverseYDir = get(hObject,'Value');
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in checkAutoWindowSize.
 function checkAutoWindowSize_Callback(hObject, eventdata, handles)
@@ -465,7 +466,7 @@ if(rdh.general.autoWindowSize)
 end
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %edit fields
@@ -501,7 +502,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.alpha = current;
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 function editFontsize_Callback(hObject, eventdata, handles)
 current = abs(str2double(get(hObject,'String')));
@@ -509,7 +510,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.fontsize = current;
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 function editSuppLinewidth_Callback(hObject, eventdata, handles)
 current = max(round(abs(str2double(get(hObject,'String')))),1);
@@ -517,7 +518,7 @@ rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
 rdh.flimvis.supp_plot_linewidth = current;
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 function editUpperBoundColormapFLIMItems_Callback(hObject, eventdata, handles)
 current = min(max(round(10*str2double(get(hObject,'String')))/10,1+str2double(get(handles.editLowerBoundColormapFLIMItems,'String'))),100);
@@ -576,7 +577,7 @@ if(length(cs) == 3)
     rdh.isDirty(1) = 1;
     set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 end
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in plot_cutXLine_color_button.
 function plot_cutXLine_color_button_Callback(hObject, eventdata, handles)
@@ -588,7 +589,7 @@ if(length(cs) == 3)
     rdh.isDirty(1) = 1;
     set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 end
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in plot_cutYLine_color_button.
 function plot_cutYLine_color_button_Callback(hObject, eventdata, handles)
@@ -600,7 +601,7 @@ if(length(cs) == 3)
     rdh.isDirty(1) = 1;
     set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 end
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in ButtonROILinecolor.
 function ButtonROILinecolor_Callback(hObject, eventdata, handles)
@@ -612,7 +613,7 @@ if(length(cs) == 3)
     rdh.isDirty(1) = 1;
     set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 end
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 
 % --- Executes on button press in buttonSuppLinecolor.
@@ -625,7 +626,7 @@ if(length(cs) == 3)
     rdh.isDirty(1) = 1;
     set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 end
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in buttonMVGrpBgColor.
 function buttonMVGrpBgColor_Callback(hObject, eventdata, handles)
@@ -637,7 +638,7 @@ if(length(cs) == 3)
     rdh.isDirty(1) = 1;
     set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 end
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in defaultbutton.
 function defaultbutton_Callback(hObject, eventdata, handles)
@@ -658,7 +659,7 @@ rdh.flimvis.show_crossSection = data.defaults.flimvis.show_crossSection;
 rdh.flimvis.offset_sc = data.defaults.flimvis.offset_sc;
 rdh.flimvis.cluster_grp_bg_color = data.defaults.flimvis.cluster_grp_bg_color;
 rdh.general.windowSize = data.defaults.general.windowSize;
-updateGUI(handles,rdh);
+updateGUI(rdh);
 
 % --- Executes on button press in okbutton.
 function okbutton_Callback(hObject, eventdata, handles)
