@@ -150,9 +150,10 @@ classdef measurementInFDTree < measurementFile
                 ROIInfo.ROIDataType = fluoFileInfo.ROIDataType;
                 fluoFileInfo = rmfield(fluoFileInfo,{'ROIDataType','ROICoordinates'});
                 auxInfo.sourceFile = measurement.sourceFile;
-                auxInfo.revision = FLIMX.getVersionInfo().measurement_revision;
+                auxInfo.revision = 204;
                 %overwrite old file
                 %close open file first?
+                this.myFiles{1,ch} = [];
                 save(fn,'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo','-v7.3');
                 success = this.openChannel(ch);
                 return
@@ -177,7 +178,7 @@ classdef measurementInFDTree < measurementFile
                             ROIInfo.ROIMerged = squeeze(sum(rawData,1:2));
                         end
                     end
-                    auxInfo.revision = FLIMX.getVersionInfo().measurement_revision;
+                    auxInfo.revision = 205;
                     if(~isfield(auxInfo,'sourceFile'))
                         auxInfo.sourceFile = '';
                     end
