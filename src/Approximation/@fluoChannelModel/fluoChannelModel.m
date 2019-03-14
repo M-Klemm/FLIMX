@@ -422,7 +422,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         function [model, ampsOut, scAmpsOut, osetOut, expModelOut] = compModel2(this,x)
             % compute model for parameters x
             persistent t exponentialsLong expModels
-              scAmpsOut = [];
+            scAmpsOut = [];
             [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = getXVecComponents(this.myParent,x,true,this.myChannelNr);
             bp = this.basicParams;
             bp.incompleteDecayFactor = 2;
