@@ -48,7 +48,7 @@ classdef FDTStudy < FDTreeNode
         function this = FDTStudy(parent,sDir,name)
             % Constructor for FDTStudy
             this = this@FDTreeNode(parent,name);
-            this.revision = 26;
+            this.revision = 28;
             this.myDir = sDir;
             this.myStudyInfoSet = studyIS(this);
             this.myConditionStatistics = LinkedList();
@@ -86,7 +86,7 @@ classdef FDTStudy < FDTreeNode
                 return
             end
             import = import.export;            
-            if(import.revision ~= this.revision)
+            if(import.revision < this.revision)
                 %version problem
                 import = this.updateStudyVer(import);
             end            
@@ -320,6 +320,7 @@ classdef FDTStudy < FDTreeNode
                 return
             end
             this.myStudyInfoSet.setResultROICoordinates(subjectID,ROIType,ROICoord);
+            this.clearArithmeticRIs(); %todo: check if an AI uses an ROI
             this.clearObjMerged();
             this.clearMVGroups(subjectID,dType,dTypeNr);
         end
@@ -871,6 +872,13 @@ classdef FDTStudy < FDTreeNode
                 end
             end
             out = subject.getFDataObj(chan,dType,id,sType);
+        end
+        
+        function out = isArithmeticImage(this,dType)
+            %return true, if dType is an arithmetic image
+            aiNames = this.myStudyInfoSet.getArithmeticImageDefinition();
+            idx = strcmp(dType,aiNames);
+            out = sum(idx) == 1;
         end
         
         function out = getSubject4Approx(this,subjectID)

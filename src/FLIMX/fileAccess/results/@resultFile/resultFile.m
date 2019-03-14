@@ -209,7 +209,7 @@ classdef resultFile < handle
             this.loadedChannels = false(size(this.loadedChannels));
             this.initApproximated = false(size(this.initApproximated));
             this.pixelApproximated = false(size(this.pixelApproximated));
-            fprintf('cleared cache of %s result\n',this.myParent.name);
+            %fprintf('cleared cache of %s result\n',this.myParent.name);
         end
         
         function allocResults(this,chList,ROIYSz,ROIXSz)

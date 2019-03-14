@@ -1846,6 +1846,42 @@ classdef studyIS < handle
                 end
             end
             
+            if(oldStudy.revision < 27)
+                %update arithmetic image info
+                if(isfield(oldStudy,'arithmeticImageInfo'))
+                    for i = 1:size(oldStudy.arithmeticImageInfo,1)
+                        tmp = oldStudy.arithmeticImageInfo{i,2};
+                        if(isfield(tmp,'valCombi') && strcmp(tmp.valCombi,'-'))
+                            tmp.valCombi = '-no op-';
+                        end
+                        oldStudy.arithmeticImageInfo{i,2} = tmp;
+                    end
+                end
+            end
+                        
+            if(oldStudy.revision < 28)
+                %update arithmetic image info
+                def = AICtrl.getDefStruct;
+                if(isfield(oldStudy,'arithmeticImageInfo'))
+                    for i = 1:size(oldStudy.arithmeticImageInfo,1)
+                        tmp = oldStudy.arithmeticImageInfo{i,2};
+                        if(isfield(tmp,'opB') && strcmp(tmp.opB,'-none-'))
+                            tmp.opB = '-no op-';
+                        end
+                        if(isfield(tmp,'compAgainst'))
+                            tmp.compAgainstB = tmp.compAgainst;
+                        end
+                        if(isfield(tmp,'valB'))
+                            tmp.valC = tmp.valB;
+                        end
+                        if(isfield(tmp,'valA'))
+                            tmp.valB = tmp.valA;
+                        end
+                        tmp = orderfields(checkStructConsistency(tmp,def));
+                        oldStudy.arithmeticImageInfo{i,2} = tmp;
+                    end
+                end
+            end
             this.setDirty(true);
         end
         
@@ -2155,27 +2191,37 @@ classdef studyIS < handle
         %             end
         %         end
         
-        function [op, neg] = str2logicOp(str)
+        function [op, neg, opWeight] = str2logicOp(str)
             %convert a (descriptive) string to a logical operand
             neg = '';
+            opWeight = inf;
             switch str
-                case {'-no op-','-'} %no combination
+                case {'-no op-','-none-'} %no combination
                     op = '';
                 case 'AND'
                     op = '&';
+                    opWeight = 4;
                 case 'OR'
                     op = '|';
+                    opWeight = 5;
                 case '!AND'
                     op = '&';
                     neg = '~';
+                    opWeight = 4;
                 case '!OR'
                     op = '|';
                     neg = '~';
+                    opWeight = 5;
                 case 'XOR'
                     op = 'xor';
                     neg = '';
-                otherwise
+                    opWeight = 1;
+                case {'+','-','.*','./'}
+                     op = str;
+                     opWeight = 2;
+                otherwise % <,<=,>,>=,==
                     op = str;
+                    opWeight = 3;
             end
         end
         

@@ -331,6 +331,11 @@ classdef FDTChannel < FDTreeNode
             end
         end
         
+        function out = isArithmeticImage(this,dType)
+            %return true, if dType is an arithmetic image
+            out = this.myParent.isArithmeticImage(dType);
+        end
+        
         function out = getGlobalScale(this,dType)
             %return global scale flag for dType
             chunk = this.getChild(dType);

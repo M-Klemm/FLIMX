@@ -195,7 +195,7 @@ classdef subjectParamMgr < paramMgr
                                 this.makeVolatileParams();
                                 if(resetResults)
                                     for ch = 1:this.fluoFileObj.nrSpectralChannels
-                                        this.resultObj.allocResults(ch,this.mySubject.YSz,this.mySubject.height.XSz);
+                                        this.resultObj.allocResults(ch,this.mySubject.YSz,this.mySubject.XSz);
                                     end
                                 end
                             end

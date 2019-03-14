@@ -519,7 +519,7 @@ classdef FDTSubject < subject4Approx
             hfd = this.getFDataObj(ch,'Intensity',0,1); %check only linear data
 %             this = this.getSubject4Approx();
             if(any(this.nonEmptyChannelList(:)) && any(ch == this.nonEmptyChannelList(:)) && (isempty(hfd) || ~this.channelResultIsLoaded(ch) || forceLoadFlag))
-                this.updateShortProgress(0.33,sprintf('Importing (Ch %s)',num2str(ch)));
+                this.updateShortProgress(0.33,sprintf('Load Ch %s',num2str(ch)));
                 %add empty channel objects
                 chObj = this.getChild(ch);
                 if(isempty(chObj))
@@ -565,7 +565,7 @@ classdef FDTSubject < subject4Approx
                         this.updateShortProgress(0,'');
                         return
                     end
-                    this.updateShortProgress(0.66,sprintf('Importing (Ch %s)',num2str(ch)));
+                    this.updateShortProgress(0.66,sprintf('Load Ch %s',num2str(ch)));
 %                     subObj = this.getSubject4Approx();
 %                     if(~any(subObj.nonEmptyResultChannelList == ch))
 %                         %subject doesn't have the requested channel
@@ -646,7 +646,7 @@ classdef FDTSubject < subject4Approx
                             this.addObjID(dTypeNr,ch,dType,1,data_temp);
                         catch ME
                             msg = regexp(ME.identifier,':','split');
-                            uiwait(warndlg(sprintf('An Error occured in %s\n\n''%s''\n\nImporting channel %d of subject ''%s'' has been aborted!',ME.identifier,ME.message,ch,this.name),'Error importing Data','modal'));
+                            uiwait(warndlg(sprintf('An Error occured in %s\n\n''%s''\n\nLoading channel %d of subject ''%s'' has been aborted!',ME.identifier,ME.message,ch,this.name),'Error importing Data','modal'));
                             if(strcmp(msg(end),'size'))
                                 %abort, make sure nothing of this channel is left
                                 this.removeResultChannelFromMemory(ch);
@@ -654,7 +654,7 @@ classdef FDTSubject < subject4Approx
                             end
                         end
                     end
-                    this.updateShortProgress(1,sprintf('Importing (Ch %s)',num2str(ch))); %0.5
+                    this.updateShortProgress(1,sprintf('Load Ch %s',num2str(ch))); %0.5
                     %intensity image
                     hfd = this.getFDataObj(ch,'Intensity',0,1); %check only linear data
                     if(isempty(hfd) && isASCIIResult)
@@ -1069,6 +1069,11 @@ classdef FDTSubject < subject4Approx
             end
         end
         
+        function out = isArithmeticImage(this,dType)
+            %return true, if dType is an arithmetic image
+            out = this.myParent.isArithmeticImage(dType);
+        end
+        
         function out = getGlobalScale(this,dType)
             %return global scale flag for dType
             out = false;
@@ -1141,7 +1146,7 @@ classdef FDTSubject < subject4Approx
             end            
             %check for which channels the arithmetic image should be built
             [~, totalCh] = this.myParent.getChStr(this.name);
-            if(aiParams.chA == 0 || aiParams.chB == 0)
+            if(aiParams.chA == 0 || aiParams.chB == 0 || (aiParams.chC == 0 && ~strcmp(aiParams.opB,'-no op-') && ~strcmp(aiParams.compAgainstC,'val'))) % todo: chC
                 nCh = length(totalCh);
             else
                 nCh = 1;
@@ -1155,96 +1160,31 @@ classdef FDTSubject < subject4Approx
                 chBList = totalCh;
             else
                 chBList = repmat(aiParams.chB,1,nCh);
+            end
+            if(aiParams.chC == 0)
+                chCList = totalCh;
+            else
+                chCList = repmat(aiParams.chC,1,nCh);
             end            
             %loop over channels
             for chIdx = 1:nCh
-                if(strncmp(aiParams.FLIMItemA,'subjectInfo->',13))
-                    %get data from subject info
-                    colName = aiParams.FLIMItemA(14:end);
-                    dataA = this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,colName);
-                else
-                    [dTypeA, dTypeANr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
-                    %ask study for FData object, if this is an arithmetic image, study will build it if needed
-                    fd = this.myParent.getFDataObj(this.name,chAList(chIdx),dTypeA{1},dTypeANr(1),1);
-                    if(isempty(fd))
-                        continue
-                    end
-                    dataA = fd.getFullImage();
-                end
+                dataA = this.getArithmeticImageData(aiParams,'A',chAList(chIdx));
                 if(isempty(dataA))
                     continue
                 end
-                if(aiParams.normalizeA)
-                    dataA = dataA ./ max(dataA(:));
-                end
-                idx = ~isnan(dataA);
-                [op, neg] = studyIS.str2logicOp(aiParams.opA);
-                if(strcmp(aiParams.compAgainst,'val'))
-                    if(any(strcmp(op,{'&','|','xor'})))
-                        eval(sprintf('idx = idx & logical(dataA) %s %slogical(aiParams.valA);',op,neg));
-                        data = dataA;
-                        data(~idx) = nan;
-                    else
-                        eval(sprintf('data = dataA %s %f;',aiParams.opA,single(aiParams.valA)));
-                    end
-                    [op, neg] = studyIS.str2logicOp(aiParams.valCombi);
-                    if(~isempty(op))
-                        eval(sprintf('data(idx) = %s(data(idx) %s (dataA(idx) %s %f));',neg,op,aiParams.opB,single(aiParams.valB)));
-                    end
-                else %compare against another FLIMItem
-                    if(strncmp(aiParams.FLIMItemB,'subjectInfo->',13))
-                        %get data from subject info
-                        colName = aiParams.FLIMItemB(14:end);
-                        dataB = this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,colName);
-                    else
-                        [dTypeB, dTypeBNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemB);
-                        %ask study for FData object, if this is an arithmetic image, study will build it if needed
-                        fd = this.myParent.getFDataObj(this.name,chBList(chIdx),dTypeB{1},dTypeBNr(1),1);
-                        if(isempty(fd))
-                            continue
-                        end
-                        dataB = fd.getFullImage();
-                    end
-                    if(isempty(dataB))
-                        continue
-                    end
-                    if(aiParams.normalizeB)
-                        dataB = dataB ./ max(dataB(:));
-                    end
-                    if(any(strcmp(op,{'&','|','xor'})))
-                        idxA = ~isnan(dataA);
-                        idxA(idxA) = logical(dataA(idxA));
-                        idxB = ~isnan(dataB);
-                        idxB(idxB) = logical(dataB(idxB));
-                        switch op
-                            case '&'
-                                eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
-                                data = dataA;
-                            case '|'
-                                eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
-                                if(isempty(neg))
-                                    %this is |
-                                    data = zeros(size(dataA),'like',dataA);
-                                    data(idxB) = dataB(idxB);
-                                    data(idxA) = dataA(idxA);
-                                else
-                                    %this is ~|
-                                    data = dataA;
-                                end
-                            case 'xor'
-                                eval(sprintf('idx = %sxor(idxA,idxB);',neg));
-                                data = zeros(size(dataA),'like',dataA);
-                                data(idxB & idx) = dataB(idxB & idx);
-                                data(idxA & idx) = dataA(idxA & idx);
-                        end
-                        data(~idx) = nan;
-                    else
-                        eval(sprintf('data = dataA %s dataB;',aiParams.opA));
-                    end
-                end
-                if(isempty(data))
-                    return
-                end
+                dataB = this.getArithmeticImageData(aiParams,'B',chBList(chIdx));
+                [opA, negA] = studyIS.str2logicOp(aiParams.opA);
+                [opB, negB] = studyIS.str2logicOp(aiParams.opB);
+                if(isempty(opB))
+                    data = FDTSubject.calculateArithmeticImage(dataA,dataB,opA,negA);
+                else
+                    %get dataC
+                    dataC = this.getArithmeticImageData(aiParams,'C',chCList(chIdx));
+                    %run opB first
+                    data = FDTSubject.calculateArithmeticImage(dataB,dataC,opB,negB);
+                    %now run opA
+                    data = FDTSubject.calculateArithmeticImage(dataA,data,opA,negA);
+                end                
                 %save arithmetic image
                 this.addObjID(0,chAList(chIdx),aiName,1,data);
             end
@@ -1277,7 +1217,58 @@ classdef FDTSubject < subject4Approx
         
     end %methods
     
-        methods(Access = protected)
+        methods(Access = protected)            
+            function out = getArithmeticImageData(this,aiParams,layer,ch)
+                %gather data for artificial image layer (A, B or C)
+                out = [];
+                if(~any(strcmp({'A','B','C'},layer)))
+                    return
+                end
+                if(strcmp(layer,'A'))
+                    %layer A may only be a FLIMItem!
+                    aiParams.compAgainstA = 'FLIMItem';
+                end
+                switch aiParams.(sprintf('compAgainst%s',layer))
+                    case 'val'
+                        out = aiParams.(sprintf('val%s',layer));
+                    case 'FLIMItem'
+                        lStr = sprintf('FLIMItem%s',layer);
+                        if(strncmp(aiParams.(lStr),'subjectInfo->',13))
+                            %get data from subject info
+                            colName = aiParams.(lStr)(14:end);
+                            out = this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,colName);
+                        else
+                            [dTypeB, dTypeBNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.(lStr));
+                            %ask study for FData object, if this is an arithmetic image, study will build it if needed
+                            fd = this.myParent.getFDataObj(this.name,ch,dTypeB{1},dTypeBNr(1),1);
+                            if(isempty(fd))
+                                return
+                            end
+                            out = fd.getFullImage();
+                        end
+                        if(aiParams.normalizeB)
+                            out = out ./ max(out(:));
+                        end
+                    case 'ROI'
+                        lStr = sprintf('ROI%s',layer);
+                        ROIs = AICtrl.getDefROIString();
+                        if(strncmp(aiParams.(lStr),'ETDRS->',7))
+                            ROItype = 1;
+                            ROISubtype = find(strcmp(ROIs,aiParams.(lStr)));
+                        else
+                            ROItype = find(strcmp(ROIs,aiParams.(lStr)))-14;
+                            ROISubtype = 0;
+                        end
+                        [dTypeA, dTypeANr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
+                        fd = this.myParent.getFDataObj(this.name,ch,dTypeA{1},dTypeANr(1),1);
+                        if(isempty(fd))
+                            return
+                        end
+                        out = fd.getROIImage(this.getROICoordinates(ROItype),ROItype,ROISubtype,0);
+                        out = mean(out(:),'omitnan');
+                end
+            end
+            
         % Override copyElement method:
 %         function cpObj = copyElement(this)            
 %             %make sure we create the approx. obects for all channels            
@@ -1290,5 +1281,44 @@ classdef FDTSubject < subject4Approx
 %             cpObj.myParent = []; 
 %             cpObj.progressCb = cell(0,0);
 %         end
-    end
+        end
+    
+        methods(Static)
+            function out = calculateArithmeticImage(dataA,dataB,op,neg)
+                %run operation op on dataA and dataB using the negativation flag
+                idxA = ~isnan(dataA);
+                idxA(idxA) = logical(dataA(idxA));
+                idxB = ~isnan(dataB);
+                idxB(idxB) = logical(dataB(idxB));
+                switch op
+                    case '&'
+                        eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
+                        out = dataA;                        
+                    case '|'
+                        eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
+                        if(isempty(neg))
+                            %this is |
+                            out = zeros(size(dataA),'like',dataA);
+                            out(idxB) = dataB(idxB);
+                            out(idxA) = dataA(idxA);
+                        else
+                            %this is ~|
+                            out = dataA;
+                        end
+                    case 'xor'
+                        %out = false(size(idx));
+                        %eval(sprintf('out(idx) = %sxor(dataA(idx),dataB(idx));',neg));
+                        eval(sprintf('idx = %sxor(idxA,idxB);',neg));
+                        out = zeros(size(dataA),'like',dataA);
+                        out(idxB & idx) = dataB(idxB & idx);
+                        out(idxA & idx) = dataA(idxA & idx);
+                    otherwise %+,-,*,/,>,<,>=,<=,==
+                        eval(sprintf('out = (dataA %s dataB);',op));
+                        idx = true(size(out));
+                end
+                if(~islogical(out))
+                    out(~idx) = nan;
+                end
+            end
+        end
 end %classdef

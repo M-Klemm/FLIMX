@@ -419,7 +419,7 @@ classdef ROICtrl < handle
                 res = 0;%58.66666666666/1000;
                 %todo: warning/error message
             end
-            if(isempty(ROICoord))
+            if(isempty(ROICoord) && this.ROIType < 6)
                 this.ROIType = 0;
                 this.popupCallback('');
             else

@@ -38,21 +38,21 @@ classdef AICtrl < handle
         visObj = [];
         FLIMItemA = [];
         FLIMItemB = [];
+        FLIMItemC = [];
+        ROIB = [];
+        ROIC = [];
         normalizeA = [];
         normalizeB = [];
-        combi = [];
-        combiText = [];
+        normalizeC = [];        
+        targetSelB = [];
+        targetSelC = [];
         chA = [];
         chB = [];
+        chC = [];
         opA = [];
         opB = [];
-        opBText = [];
-        valA = [];
-        valAText = [];
         valB = [];
-        valBText = [];
-        valRadio = [];
-        FLIMItemRadio = [];
+        valC = [];
         aiSel = [];
         newButton = [];
         delButton = [];
@@ -60,6 +60,7 @@ classdef AICtrl < handle
     
     properties (Dependent = true)
         curStudy = '',
+        curSubjectName = '';
         curAIName = '';
     end
     
@@ -68,11 +69,10 @@ classdef AICtrl < handle
             % Constructor for AICtrl.
             this.visObj = visObj;
             this.setUIHandles();
-            oStr = {'+','-','.*','./','<','>','<=','>=','==','!=','AND','OR','!AND','!OR','XOR'};
-            cStr = {'-','AND','OR','!AND','!OR','XOR'};
+            oStr = AICtrl.getDefOpString();
+            cStr = [{'-no op-'},oStr];
             set(this.opA,'String',oStr,'Value',1);
-            set(this.opB,'String',oStr(1:10),'Value',1);
-            set(this.combi,'String',cStr,'Value',1);
+            set(this.opB,'String',cStr,'Value',1);
         end
         
         function inVisible(this,param)
@@ -86,17 +86,21 @@ classdef AICtrl < handle
             end
             set(this.FLIMItemA,'Visible',param);
             set(this.FLIMItemB,'Visible',param);
+            set(this.FLIMItemC,'Visible',param);
+            set(this.ROIB,'Visible',param);
+            set(this.ROIC,'Visible',param);
             set(this.normalizeA,'Visible',param);
             set(this.normalizeB,'Visible',param);
-            set(this.combi,'Visible',param);
+            set(this.normalizeC,'Visible',param);
+            set(this.opB,'Visible',param);
+            set(this.targetSelB,'Visible',param);
+            set(this.targetSelC,'Visible',param);
             set(this.chA,'Visible',param);
             set(this.chB,'Visible',param);
+            set(this.chC,'Visible',param);
             set(this.opA,'Visible',param);
-            set(this.opB,'Visible',param);
-            set(this.valA,'Visible',param);
             set(this.valB,'Visible',param);
-            set(this.valRadio,'Visible',param);
-            set(this.FLIMItemRadio,'Visible',param);
+            set(this.valC,'Visible',param);
             set(this.delButton,'Visible',param);
         end
         
@@ -139,15 +143,20 @@ classdef AICtrl < handle
         
         function ui_Callback(this,hObject,eventdata)
             %user changed a parameter of the current arithmetic image
-            if(hObject == this.valA || hObject == this.valB)
+            if(hObject == this.valB || hObject == this.valC)
                 set(hObject,'String',str2double(get(hObject,'String')));
             end
             if(hObject ~= this.visObj.visHandles.ai_sel_pop)
+                if(strcmp(hObject.Tag,'ai_targetSel_b_pop'))
+                    this.updateItemPopup(this.chB.Value-1,AICtrl.targetTypeID2Str(hObject.Value),'B',[]);                    
+                elseif(strcmp(hObject.Tag,'ai_targetSel_c_pop'))
+                    this.updateItemPopup(this.chC.Value-1,AICtrl.targetTypeID2Str(hObject.Value),'C',[]); 
+                end
                 this.visObj.fdt.setArithmeticImageDefinition(this.curStudy,this.curAIName,this.getCurAIParams());
             end
             this.updateCtrls();
             this.visObj.updateGUI([]);
-        end
+        end        
         
         function updateCtrls(this)
             %updates controls to current values
@@ -162,62 +171,33 @@ classdef AICtrl < handle
             end            
             set(this.aiSel,'String',aiStr,'Value',idx);
             this.inVisible('on');
-            subject = this.visObj.getSubject('l');
-            chStr = [{'all Ch'}; this.visObj.fdt.getChStr(this.curStudy,subject)];
-            %find saved channel
-            if(aiParam{idx}.chA == 0)
-                chNr = 0;
-            else
-                chNr = find(strcmp(sprintf('Ch %d',aiParam{idx}.chA),chStr))-1;
-            end
+            chNr = this.AIParam2GUIChannelNr(aiParam{idx},'A');
+            chStr = [{'all Ch'}; this.visObj.fdt.getChStr(this.curStudy,this.curSubjectName)];
             if(isempty(chNr))
                 %Houston we've got a problem
                 %make warning dialog to switch subject?!
                 return
             end
             set(this.chA,'String',chStr,'Value',chNr+1);
-            chObj = this.visObj.fdt.getChObjStr(this.curStudy,subject,max(1,chNr));
-            subjectInfoColumns = this.visObj.fdt.getDataFromStudyInfo(this.curStudy,'subjectInfoRegularNumericColumnNames');
-            for i = 1:length(subjectInfoColumns)
-                subjectInfoColumns{i} = sprintf('subjectInfo->%s',subjectInfoColumns{i});
-            end
-            chObj = [chObj; subjectInfoColumns];
-            %remove current arithmetic image from channel objects
-            chObj = chObj(~strcmp(chObj,this.curAIName));
             %second flim item channel
-            if(aiParam{idx}.chB == 0)
-                chNr = 0;
-            else
-                chNr = find(strcmp(sprintf('Ch %d',aiParam{idx}.chB),chStr))-1;
-            end
+            chNr = this.AIParam2GUIChannelNr(aiParam{idx},'B');
             if(isempty(chNr))
                 %Houston we've got a problem
                 %make warning dialog to switch subject?!
                 return
             end
-            set(this.chB,'String',chStr,'Value',chNr+1);            
-            %find saved FLIM item
-            fiNr = find(strcmp(aiParam{idx}.FLIMItemA,chObj));
-            if(isempty(fiNr))
+            set(this.chB,'String',chStr,'Value',chNr+1);
+            %third flim item channel
+            chNr = this.AIParam2GUIChannelNr(aiParam{idx},'C');
+            if(isempty(chNr))
                 %Houston we've got a problem
                 %make warning dialog to switch subject?!
-                chObj{end+1,1} = aiParam{idx}.FLIMItemA;
-                fiNr = size(chObj,1);
+                return
             end
-            set(this.FLIMItemA,'String',chObj,'Value',fiNr);
-            %second flim item channel
-            chObj = this.visObj.fdt.getChObjStr(this.curStudy,subject,max(1,chNr));
-            chObj = [chObj; subjectInfoColumns];
-            %remove current arithmetic image from channel objects
-            chObj = chObj(~strcmp(chObj,this.curAIName));
-            fiNr = find(strcmp(aiParam{idx}.FLIMItemB,chObj));
-            if(isempty(fiNr))
-                %Houston we've got a problem
-                %make warning dialog to switch subject?!                
-                chObj{end+1,1} = aiParam{idx}.FLIMItemB;
-                fiNr = size(chObj,1);
-            end            
-            set(this.FLIMItemB,'String',chObj,'Value',fiNr);
+            set(this.chC,'String',chStr,'Value',chNr+1);            
+            %find saved FLIM item
+            this.updateItemPopup(this.chA.Value-1,'FLIMItem','A',aiParam{idx});                               
+            %op for base flim item
             opNr = find(strcmp(aiParam{idx}.opA,get(this.opA,'String')));
             if(isempty(opNr))                
                 %Houston we've got a problem
@@ -227,62 +207,91 @@ classdef AICtrl < handle
             set(this.opA,'Value',opNr);
             set(this.normalizeA,'Value',aiParam{idx}.normalizeA);
             set(this.normalizeB,'Value',aiParam{idx}.normalizeB);
-            switch aiParam{idx}.compAgainst
+            set(this.normalizeC,'Value',aiParam{idx}.normalizeC);
+            this.updateItemPopup(this.chB.Value-1,'FLIMItem','B',aiParam{idx});
+            this.updateItemPopup(this.chB.Value-1,'ROI','B',aiParam{idx});
+            this.updateItemPopup(this.chC.Value-1,'FLIMItem','C',aiParam{idx});
+            this.updateItemPopup(this.chC.Value-1,'ROI','C',aiParam{idx});
+            %first calculation target
+            switch aiParam{idx}.compAgainstB
                 case 'val'
-                    set(this.valRadio,'Value',1);
-                    set(this.FLIMItemRadio,'Value',0);
-                    set(this.FLIMItemB,'Enable','off');
-                    set(this.chB,'Enable','off');
-                    set(this.valA,'Enable','on','String',aiParam{idx}.valA);
-                    set(this.valAText,'Visible','on');
-                    combiNr = find(strcmp(aiParam{idx}.valCombi,get(this.combi,'String')));
-                    if(isempty(combiNr))
-                        %Houston we've got a problem
-                        %make warning dialog?!
-                        combiNr = 1;
-                    end                    
-                    set(this.combi,'Enable','on','Value',combiNr);
-                    set(this.combiText,'Visible','on');
-                    if(strcmp(aiParam{idx}.valCombi,'-'))
-                        set(this.opB,'Enable','off');
-                        set(this.valB,'Enable','off');
-                    else
-                        opNr = find(strcmp(aiParam{idx}.opB,get(this.opB,'String')));
-                        if(isempty(opNr))
-                            %Houston we've got a problem
-                            %make warning dialog?!
-                            opNr = 1;
-                        end
-                        set(this.opB,'Enable','on','Value',opNr);
-                        set(this.valB,'Enable','on','String',aiParam{idx}.valB);
-                    end
-                    set(this.opBText,'Visible','on');
-                    set(this.valBText,'Visible','on');
+                    this.targetSelB.Value = 3;
+                    set(this.FLIMItemB,'Enable','off','Visible','off');
+                    set(this.ROIB,'Enable','off','Visible','off');
+                    set(this.chB,'Enable','off','Visible','off');
+                    set(this.valB,'Enable','on','Visible','on','String',aiParam{idx}.valB);
+                    set(this.normalizeB,'Enable','off','Visible','off');
+                    %this.updateItemPopup(this.chB.Value-1,'FLIMItem','B',[]); %for a valid popup string
                 case 'FLIMItem'
-                    set(this.valRadio,'Value',0);
-                    set(this.FLIMItemRadio,'Value',1);
-                    set(this.valA,'Enable','off');
-                    set(this.combi,'Enable','off','Value',1);
-                    set(this.opB,'Enable','off','Value',1);
-                    set(this.valB,'Enable','off');
-                    set(this.FLIMItemB,'Enable','on');
-                    set(this.normalizeB,'Enable','on');
-                    set(this.chB,'Enable','on');
-                    set(this.valAText,'Visible','off');
-                    set(this.combiText,'Visible','off');
-                    set(this.opBText,'Visible','off');
-                    set(this.valBText,'Visible','off');
+                    this.targetSelB.Value = 1;
+                    %second flim item
+                    set(this.FLIMItemB,'Enable','on','Visible','on');
+                    set(this.ROIB,'Enable','off','Visible','off');
+                    set(this.valB,'Enable','off','Visible','off');
+                    set(this.normalizeB,'Enable','on','Visible','on');
+                    set(this.chB,'Enable','on','Visible','on');
+                case 'ROI'
+                    this.targetSelB.Value = 2;                    
+                    set(this.FLIMItemB,'Enable','off','Visible','off');
+                    set(this.ROIB,'Enable','on','Visible','on');
+                    set(this.valB,'Enable','off','Visible','off');
+                    set(this.normalizeB,'Enable','off','Visible','off');
+                    set(this.chB,'Enable','on','Visible','on');
+            end
+%             this.updateItemPopup(this.chB.Value-1,aiParam{idx}.compAgainstB,'B',aiParam{idx});
+            %op for third value / parameter
+            opNr = find(strcmp(aiParam{idx}.opB,get(this.opB,'String')));
+            if(isempty(opNr))
+                %Houston we've got a problem
+                %make warning dialog?!
+                opNr = 1;
+            end
+            set(this.opB,'Value',opNr);
+            if(strcmp(aiParam{idx}.opB,'-no op-'))
+                set(this.valC,'Enable','off','Visible','off');
+                set(this.FLIMItemC,'Enable','off','Visible','off');
+                set(this.ROIC,'Enable','off','Visible','off');
+                set(this.normalizeC,'Enable','off','Visible','off');
+                set(this.chC,'Enable','off','Visible','off');
+                set(this.targetSelC,'Visible','off');
+            else
+                set(this.targetSelC,'Visible','on');
+                %second calculation target
+                switch aiParam{idx}.compAgainstC
+                    case 'val'
+                        this.targetSelC.Value = 3;
+                        set(this.FLIMItemC,'Enable','off','Visible','off');
+                        set(this.ROIC,'Enable','off','Visible','off');
+                        set(this.chC,'Enable','off','Visible','off');
+                        set(this.valC,'Enable','on','Visible','on','String',aiParam{idx}.valC);
+                        set(this.normalizeC,'Enable','off','Visible','off');                        
+                    case 'FLIMItem'
+                        this.targetSelC.Value = 1;
+                        %third flim item
+                        set(this.FLIMItemC,'Enable','on','Visible','on');
+                        set(this.ROIC,'Enable','off','Visible','off');
+                        set(this.valC,'Enable','off','Visible','off');
+                        set(this.normalizeC,'Enable','on','Visible','on');
+                        set(this.chC,'Enable','on','Visible','on');
+                    case 'ROI'
+                        this.targetSelC.Value = 2;
+                        set(this.FLIMItemC,'Enable','off','Visible','off');
+                        set(this.ROIC,'Enable','on','Visible','on');
+                        set(this.valC,'Enable','off','Visible','off');
+                        set(this.normalizeC,'Enable','off','Visible','off');
+                        set(this.chC,'Enable','on','Visible','on');
+                end
             end
         end
         
         function aiParams = getCurAIParams(this)
             %returns AIParams struct
+            aiParams = AICtrl.getDefStruct();
             str = get(this.FLIMItemA,'String');
-            aiParams.FLIMItemA = str{get(this.FLIMItemA,'Value')};
-            str = get(this.FLIMItemB,'String');
-            aiParams.FLIMItemB = str{get(this.FLIMItemB,'Value')};
+            aiParams.FLIMItemA = str{get(this.FLIMItemA,'Value')}; 
             aiParams.normalizeA = get(this.normalizeA,'Value');
             aiParams.normalizeB = get(this.normalizeB,'Value');
+            aiParams.normalizeC = get(this.normalizeC,'Value');
             str = get(this.chA,'String');
             vCh = get(this.chA,'Value');
             if(vCh == 1)
@@ -298,23 +307,53 @@ classdef AICtrl < handle
                 tmp = str{get(this.chB,'Value')};
                 aiParams.chB = str2double(tmp(isstrprop(tmp,'digit')));
             end
+            vCh = get(this.chC,'Value');
+            if(vCh == 1)
+                aiParams.chC = 0;
+            else
+                tmp = str{get(this.chC,'Value')};
+                aiParams.chC = str2double(tmp(isstrprop(tmp,'digit')));
+            end
             str = get(this.opA,'String');
             aiParams.opA = str{get(this.opA,'Value')};
-            aiParams.opB = str{get(this.opB,'Value')};
-            if(get(this.valRadio,'Value') == 1)
-                aiParams.compAgainst = 'val';
-            else
-                aiParams.compAgainst = 'FLIMItem';
+            str = get(this.FLIMItemB,'String');
+            aiParams.FLIMItemB = str{get(this.FLIMItemB,'Value')};
+            str = get(this.ROIB,'String');
+            aiParams.ROIB = str{get(this.ROIB,'Value')};
+            switch this.targetSelB.Value
+                case 1
+                    aiParams.compAgainstB = 'FLIMItem';
+                case 2
+                    aiParams.compAgainstB = 'ROI';
+                case 3
+                    aiParams.compAgainstB = 'val';
             end
-            str = get(this.combi,'String');
-            aiParams.valCombi = str{get(this.combi,'Value')};
-            aiParams.valA = str2double(get(this.valA,'String'));
+            str = get(this.FLIMItemC,'String');
+            aiParams.FLIMItemC = str{get(this.FLIMItemC,'Value')};
+            str = get(this.ROIC,'String');
+            aiParams.ROIC = str{get(this.ROIC,'Value')};            
+            switch this.targetSelC.Value
+                case 1
+                    aiParams.compAgainstC = 'FLIMItem';
+                case 2
+                    aiParams.compAgainstC = 'ROI';
+                case 3
+                    aiParams.compAgainstC = 'val';
+            end
+            str = get(this.opB,'String');
+            aiParams.opB = str{get(this.opB,'Value')};
             aiParams.valB = str2double(get(this.valB,'String'));
+            aiParams.valC = str2double(get(this.valC,'String'));
         end
         
         function out = get.curStudy(this)
             %get name of current study (left side)
             out = this.visObj.getStudy('l');
+        end
+        
+        function out = get.curSubjectName(this)
+            %get name of current subject (left side)
+            out = this.visObj.getSubject('l');
         end
         
         function out = get.curAIName(this)
@@ -330,36 +369,37 @@ classdef AICtrl < handle
     
     
     methods(Access = protected)
-        %internal methods
-        
+        %internal methods        
         function setUIHandles(this)
             %builds the uicontrol handles for the AICtrl object for axis ax
             this.FLIMItemA = this.visObj.visHandles.ai_flimitem_a_pop;
             set(this.FLIMItemA,'Callback',@this.ui_Callback,'TooltipString','Select FLIM parameter');
             this.FLIMItemB = this.visObj.visHandles.ai_flimitem_b_pop;
             set(this.FLIMItemB,'Callback',@this.ui_Callback,'TooltipString','Select FLIM parameter');
-            this.combi = this.visObj.visHandles.ai_combi_pop;
-            set(this.combi,'Callback',@this.ui_Callback,'TooltipString','Select logical operator');
-            this.combiText = this.visObj.visHandles.ai_combi_text;
+            this.FLIMItemC = this.visObj.visHandles.ai_flimitem_c_pop;
+            set(this.FLIMItemC,'Callback',@this.ui_Callback,'TooltipString','Select FLIM parameter');
+            this.ROIB = this.visObj.visHandles.ai_roi_b_pop;
+            set(this.ROIB,'Callback',@this.ui_Callback,'TooltipString','Select Region of Interest (ROI), its mean value will be used for the arithmetic image calculation');
+            this.ROIC = this.visObj.visHandles.ai_roi_c_pop;
+            set(this.ROIC,'Callback',@this.ui_Callback,'TooltipString','Select Region of Interest (ROI), its mean value will be used for the arithmetic image calculation');
+            this.targetSelB = this.visObj.visHandles.ai_targetSel_b_pop;
+            set(this.targetSelB,'Callback',@this.ui_Callback,'TooltipString','Select target for arithmetic operation: FLIM parameter (e.g. Tau1), mean value of region of interest (ROI) or a numeric value (e.g. for comparison with a threshold)');
+            this.targetSelC = this.visObj.visHandles.ai_targetSel_c_pop;
+            set(this.targetSelC,'Callback',@this.ui_Callback,'TooltipString','Select target for arithmetic operation: FLIM parameter (e.g. Tau1), mean value of region of interest (ROI) or a numeric value (e.g. for comparison with a threshold)');
+            this.opB = this.visObj.visHandles.ai_op_b_pop;
+            set(this.opB,'Callback',@this.ui_Callback,'TooltipString','Select logical or arithmetic operator. THIS OPERATION WILL BE CALCULATED FIRST!');
             this.chA = this.visObj.visHandles.ai_ch_a_pop;
             set(this.chA,'Callback',@this.ui_Callback,'TooltipString','Select spectral channel; ''all Ch'' will compute the arithmetic image for all channels separately');
             this.chB = this.visObj.visHandles.ai_ch_b_pop;
             set(this.chB,'Callback',@this.ui_Callback,'TooltipString','Select spectral channel; ''all Ch'' will compute the arithmetic image for all channels separately');
+            this.chC = this.visObj.visHandles.ai_ch_c_pop;
+            set(this.chC,'Callback',@this.ui_Callback,'TooltipString','Select spectral channel; ''all Ch'' will compute the arithmetic image for all channels separately');
             this.opA = this.visObj.visHandles.ai_op_a_pop;
             set(this.opA,'Callback',@this.ui_Callback,'TooltipString','Select logical or arithmetic operator');
-            this.opB = this.visObj.visHandles.ai_op_b_pop;
-            set(this.opB,'Callback',@this.ui_Callback,'TooltipString','Select arithmetic operator');
-            this.opBText = this.visObj.visHandles.ai_op_b_text;
-            this.valA = this.visObj.visHandles.ai_val_a_edit;            
-            set(this.valA,'Callback',@this.ui_Callback,'TooltipString','Enter value');
-            this.valAText = this.visObj.visHandles.ai_val_a_text;  
-            this.valB = this.visObj.visHandles.ai_val_b_edit;
-            set(this.valB,'Callback',@this.ui_Callback,'TooltipString','Enter value');
-            this.valBText = this.visObj.visHandles.ai_val_b_text;  
-            this.valRadio = this.visObj.visHandles.ai_val_radio;
-            set(this.valRadio,'Callback',@this.ui_Callback,'TooltipString','Compute arithmetic image from FLIM parameter (left) and numerical values(s)');
-            this.FLIMItemRadio = this.visObj.visHandles.ai_flimitem_radio;
-            set(this.FLIMItemRadio,'Callback',@this.ui_Callback,'TooltipString','Compute arithmetic image from two FLIM parameter (which can be arithmetic images themselves); for logicals operations the FLIM item to the right is converted to a mask (boolean)');
+            this.valB = this.visObj.visHandles.ai_val_b_edit;            
+            set(this.valB,'Callback',@this.ui_Callback,'TooltipString','Enter numeric value');
+            this.valC = this.visObj.visHandles.ai_val_c_edit;
+            set(this.valC,'Callback',@this.ui_Callback,'TooltipString','Enter numeric value'); 
             this.aiSel = this.visObj.visHandles.ai_sel_pop;
             set(this.aiSel,'Callback',@this.ui_Callback,'TooltipString','Select existing arithmetic image');
             this.newButton = this.visObj.visHandles.ai_new_button;
@@ -370,6 +410,61 @@ classdef AICtrl < handle
             set(this.normalizeA,'Callback',@this.ui_Callback,'TooltipString','Normalize FLIM parameter');
             this.normalizeB = this.visObj.visHandles.ai_normalize_b_check;
             set(this.normalizeB,'Callback',@this.ui_Callback,'TooltipString','Normalize FLIM parameter');
+            this.normalizeC = this.visObj.visHandles.ai_normalize_c_check;
+            set(this.normalizeC,'Callback',@this.ui_Callback,'TooltipString','Normalize FLIM parameter');
+        end
+        
+        function objStr = updateItemPopup(this,chNr,targetType,layer,aiParam)
+            %build popup string with either FLIM items or ROIs
+            layer = upper(layer);
+            if(~any(strcmp({'A','B','C'},layer)))
+                return
+            end
+            objStr = '';
+            if(strcmp(targetType,'FLIMItem'))
+                objStr = this.visObj.fdt.getChObjStr(this.curStudy,this.curSubjectName,max(1,chNr));
+                subjectInfoColumns = this.visObj.fdt.getDataFromStudyInfo(this.curStudy,'subjectInfoRegularNumericColumnNames');
+                for i = 1:length(subjectInfoColumns)
+                    subjectInfoColumns{i} = sprintf('subjectInfo->%s',subjectInfoColumns{i});
+                end
+                objStr = [objStr; subjectInfoColumns];
+                %remove current arithmetic image from channel objects
+                objStr = objStr(~strcmp(objStr,this.curAIName));
+                popupHandleStr = sprintf('FLIMItem%s',layer);
+            elseif(strcmp(targetType,'ROI'))
+                objStr = AICtrl.getDefROIString(); 
+                popupHandleStr = sprintf('ROI%s',layer);
+            end
+            if(~isempty(objStr))
+                if(isempty(aiParam))
+                    set(this.(popupHandleStr),'String',objStr,'Value',min(length(objStr),this.(popupHandleStr).Value));
+                else
+                    fiNr = find(strcmp(aiParam.(popupHandleStr),objStr));
+                    if(isempty(fiNr))
+                        %FLIMItem defined, which current subject does not (yet) have
+                        objStr{end+1,1} = aiParam.(popupHandleStr);
+                        fiNr = size(objStr,1);
+                        set(this.(popupHandleStr),'String',objStr,'Value',fiNr);
+                    end
+                    set(this.(popupHandleStr),'String',objStr,'Value',fiNr);
+                end
+            end
+        end
+        
+        function out = AIParam2GUIChannelNr(this,aiParam,layer)
+            %return currently selected channel or zero for 'all channels'
+            chStr = [{'all Ch'}; this.visObj.fdt.getChStr(this.curStudy,this.curSubjectName)];
+            out = [];
+            layer = upper(layer);
+            if(~any(strcmp({'A','B','C'},layer)))
+                return
+            end            
+            %find saved channel
+            if(aiParam.(sprintf('ch%s',layer)) == 0)
+                out = 0;
+            else
+                out = find(strcmp(sprintf('Ch %d',aiParam.(sprintf('ch%s',layer))),chStr))-1;
+            end                
         end
     end %methods protected
     
@@ -378,16 +473,75 @@ classdef AICtrl < handle
             %default values for aiParams struct
             aiParams.FLIMItemA = 'Amplitude 1';
             aiParams.FLIMItemB = 'Tau 1';
+            aiParams.FLIMItemC = 'Tau 1'; %new
+            aiParams.ROIB = 'Rectangle #1'; %new
+            aiParams.ROIC = 'Circle #1'; %new
             aiParams.normalizeA = 0;
             aiParams.normalizeB = 0;
+            aiParams.normalizeC = 0; %new
             aiParams.chA = 0;
             aiParams.chB = 0;
+            aiParams.chC = 0; %new
             aiParams.opA = '<';
-            aiParams.opB = '>';
-            aiParams.compAgainst = 'val';
-            aiParams.valCombi = '-';
-            aiParams.valA = 1000;
+            aiParams.opB = '-no op-';
+            aiParams.compAgainstB = 'val';
+            aiParams.compAgainstC = 'val';            
             aiParams.valB = 1000;
+            aiParams.valC = 1000;
+        end
+        
+        function out = getDefOpString()
+            %return string with possible numeric and logical operations
+            out = {'+','-','.*','./','<','>','<=','>=','==','!=','AND','OR','!AND','!OR','XOR'};
+        end
+        
+        function out = getDefROIString()
+            %return string with possible ROIs
+            out = {'ETDRS->central';
+                'ETDRS->inner superior';
+                'ETDRS->inner nasal';
+                'ETDRS->inner inferior';
+                'ETDRS->inner temporal';
+                'ETDRS->outer superior';
+                'ETDRS->outer nasal';
+                'ETDRS->outer inferior';
+                'ETDRS->outer temporal';
+                'ETDRS->inner ring';
+                'ETDRS->outer ring';
+                'ETDRS->full circle';
+                'ETDRS->center + inner ring';
+                'ETDRS->center + outer ring';
+                'ETDRS->inner + outer ring';
+                'Rectangle #1';
+                'Rectangle #2';
+                'Circle #1';
+                'Circle #2';
+                'Polygon #1';
+                'Polygon #2'};
+        end
+        
+        function out = targetTypeID2Str(tID)
+            %convert target type to id
+            switch tID
+                case 1
+                    out = 'FLIMItem';
+                case 2
+                    out = 'ROI';
+                otherwise
+                    out = 'val';
+            end
+        end
+        
+        function out = targetTypeStr2ID(tStr)
+            %convert target type to id
+            switch tStr
+                case 'FLIMItem'
+                    out = 1;
+                case 'ROI'
+                    out = 2;
+                otherwise %'val'
+                    out = 3;
+            end
         end
         
     end

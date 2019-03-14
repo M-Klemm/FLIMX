@@ -1015,13 +1015,13 @@ classdef FDisplay < handle
                 %set anchor to the center of the image
                 this.zoomAnchor = [max(1,floor(xFullRange./2));max(1,floor(yFullRange./2))];
             else
-                xNewRange = xFullRange./this.mZoomFactor;
-                xNewHalfRange = floor(xNewRange./2);
-                yNewRange = yFullRange./this.mZoomFactor;
-                yNewHalfRange = floor(yNewRange./2);
-                this.zoomAnchor(1) = max(xNewHalfRange+1,min(xFullRange-xNewHalfRange,this.zoomAnchor(1)));
-                this.zoomAnchor(2) = max(yNewHalfRange+1,min(yFullRange-yNewHalfRange,this.zoomAnchor(2)));
-                this.zoomAnchor = anchor(:);
+%                 xNewRange = xFullRange./this.mZoomFactor;
+%                 xNewHalfRange = floor(xNewRange./2);
+%                 yNewRange = yFullRange./this.mZoomFactor;
+%                 yNewHalfRange = floor(yNewRange./2);
+%                 this.zoomAnchor(1) = max(xNewHalfRange+1,min(xFullRange-xNewHalfRange,this.zoomAnchor(1)));
+%                 this.zoomAnchor(2) = max(yNewHalfRange+1,min(yFullRange-yNewHalfRange,this.zoomAnchor(2)));
+                this.zoomAnchor = anchor(:);                
             end
         end
         
@@ -1458,7 +1458,11 @@ classdef FDisplay < handle
                 data(:,1) = hfd{1}.getDescriptiveStatisticsDescriptionShort();
                 tmp = hfd{1}.getROIStatistics(this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag);
                 %data(:,2) = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%{num2str(tmp(i),'%.3G')};
-                data(:,2) = FLIMXFitGUI.num4disp(tmp);
+                if(isempty(tmp))
+                    data(:,2) = cell(size(data,1),1);
+                else
+                    data(:,2) = FLIMXFitGUI.num4disp(tmp);
+                end
                 %remove not needed parameters
                 %data([4,8,9],:) = [];              
                 set(this.h_ds_t,'Data',data);

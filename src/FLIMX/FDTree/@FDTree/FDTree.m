@@ -414,6 +414,14 @@ classdef FDTree < FDTreeNode
             end
         end
         
+%         function clearArithmeticRIs(this,studyID)
+%             %clear raw images of arithmetic images in a study
+%             study = this.getChild(studyID);
+%             if(~isempty(study))
+%                 study.clearArithmeticRIs();
+%             end
+%         end
+        
         function clearMVGroups(this,studyID,subjectID,dType,dTypeNr)
             %clear MVGroups if ROI changes
             study = this.getChild(studyID);
@@ -1348,6 +1356,15 @@ classdef FDTree < FDTreeNode
                 out = true;
             else
                 out = study.isMember(subjectID,chan,dType);
+            end
+        end
+        
+        function out = isArithmeticImage(this,studyID,dType)
+            %return true, if dType is an arithmetic image
+            out = false;
+            study = this.getChild(studyID);
+            if(~isempty(study))
+                out = study.isArithmeticImage(dType);
             end
         end
         

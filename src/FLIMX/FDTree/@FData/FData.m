@@ -262,6 +262,11 @@ classdef FData < handle
                 end
             end
         end
+        
+        function out = isArithmeticImage(this)
+            %return true, if dType is an arithmetic image
+            out = this.myParent.isArithmeticImage();
+        end
 
         function out = getZScaling(this)
             %get z scaling parameters
@@ -303,7 +308,7 @@ classdef FData < handle
                 out(isinf(out)) = 0;
             end
             %don't filter intensity image
-            if(~(strcmpi(this.dType,'intensity') || strncmp('MVGroup',this.dType,7) || strncmp('ConditionMVGroup',this.dType,16) || strncmp('GlobalMVGroup',this.dType,13)))
+            if(~this.isArithmeticImage() && ~(strcmpi(this.dType,'intensity') && strncmp('MVGroup',this.dType,7) && strncmp('ConditionMVGroup',this.dType,16) && strncmp('GlobalMVGroup',this.dType,13)))
                 if(isempty(this.rawImgFilt))
                     out = this.filter(out);
                     this.rawImgFilt = out;
@@ -706,13 +711,13 @@ classdef FData < handle
                 end
                 switch strtrim(statsType)
                     case 'mean'
-                        out(i,1) = mean(ci(:));
+                        out(i,1) = mean(ci(:),'omitnan');
                     case 'median'
-                        out(i,1) = median(ci(:));
+                        out(i,1) = median(ci(:),'omitnan');
                     case 'SD'
-                        out(i,1) = std(ci(:));
+                        out(i,1) = std(ci(:),'omitnan');
                     case 'CV'
-                        out(i,1) = 100*std(ci(:))./mean(ci(:));
+                        out(i,1) = 100*std(ci(:),'omitnan')./mean(ci(:),'omitnan');
                 end
             end
         end
@@ -1066,10 +1071,10 @@ classdef FData < handle
             else
                 stats(1) = imageHistogramCenters(min(pos,length(imageHistogramCenters)));
             end
-            stats(2) = median(imageData);
-            stats(3) = mean(imageData);
-            stats(4) = var(imageData);
-            stats(5) = std(imageData);
+            stats(2) = median(imageData,'omitnan');
+            stats(3) = mean(imageData,'omitnan');
+            stats(4) = var(imageData,'omitnan');
+            stats(5) = std(imageData,'omitnan');
             stats(6) = 100*stats(5)./stats(3);
             stats(7) = skewness(imageData);
             stats(8) = kurtosis(imageData);
@@ -1077,7 +1082,7 @@ classdef FData < handle
             t = icdf('t',1-(1-0.95)/2,px-1); %confidence level 95%
             stats(9) = stats(3) - t*stats(5)/sqrt(px);
             stats(10) = stats(3) + t*stats(5)/sqrt(px);
-            stats(11) = sum(imageData(:));
+            stats(11) = sum(imageData(:),'omitnan');
             stats(12) = numel(imageData);
         end
         

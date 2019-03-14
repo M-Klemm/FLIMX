@@ -1068,6 +1068,7 @@ classdef FLIMXVisGUI < handle
                                 if(this.objHandles.(sprintf('%sdo',thisSide)).mZoomFactor > 1)
                                     dTarget = this.dynParams.mouseButtonDownCoord-cpMain;
                                     this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);
+                                    this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor
                                     this.objHandles.(sprintf('%sdo',thisSide)).makeZoom();
                                 end
                             end
@@ -1387,7 +1388,7 @@ classdef FLIMXVisGUI < handle
                                 %move zoom anchor
                                 if(this.objHandles.(sprintf('%sdo',thisSide)).mZoomFactor > 1)
                                     dTarget = this.dynParams.mouseButtonDownCoord-cpMain;
-                                    this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);
+                                    this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);                                    
                                     this.objHandles.(sprintf('%sdo',thisSide)).makeZoom();
                                 end
                             end
@@ -1395,8 +1396,18 @@ classdef FLIMXVisGUI < handle
                     end %if(~isempty(cpMain))
                     otherROIObj.updateGUI([]);
                     this.myStatsGroupComp.clearResults();
-                    this.objHandles.rdo.updatePlots();
-                    this.objHandles.ldo.updatePlots();
+                    if(this.fdt.isArithmeticImage(this.getStudy('r'),this.getFLIMItem('r')))
+                        tZA = this.objHandles.rdo.zoomAnchor;
+                        this.objHandles.rdo.sethfdMain([]);
+                        this.objHandles.rdo.setZoomAnchor(tZA);
+                    end
+                    this.objHandles.rdo.updatePlots(); %this will also update the statistics table
+                    if(this.fdt.isArithmeticImage(this.getStudy('l'),this.getFLIMItem('l')))
+                        tZA = this.objHandles.ldo.zoomAnchor;
+                        this.objHandles.ldo.sethfdMain([]);
+                        this.objHandles.ldo.setZoomAnchor(tZA);
+                    end
+                    this.objHandles.ldo.updatePlots(); %this will also update the statistics table
                     %draw mouse overlay on this side in main axes
                     this.objHandles.(sprintf('%sdo',thisSide)).drawCPMain(cpMain);
                     if(this.getROIDisplayMode(thisSide) == 1 && this.getROIDisplayMode(otherSide) == 1 || this.getROIDisplayMode(thisSide) == 2 && this.getROIDisplayMode(otherSide) == 2 && thisROIObj.ROIType == otherROIObj.ROIType)
@@ -1404,7 +1415,7 @@ classdef FLIMXVisGUI < handle
                     else
                         %other side displays something else, clear possible invalid mouse overlay
                         this.objHandles.(sprintf('%sdo',otherSide)).drawCPMain([]);
-                    end                    
+                    end
                 elseif(~isempty(cpMain) && isempty(cpSupp) && ~this.visHandles.enableMouse_check.Value || this.getROIType(thisSide) < 1)
                     %click in main axis with ROI definition disabled or no ROI active
                     if(~this.dynParams.mouseButtonIsLeft)

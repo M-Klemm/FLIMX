@@ -295,12 +295,17 @@ classdef FDTChunk < FDTreeNode
         function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
             [alg, params] = this.myParent.getDataSmoothFilter();
+        end                
+        
+        function out = isArithmeticImage(this)
+            %return true, if dType is an arithmetic image
+            out = this.myParent.isArithmeticImage(this.dType);
         end
-                
+        
         function out = get.FLIMXParamMgrObj(this)
             %get handle to parameter manager object
             out = this.myParent.FLIMXParamMgrObj;
-        end                      
+        end        
     end
     
     methods(Static)
