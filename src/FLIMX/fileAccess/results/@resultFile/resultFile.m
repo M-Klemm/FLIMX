@@ -467,6 +467,7 @@ classdef resultFile < handle
                     out(end+1) = {sprintf('Q%d',i)};
                 end
                 out(end+1) = {'TauMean'};
+                out(end+1) = {'TauMeanIS'};
             end
         end
         
@@ -555,7 +556,7 @@ classdef resultFile < handle
             end
             if(isfield(this.results.init{ch,1},pStr))
                 out = this.results.init{ch,1}.(pStr);
-            elseif(strncmp(pStr,'AmplitudePercent',16))
+            elseif(strcmp(pStr,'AmplitudePercent'))
                 %make amplitude in percent
                 nr = str2double(pStr(17:end));
                 if(isnan(nr))
@@ -572,7 +573,7 @@ classdef resultFile < handle
                 end
                 out(isnan(out)) = 0;
                 out = 100*out./sum(tmp,3);
-            elseif(strncmp(pStr,'Q',1))
+            elseif(strcmp(pStr,'Q'))
                 %make Q
                 nr = str2double(pStr(2:end));
                 if(isnan(nr))
@@ -590,11 +591,11 @@ classdef resultFile < handle
                 end
                 out(isnan(out)) = 0;
                 out = out ./ tmp .* 100;
-            elseif(strncmp(pStr,'TauMean',7))
-                %make mean of taus                
+            elseif(strcmp(pStr,'TauMean'))
+                %make mean of taus
                 %Tm= a1*T1+a2*T2+a3*T3/(a1+a2+a3)
                 amp = this.getInitFLIMItem(ch,'Amplitude1');
-                tmp = zeros(size(amp)); 
+                tmp = zeros(size(amp));
                 out = zeros(size(amp));
                 for i = 1:this.basicParams.nExp
                     amp = this.getInitFLIMItem(ch,sprintf('Amplitude%d',i));
@@ -603,6 +604,19 @@ classdef resultFile < handle
                 end
                 out = tmp./out;
                 out(isnan(out)) = 0;
+            elseif(strcmp(pStr,'TauMean'))
+                %make mean of taus
+                %Tm= a1*T1+a2*T2+a3*T3/(a1+a2+a3)
+                amp = this.getInitFLIMItem(ch,'Amplitude1');
+                tmp = zeros(size(amp));
+                out = zeros(size(amp));
+                for i = 1:this.basicParams.nExp
+                    amp = this.getInitFLIMItem(ch,sprintf('Amplitude%d',i));
+                    tmp = tmp + amp .* this.getInitFLIMItem(ch,sprintf('Tau%d',i));
+                    out = out + amp;
+                end
+                out = tmp./out;
+                out(isnan(out)) = 0;                
 %             elseif(strncmp(pStr,'GoodnessOfFit',13))
 %                 %compute goodness of fit statistics
 %                 %Q = 1/gamma(v/2)*integral(exp(-t)*t^((v/2)-1)dt; chi² to inf; v = degrees of freedom; Q > 0.1 = good, Q < 0.001 = bad
@@ -644,7 +658,7 @@ classdef resultFile < handle
             end
             if(isfield(this.results.pixel{ch,1},pStr))
                 out = this.results.pixel{ch,1}.(pStr);
-            elseif(strncmp(pStr,'AmplitudePercent',16))
+            elseif(strcmp(pStr,'AmplitudePercent'))
                 %make amplitude in percent
                 nr = str2double(pStr(17:end));
                 if(isnan(nr) || nr > this.basicParams.nExp)
@@ -661,7 +675,7 @@ classdef resultFile < handle
                 end
                 out(isnan(out)) = 0;
                 out = 100*out./sum(abs(tmp),3);
-            elseif(strncmp(pStr,'Q',1))
+            elseif(strcmp(pStr,'Q'))
                 %make Q
                 nr = str2double(pStr(2:end));
                 if(isnan(nr) || nr > this.basicParams.nExp)
@@ -676,11 +690,27 @@ classdef resultFile < handle
                 end
                 out(isnan(out)) = 0;
                 out = out ./ tmp .* 100;
-            elseif(strncmp(pStr,'TauMean',7))
-                %make mean of taus                
+            elseif(strcmp(pStr,'TauMean'))
+                %make mean of taus
+                %use only non-shifted components
                 %Tm= a1*T1+a2*T2+a3*T3/(a1+a2+a3)
                 amp = this.getPixelFLIMItem(ch,'Amplitude1');
-                tmp = zeros(size(amp)); 
+                tmp = zeros(size(amp));
+                out = zeros(size(amp));
+                expMask = find(~this.basicParams.tciMask);
+                for i = expMask
+                    amp = this.getPixelFLIMItem(ch,sprintf('Amplitude%d',i));
+                    tmp = tmp + amp .* this.getPixelFLIMItem(ch,sprintf('Tau%d',i));
+                    out = out + amp;
+                end
+                out = tmp./out;
+                out(isnan(out)) = 0;
+            elseif(strcmp(pStr,'TauMeanIS'))
+                %make mean of taus
+                %use all components
+                %Tm= a1*T1+a2*T2+a3*T3/(a1+a2+a3)
+                amp = this.getPixelFLIMItem(ch,'Amplitude1');
+                tmp = zeros(size(amp));
                 out = zeros(size(amp));
                 for i = 1:this.basicParams.nExp
                     amp = this.getPixelFLIMItem(ch,sprintf('Amplitude%d',i));
