@@ -430,7 +430,7 @@ classdef result4Import < resultFile
         
         function out = reservedFLIMItemNames()
             %return names of FLIM items which are used by FLIMX; thus can't be imported
-            out = {'tauMean','Q','AmplitudePercent','RAUC','RAUIS'};
+            out = {'tauMean','tauMeanIS','Q','AmplitudePercent','RAUC','RAUIS'};
         end
     end
 end%classdef
