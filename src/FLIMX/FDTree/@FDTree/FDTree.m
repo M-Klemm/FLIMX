@@ -540,13 +540,14 @@ classdef FDTree < FDTreeNode
                     %data to copy
                     data = orgStudy.makeInfoSetExportStruct(oldSubjectID);
                     data.subjects = {newSubjectID};
-                    destStudy.insertSubject(newSubjectID,data);                    
+                    subjectObj = destStudy.insertSubject(newSubjectID,data);                    
                     %copy Data for FLIMXVisGUI
                     oldpath = fullfile(orgStudy.myDir,oldSubjectID);
                     newpath = fullfile(destStudy.myDir,newSubjectID);
                     if(exist(oldpath,'dir') ~= 0)
                         copyfile(oldpath,newpath);
                     end
+                    subjectObj.reset();
                 end
             end
         end
