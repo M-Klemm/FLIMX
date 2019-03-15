@@ -1277,7 +1277,7 @@ classdef measurementFile < handle
             this.fileInfo.nrTimeChannels = fileInfo.nrTimeChannels;
             this.fileInfo.nrSpectralChannels = fileInfo.nrSpectralChannels;
             if(~this.initMode && (~this.fileInfoLoaded || old.tacRange ~= fileInfo.tacRange || old.nrTimeChannels ~= fileInfo.nrTimeChannels || old.nrSpectralChannels ~= fileInfo.nrSpectralChannels))
-                this.clearROIData();
+                this.clearROAData();
             end
             if(~isfield(fileInfo,'reflectionMask'))
                 fileInfo.reflectionMask = mat2cell(ones(fileInfo.nrTimeChannels,fileInfo.nrSpectralChannels),val,ones(fileInfo.nrSpectralChannels,1))';

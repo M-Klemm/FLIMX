@@ -183,7 +183,7 @@ classdef subjectParamMgr < paramMgr
                                 %check if something has changed
                                 for j = 1:length(fields)
                                     if(old.(fields{j}) ~= new.(fields{j}) && resetResults)
-                                        this.fluoFileObj.clearROIData();
+                                        this.fluoFileObj.clearROAData();
                                         break
                                     end
                                 end

@@ -734,7 +734,7 @@ classdef FLIMXFitGUI < handle
                 row = row+apObj.volatilePixelParams.nScatter+2;
                 paramTable{row,1} = 'Offset';  paramTable{row,2} = sprintf('%3.2f',oset); paramTable{row,3} = 'Shift'; paramTable{row,4} = sprintf('%3.1fps',hShift);
                 row = row+1;
-                paramTable{row,1} = 'Chiï¿½';  paramTable(row,2) = FLIMXFitGUI.num4disp(chi2); paramTable{row,3} = 'Chiï¿½ (Tail)'; paramTable(row,4) = FLIMXFitGUI.num4disp(chi2Tail);
+                paramTable{row,1} = 'Chi²';  paramTable(row,2) = FLIMXFitGUI.num4disp(chi2); paramTable{row,3} = 'Chi² (Tail)'; paramTable(row,4) = FLIMXFitGUI.num4disp(chi2Tail);
                 row = row+1;
                 paramTable{row,1} = 'FuncEvals';  paramTable{row,2} = sprintf('%d',FunctionEvaluations); paramTable{row,3} = 'Time'; paramTable{row,4} = sprintf('%3.2fs',time);
                 row = row+1;
