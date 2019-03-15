@@ -77,15 +77,15 @@ else
     if(isempty(pool))
         %no pool available -> use single core
         out = zeros(size(dataTmp),'like',data);
-        for i = 1:sizY
+        for i = 1:roiYLen
             out(i+binFactor,:,:) = sum(dataTmp(i:i+2*binFactor,:,:),1,'native');
         end
         dataTmp = out;
         out = zeros(size(dataTmp),'like',data);
-        for i = 1:sizX
+        for i = 1:roiXLen
             out(:,i+binFactor,:) = sum(dataTmp(:,i:i+2*binFactor,:),2,'native');
         end
-        out = out(binFactor+1:binFactor+sizY,binFactor+1:binFactor+sizX,:);
+        out = out(binFactor+1:binFactor+roiYLen,binFactor+1:binFactor+roiXLen,:);
     else
         %use the pool, use as many tiles as there are workers
         nrTiles = pool.NumWorkers;
