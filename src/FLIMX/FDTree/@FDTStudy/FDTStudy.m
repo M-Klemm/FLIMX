@@ -371,18 +371,18 @@ classdef FDTStudy < FDTreeNode
             this.myStudyInfoSet.setAllFLIMItems(subjectID,ch,items);
         end
         
-        function insertSubject(this,subName,data)
-            %
-            this.addSubject(subName);
-            this.myStudyInfoSet.insertSubject(subName,data);
+        function subjectObj = insertSubject(this,subName,subjectInfo)
+            %create a new subject and store its subject info
+            subjectObj = this.addSubject(subName);
+            this.myStudyInfoSet.insertSubject(subName,subjectInfo);
             %add empty channels
-            channels = this.myStudyInfoSet.getFileChs(subName);
-            for j=1:length(channels)
-                if(~isempty(channels{j}))
-                    %this.checkIRFInfo(channels{j});
-                    this.addObj(subName,channels{j},[],[],[]);
-                end
-            end
+%             channels = this.myStudyInfoSet.getFileChs(subName);
+%             for j=1:length(channels)
+%                 if(~isempty(channels{j}))
+%                     %this.checkIRFInfo(channels{j});
+%                     this.addObj(subName,channels{j},[],[],[]);
+%                 end
+%             end
         end
         
         function addColumn(this,name)

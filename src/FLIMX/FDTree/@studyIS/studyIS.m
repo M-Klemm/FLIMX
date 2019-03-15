@@ -1865,8 +1865,12 @@ classdef studyIS < handle
                 if(isfield(oldStudy,'arithmeticImageInfo'))
                     for i = 1:size(oldStudy.arithmeticImageInfo,1)
                         tmp = oldStudy.arithmeticImageInfo{i,2};
-                        if(isfield(tmp,'opB') && strcmp(tmp.opB,'-none-'))
-                            tmp.opB = '-no op-';
+                        if(isfield(tmp,'valCombi'))
+                            if(strcmp(tmp.valCombi,'-none-'))
+                                tmp.opB = '-no op-';
+                            else
+                                tmp.opB = tmp.valCombi;
+                            end
                         end
                         if(isfield(tmp,'compAgainst'))
                             tmp.compAgainstB = tmp.compAgainst;

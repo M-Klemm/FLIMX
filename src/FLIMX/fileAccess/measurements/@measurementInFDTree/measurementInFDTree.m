@@ -123,6 +123,7 @@ classdef measurementInFDTree < measurementFile
                 this.myFiles{1,ch} = matfile(fn,'Writable',false);
             catch ME
                 %todo: error handling
+                warning('Could not open measurement file: %s\n%s',fn,ME.message);
                 return
             end
             if(any(strcmp(who(this.myFiles{1,ch}),'measurement')))
@@ -165,35 +166,10 @@ classdef measurementInFDTree < measurementFile
                 try
                     %the whole update procedure in one try block to make
                     %sure it either works completely or not at all
-                    rawData = this.myFiles{1,ch}.rawData;
-                    ROIInfo = this.myFiles{1,ch}.ROIInfo;
-                    if(isempty(rawData))
-                        rawDataFlat = [];
-                        ROIInfo.ROIMerged = [];
-                    else
-                        rawDataFlat = int32(sum(rawData,3));
-                        if(~isempty(ROIInfo.ROICoordinates))
-                            ROIInfo.ROIMerged = sum(reshape(rawData(ROIInfo.ROICoordinates(3):ROIInfo.ROICoordinates(4),ROIInfo.ROICoordinates(1):ROIInfo.ROICoordinates(2),:),[],size(rawData,3)),1)';
-                        else
-                            ROIInfo.ROIMerged = squeeze(sum(rawData,1:2));
-                        end
-                    end
-                    auxInfo.revision = 205;
-                    if(~isfield(auxInfo,'sourceFile'))
-                        auxInfo.sourceFile = '';
-                    end
-                    %enable write access
-                    this.myFiles{1,ch}.Properties.Writable = true;
-                    this.myFiles{1,ch}.rawDataFlat = rawDataFlat;
-                    if(~any(ismember(who(this.myFiles{1,ch}),{'rawMaskData'})))
-                        %make sure there is always a rawDatMask field
-                        this.myFiles{1,ch}.rawMaskData = [];
-                    end
-                    this.myFiles{1,ch}.ROIInfo = ROIInfo;
-                    this.myFiles{1,ch}.auxInfo = auxInfo;
-                    this.myFiles{1,ch}.Properties.Writable = false;
+                    this.updateMatfile(this.myFiles{1,ch},205);
                 catch ME
                     %todo: error handling
+                    warning('Updating measurement file failed: %s\n%s',fn,ME.message);
                 end
             end
             if(sum(ismember(who(this.myFiles{1,ch}),{'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'})) < 4)
@@ -444,6 +420,10 @@ classdef measurementInFDTree < measurementFile
                     %load ROA info
                     if(this.filesOnHDD(ch) && this.openChannel(ch))
                         %load intensity image
+                        if(~any(ismember(who(this.myFiles{1,ch}),{'rawDataFlat'})))
+                            %try to update the file again
+                            this.updateMatfile(this.myFiles{1,ch},205);
+                        end
                         this.rawFluoDataFlat{ch,1} = this.myFiles{1,ch}.rawDataFlat;
                         this.rawMaskData{ch,1} = this.myFiles{1,ch}.rawMaskData;
                         %load file info
@@ -541,5 +521,37 @@ classdef measurementInFDTree < measurementFile
                 this.setDirtyFlags([],2,true);
             end
         end
+        
+        function updateMatfile(this,hMatFile,rev)
+            %update matfile
+            if(rev == 205)
+                rawData = hMatFile.rawData;
+                ROIInfo = hMatFile.ROIInfo;
+                if(isempty(rawData))
+                    rawDataFlat = [];
+                    ROIInfo.ROIMerged = [];
+                else
+                    rawDataFlat = int32(sum(rawData,3));
+                    if(~isempty(ROIInfo.ROICoordinates))
+                        ROIInfo.ROIMerged = sum(reshape(rawData(ROIInfo.ROICoordinates(3):ROIInfo.ROICoordinates(4),ROIInfo.ROICoordinates(1):ROIInfo.ROICoordinates(2),:),[],size(rawData,3)),1)';
+                    else
+                        ROIInfo.ROIMerged = squeeze(sum(rawData,1:2));
+                    end
+                end
+                auxInfo.revision = rev;
+                if(~isfield(auxInfo,'sourceFile'))
+                    auxInfo.sourceFile = '';
+                end
+                %enable write access
+                hMatFile.Properties.Writable = true;
+                hMatFile.rawDataFlat = rawDataFlat;
+                if(~any(ismember(who(hMatFile),{'rawMaskData'})))
+                    %make sure there is always a rawDatMask field
+                    hMatFile.rawMaskData = [];
+                end
+                hMatFile.ROIInfo = ROIInfo;
+                hMatFile.auxInfo = auxInfo;
+            end
+        end    
     end
 end %classdef
