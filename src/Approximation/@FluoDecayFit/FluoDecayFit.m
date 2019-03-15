@@ -297,7 +297,7 @@ classdef FluoDecayFit < handle
             %% prepare first
             while(true)
                 folderGUI = false;
-                if(this.computationParams.useDistComp && ~isdir(this.computationParams.mcShare))
+                if(this.computationParams.useDistComp && ~isfolder(this.computationParams.mcShare))
                     folderGUI = true;
                     warndlg(sprintf('Could not find multicore-path:\n %s\n\nPlease choose valid mulitcore share folder.',this.computationParams.mcShare),...
                         'Multicore share Path not found!','modal');
@@ -332,6 +332,12 @@ classdef FluoDecayFit < handle
                 end
                 return
             end            
+            if(strcmp(this.FLIMXObj.curSubject.getResultType(),'ASCII'))
+                this.FLIMXObj.curSubject.clearROAResults(true); 
+                this.FLIMXObj.curSubject.initParamMgr();
+                this.FLIMXObj.curSubject.update();
+                this.FLIMXObj.curSubject.clearCachedApproxObj();
+            end
             tStart = clock;            
             %% initialization fit
             if((this.basicParams.optimizerInitStrategy == 2 || ~isempty(this.basicParams.fix2InitTargets)) && ~this.FLIMXObj.curSubject.isInitResult(ch))                
@@ -356,7 +362,7 @@ classdef FluoDecayFit < handle
                         studyName = this.FLIMXObj.curSubject.getStudyName();
                         subjectName = this.FLIMXObj.curSubject.getDatasetName();
 %                         if(this.FLIMXObj.fdt.isMember(studyName,subjectName,ch,[]))
-                            this.FLIMXObj.fdt.removeChannel(studyName,subjectName,ch);
+                            this.FLIMXObj.fdt.deleteChannel(studyName,subjectName,ch,'result');
 %                         end
                         this.FLIMXObj.curSubject.updateSubjectChannel(ch,'result');%,removeNonVisItems(fieldnames(rs.results.pixel)));
                         this.FLIMXObj.fdt.saveStudy(studyName);

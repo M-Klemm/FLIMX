@@ -44,12 +44,56 @@ classdef result4Approx < resultFile
             %this.checkMyFiles();
         end
         
+        function setResultType(this,val)
+            %set the result type string; only 'FluoDecayFit' (default) and 'ASCII' are valid
+            if(strcmp(val,'ASCII') || strcmp(val,'FluoDecayFit') && ~strcmp(val,this.resultType))
+                this.resultType = val;
+                this.setDirty(1:length(this.results.pixel),true);
+            end
+        end
+        
         function setEffectiveTime(this,ch,t)
             %set the effective time the approximation of ch took
             if(ch <= length(this.results.pixel))
                 this.results.pixel{ch,1}.EffectiveTime = t;
-            end
+                this.setDirty(ch,true);
+            end            
+        end
+        
+        function importResultStruct(this,rs,ch,position,scaling)
+            %import a result struct into this object, the result struct must have the same format as a result file
+            %make sure version is correct
+            rs = resultFile.updateFitResultsStruct(rs,this.paramMgrObj.getDefaults().about);
+            rs.auxiliaryData.fileInfo.position = position;
+            rs.auxiliaryData.fileInfo.pixelResolution = scaling;
+            this.loadResult(rs);
             this.setDirty(ch,true);
+            %update fileInfo of other channels
+            if(ch > 1)
+                for i = 1:ch-1
+                    if(this.auxiliaryData{i}.fileInfo.nrSpectralChannels ~= rs.auxiliaryData.fileInfo.nrSpectralChannels)
+                        this.auxiliaryData{i}.fileInfo.nrSpectralChannels = rs.auxiliaryData.fileInfo.nrSpectralChannels;
+                        this.setDirty(i,true);
+                    end
+                end
+            end
+        end
+        
+        function addFLIMItems(this,ch,itemsStruct)
+            %add FLIM items to our inner results structure, here: FLIM items do not need to be allocated previously!
+            %todo: check overwrite?!
+            %todo: restrict FLIM item names (e.g. tauMean is reserved)
+            tmp = this.getPixelResult(ch);
+            fn = fieldnames(itemsStruct);
+            for l = 1:length(fn)
+                if(all(size(itemsStruct.(fn{l})) == this.resultSize))
+                    tmp.(fn{l}) = itemsStruct.(fn{l});
+                end
+            end
+            this.results.pixel{ch,1} = tmp;
+            this.pixelApproximated(ch) = true;
+            this.setDirty(ch,true);
+            this.loadedChannels(ch,1) = true;
         end
         
 %         function addFLIMItems(this,ch,resultStruct)
@@ -527,8 +571,7 @@ classdef result4Approx < resultFile
                     this.addInitResult(ch,indices,resultStruct(ch));
                 end
                 return
-            end            
-            %bp = this.basicParams;
+            end
             ip = this.initFitParams;
             fn = fieldnames(resultStruct);
             if(size(indices,1) ~= length(resultStruct.(fn{1})) || any(indices(:) > ip.gridSize))
@@ -546,7 +589,7 @@ classdef result4Approx < resultFile
             end
             if(isempty(newIdx))
                 return
-            end            
+            end
             fn = fn(~strcmpi(fn,'ROI_merge_result'));
             fn = fn(~strcmpi(fn,'Message'));
             fn = fn(~strcmpi(fn,'reflectionMask'));
@@ -587,7 +630,7 @@ classdef result4Approx < resultFile
                 %todo: check if indices are out of bounds...
                 tmp.(fn{l})(idx) = resultStruct.(fn{l})(newIdx);
             end
-            this.results.init{ch,1} = tmp;            
+            this.results.init{ch,1} = tmp;
             this.setDirty(ch,true);
             %compute interpolation grid
             if(~all(tmp.Tau1(:)))
@@ -602,15 +645,15 @@ classdef result4Approx < resultFile
         %% output
 %         function result = makeExportStruct(this,ch)
 %             %build the structure with results for export
-% %             [~, fileName, ext] = fileparts(this.mySubject.getSourceFile());
-% %             roi = this.mySubject.ROICoordinates;
-% %             int = this.mySubject.getRawDataFlat(ch);
+% %             [~, fileName, ext] = fileparts(this.myParent.getSourceFile());
+% %             roi = this.myParent.ROICoordinates;
+% %             int = this.myParent.getRawDataFlat(ch);
 % %             if(length(roi) == 4 && ~isempty(int) && size(int,1) >= roi(4) && size(int,2) >= roi(2))
 % %                 int = int(roi(3):roi(4),roi(1):roi(2));
 % %             else
 % %                 int = [];
 % %             end
-%             result = makeExportStruct@resultFile(this,ch);%,this.mySubject.getDatasetName(),[fileName ext],roi,int,this.mySubject.getReflectionMask(ch));
+%             result = makeExportStruct@resultFile(this,ch);%,this.myParent.getDatasetName(),[fileName ext],roi,int,this.myParent.getReflectionMask(ch));
 %         end        
         
 %         function exportMatFile(this,ch,folder)

@@ -916,7 +916,7 @@ classdef StatsGroupComparison < handle
                 else
                     %the histogram for this group is empty, clear all related info
                     this.histograms(j) = {[]};
-                    this.grpNames(j) = {[]};
+                    this.grpNames(j) = {''};
                     this.histogramSum(j) = {[]};                    
                 end
             end

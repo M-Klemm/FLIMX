@@ -35,15 +35,15 @@ classdef FLIMXFitGUI < handle
         dynVisParams = []; %options for visualization  (dynamic), sdtLoadedFlag = 0; %0 - offline mode (result loaded), 1 - online mode (sdt loaded)
         visHandles = []; %structure to save handles to uicontrols
         FLIMXObj = []; %FLIMX object
-        
+
         currentX = 1; %current x position
         currentY = 1; %current y position
-        
+
         lastProgressCmdLine = [];
         resScaleFlag = 1; %1 - auto mode, 0 - manual residuum scaling
         resScaleValue = 10; %percentage for manual residuum scaling
     end
-    
+
 
     properties(GetAccess = protected, SetAccess = private)
         axesRawMgr = [];
@@ -58,7 +58,7 @@ classdef FLIMXFitGUI < handle
         fdt = [];
         simTool = []; %handle to simulation tool
         simCompTool = []; %handle to simulation analysis tool
-        
+
         maxX = 1;
         maxY = 1;
         axesSuppData = [];
@@ -69,9 +69,9 @@ classdef FLIMXFitGUI < handle
         currentChannel = 0;
         currentDecayData = [];
         generalParams = [];
-        
+
         showInitialization = false;
-        
+
         about = [];
         computationParams = [];
         folderParams = [];
@@ -80,7 +80,7 @@ classdef FLIMXFitGUI < handle
         volatilePixelParams = [];
         exportParams = [];
     end
-    
+
     methods
         function this = FLIMXFitGUI(flimX)
             %Constructs a GUI for FLIMXFit class.
@@ -93,7 +93,7 @@ classdef FLIMXFitGUI < handle
                 this.dynVisParams.cm = eval(sprintf('%s(256)',lower(this.generalParams.cmType)));
             catch
                 this.dynVisParams.cm = jet(256);
-            end            
+            end
             if(this.generalParams.cmInvert)
                 this.dynVisParams.cm = flipud(this.dynVisParams.cm);
             end
@@ -113,11 +113,11 @@ classdef FLIMXFitGUI < handle
             this.dynVisParams.countsScalingAuto = 1; %1-auto, 0-manual
             this.dynVisParams.countsScalingStart = 0.1; %only if countsScalingAuto = 0
             this.dynVisParams.countsScalingEnd = 10000; %only if countsScalingAuto = 0
-            
+
             this.FLIMXObj.FLIMFit.setProgressShortCallback(@this.updateProgressShort);
-            this.FLIMXObj.FLIMFit.setProgressLongCallback(@this.updateProgressLong);            
+            this.FLIMXObj.FLIMFit.setProgressLongCallback(@this.updateProgressLong);
         end %constructor
-                
+
 %         function setBusyStatus(this,flag)
 %             %sets the mouse pointer to watch or arrow
 %             if(flag)
@@ -126,7 +126,7 @@ classdef FLIMXFitGUI < handle
 %                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','arrow');
 %             end
 %         end
-        
+
         function setButtonStopSpinning(this,flag)
             %switch between spinning and regular stop button
             if(flag)
@@ -138,9 +138,9 @@ classdef FLIMXFitGUI < handle
                 set(this.visHandles.buttonStop,'String','Stop');
             end
         end
-        
+
         function setCurrentPos(this,y,x)
-            %set the current cursor position and update GUI            
+            %set the current cursor position and update GUI
             if(~this.isOpenVisWnd() || isempty(y) || isempty(x))
                 return
             end
@@ -148,7 +148,7 @@ classdef FLIMXFitGUI < handle
             this.currentX = max(1,min(x,this.maxX));
             this.updateGUI(1);
         end
-        
+
         function setupGUI(this)
             %make parameter popup menu string
             if(~this.isOpenVisWnd())
@@ -157,13 +157,13 @@ classdef FLIMXFitGUI < handle
             %update study controls
             studies = this.FLIMXObj.fdt.getStudyNames();
             curStudyIdx = find(strcmp(this.currentStudy,studies),1);
-            if(~strcmp(this.currentStudy,this.FLIMXObj.curSubject.getStudyName()) || isempty(curStudyIdx) || curStudyIdx ~= get(this.visHandles.popupStudy,'Value')) 
+            if(~strcmp(this.currentStudy,this.FLIMXObj.curSubject.getStudyName()) || isempty(curStudyIdx) || curStudyIdx ~= get(this.visHandles.popupStudy,'Value'))
                 studyPos = find(strcmp(this.FLIMXObj.curSubject.getStudyName(),studies),1);
                 if(isempty(studyPos))
                     if(isempty(studies))
                         set(this.visHandles.popupStudy,'String','Study','Value',1);
                     else
-                        set(this.visHandles.popupStudy,'String',studies,'Value',1);                        
+                        set(this.visHandles.popupStudy,'String',studies,'Value',1);
                     end
                 else
                     set(this.visHandles.popupStudy,'String',studies,'Value',studyPos);
@@ -186,7 +186,7 @@ classdef FLIMXFitGUI < handle
             subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentCondition);
             curSubjectIdx = find(strcmp(this.currentSubject,subjects),1);
             %set(this.visHandles.popupSubject,'String',subjects,'Value',min(get(this.visHandles.popupSubject,'Value'),length(subjects)));
-            if(~strcmp(this.currentSubject,this.FLIMXObj.curSubject.getDatasetName()) || isempty(curSubjectIdx) || curSubjectIdx ~= get(this.visHandles.popupSubject,'Value'))                
+            if(~strcmp(this.currentSubject,this.FLIMXObj.curSubject.getDatasetName()) || isempty(curSubjectIdx) || curSubjectIdx ~= get(this.visHandles.popupSubject,'Value'))
                 subjectPos = find(strcmp(this.FLIMXObj.curSubject.getDatasetName(),subjects),1);
                 if(isempty(subjectPos) && ~isMultipleCall())
                     if(isempty(subjects))
@@ -204,7 +204,7 @@ classdef FLIMXFitGUI < handle
                     end
                 else
                     set(this.visHandles.popupSubject,'String',subjects,'Value',subjectPos);
-                end  
+                end
             else
                 set(this.visHandles.popupSubject,'String',subjects,'Value',curSubjectIdx);
             end
@@ -277,7 +277,7 @@ classdef FLIMXFitGUI < handle
                 this.currentY = max(1,min(this.initFitParams.gridSize,this.currentY));
             else
                 this.currentX = max(1,min(this.FLIMXObj.curSubject.getROIXSz,this.currentX));
-                this.currentY = max(1,min(this.FLIMXObj.curSubject.getROIYSz,this.currentY));                
+                this.currentY = max(1,min(this.FLIMXObj.curSubject.getROIYSz,this.currentY));
             end
             set(this.visHandles.textX,'String',num2str(this.maxX));
             set(this.visHandles.textY,'String',num2str(this.maxY));
@@ -295,14 +295,14 @@ classdef FLIMXFitGUI < handle
                 set(this.visHandles.editTimeScalEnd,'String',num2str(this.dynVisParams.timeScalingEnd*cw,'%.02f'));
             end
             %counts edits
-%             tmp = this.currentDecayData;            
+%             tmp = this.currentDecayData;
 %             if(~isempty(tmp))
 %                 this.dynVisParams.countsScalingEnd = 10^ceil(log10(max(tmp(:))));
 %                 this.dynVisParams.countsScalingStart = max(min(10^floor(log10(min(tmp(:)))),this.dynVisParams.countsScalingEnd-1),0.1);
 %             end
             set(this.visHandles.editCountsScalStart,'String',num2str(this.dynVisParams.countsScalingStart,'%G'));
             set(this.visHandles.editCountsScalEnd,'String',num2str(this.dynVisParams.countsScalingEnd,'%G'));
-            
+
             %edit
             set(this.visHandles.editX,'Enable','on');
             set(this.visHandles.editY,'Enable','on');
@@ -312,7 +312,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.buttonUp,'Enable','on');
             set(this.visHandles.buttonDown,'Enable','on');
             set(this.visHandles.toggleShowInitialization,'Enable','on');
-            set(this.visHandles.buttonStop,'Enable','on');            
+            set(this.visHandles.buttonStop,'Enable','on');
 %             if(any(this.volatilePixelParams.globalFitMask))
 %                 flag = 'off';
 %             else
@@ -322,7 +322,7 @@ classdef FLIMXFitGUI < handle
             flag = 'on';
             set(this.visHandles.menuBatchSubjectAllCh,'Enable',flag);
         end %setupGUI
-        
+
         function updateGUI(this,flag)
             %update main and cuts axes
             if(~this.isOpenVisWnd())
@@ -331,7 +331,7 @@ classdef FLIMXFitGUI < handle
             if(~strcmp(this.currentStudy,this.FLIMXObj.curSubject.getStudyName()) || ...
                     ~strcmp(this.currentSubject,this.FLIMXObj.curSubject.getDatasetName()))
                %load new subject from tree
-               
+
             end
             %decay plot
             if(isempty(this.FLIMXObj.curSubject.getROIData(this.currentChannel,this.currentY,this.currentX)))
@@ -360,7 +360,7 @@ classdef FLIMXFitGUI < handle
                         this.axesROIMgr.setColorMap(this.dynVisParams.cm);
                     end
                 end
-                this.axesRawMgr.setMainData(this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel));
+                this.axesRawMgr.setMainData(double(this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel)));
                 data = this.axesSuppData;
                 if(~strcmp(str,'Intensity') && ~all(this.axesSuppDataMask(:)))
                     tmp = data(data ~= 0 | this.axesSuppDataMask);
@@ -373,7 +373,7 @@ classdef FLIMXFitGUI < handle
             end
             roi = this.FLIMXObj.curSubject.ROICoordinates;
             if(all(roi == [1 this.FLIMXObj.curSubject.getRawXSz 1 this.FLIMXObj.curSubject.getRawYSz]'))
-                %ROI is same as raw (measurement) data size 
+                %ROI is same as raw (measurement) data size
                 this.axesRawMgr.setROILineStyle('none');
             else
                 this.axesRawMgr.setROILineStyle('-');
@@ -382,13 +382,13 @@ classdef FLIMXFitGUI < handle
             this.axesRawMgr.drawCP([this.currentY+roi(3)-1 this.currentX+roi(1)-1]);
             this.axesROIMgr.drawCP([this.currentY this.currentX]);
         end %updateGUI
-        
+
         %% dependent properties
         function out = get.fdt(this)
             %shortcut to fdt
             out = this.FLIMXObj.fdt;
         end
-        
+
         function out = get.simTool(this)
             %return simulation tool
             if(isempty(this.simToolObj))
@@ -396,7 +396,7 @@ classdef FLIMXFitGUI < handle
             end
             out = this.simToolObj;
         end
-        
+
         function out = get.simCompTool(this)
             %return simulation comparison tool
             if(isempty(this.simCompToolObj))
@@ -404,18 +404,18 @@ classdef FLIMXFitGUI < handle
             end
             out = this.simCompToolObj;
         end
-        
+
         function value = get.maxX(this)
             %get maximum for x
             if(isempty(this.FLIMXObj.curSubject.ROICoordinates))
                 value = 1;
             elseif(this.showInitialization)
                 value = this.initFitParams.gridSize;
-            else                
+            else
                 value = abs(this.FLIMXObj.curSubject.ROICoordinates(2)-this.FLIMXObj.curSubject.ROICoordinates(1))+1;
             end
         end
-        
+
         function value = get.maxY(this)
             %get maximum for y
             if(isempty(this.FLIMXObj.curSubject.ROICoordinates))
@@ -426,7 +426,7 @@ classdef FLIMXFitGUI < handle
                 value = abs(this.FLIMXObj.curSubject.ROICoordinates(4)-this.FLIMXObj.curSubject.ROICoordinates(3))+1;
             end
         end
-        
+
         function data = get.axesSuppData(this)
             %get data for supplemental axes
             if(~this.isOpenVisWnd())
@@ -450,7 +450,7 @@ classdef FLIMXFitGUI < handle
                 end
             end
         end
-        
+
         function mask = get.axesSuppDataMask(this)
             %get mask for data of supplemental axes where data is non-zero
             if(~this.isOpenVisWnd())
@@ -465,7 +465,7 @@ classdef FLIMXFitGUI < handle
             end
             mask = mask ~= 0;
         end
-        
+
         function data = get.currentDecayData(this)
             %get the current photon decay histogram
             if(this.showInitialization)
@@ -476,7 +476,7 @@ classdef FLIMXFitGUI < handle
             end
             %data = data + 50;
         end
-        
+
         function out = get.currentStudy(this)
             %get current study name from GUI
             out = '';
@@ -490,7 +490,7 @@ classdef FLIMXFitGUI < handle
                 out = str;
             end
         end
-        
+
         function out = get.currentCondition(this)
             %get current condition name from GUI
             out = FDTree.defaultConditionName();
@@ -504,7 +504,7 @@ classdef FLIMXFitGUI < handle
                 out = str;
             end
         end
-        
+
         function out = get.currentSubject(this)
             %get current subject name from GUI
             out = '';
@@ -518,7 +518,7 @@ classdef FLIMXFitGUI < handle
                 out = str;
             end
         end
-        
+
         function out = get.currentChannel(this)
             %get current channel from GUI
             out = 1;
@@ -530,7 +530,7 @@ classdef FLIMXFitGUI < handle
                 out = 1;
             end
         end
-        
+
         function set.currentChannel(this,val)
             %get current channel from GUI
             if(~this.isOpenVisWnd())
@@ -546,57 +546,57 @@ classdef FLIMXFitGUI < handle
                 this.updateGUI(true);
             end
         end
-        
+
         function out = get.showInitialization(this)
             %return flag to show init (true) or pixel (false)
             out = get(this.visHandles.toggleShowInitialization,'Value');
         end
-        
+
         function out = get.about(this)
             %make visParams struct
             out = this.FLIMXObj.paramMgr.getParamSection('about');
         end
-                
+
         function out = get.generalParams(this)
             %make visParams struct
             out = this.FLIMXObj.paramMgr.getParamSection('general');
         end
-        
+
         function params = get.computationParams(this)
             %get pre processing parameters
             params = this.FLIMXObj.paramMgr.getParamSection('computation');
         end
-        
+
         function params = get.folderParams(this)
             %get folder parameters
             params = this.FLIMXObj.paramMgr.getParamSection('folders');
         end
-        
+
         function params = get.initFitParams(this)
             %make fitParams struct
             params = this.FLIMXObj.curSubject.initFitParams;
         end
-        
+
         function params = get.visualizationParams(this)
             %get visualization parameters
             params = this.FLIMXObj.paramMgr.getParamSection('fluo_decay_fit_gui');
         end
-                
+
         function params = get.volatilePixelParams(this)
             %get volatilePixelParams
             params = this.FLIMXObj.curSubject.volatilePixelParams;
         end
-        
+
         function out = get.exportParams(this)
             %get export paramters
             out = this.FLIMXObj.paramMgr.getParamSection('export');
-        end       
-        
+        end
+
         function out = isOpenVisWnd(this)
             %check if figure is still open
             out = ~(isempty(this.visHandles) || ~isfield(this.visHandles,'FLIMXFitGUIFigure') || ~ishandle(this.visHandles.FLIMXFitGUIFigure) || ~strcmp(get(this.visHandles.FLIMXFitGUIFigure,'Tag'),'FLIMXFitGUIFigure'));
         end
-        
+
         function checkVisWnd(this)
             %check if my window is open, if not: create it
             if(~this.isOpenVisWnd())
@@ -607,14 +607,14 @@ classdef FLIMXFitGUI < handle
             this.updateGUI(true);
             figure(this.visHandles.FLIMXFitGUIFigure);
         end %checkVisWnd
-        
+
         function closeVisWnd(this)
             %try to close windows if it still exists
             try
                 close(this.visHandles.FLIMXFitGUIFigure);
             end
         end %closeVisWnd
-        
+
         function updateProgressShort(this,x,text,varargin)
             %update short progress bar, progress x: 0..1, varargin{1}: title (currently unused), varargin{2}: text on progressbar
             if(~this.isOpenVisWnd())
@@ -636,7 +636,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.textWaitShort,'Position',[1,yl(2)/2,0],'String',text,'Parent',this.visHandles.axesWaitShort);
             drawnow;
         end
-        
+
         function updateProgressLong(this,x,text,varargin)
             %update long progress bar, progress x: 0..1, varargin{1}: title (currently unused), varargin{2}: text on progressbar
             if(~this.isOpenVisWnd())
@@ -669,7 +669,7 @@ classdef FLIMXFitGUI < handle
             end
             drawnow;
         end
-        
+
         function [apObj, xVec, oset, chi2, chi2Tail, TotalPhotons, FunctionEvaluations, time, slopeStart, iVec, paramTable] = getVisParams(this,ch,y,x,addAbsolutAmps)
             %get parameters for visualization of current fit in channel ch
             [apObj, xVec, ~, oset, chi2, chi2Tail, TotalPhotons, FunctionEvaluations, time, slopeStart, iVec] = this.FLIMXObj.curSubject.getVisParams(ch,y,x,this.showInitialization);
@@ -692,9 +692,9 @@ classdef FLIMXFitGUI < handle
                     paramTable{row,2} = 'Amp.';
                 end
                 if(apObj.basicParams.approximationTarget == 2 && ch == 4)
-                    paramTable{row,2+addParam} = 'Amp.'; 
+                    paramTable{row,2+addParam} = 'Amp.';
                 else
-                    paramTable{row,2+addParam} = 'Amp. (%)'; 
+                    paramTable{row,2+addParam} = 'Amp. (%)';
                 end
                 paramTable{row,3+addParam} = 'Tau'; paramTable{row,4+addParam} = 'tci';
                 if(any(apObj.basicParams.stretchedExpMask))
@@ -734,14 +734,14 @@ classdef FLIMXFitGUI < handle
                 row = row+apObj.volatilePixelParams.nScatter+2;
                 paramTable{row,1} = 'Offset';  paramTable{row,2} = sprintf('%3.2f',oset); paramTable{row,3} = 'Shift'; paramTable{row,4} = sprintf('%3.1fps',hShift);
                 row = row+1;
-                paramTable{row,1} = 'Chi²';  paramTable(row,2) = FLIMXFitGUI.num4disp(chi2); paramTable{row,3} = 'Chi² (Tail)'; paramTable(row,4) = FLIMXFitGUI.num4disp(chi2Tail);
+                paramTable{row,1} = 'Chiï¿½';  paramTable(row,2) = FLIMXFitGUI.num4disp(chi2); paramTable{row,3} = 'Chiï¿½ (Tail)'; paramTable(row,4) = FLIMXFitGUI.num4disp(chi2Tail);
                 row = row+1;
                 paramTable{row,1} = 'FuncEvals';  paramTable{row,2} = sprintf('%d',FunctionEvaluations); paramTable{row,3} = 'Time'; paramTable{row,4} = sprintf('%3.2fs',time);
                 row = row+1;
                 paramTable{row,1} = 'Photons';  paramTable(row,2) = FLIMXFitGUI.num4disp(TotalPhotons); paramTable{row,3} = ''; paramTable{row,4} = '';
             end
         end
-        
+
         function [xAxis, data, irf, model, exponentials, residuum, residuumHist] = visCurFit(this,ch,y,x,hAxMain,hAxRes,hAxResHis,hTableInfo)
             %plot current data, fit, parameters
             if(~this.isOpenVisWnd())
@@ -771,7 +771,7 @@ classdef FLIMXFitGUI < handle
                 %anisotropy
                 dMin = min(data);
                 yScaleStr = 'linear';
-                yLbl = 'Anisotropy';                
+                yLbl = 'Anisotropy';
             else
                 %fluorescence lifetime
                 dMin = min(oset,max(1e-2,min(data(data>0))));
@@ -791,18 +791,18 @@ classdef FLIMXFitGUI < handle
             ylabel(hAxMain,'');
             legend(hAxMain,'off');
             lStr = cell(0,0);
-            cla(hAxMain);            
+            cla(hAxMain);
             %% data
             if(this.visualizationParams.plotData)
                 lStr = this.makeModelPlot(hAxMain,data,xAxis,'Data',this.dynVisParams,this.visualizationParams,'Measured',lStr);
-            end            
+            end
             %% model
             if(this.visualizationParams.plotExpSum)
                 lStr = this.makeModelPlot(hAxMain,model,xAxis,'ExpSum',this.dynVisParams,this.visualizationParams,'Model',lStr);
-            end            
+            end
             %% IRF
             irf = apObj.getIRF(ch);
-            if(this.visualizationParams.plotIRF)                
+            if(this.visualizationParams.plotIRF)
 %                 irfPlot = mObj.compShift(irf,length(irf),mObj.dLen,mObj.mMaxPos - mObj.iMaxPos);
             if(isempty(model))
                 irfPlot = max(data).*irf./max(irf);
@@ -814,19 +814,19 @@ classdef FLIMXFitGUI < handle
             end
                 irfPlot(irfPlot < dMin) = dMin;
                 lStr = this.makeModelPlot(hAxMain,irfPlot,xAxis,'IRF',this.dynVisParams,this.visualizationParams,'IRF',lStr);
-            end                       
+            end
             %% display parameters on the right side
             set(hTableInfo,'Data',paramTable);
             %% display x & y
             set(this.visHandles.editX,'String',x);
-            set(this.visHandles.editY,'String',y);            
+            set(this.visHandles.editY,'String',y);
             %% counts scaling
             if(~this.dynVisParams.countsScalingAuto)
                 ylim(hAxMain,[this.dynVisParams.countsScalingStart this.dynVisParams.countsScalingEnd]);
                 set(hAxMain,'Yscale',yScaleStr,'XTickLabelMode','auto','YTickLabelMode','auto');
             else
                 set(hAxMain,'YLimMode','auto','Yscale',yScaleStr,'XTickLabelMode','auto','YTickLabelMode','auto');
-            end            
+            end
             ylabel(hAxMain,yLbl);
             grid(hAxMain,'on');
             [residuum, residuumHist] = this.visRes(ch,y,x,apObj,hAxRes,hAxResHis);
@@ -838,7 +838,7 @@ classdef FLIMXFitGUI < handle
                     this.makeLegend(hAxMain,lStr)
                 end
                 return;
-            end            
+            end
             %% we have parameters, plot exponentials
             if(this.visualizationParams.plotExp)
                 [lStr, exponentials] = this.makeExponentialsPlot(hAxMain,xAxis,apObj,xVec,lStr,this.dynVisParams,this.visualizationParams);
@@ -863,14 +863,14 @@ classdef FLIMXFitGUI < handle
             end
             %% slope position
             if(this.visualizationParams.plotSlope)
-                lStr = this.makeVerticalLinePlot(hAxMain,slopeStart,xAxis,'Slope',this.dynVisParams,this.visualizationParams,'SlopeStart',lStr);                
+                lStr = this.makeVerticalLinePlot(hAxMain,slopeStart,xAxis,'Slope',this.dynVisParams,this.visualizationParams,'SlopeStart',lStr);
             end
             %legend
             if(this.visualizationParams.showLegend)
                 this.makeLegend(hAxMain,lStr);
             end
         end
-        
+
         function [e_vec, rh] = visRes(this,ch,y,x,apObj,hAxRes,hAxResHis)
             %% plot error vector
             e_vec = [];
@@ -887,7 +887,7 @@ classdef FLIMXFitGUI < handle
             if(nargin < 6 || ~ishandle(hAxRes))
                 hAxRes = this.visHandles.axesRes;
             end
-            %% prepare #1 
+            %% prepare #1
             axis(hAxRes,'on');
             axis(hAxResHis,'on');
             cla(hAxRes);
@@ -906,11 +906,11 @@ classdef FLIMXFitGUI < handle
                     xAxis = xAxis(this.dynVisParams.timeScalingStart:this.dynVisParams.timeScalingEnd);
                 end
                 xlim(hAxRes,[xAxis(1) xAxis(end)]);
-                %axis(hAxRes,'on');                
+                %axis(hAxRes,'on');
                 return
-            end                      
-            %% prepare #2           
-            model = apObj.getModel(ch,x_vec);            
+            end
+            %% prepare #2
+            model = apObj.getModel(ch,x_vec);
             e_vec = zeros(length(data),1);
             data(isnan(data)) = 0;
             if(apObj.basicParams.approximationTarget == 2 && ch == 4)
@@ -936,7 +936,7 @@ classdef FLIMXFitGUI < handle
                 nz_idx = nz_idx(this.dynVisParams.timeScalingStart:this.dynVisParams.timeScalingEnd);
                 StartPosition = StartPosition-this.dynVisParams.timeScalingStart+1;
                 EndPosition = EndPosition-this.dynVisParams.timeScalingStart+1;
-            end            
+            end
             hold(hAxRes,'on');
             idx = measurementFile.getMaskGrps(find(nz_idx > 0));
             if(isempty(idx)) %empty data
@@ -952,7 +952,7 @@ classdef FLIMXFitGUI < handle
                     end
                 end
                 plot(hAxRes,xAxis(idx(end,2):end),e_vec(idx(end,2):end),'linewidth',2,'color',[0 0 0]); %plot remaining 'black' part
-            end            
+            end
             plot(hAxRes,xAxis,e_vec_smooth,'linewidth',1,'color',[1.0000 0.8125 0]);
             hold(hAxRes,'off');
             e_vec_nz = e_vec(nz_idx > 0);
@@ -980,7 +980,7 @@ classdef FLIMXFitGUI < handle
             if(this.visualizationParams.plotStartEnd)
                 this.makeVerticalLinePlot(hAxRes,StartPosition,xAxis,'StartEnd',this.dynVisParams,this.visualizationParams,'',[]);
                 this.makeVerticalLinePlot(hAxRes,EndPosition,xAxis,'StartEnd',this.dynVisParams,this.visualizationParams,'',[]);
-            end            
+            end
             %% residuum histogram
             nc = round(max(3,min(numel(e_vec_nz)/10,100)));
             nc = nc + rem(nc,2)+1;
@@ -999,14 +999,14 @@ classdef FLIMXFitGUI < handle
             end
             %% residuum statistics
         end
-        
+
         %% GUI callbacks
         function GUI_buttonLeft_Callback(this,hObject,eventdata)
             %call of editX control
             set(this.visHandles.editX,'String',this.currentX-1);
             this.GUI_editX_Callback(this.visHandles.editX,[]);
         end
-        
+
         function GUI_popupStudy_Callback(this,hObject,eventdata)
             %callback to change study name
             try
@@ -1025,7 +1025,7 @@ classdef FLIMXFitGUI < handle
             end
             set(this.visHandles.buttonStop,'String','Stop');
         end
-        
+
         function GUI_popupSubject_Callback(this,hObject,eventdata)
             %callback to change subject name
             try
@@ -1035,7 +1035,7 @@ classdef FLIMXFitGUI < handle
             this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentCondition,this.currentSubject);
             set(this.visHandles.buttonStop,'String','Stop');
         end
-        
+
         function GUI_popupCondition_Callback(this,hObject,eventdata)
             %callback to change the current condition
             subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentCondition);
@@ -1050,7 +1050,7 @@ classdef FLIMXFitGUI < handle
                 end
             end
         end
-        
+
         function GUI_editX_Callback(this,hObject,eventdata)
             %callback of editX control
             this.currentX = max(min(round(abs(str2double(get(hObject,'String')))),this.maxX),1);
@@ -1062,14 +1062,14 @@ classdef FLIMXFitGUI < handle
                 this.updateGUI(0);
             end
         end
-        
+
         function GUI_checkAutoFitPixel_Callback(this,hObject,eventdata)
             %checkbox to automatically fit current pixel when activated
             if(get(hObject,'Value'))
                 this.menuFitPixel_Callback(this.visHandles.menuFitPixel,[]);
             end
         end
-        
+
         function GUI_buttonSwitchSubject_Callback(this,hObject,eventdata)
             %button to switch subject up or down
             oldVal = get(this.visHandles.popupSubject,'Value');
@@ -1086,37 +1086,37 @@ classdef FLIMXFitGUI < handle
                 this.GUI_popupSubject_Callback(this.visHandles.popupSubject,[]);
             end
         end
-        
+
         function GUI_buttonRight_Callback(this,hObject,eventdata)
             %call of editX control
             set(this.visHandles.editX,'String',this.currentX+1);
             this.GUI_editX_Callback(this.visHandles.editX,[]);
         end
-        
+
         function GUI_buttonDown_Callback(this,hObject,eventdata)
             %call of editY control
             set(this.visHandles.editY,'String',this.currentY-1);
             this.GUI_editY_Callback(this.visHandles.editY,[]);
         end
-        
+
         function GUI_editY_Callback(this,hObject,eventdata)
             %callback of editY control
             this.currentY = max(min(round(abs(str2double(get(hObject,'String')))),this.maxY),1);
             set(hObject,'String',this.currentY);
-            if(get(this.visHandles.checkAutoFitPixel,'Value') && ~this.FLIMXObj.curSubject.isPixelResult(this.currentChannel,this.currentY,this.currentX,this.showInitialization)) 
+            if(get(this.visHandles.checkAutoFitPixel,'Value') && ~this.FLIMXObj.curSubject.isPixelResult(this.currentChannel,this.currentY,this.currentX,this.showInitialization))
                 %automatically fit current pixel when activated
                 this.menuFitPixel_Callback(this.visHandles.menuFitPixel,[]);
             else
                 this.updateGUI(0);
             end
         end
-        
+
         function GUI_buttonUp_Callback(this,hObject,eventdata)
             %call of editY control
             set(this.visHandles.editY,'String',this.currentY+1);
             this.GUI_editY_Callback(this.visHandles.editY,[]);
         end
-        
+
         function menuExportScreenshot_Callback(this,hObject,eventdata)
             %call of Screenshot button control
             formats = {'*.png','Portable Network Graphics (*.png)';...
@@ -1131,7 +1131,7 @@ classdef FLIMXFitGUI < handle
             [file, path, filterindex] = uiputfile(formats,'Export as','image.png');
             if ~path ; return ; end
             fn = fullfile(path,file);
-            
+
             switch filterindex
                 case 5
                     str = '-dbmp';
@@ -1155,13 +1155,13 @@ classdef FLIMXFitGUI < handle
             end
             %saveas(this.visHandles.FLIMXFitGUIFigure,fn,str);
         end
-        
-        
+
+
         function GUI_buttonStop_Callback(this,hObject,eventdata)
             %call of buttonStop control
             this.FLIMXObj.FLIMFit.stopOptimization(true);
         end
-                
+
         function GUI_buttonResScal_Callback(this,hObject,eventdata)
             %call of buttons for residuum scaling control
             delta = 0.1;
@@ -1175,7 +1175,7 @@ classdef FLIMXFitGUI < handle
             this.resScaleValue = this.resScaleValue+delta*factor;
             this.visRes(this.currentChannel,this.currentY,this.currentX,[]);
         end
-        
+
         function GUI_buttonTimeScal_Callback(this,hObject,eventdata)
             %call of button for time scaling control
             switch(hObject)
@@ -1194,7 +1194,7 @@ classdef FLIMXFitGUI < handle
             end
             this.visCurFit(this.currentChannel,this.currentY,this.currentX);
         end
-        
+
         function GUI_buttonCountsScal_Callback(this,hObject,eventdata)
             %call of button for Counts scaling control
             switch(hObject)
@@ -1213,7 +1213,7 @@ classdef FLIMXFitGUI < handle
             end
             this.visCurFit(this.currentChannel,this.currentY,this.currentX);
         end
-        
+
         function GUI_editResScal_Callback(this,hObject,eventdata)
             %call of editResScal control
             current = max(round(abs(str2double(get(hObject,'String')))),1);
@@ -1221,7 +1221,7 @@ classdef FLIMXFitGUI < handle
             set(hObject,'String',num2str(current));
             this.visRes(this.currentChannel,this.currentY,this.currentX,[]);
         end
-        
+
         function GUI_editTimeScal_Callback(this,hObject,eventdata)
             %call of editTimeScal control
             current = round(abs(str2double(get(hObject,'String')))/this.FLIMXObj.curSubject.timeChannelWidth);
@@ -1235,7 +1235,7 @@ classdef FLIMXFitGUI < handle
             set(hObject,'String',num2str(current*this.FLIMXObj.curSubject.timeChannelWidth,'%.02f'));
             this.visCurFit(this.currentChannel,this.currentY,this.currentX);
         end
-        
+
         function GUI_editCountsScal_Callback(this,hObject,eventdata)
             %call of editCountsScal control
             current = str2double(get(hObject,'String'));
@@ -1249,24 +1249,24 @@ classdef FLIMXFitGUI < handle
             set(hObject,'String',num2str(current,'%G'));
             this.visCurFit(this.currentChannel,this.currentY,this.currentX);
         end
-        
+
         function GUI_showInitialization_Callback(this,hObject,eventdata)
             %toggle between merge display and pixel display
             this.setupGUI();
             this.updateGUI(true);
         end
-        
+
         function GUI_popupChannel_Callback(this,hObject,eventdata)
             %change the current channel of the GUI
             this.currentChannel = get(hObject,'Value');
         end
-        
+
         function GUI_popupROA_Callback(this,hObject,eventdata)
             %call of popupROA control
             this.setupGUI();
             this.updateGUI(true);
         end
-        
+
         function GUI_radioResScal_Callback(this,hObject,eventdata)
             %call of radioResScal control
             if(hObject == this.visHandles.radioResScalAuto)
@@ -1284,7 +1284,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.editResScal,'Enable',flag);
             this.visRes(this.currentChannel,this.currentY,this.currentX,[]);
         end
-        
+
         function GUI_radioTimeScal_Callback(this,hObject,eventdata)
             %call of radioTimeScal control
             if(hObject == this.visHandles.radioTimeScalAuto)
@@ -1307,7 +1307,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.editTimeScalEnd,'Enable',flag);
             this.visCurFit(this.currentChannel,this.currentY,this.currentX);
         end
-        
+
         function GUI_radioCountsScal_Callback(this,hObject,eventdata)
             %call of radioCountsScal control
             if(hObject == this.visHandles.radioCountsScalAuto)
@@ -1330,7 +1330,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.editCountsScalEnd,'Enable',flag);
             this.visCurFit(this.currentChannel,this.currentY,this.currentX);
         end
-        
+
         function cp = getCPFromAxes(this,axName)
             %get current point
             cp = [];
@@ -1341,15 +1341,15 @@ classdef FLIMXFitGUI < handle
             cp = cp(logical([1 1 0; 0 0 0]));
             xl = this.visHandles.(axName).XLim;
             yl = this.visHandles.(axName).YLim;
-            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))                
+            if(cp(1) >= xl(1) && cp(1) <= xl(2) && cp(2) >= yl(1) && cp(2) <= yl(2))
                 return
             else
                 cp = [];
             end
         end
-        
+
         function [cp,axesName] = getCP(this)
-            %get current point and its axes name 
+            %get current point and its axes name
             axNames = {'axesMain','axesSupp','axesRaw','axesRes'};
             for i = 1:length(axNames)
                 axesName = axNames{i};
@@ -1359,7 +1359,7 @@ classdef FLIMXFitGUI < handle
                 end
             end
         end
-        
+
         function GUI_mouseMotion_Callback(this,hObject,eventdata)
             %executes on mouse move in window
             %             if(isMultipleCall)
@@ -1392,13 +1392,13 @@ classdef FLIMXFitGUI < handle
                 set(this.visHandles.FLIMXFitGUIFigure,'Pointer','cross');
             end
             switch axesName
-                case {'axesMain','axesRes'}                    
+                case {'axesMain','axesRes'}
                     %% main or residuum axes
-                    if(~isempty(this.currentDecayData) && this.visualizationParams.plotCurLinesAndText) 
+                    if(~isempty(this.currentDecayData) && this.visualizationParams.plotCurLinesAndText)
                         yVal = this.currentDecayData;
                         %xPos = mouse coordinates transformed to dimension of YData
                         tVec = abs(this.FLIMXObj.curSubject.timeVector - cp(1));
-                        [~,xPos] = min(tVec(:));                        
+                        [~,xPos] = min(tVec(:));
                         %cursorline for axesres
                         if(~ishghandle(this.visHandles.cursorLineResiduum))
                             this.visHandles.cursorLineResiduum = line([NaN NaN], ylim(this.visHandles.axesRes),'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesRes, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth);
@@ -1425,7 +1425,7 @@ classdef FLIMXFitGUI < handle
                                 %this.mouseOverlayBoxMain.setVerticalBoxPositionMode(1);
                                 this.mouseOverlayBoxMain.draw([cp(1),yVal(xPos)],{sprintf('Time: %04.2fns',xPos.*this.FLIMXObj.curSubject.timeChannelWidth/1000), sprintf('Counts: %d',yVal(xPos))},yVal(xPos));
                             end
-                        end                        
+                        end
                     else
                         %we are inside the main or residdum axes but there is no data to display
                         this.mouseOverlayBoxMain.clear();
@@ -1463,9 +1463,9 @@ classdef FLIMXFitGUI < handle
             end
             inFunction = []; %enable callback
         end
-        
+
         function GUI_mouseButtonUp_Callback(this,hObject,eventdata)
-            %executes on clickrelease in window            
+            %executes on clickrelease in window
             cpMain = get(this.visHandles.axesMain,'CurrentPoint');
             cpMain = cpMain(logical([1 1 0; 0 0 0]));
             xl = xlim(this.visHandles.axesMain);
@@ -1479,7 +1479,7 @@ classdef FLIMXFitGUI < handle
                 tVec = abs(this.FLIMXObj.curSubject.timeVector - cpMain(1));
                 [~,xPos] = min(tVec(:));
                 switch get(hObject,'SelectionType')
-                    case 'normal'                        
+                    case 'normal'
                         if(cpMain(1) >= xl(1) && cpMain(1) <= xl(2) && cpMain(2) >= yl(1) && cpMain(2) <= yl(2))
                             if(abs(xPos - this.dynVisParams.timeScalingStart) >= 10)
                                 %at least 10 time channels difference
@@ -1595,9 +1595,9 @@ classdef FLIMXFitGUI < handle
                 end
             end
         end
-        
+
         function GUI_mouseButtonDown_Callback(this,hObject,eventdata)
-            %executes on clicking down in window            
+            %executes on clicking down in window
             switch get(hObject,'SelectionType')
                 case 'normal'
                     cp = get(this.visHandles.axesMain,'CurrentPoint');
@@ -1622,7 +1622,7 @@ classdef FLIMXFitGUI < handle
             end
         end
 
-        
+
         %% menu callbacks
         function menuExportFiles_Callback(this,hObject,eventdata)
             %write results to disc (again)
@@ -1633,7 +1633,7 @@ classdef FLIMXFitGUI < handle
             %save to disc
             this.FLIMXObj.curSubject.exportMatFile([],expDir);
         end
-        
+
         function menuExportExcel_Callback(this,hObject,eventdata)
             %export data of current graphs and info table to excel file
             formats = {'*.xls','Excel File (*.xls)'};
@@ -1661,28 +1661,28 @@ classdef FLIMXFitGUI < handle
             tableInfo(end+2,1:4) = {'x',this.currentX,'y',this.currentY};
             exportExcel(fn,tableInfo,'','',sprintf('Table %s ch%d (y%d,x%d)',this.FLIMXObj.curSubject.getDatasetName(),this.currentChannel,this.currentY,this.currentX),'');
         end
-        
+
         function menuParaSetMgr_Callback(this,hObject,eventdata)
             %callback to open parameter set manager
             this.volatileParamsetMgr.checkVisWnd();
         end
-        
+
         function menuSimFLIM_Callback(this,hObject,eventdata)
             %open simulation tool
             this.simTool.checkVisWnd();
         end
-        
+
         function menuSimAnalysis_Callback(this,hObject,eventdata)
             %open tool to compare simualtion parameters with fit results
             this.simCompTool.checkVisWnd();
         end
-        
+
         function menuIRFMgr_Callback(this,hObject,eventdata)
             %open tool to manage IRFs
             this.FLIMXObj.irfMgrGUI.checkVisWnd();
             this.FLIMXObj.irfMgrGUI.currentTimePoints = this.FLIMXObj.curSubject.getFileInfoStruct(this.currentChannel).nrTimeChannels;
         end
-                        
+
         function menuExit_Callback(this,hObject,eventdata)
             %close window
             if(~isempty(this.simToolObj))
@@ -1694,15 +1694,15 @@ classdef FLIMXFitGUI < handle
             delete(this.visHandles.FLIMXFitGUIFigure);
             this.FLIMXObj.destroy(false);
         end
-        
+
         function menuVersionInfo_Callback(this,hObject,eventdata)
             %
             GUI_versionInfo(this.about,this.FLIMXObj.curSubject.aboutInfo());
         end
-        
+
         function menuCompInfo_Callback(this,hObject,eventdata)
             %
-            if(this.FLIMXObj.curSubject.isPixelResult(this.currentChannel))                
+            if(this.FLIMXObj.curSubject.isPixelResult(this.currentChannel))
                 data.standalone = this.FLIMXObj.curSubject.getPixelFLIMItem(this.currentChannel,'standalone');
                 data.Time = this.FLIMXObj.curSubject.getPixelFLIMItem(this.currentChannel,'Time');
                 data.hostname = this.FLIMXObj.curSubject.getPixelFLIMItem(this.currentChannel,'hostname');
@@ -1712,22 +1712,22 @@ classdef FLIMXFitGUI < handle
                 GUI_compInfo(data);
             end
         end
-        
+
         function menuUserGuide_Callback(this,hObject,eventdata)
             %
             FLIMX.openFLIMXUserGuide();
         end
-        
+
         function menuWebsite_Callback(this,hObject,eventdata)
             %
             FLIMX.openFLIMXWebSite();
         end
-        
+
         function menuInfoPreProcessOpt_Callback(this,hObject,eventdata)
             %
             GUI_preProcessOptions(this.FLIMXObj.curSubject.preProcessParams,this.FLIMXObj.curSubject,'Off');
         end
-        
+
         function  menuInfoFitOpt_Callback(this,hObject,eventdata)
             %
             [str, mask] = this.FLIMXObj.irfMgr.getIRFNames(this.FLIMXObj.curSubject.nrTimeChannels);
@@ -1738,36 +1738,36 @@ classdef FLIMXFitGUI < handle
             this.FLIMXObj.curSubject.boundsParams,...
             str,mask,{this.FLIMXObj.curSubject.basicParams.scatterStudy},this.currentChannel,'Off');
         end
-        
+
         function menuInfoOptOpt_Callback(this,hObject,eventdata)
             %
             GUI_optOptions(this.FLIMXObj.curSubject.optimizationParams,'Off');
         end
-        
+
         function menuInfoBndOpt_Callback(this,hObject,eventdata)
             %
             GUI_boundsOptions(this.FLIMXObj.paramMgr.getParamSection('bounds'),'Off');
         end
-        
+
         function menuInfoCompOpt_Callback(this,hObject,eventdata)
             %
             GUI_compOptions(this.FLIMXObj.curSubject.computationParams,'Off');
         end
-        
+
         function menuPreProcessOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
             new = GUI_preProcessOptions(this.FLIMXObj.paramMgr.getParamSection('pre_processing'),this.FLIMXObj.curSubject,'On');
             if(~isempty(new))
                 this.FLIMXObj.paramMgr.setParamSection('pre_processing',new.preProcessing);
-                this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
-                this.FLIMXObj.curSubject.update(); 
+                this.FLIMXObj.curSubject.clearROAResults(true); %clear old results
+                this.FLIMXObj.curSubject.update();
                 this.setupGUI();
                 this.updateGUI(1);
             end
         end
-        
-        function menuFitOpt_Callback(this,hObject,eventdata)
+
+          function menuFitOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
             [str, mask] = this.FLIMXObj.irfMgr.getIRFNames(this.FLIMXObj.curSubject.nrTimeChannels);
@@ -1789,39 +1789,40 @@ classdef FLIMXFitGUI < handle
                 if(new.isDirty(3) == 1)
                     this.FLIMXObj.paramMgr.setParamSection('pixel_fit',new.pixel);
                 end
-                this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
-                this.FLIMXObj.curSubject.update(); 
+                this.FLIMXObj.curSubject.clearROAResults(true); %clear old results
+                %this.FLIMXObj.curSubject.saveMatFile2Disk([]);
+                this.FLIMXObj.curSubject.update();
                 this.setupGUI();
                 this.updateGUI(1);
             end
         end
-        
+
         function menuBndOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
             new = GUI_boundsOptions(this.FLIMXObj.paramMgr.getParamSection('bounds'),'On');
             if(~isempty(new))
                 this.FLIMXObj.paramMgr.setParamSection('bounds',new.bounds);
-                this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
-                this.FLIMXObj.curSubject.update(); 
+                this.FLIMXObj.curSubject.clearROAResults(true); %clear old results
+                this.FLIMXObj.curSubject.update();
                 this.setupGUI();
                 this.updateGUI(1);
             end
         end
-        
+
         function menuOptOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
             new = GUI_optOptions(this.FLIMXObj.paramMgr.getParamSection('optimization'),'On');
             if(~isempty(new))
                 this.FLIMXObj.paramMgr.setParamSection('optimization',new.optParams);
-                this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
-                this.FLIMXObj.curSubject.update(); 
+                this.FLIMXObj.curSubject.clearROAResults(true); %clear old results
+                this.FLIMXObj.curSubject.update();
                 this.setupGUI();
                 this.updateGUI(1);
             end
         end
-        
+
         function menuCompOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
@@ -1831,7 +1832,7 @@ classdef FLIMXFitGUI < handle
                 this.FLIMXObj.curSubject.computationParams = new;
             end
         end
-        
+
         function menuCleanupOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
@@ -1840,7 +1841,7 @@ classdef FLIMXFitGUI < handle
                 this.FLIMXObj.paramMgr.setParamSection('cleanup_fit',new.cleanup_fit);
             end
         end
-        
+
         function menuExportOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
@@ -1852,11 +1853,11 @@ classdef FLIMXFitGUI < handle
                 this.FLIMXObj.paramMgr.setParamSection('export',new.prefs);
             end
         end
-        
+
         function menuVisOpt_Callback(this,hObject,eventdata)
             %
             this.FLIMXObj.paramMgr.readConfig();
-            new = GUI_FLIMXFitGUIVisualizationOptions(this.visualizationParams,this.generalParams);
+            new = GUI_FLIMXFitGUIVisualizationOptions(this.visualizationParams,this.generalParams,this.FLIMXObj.fdt);
             if(~isempty(new))
                 if(new.isDirty(1) == 1)
                     this.FLIMXObj.paramMgr.setParamSection('fluo_decay_fit_gui',new.fluoDecay);
@@ -1864,7 +1865,7 @@ classdef FLIMXFitGUI < handle
                 end
                 if(new.isDirty(2) == 1)
                     if(this.generalParams.flimParameterView ~= new.general.flimParameterView)
-                        this.FLIMXObj.fdt.unloadAllChannels();                        
+                        this.FLIMXObj.fdt.unloadAllChannels();
                     end
                     this.FLIMXObj.paramMgr.setParamSection('general',new.general);
                     this.axesRawMgr.setReverseYDirFlag(new.general.reverseYDir);
@@ -1876,39 +1877,40 @@ classdef FLIMXFitGUI < handle
                 this.updateGUI(1);
             end
         end
-        
+
         function menuROARedefine_Callback(this,hObject,eventdata)
             % change ROA, channel or IRF
-            this.FLIMXObj.importGUI.checkVisWnd();          
+            this.FLIMXObj.importGUI.checkVisWnd();
         end
-        
+
         function menuClearApproxResults_Callback(this,hObject,eventdata)
-            %clear approximation results 
+            %clear approximation results
             button = questdlg(sprintf('Clear approximation results in all channels for current subject?'),'Clear approximation results?','Clear','Abort','Abort');
             switch button
                 case 'Clear'
-                    this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);
-                    this.FLIMXObj.curSubject.update();                    
+                    this.FLIMXObj.curSubject.clearROAResults(true);
+                    this.FLIMXObj.curSubject.update();
                     data = this.FLIMXObj.curSubject.getInitData(this.currentChannel,this.initFitParams.gridPhotons);
                     if(~isempty(data) && (this.initFitParams.gridSize ~= size(data,1) || any(any(this.initFitParams.gridPhotons > sum(data,3)))))
-                        this.FLIMXObj.curSubject.clearROAData();
+                        %clear measurement and results of ROA
+                        this.FLIMXObj.curSubject.clearROA();
                     end
                     this.setCurrentPos(this.currentY,this.currentX);
             end
         end
-        
+
         function menuRunPreProcessing_Callback(this,hObject,eventdata)
             %pre process data
             this.FLIMXObj.FLIMFit.makePreProcessing(this.currentChannel);
             this.updateGUI(true);
         end
-        
+
         function menuFitInit_Callback(this,hObject,eventdata)
             %start fitting for current channel
             cla(this.visHandles.axesRes);
             cla(this.visHandles.axesResHis);
-            this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,this.currentSubject);%clear old results
-            this.FLIMXObj.curSubject.update(); 
+            this.FLIMXObj.curSubject.clearROAResults(true); %clear old results
+            this.FLIMXObj.curSubject.update();
             this.updateGUI(true);
             %start actual fitting process
             this.setButtonStopSpinning(true);
@@ -1917,7 +1919,7 @@ classdef FLIMXFitGUI < handle
             this.setupGUI();
             this.updateGUI(false);
         end
-        
+
         function menuFitPixel_Callback(this,hObject,eventdata)
             %start fitting for current pixel
             cla(this.visHandles.axesRes);
@@ -1928,7 +1930,7 @@ classdef FLIMXFitGUI < handle
             this.setButtonStopSpinning(false);
             this.updateGUI(true);
         end
-        
+
         function menuFitChannel_Callback(this,hObject,eventdata)
             %start fitting for current channel
             cla(this.visHandles.axesRes);
@@ -1941,7 +1943,7 @@ classdef FLIMXFitGUI < handle
             this.setupGUI();
             this.updateGUI(true);
         end
-        
+
         function menuFitAll_Callback(this,hObject,eventdata)
             %fit all channels
             cla(this.visHandles.axesRes);
@@ -1949,17 +1951,17 @@ classdef FLIMXFitGUI < handle
             %start actual fitting process
             this.setButtonStopSpinning(true);
             this.FLIMXObj.FLIMFit.setInitFitOnly(false);
-            %load all channels incase user has to specify borders, reflection mask, ...            
+            %load all channels incase user has to specify borders, reflection mask, ...
             for ch = 1:this.FLIMXObj.curSubject.nrSpectralChannels
-                this.currentChannel = ch; 
+                this.currentChannel = ch;
             end
-            this.FLIMXObj.FLIMFit.startFitProcess([],[],[]);            
+            this.FLIMXObj.FLIMFit.startFitProcess([],[],[]);
             this.FLIMXObj.FLIMVisGUI.updateGUI('');
             this.setButtonStopSpinning(false);
             this.setupGUI();
             this.updateGUI(true);
         end
-        
+
         function menuCleanUpFit_Callback(this,hObject,eventdata)
             %fit all channels
             cla(this.visHandles.axesRes);
@@ -1971,8 +1973,8 @@ classdef FLIMXFitGUI < handle
             this.setButtonStopSpinning(false);
             this.setupGUI();
             this.updateGUI(true);
-        end        
-        
+        end
+
         function menuBatchSubject_Callback(this,hObject,eventdata)
             %add current channel to batch job manager
             %if 'eventdata' is false ask user for job name
@@ -1984,7 +1986,7 @@ classdef FLIMXFitGUI < handle
                 allChFlag = false;
                 init = sprintf('%s_%s_ch%d',this.currentStudy,this.currentSubject,ch);
             end
-            jobInfo = this.FLIMXObj.batchJobMgr.getAllJobsInfo();            
+            jobInfo = this.FLIMXObj.batchJobMgr.getAllJobsInfo();
             loop = 1;
             if(isempty(eventdata))
                 eventdata = false;
@@ -1998,7 +2000,7 @@ classdef FLIMXFitGUI < handle
                     if(isempty(jn))
                         %user pressed cancel
                         return
-                    end                    
+                    end
                     %remove any '\' a might have entered
                     jn = char(jn{1,1});
                     idx = strfind(jn,filesep);
@@ -2024,7 +2026,7 @@ classdef FLIMXFitGUI < handle
             end %while
             %put data into batch job manager
             if(any(this.volatilePixelParams.globalFitMask) || allChFlag)
-                %global fit job or all channels                
+                %global fit job or all channels
                 this.FLIMXObj.batchJobMgr.newJob(jn,this.FLIMXObj.paramMgr.getParamSection('batchJob'),...
                     this.FLIMXObj.curSubject,[]);
             else
@@ -2036,7 +2038,7 @@ classdef FLIMXFitGUI < handle
             end
             this.FLIMXObj.batchJobMgrGUI.updateGUI();
         end
-        
+
         function menuBatchStudy_Callback(this,hObject,eventdata)
             %add study with current settings to batchjob manager
             subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentCondition);
@@ -2050,26 +2052,26 @@ classdef FLIMXFitGUI < handle
             end
             this.updateProgressLong(0,'');
         end
-                
+
         function menuOpenBatchJobMgr_Callback(this,hObject,eventdata)
             %show batch job manager window
             this.FLIMXObj.batchJobMgrGUI.checkVisWnd();
         end
-        
+
         function menuOpenStudyMgr_Callback(this,hObject,eventdata)
             %show study manager window
             this.FLIMXObj.studyMgrGUI.checkVisWnd();
             this.FLIMXObj.studyMgrGUI.curStudyName = this.currentStudy;
         end
-        
+
         function menuOpenFLIMXVis_Callback(this,hObject,eventdata)
             %show FLIMXVis window
             this.FLIMXObj.FLIMVisGUI.checkVisWnd();
             this.FLIMXObj.FLIMVisGUI.setStudy('',this.currentStudy);
         end
-                
+
     end %methods
-    
+
     methods(Access = protected)
         %internal methods
         function createVisWnd(this)
@@ -2122,24 +2124,24 @@ classdef FLIMXFitGUI < handle
             this.visHandles.rawPlotCPYLine = [];
             this.visHandles.roiPlotCPXLine = [];
             this.visHandles.roiPlotCPYLine = [];
-            
+
             %set defaut axes
             axis(this.visHandles.axesMain,'off');
             axis(this.visHandles.axesRaw,'off');
             axis(this.visHandles.axesSupp,'off');
             axis(this.visHandles.axesRes,'off');
             axis(this.visHandles.axesResHis,'off');
-                        
+
             %set handles for zoom in main axes and current mouse position in residdum
             this.visHandles.cursorLineResiduum = []; %cursorline in axesres
             this.visHandles.scaleZoomRectangle = []; %rectangle when mouse button down for zoom
-            
+
             %set callbacks
             set(this.visHandles.FLIMXFitGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback,'WindowButtonUpFcn',@this.GUI_mouseButtonUp_Callback, 'WindowButtonDownFcn', @this.GUI_mouseButtonDown_Callback);
-            
+
             %figure
             set(this.visHandles.FLIMXFitGUIFigure,'Units','pixels');
-            %edit            
+            %edit
             set(this.visHandles.editX,'String',num2str(this.currentX),'Callback',@this.GUI_editX_Callback,'TooltipString','Enter horizontal position of current pixel');
             set(this.visHandles.editY,'String',num2str(this.currentY),'Callback',@this.GUI_editY_Callback,'TooltipString','Enter vertical position of current pixel');
             set(this.visHandles.editResScal,'Callback',@this.GUI_editResScal_Callback,'TooltipString','Enter limit for residuum scaling');
@@ -2147,10 +2149,10 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.editTimeScalEnd,'Callback',@this.GUI_editTimeScal_Callback,'TooltipString','Enter upper limit (in ps) for custom time scaling');
             set(this.visHandles.editCountsScalStart,'Callback',@this.GUI_editCountsScal_Callback,'TooltipString','Enter lower limit for custom intensity / anisotropy scaling');
             set(this.visHandles.editCountsScalEnd,'Callback',@this.GUI_editCountsScal_Callback,'TooltipString','Enter upper limit for custom intensity / anisotropy scaling');
-            
+
             %buttons
-            set(this.visHandles.buttonSubjectDec,'FontName','Symbol','String',char(173),'Callback',@this.GUI_buttonSwitchSubject_Callback,'TooltipString','Go to previous subject'); 
-            set(this.visHandles.buttonSubjectInc,'FontName','Symbol','String',char(175),'Callback',@this.GUI_buttonSwitchSubject_Callback,'TooltipString','Go to next subject'); 
+            set(this.visHandles.buttonSubjectDec,'FontName','Symbol','String',char(173),'Callback',@this.GUI_buttonSwitchSubject_Callback,'TooltipString','Go to previous subject');
+            set(this.visHandles.buttonSubjectInc,'FontName','Symbol','String',char(175),'Callback',@this.GUI_buttonSwitchSubject_Callback,'TooltipString','Go to next subject');
             set(this.visHandles.buttonRight,'String',char(174),'Callback',@this.GUI_buttonRight_Callback,'TooltipString','Go to pixel to the right');
             set(this.visHandles.buttonLeft,'String',char(172),'Callback',@this.GUI_buttonLeft_Callback,'TooltipString','Go to pixel to the left');
             set(this.visHandles.buttonUp,'String',char(173),'Callback',@this.GUI_buttonUp_Callback,'TooltipString','Go to pixel above');
@@ -2170,10 +2172,10 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.buttonCountsScalEndInc,'String',char(174),'Callback',@this.GUI_buttonCountsScal_Callback,'TooltipString','Increase upper limit of custom intensity / anisotropy scaling');
             set(this.visHandles.buttonROARedefine,'Callback',@this.menuROARedefine_Callback,'TooltipString','Refefine the region of approximation (ROA), this will delete the approximation resultsm of the current subject');
             set(this.visHandles.textROA,'TooltipString','Region of Approximation (ROA)');
-            
+
             %checkbox
             set(this.visHandles.checkAutoFitPixel,'Callback',@this.GUI_checkAutoFitPixel_Callback,'TooltipString','Automatically approximate current pixel on mouse click (may be slow!)');
-            
+
             %radio
             set(this.visHandles.radioResScalAuto,'Callback',@this.GUI_radioResScal_Callback,'TooltipString','Automatic residuum scaling');
             set(this.visHandles.radioResScalManual,'Callback',@this.GUI_radioResScal_Callback,'TooltipString','Manual residuum scaling');
@@ -2181,25 +2183,25 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.radioTimeScalManual,'Callback',@this.GUI_radioTimeScal_Callback,'TooltipString','Manual time scaling');
             set(this.visHandles.radioCountsScalAuto,'Callback',@this.GUI_radioCountsScal_Callback,'TooltipString','Automatic intensity / anisotropy scaling');
             set(this.visHandles.radioCountsScalManual,'Callback',@this.GUI_radioCountsScal_Callback,'TooltipString','Manual intensity / anisotropy scaling');
-            
+
             %popup
             set(this.visHandles.popupStudy,'Callback',@this.GUI_popupStudy_Callback,'TooltipString','Select a study');
             set(this.visHandles.popupSubject,'Callback',@this.GUI_popupSubject_Callback,'TooltipString','Select a subject');
             set(this.visHandles.popupCondition,'Callback',@this.GUI_popupCondition_Callback,'TooltipString','Select a condition');
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select a channel');
             set(this.visHandles.popupROA,'Callback',@this.GUI_popupROA_Callback,'TooltipString','Select FLIM parameter to display');
-            
-            %menu            
+
+            %menu
             set(this.visHandles.menuROARedefine,'Callback',@this.menuROARedefine_Callback);
-            
+
             set(this.visHandles.menuExportShot,'Callback',@this.menuExportScreenshot_Callback);
             set(this.visHandles.menuExportFiles,'Callback',@this.menuExportFiles_Callback);
             set(this.visHandles.menuExportExcel,'Callback',@this.menuExportExcel_Callback);
-            
+
             set(this.visHandles.menuSimFLIM,'Callback',@this.menuSimFLIM_Callback);
             set(this.visHandles.menuSimAnalysis,'Callback',@this.menuSimAnalysis_Callback);
             set(this.visHandles.menuIRFMgr,'Callback',@this.menuIRFMgr_Callback);
-            
+
             set(this.visHandles.menuVersionInfo,'Callback',@this.menuVersionInfo_Callback);
             set(this.visHandles.menuUserGuide,'Callback',@this.menuUserGuide_Callback);
             set(this.visHandles.menuWebsite,'Callback',@this.menuWebsite_Callback);
@@ -2215,8 +2217,8 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.menuCleanupOpt,'Callback',@this.menuCleanupOpt_Callback);
             set(this.visHandles.menuOptOpt,'Callback',@this.menuOptOpt_Callback);
             set(this.visHandles.menuBndOpt,'Callback',@this.menuBndOpt_Callback);
-            set(this.visHandles.menuCompOpt,'Callback',@this.menuCompOpt_Callback);            
-            set(this.visHandles.menuExportOptions,'Callback',@this.menuExportOpt_Callback);            
+            set(this.visHandles.menuCompOpt,'Callback',@this.menuCompOpt_Callback);
+            set(this.visHandles.menuExportOptions,'Callback',@this.menuExportOpt_Callback);
             set(this.visHandles.menuVisOpt,'Callback',@this.menuVisOpt_Callback);
             %approximation
             set(this.visHandles.menuClearApproxResults,'Callback',@this.menuClearApproxResults_Callback);
@@ -2235,7 +2237,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.menuOpenStudyMgr,'Callback',@this.menuOpenStudyMgr_Callback);
             %FLIMXVis
             set(this.visHandles.menuOpenFLIMXVis,'Callback',@this.menuOpenFLIMXVis_Callback);
-            
+
             this.axesRawMgr = axesWithROI(this.visHandles.axesRaw,this.visHandles.axesCbRaw,this.visHandles.textCbRawBottom,this.visHandles.textCbRawTop,this.visHandles.editCPRaw,this.dynVisParams.cmIntensity);
             this.axesRawMgr.setROILineColor('r');
             this.axesROIMgr = axesWithROI(this.visHandles.axesSupp,this.visHandles.axesCbSupp,this.visHandles.textCbSuppBottom,this.visHandles.textCbSuppTop,this.visHandles.editCPSupp,this.dynVisParams.cm);
@@ -2243,12 +2245,12 @@ classdef FLIMXFitGUI < handle
             this.mouseOverlayBoxMain.setVerticalBoxPositionMode(0);
             this.mouseOverlayBoxSupp = mouseOverlayBox(this.visHandles.axesSupp);
             this.mouseOverlayBoxRaw = mouseOverlayBox(this.visHandles.axesRaw);
-            
+
 %             this.setupGUI();
 %             this.updateGUI(true);
-        end                
+        end
     end %methods protected
-    
+
     methods(Static)
         function out = num4disp(data)
             %convert numeric value(s) to string(s), returns a cell array with size of data
@@ -2269,7 +2271,7 @@ classdef FLIMXFitGUI < handle
             out = strtrim(out);
             out = reshape(out,x,y,z);
         end
-        
+
         function lStr = makeModelPlot(hAx,model,xAxis,paramName,dynVisParams,staticVisParams,legendName,lStr)
             %plot data and model function to hAx
             if(isempty(model))
@@ -2281,7 +2283,7 @@ classdef FLIMXFitGUI < handle
             end
             if(~isempty(get(hAx,'Children')))
                 set(hAx,'NextPlot','add');
-            end            
+            end
             try
                 plot(hAx,xAxis,model,...
                     'Linewidth',staticVisParams.(sprintf('plot%sLinewidth',paramName)),...
@@ -2300,7 +2302,7 @@ classdef FLIMXFitGUI < handle
                 lStr(end+1) = {legendName};
             end
         end
-                
+
         function [lStr, exponentials] = makeExponentialsPlot(hAx,xAxis,apObj,x_vec,lStr,dynVisParams,staticVisParams,exponentials,dMin)
             %plot exponentials and scatter data to hAx
             %[amps taus tcis scAmps scShifts scOset vShift hShift oset] = sliceXVec(x_vec,fitParams);
@@ -2345,7 +2347,7 @@ classdef FLIMXFitGUI < handle
                 end
             end
         end
-        
+
         function lStr = makeVerticalLinePlot(hAx,position,xAxis,paramName,dynVisParams,staticVisParams,legendName,lStr)
             %plot lines at start + end positions
             if(~isempty(get(hAx,'Children')))
@@ -2354,7 +2356,7 @@ classdef FLIMXFitGUI < handle
 %             if(~dynVisParams.timeScalingAuto)
 %                 irf = irf(dynVisParams.timeScalingStart:dynVisParams.timeScalingEnd);
 %                 xAxis = xAxis(dynVisParams.timeScalingStart:dynVisParams.timeScalingEnd);
-%             end            
+%             end
             if(position > 0  && position <= length(xAxis))
                 try
                     line('XData',[xAxis(position) xAxis(position)],'YData',ylim(hAx),...
@@ -2370,10 +2372,10 @@ classdef FLIMXFitGUI < handle
                 lStr(end+1) = {legendName};
             end
         end
-        
+
         function makeLegend(hAx,lStr)
             legend(hAx,lStr,'AutoUpdate','off');
         end
     end %methods(Static)
-    
+
 end %classdef

@@ -61,187 +61,11 @@ classdef FLIMXParamMgr < paramMgr
             %read config information from disk
             if(~isempty(this.fileName))
                 ini = paramMgr.ini2struct(this.fileName);
-%                 if(isempty(ini))
-%                     uiwait(warndlg('config.ini empty or not found! Using defaults instead.','config.ini not found!','modal'));
-%                 end
             else
                 ini = [];
             end
             ini_isdirty = false;
             try
-                if(ini.about.config_revision < 130)
-                    ini = rmfield(ini,{'basic_fit'});
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 138)
-                    if(isfield(ini,'basic_fit'))
-                        ini.basic_fit = rmfield(ini.basic_fit,{'approxTech'});
-                    end
-                    ini = rmfield(ini,{'bounds_s_exp'});
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 139)
-                    ini.init_fit.errorMode  = min(ini.init_fit.errorMode,5);
-                    ini.pixel_fit.errorMode  = min(ini.pixel_fit.errorMode,5);
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 140)
-                    if(isfield(ini,'basic_fit'))
-                        if(isfield(ini.basic_fit,'useGPU'))
-                            ini.computation.useGPU  = ini.basic_fit.useGPU;
-                            ini.basic_fit = rmfield(ini.basic_fit,{'useGPU'});
-                        end
-                    end
-                    ini_isdirty = true;
-                end                
-                
-                if(ini.about.config_revision < 200)
-                    %try to delete old config files
-                    fn = fullfile(fileparts(this.fileName),'FitConfig.ini');
-                    if(exist(fn,'file'))
-                        delete(fn);
-                    end
-                    fn = fullfile(fileparts(this.fileName),'VisConfig.ini');
-                    if(exist(fn,'file'))
-                        delete(fn);
-                    end
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 217)
-                    ini.options_de.maxReInitCnt = 20;
-                    if(isfield(ini,'bounds_2_exp'))
-                        ini = rmfield(ini,{'bounds_2_exp'});
-                    end
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 220)
-                    if(isfield(ini,'pixel_fit'))
-                        ini = rmfield(ini,{'pixel_fit'});
-                    end
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 222)
-                    if(isfield(ini,'bounds_3_exp'))
-                        ini = rmfield(ini,{'bounds_3_exp'});
-                    end
-                    if(isfield(ini,'options_de'))
-                        ini = rmfield(ini,{'options_de'});
-                    end
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 223)
-                    if(isfield(ini,'bounds_offset'))
-                        ini = rmfield(ini,{'bounds_offset'});
-                    end
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.client_revision < 241)
-                    if(isfield(ini,'options_de'))
-                        ini = rmfield(ini,{'options_de'});
-                    end
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 230)
-                    if(isfield(ini,'init_fit'))
-                        ini = rmfield(ini,{'init_fit'});
-                    end
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 238)
-                    if(isfield(ini,'basic_fit') && isfield(ini.basic_fit,'fixHShiftGridSize'))
-                        ini.init_fit.gridSize = ini.basic_fit.fixHShiftGridSize;
-                        ini.basic_fit = rmfield(ini.basic_fit,{'fixHShiftGridSize'});
-                    end
-                    if(isfield(ini,'basic_fit') && isfield(ini.basic_fit,'initGridPhotons'))
-                        ini.init_fit.gridPhotons = ini.basic_fit.initGridPhotons;
-                        ini.basic_fit = rmfield(ini.basic_fit,{'initGridPhotons'});
-                    end
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 240)
-                    if(isfield(ini,'folders') && isfield(ini.folders,'mcShare'))
-                        ini.computation.mcShare = ini.folders.mcShare;
-                        ini = rmfield(ini,{'folders'});
-                    end
-                    if(isfield(ini,'init_fit') && isfield(ini.init_fit,'pixelJitter'))
-                        ini.init_fit = rmfield(ini.init_fit,{'pixelJitter'});
-                    end
-                    if(isfield(ini,'pixel_fit'))
-                        if(isfield(ini.pixel_fit,'pixelJitter'))
-                            ini.pixel_fit = rmfield(ini.pixel_fit,{'pixelJitter'});
-                        end
-                        if(isfield(ini.pixel_fit,'outlierStage'))
-                            ini.pixel_fit = rmfield(ini.pixel_fit,{'outlierStage'});
-                        end
-                    end                    
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 244)
-                    ini.basic_fit.curIRFID = 'Ilmenau_01.09.2014';
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 245)
-                    if(isfield(ini,'fluo_decay_fit_gui') && isfield(ini.fluo_decay_fit_gui,'cmType'))
-                        ini.general.cmType = ini.fluo_decay_fit_gui.cmType;
-                        ini.fluo_decay_fit_gui = rmfield(ini.fluo_decay_fit_gui,{'cmType'});
-                    end
-                    if(isfield(ini,'fluo_decay_fit_gui') && isfield(ini.fluo_decay_fit_gui,'cmInvert'))
-                        ini.general.cmInvert = ini.fluo_decay_fit_gui.cmInvert;
-                        ini.fluo_decay_fit_gui = rmfield(ini.fluo_decay_fit_gui,{'cmInvert'});
-                    end
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 246)
-                    if(isfield(ini,'basic_fit') && isfield(ini.basic_fit,'fittedChiWeighting') && ini.basic_fit.fittedChiWeighting == 1)
-                        ini.basic_fit.chiWeightingMode = 3;
-                    end
-                    if(isfield(ini,'basic_fit') && isfield(ini.basic_fit,'errorMode'))
-                        ini.basic_fit.errorMode = max(1,ini.basic_fit.errorMode-1);
-                    end
-                    ini_isdirty = true;
-                end
-                
-                if(ini.about.config_revision < 250)
-                    if(isfield(ini,'statistics')) %add a second channel to statistics parameters
-                        fn = fieldnames(ini.statistics);
-                        for i=1:length(fn)
-                            ini.statistics.(fn{i}) = repmat(ini.statistics.(fn{i}),1,2);
-                        end
-                    end
-                end
-                
-                if(ini.about.client_revision < 326)
-                    if(isfield(ini,'basic_fit'))
-                        if(isfield(ini.basic_fit,'risingEdgeErrorMargin') && ini.basic_fit.risingEdgeErrorMargin < 4)
-                            ini.basic_fit.risingEdgeErrorMargin = 4;
-                            ini_isdirty = true;
-                        end
-                    end
-                end
-                
-                if(ini.about.config_revision < 255)
-                    if(isfield(ini,'basic_fit')) %rename errorMode field
-                        if(isfield(ini.basic_fit,'errorMode'))
-                            ini.basic_fit.figureOfMeritModifier = ini.basic_fit.errorMode;
-                            ini_isdirty = true;
-                        end
-                    end
-                end
-                
                 if(ini.about.config_revision < 264)
                     if(isfield(ini,'flimvis_gui')) %rename cuts to crossSections
                         if(isfield(ini.flimvis_gui,'color_cuts'))
@@ -259,11 +83,11 @@ classdef FLIMXParamMgr < paramMgr
                         if(isfield(ini.flimvis_gui,'show_cut'))
                             ini.flimvis_gui.show_crossSection = ini.flimvis_gui.show_cut;
                             ini_isdirty = true;
-                        end                        
-                    end                    
+                        end
+                    end
                 end
                 
-                if(ini_isdirty || ini.about.client_revision < this.about.client_revision || ini.about.config_revision < this.about.config_revision)
+                if(ini_isdirty || ini.about.client_revision_major < this.about.client_revision_major || ini.about.client_revision_minor < this.about.client_revision_minor || ini.about.client_revision_fix < this.about.client_revision_fix || ini.about.config_revision < this.about.config_revision)
                     %generic version mismatch
                     ini = rmfield(ini,{'about'});
                     ini_isdirty = true;
@@ -272,13 +96,13 @@ classdef FLIMXParamMgr < paramMgr
                 %something went wrong - get defaults
                 ini = this.getDefaults();
                 ini_isdirty = 1;
-            end            
+            end
             %save updated ini
             if(ini_isdirty && ~isempty(this.fileName))
                 %check if dir for config exists - if not: create it
                 idx = strfind(this.fileName,filesep);
                 pathstr = this.fileName(1:idx(end)-1);
-                if(~isdir(pathstr))
+                if(~isfolder(pathstr))
                     [status, message, ~] = mkdir(pathstr);
                     if(~status)
                         error('FLIMX:FLIMXParamMgr:readConfig','Could not create config folder: %s\n%s',pathstr,message);
@@ -291,7 +115,7 @@ classdef FLIMXParamMgr < paramMgr
             ini = checkStructConsistency(ini,this.getDefaults());
             %special treatment
             if(isfield(ini,'basic_fit'))
-                for i=1:16                    
+                for i=1:16
                     tmp = {''};
                     str = sprintf('constMaskSaveStrCh%d',i);
                     if(~isempty(ini.basic_fit.(str)))
@@ -303,14 +127,14 @@ classdef FLIMXParamMgr < paramMgr
                 if(~isempty(ini.basic_fit.globalFitMaskSaveStr))
                     tmp = textscan(ini.basic_fit.globalFitMaskSaveStr,'%s','delimiter','|','MultipleDelimsAsOne',1);
                 end
-                ini.basic_fit.globalFitMaskSaveStr = [tmp{:}];                
+                ini.basic_fit.globalFitMaskSaveStr = [tmp{:}];
                 %convert init fix targets
                 tmp = {''};
                 if(~isempty(ini.basic_fit.fix2InitTargets))
                     tmp = textscan(ini.basic_fit.fix2InitTargets,'%s','delimiter','|','MultipleDelimsAsOne',1);
-                end                
-                ini.basic_fit.fix2InitTargets = [tmp{:}];                
-            end  
+                end
+                ini.basic_fit.fix2InitTargets = [tmp{:}];
+            end
             if(isfield(ini,'cleanup_fit'))
                 tmp = {''};
                 if(~isempty(ini.cleanup_fit.target))
@@ -323,12 +147,12 @@ classdef FLIMXParamMgr < paramMgr
                 tmp = {''};
                 if(~isempty(ini.general.cmType))
                     tmp = textscan(ini.general.cmType,'%s','delimiter','|','MultipleDelimsAsOne',1);
-                end                
+                end
                 ini.general.cmType = tmp{1}{:};
                 tmp = {''};
                 if(~isempty(ini.general.cmIntensityType))
                     tmp = textscan(ini.general.cmIntensityType,'%s','delimiter','|','MultipleDelimsAsOne',1);
-                end                
+                end
                 ini.general.cmIntensityType = tmp{1}{:};
             end
 %             if(isfield(ini,'flimvis_gui'))
@@ -356,7 +180,7 @@ classdef FLIMXParamMgr < paramMgr
                 this.writeConfig();
             end
         end
-            
+        
         
         %% output methods
         function out = getFileName(this)
@@ -475,6 +299,9 @@ classdef FLIMXParamMgr < paramMgr
                             this.fdt.setDataSmoothFilter(alg,params);
                         end
                     case 'general'
+                        if(isfield(new,'maxMemoryCacheSize') && old.maxMemoryCacheSize ~= new.maxMemoryCacheSize && ~isempty(this.fdt))
+                            this.fdt.maxMemoryCacheSize = new.maxMemoryCacheSize;
+                        end
                         if(isfield(new,'autoWindowSize') && old.autoWindowSize ~= new.autoWindowSize && new.autoWindowSize == 1)                            
                             new.windowSize = FLIMX.getAutoWindowSize(); %just to make sure, should have been set already
                         end

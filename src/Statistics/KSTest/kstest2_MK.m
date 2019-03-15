@@ -1,4 +1,4 @@
-function [H, pValue, KSstatistic] = kstest2(x1, x2, alpha, tail)
+function [H, pValue, KSstatistic] = kstest2_MK(x1, x2, alpha, tail)
 %KSTEST2 Two-sample Kolmogorov-Smirnov goodness-of-fit hypothesis test.
 %   H = KSTEST2(X1,X2,ALPHA,TYPE) performs a Kolmogorov-Smirnov (K-S) test 
 %   to determine if independent random samples, X1 and X2, are drawn from 

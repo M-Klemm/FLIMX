@@ -79,7 +79,7 @@ classdef result4Import < resultFile
 %                         file(i) = {[name,ext]};
 %                     end
 %                     try
-%                         rs = FLIMXFitResultImport.ASCII2ResultStruct(file,path,this.mySubject.name,resultType,ch);
+%                         rs = FLIMXFitResultImport.ASCII2ResultStruct(file,path,this.myParent.name,resultType,ch);
 %                     catch ME
 %                         uiwait(errordlg(sprintf('%s\n\nImport aborted.',ME.message),'Error loading B&H results','modal'));
 %                         return
@@ -119,37 +119,39 @@ classdef result4Import < resultFile
 %             end
 %         end
         
-        function importResultStruct(this,rs,ch,position,scaling)
-            %import a result struct into this object, the result struct must have the same format as a result file
-            %make sure version is correct
-            rs = resultFile.updateFitResultsStruct(rs,this.paramMgrObj.getDefaults().about);
-            rs.auxiliaryData.fileInfo.position = position;
-            rs.auxiliaryData.fileInfo.pixelResolution = scaling;
-            this.loadResult(rs);
-            this.setDirty(ch,true);
-            %update fileInfo of other channels
-            if(ch > 1)
-                for i = 1:ch-1
-                    this.auxiliaryData{i}.fileInfo.nrSpectralChannels = rs.auxiliaryData.fileInfo.nrSpectralChannels;
-                    this.setDirty(i,true);
-                end
-            end
-        end
-        
-        function addFLIMItems(this,ch,itemsStruct)
-            %add FLIM items to our inner results structure, here: FLIM items do not need to be allocated previously!
-            tmp = this.getPixelResult(ch);
-            fn = fieldnames(itemsStruct);
-            for l = 1:length(fn)
-                if(all(size(itemsStruct.(fn{l})) == this.resultSize))
-                    tmp.(fn{l}) = itemsStruct.(fn{l});
-                end
-            end
-            this.results.pixel{ch,1} = tmp;
-            this.pixelApproximated(ch) = true;
-            this.setDirty(ch,true);
-            this.loadedChannels(ch,1) = true;
-        end
+%         function importResultStruct(this,rs,ch,position,scaling)
+%             %import a result struct into this object, the result struct must have the same format as a result file
+%             %make sure version is correct
+%             rs = resultFile.updateFitResultsStruct(rs,this.paramMgrObj.getDefaults().about);
+%             rs.auxiliaryData.fileInfo.position = position;
+%             rs.auxiliaryData.fileInfo.pixelResolution = scaling;
+%             this.loadResult(rs);
+%             this.setDirty(ch,true);
+%             %update fileInfo of other channels
+%             if(ch > 1)
+%                 for i = 1:ch-1
+%                     if(this.auxiliaryData{i}.fileInfo.nrSpectralChannels ~= rs.auxiliaryData.fileInfo.nrSpectralChannels)
+%                         this.auxiliaryData{i}.fileInfo.nrSpectralChannels = rs.auxiliaryData.fileInfo.nrSpectralChannels;
+%                         this.setDirty(i,true);
+%                     end
+%                 end
+%             end
+%         end
+%         
+%         function addFLIMItems(this,ch,itemsStruct)
+%             %add FLIM items to our inner results structure, here: FLIM items do not need to be allocated previously!
+%             tmp = this.getPixelResult(ch);
+%             fn = fieldnames(itemsStruct);
+%             for l = 1:length(fn)
+%                 if(all(size(itemsStruct.(fn{l})) == this.resultSize))
+%                     tmp.(fn{l}) = itemsStruct.(fn{l});
+%                 end
+%             end
+%             this.results.pixel{ch,1} = tmp;
+%             this.pixelApproximated(ch) = true;
+%             this.setDirty(ch,true);
+%             this.loadedChannels(ch,1) = true;
+%         end
         
     end%methods
     
@@ -324,7 +326,7 @@ classdef result4Import < resultFile
                     chanNr = str2double(str(idx));
                     curName = filename(min(length(filename),chPos+6):end);
                 end
-                if(isempty(curName) || ~ampsInPercentFlag && contains(curName,'[%]') || strcmp(curName,'trace'))
+                if(isempty(curName) || ~ampsInPercentFlag && contains(curName,'[%]') || strcmp(curName,'trace') || any(strcmp(curName,result4Import.reservedFLIMItemNames())))
                     %error or amplitude in percent or data trace
                     continue
                 end
@@ -424,6 +426,11 @@ classdef result4Import < resultFile
             try
                 hProgress(0,'');
             end
+        end
+        
+        function out = reservedFLIMItemNames()
+            %return names of FLIM items which are used by FLIMX; thus can't be imported
+            out = {'tauMean','Q','AmplitudePercent','RAUC','RAUIS'};
         end
     end
 end%classdef

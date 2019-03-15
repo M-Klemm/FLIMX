@@ -37,7 +37,7 @@ classdef FLIMX < handle
         paramMgr = [];      %parameter objects
         curSubject = [];    %current subject
     end
-    
+
     properties(GetAccess = protected, SetAccess = private)
         FLIMFitObj = [];    %approximation object
         sDDMgrObj = [];     %only temporary: manage synthetic datasets
@@ -53,14 +53,14 @@ classdef FLIMX < handle
         matlabPoolTimer = [];
         splashScreenGUIObj = [];
     end
-    
+
     properties (Dependent = true)
         configPath = '';
         %objects
         FLIMFit = [];    %approximation object
         sDDMgr = [];     %only temporary: manage synthetic datasets
         batchJobMgr = [];   %batch job manager
-        
+
         FLIMFitGUI = [];     %visualization of approximation
         FLIMVisGUI = []; %extended visualization and statistics
         studyMgrGUI = [];%manager for subject studies
@@ -70,7 +70,7 @@ classdef FLIMX < handle
         importResultGUI = [];  %result import wizard
         splashScreenGUI = []; %splash screen
     end
-    
+
     methods
         function this = FLIMX()
             %constructor
@@ -94,9 +94,14 @@ classdef FLIMX < handle
                 params = 0;
             end
             this.fdt.setDataSmoothFilter(alg,params);
+            this.fdt.maxMemoryCacheSize = this.paramMgr.generalParams.maxMemoryCacheSize;
             %set window size
             if(this.paramMgr.generalParams.autoWindowSize)
                 this.paramMgr.generalParams.windowSize = FLIMX.getAutoWindowSize();
+            end
+            %set max cache size
+            if(this.paramMgr.generalParams.maxMemoryCacheSize > FLIMX.getMaxSystemCacheSize())
+                this.paramMgr.generalParams.maxMemoryCacheSize = FLIMX.getMaxSystemCacheSize();
             end
             %load a subject
             this.updateSplashScreenProgressLong(0.5,'Load first subject...');
@@ -111,17 +116,17 @@ classdef FLIMX < handle
             this.openMatlabPool();
             this.updateSplashScreenProgressShort(0,'');
         end
-        
+
         function openFLIMXFitGUI(this)
             %open FLIMXFitGUI
             this.FLIMFitGUI.checkVisWnd();
         end
-        
+
         function openFLIMXVisGUI(this)
             %open FLIMVisGUI
             this.FLIMVisGUI.checkVisWnd();
         end
-        
+
         function openMatlabPool(this)
             %try to open a matlab pool
             computationParams = this.paramMgr.getParamSection('computation');
@@ -148,7 +153,7 @@ classdef FLIMX < handle
                 start(this.matlabPoolTimer);
             end
         end
-        
+
         function closeSplashScreen(this)
             %close splash screen window
             try
@@ -156,7 +161,7 @@ classdef FLIMX < handle
             end
             this.splashScreenGUIObj = [];
         end
-        
+
         function closeMatlabPool(this)
             %try to close our matlab pool
             p = gcp('nocreate');
@@ -170,7 +175,7 @@ classdef FLIMX < handle
                 delete(p);
             end
         end
-        
+
         function destroy(this,forceFlag)
             %delete FLIMX object if all windows are closed or if forceFlag == true
             warning('on','MATLAB:rankDeficientMatrix');
@@ -232,17 +237,17 @@ classdef FLIMX < handle
                 return
             end
         end
-        
+
         function closeBatchJobMgrGUI(this)
             %close GUI of batch job manager
-            
+
         end
         %% output methods
         function out = get.configPath(this)
             %config file path
             out = fullfile(FLIMX.getWorkingDir(),'config','config.ini');
         end
-        
+
         function out = get.FLIMFit(this)
             %get FLIMFit object
             if(isempty(this.FLIMFitObj))
@@ -250,7 +255,7 @@ classdef FLIMX < handle
             end
             out = this.FLIMFitObj;
         end
-        
+
         function out = get.sDDMgr(this)
             %get sDDMgr object
             if(isempty(this.sDDMgrObj))
@@ -258,7 +263,7 @@ classdef FLIMX < handle
             end
             out = this.sDDMgrObj;
         end
-        
+
         function out = get.batchJobMgr(this)
             %get batchJobMgr object
             if(isempty(this.batchJobMgrObj))
@@ -266,7 +271,7 @@ classdef FLIMX < handle
             end
             out = this.batchJobMgrObj;
         end
-        
+
         function out = get.FLIMFitGUI(this)
             %get FLIMFitGUI object
             if(isempty(this.FLIMFitGUIObj))
@@ -274,7 +279,7 @@ classdef FLIMX < handle
             end
             out = this.FLIMFitGUIObj;
         end
-        
+
         function out = get.splashScreenGUI(this)
             %get splash screen object
             %             if(isempty(this.splashScreenGUIObj))
@@ -282,7 +287,7 @@ classdef FLIMX < handle
             %             end
             out = this.splashScreenGUIObj;
         end
-        
+
         function out = get.FLIMVisGUI(this)
             %get FLIMVisGUI object
             if(isempty(this.FLIMVisGUIObj))
@@ -290,7 +295,7 @@ classdef FLIMX < handle
             end
             out = this.FLIMVisGUIObj;
         end
-        
+
         function out = get.studyMgrGUI(this)
             %get studyMgrGUI object
             if(isempty(this.studyMgrGUIObj))
@@ -298,7 +303,7 @@ classdef FLIMX < handle
             end
             out = this.studyMgrGUIObj;
         end
-        
+
         function out = get.irfMgrGUI(this)
             %get irfMgrGUI object
             if(isempty(this.irfMgrGUIObj))
@@ -306,7 +311,7 @@ classdef FLIMX < handle
             end
             out = this.irfMgrGUIObj;
         end
-        
+
         function out = get.batchJobMgrGUI(this)
             %get batchMgrGUI object
             if(isempty(this.batchJobMgrGUIObj))
@@ -314,7 +319,7 @@ classdef FLIMX < handle
             end
             out = this.batchJobMgrGUIObj;
         end
-        
+
         function out = get.importGUI(this)
             %get importGUI object
             if(isempty(this.importMeasurementGUIObj))
@@ -322,7 +327,7 @@ classdef FLIMX < handle
             end
             out = this.importMeasurementGUIObj;
         end
-        
+
         function out = get.importResultGUI(this)
             %get importResultGUI object
             if(isempty(this.importResultGUIObj))
@@ -330,7 +335,7 @@ classdef FLIMX < handle
             end
             out = this.importResultGUIObj;
         end
-        
+
         function saveCurResultInFDT(this)
             %save dirty channels of current result in FDTree
             for ch = find(this.curSubject.resultIsDirty)
@@ -338,7 +343,7 @@ classdef FLIMX < handle
                 this.fdt.saveStudy(this.curSubject.getStudyName());
             end
         end
-        
+
         function success = setCurrentSubject(this,study,condition,subject)
             %set the current subject
             success = true;
@@ -385,28 +390,28 @@ classdef FLIMX < handle
                 %todo: check irf?!
             end
         end
-        
+
         function updateFluoDecayFitProgressbar(this,x,text)
             %set progress in FLIMXFitGUI to new value
             this.FLIMFitGUI.updateProgressShort(x,text);
         end
-        
+
         function updateSplashScreenProgressShort(this,x,text)
             %set short progress in splash screen to new value
             if(~isempty(this.splashScreenGUIObj))
                 this.splashScreenGUIObj.updateProgressShort(x,text);
             end
         end
-        
+
         function updateSplashScreenProgressLong(this,x,text)
             %set short progress in splash screen to new value
             if(~isempty(this.splashScreenGUIObj))
                 this.splashScreenGUIObj.updateProgressLong(x,text);
             end
         end
-        
+
     end %methods
-    
+
     methods(Static)
         function out = getWorkingDir()
             %get current FLIMX working directory
@@ -421,7 +426,7 @@ classdef FLIMX < handle
             end
             out = myDir;
         end
-        
+
         function out = getAnimationPath()
             %get path to animated spinner.gif
             persistent myDir
@@ -430,7 +435,7 @@ classdef FLIMX < handle
             end
             out = myDir;
         end
-        
+
         function [mapNames, iconPaths] = getColormaps()
             %get names and path to images of color maps
             persistent cmNames cmPaths
@@ -456,7 +461,7 @@ classdef FLIMX < handle
             mapNames = cmNames;
             iconPaths = cmPaths;
         end
-        
+
         function out = getLogoPath()
             %get path to FLIMX_Logo.png
             persistent myDir
@@ -465,17 +470,19 @@ classdef FLIMX < handle
             end
             out = myDir;
         end
-        
+
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
-            out.config_revision = 264;
-            out.client_revision = 392;
+            out.config_revision = 26;
+            out.client_revision_major = 4;
+            out.client_revision_minor = 2;
+            out.client_revision_fix = 0;
             out.core_revision = 372;
             out.results_revision = 256;
-            out.measurement_revision = 204;
+            out.measurement_revision = 205;
         end
-        
+
         function out = getAutoWindowSize()
             %determine best window size for current display and set it
             set(0,'units','pixels');
@@ -488,7 +495,34 @@ classdef FLIMX < handle
                 out = 2; %small
             end
         end
-        
+
+        function out = getMaxSystemCacheSize()
+            %determine system memory size and guess a reasonable cache size
+            persistent maxSysCacheSz
+            if(isempty(maxSysCacheSz))
+                if(ispc)
+                    [~,sv] = memory;
+                    systemRAM = sv.PhysicalMemory.Total;
+                else
+                    %thanks to angainor: https://stackoverflow.com/questions/12350598/how-to-access-memory-information-in-matlab-on-unix-equivalent-of-user-view-max
+                    [~,w] = unix('free | grep Mem');
+                    stats = str2double(regexp(w, '[0-9]*', 'match'));
+                    systemRAM = stats(1)*1024;
+                end
+                %check if there is a Matlab pool
+                pool = gcp('nocreate');
+                if(~isempty(pool))
+                    nWorkers = pool.NumWorkers;
+                else
+                    nWorkers = 0;
+                end
+                %minimum cache size is 256 MB
+                maxSysCacheSz = max(256e6,(systemRAM - 1e9 - nWorkers*0.5e9) / 2); %substract 1 GB for Matlab, 0,5 GB per worker, allow half of the remainder as max cache
+            end
+            out = maxSysCacheSz;
+        end
+
+
         function MatlabPoolIdleFcn()
             %function to keep matlab pool from timing out
             if(~isempty(gcp('nocreate')))
@@ -497,7 +531,7 @@ classdef FLIMX < handle
                 end
             end
         end
-        
+
         function openFLIMXUserGuide()
             %try to open the FLIMX user guide (pdf file)
             myDir = fullfile(FLIMX.getWorkingDir(),'doc','FLIMX_User_Guide.pdf');
@@ -512,7 +546,7 @@ classdef FLIMX < handle
                 end
             end
         end
-        
+
         function openFLIMXWebSite()
             %try to open www.flimx.de in system webbrower
             status = web('www.flimx.de','-browser');
@@ -521,7 +555,7 @@ classdef FLIMX < handle
                 web('www.flimx.de');
             end
         end
-        
+
         function out = getLicenseInfo()
             %return license text
             [Y, ~, ~, ~, ~, ~] = datevec(now);
@@ -547,21 +581,21 @@ classdef FLIMX < handle
                 char(13);
                 'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.';};
         end
-        
+
         function out = getAcknowledgementInfo()
             %return acknowledgement text
             out = {
                 'This software uses ''Scalar function-based filtering'' by Damien Garcia from http://www.biomecardio.com/matlab/sffilt.html';
-                
+
                 newline;
                 'This software uses ''Fast and robust smoothing of one-dimensional and multidimensional data'' by Damien Garcia from http://www.biomecardio.com/matlab/smoothn.html';
-                
+
                 newline;
                 'This software uses ''qinterp1'' by Nathaniel Brahms from http://www.mathworks.com/matlabcentral/fileexchange/10286-fast-interpolation';
-                
+
                 newline;
                 'This software uses ''fminsearchbnd new'' by Ken Purchase from http://www.mathworks.com/matlabcentral/fileexchange/17804-fminsearchbnd-new';
-                
+
                 newline;
                 'This software uses ''Fast smoothing function'' by T. C. O''Haver from http://www.mathworks.com/matlabcentral/fileexchange/19998-fast-smoothing-function, which is covered by the following license:';
                 char(13);
@@ -588,7 +622,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''Recursive directory listing'' by Gus Brown from http://www.mathworks.com/matlabcentral/fileexchange/19550-recursive-directory-listing, which is covered by the following license:';
                 'Copyright (c) 2009, Gus Brown';
@@ -615,7 +649,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''CATSTRUCT'' by Jos van der Geest from http://www.mathworks.com/matlabcentral/fileexchange/7842-catstruct, which is covered by the following license:';
                 'Copyright (c) 2009, Jos van der Geest';
@@ -642,7 +676,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''struct2ini'' by Dirk Lohse from http://www.mathworks.com/matlabcentral/fileexchange/22079-struct2ini, which is covered by the following license:';
                 'Copyright (c) 2009, Dirk Lohse';
@@ -669,7 +703,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''ini2struct'' by Andriy Nych from http://www.mathworks.com/matlabcentral/fileexchange/17177-ini2struct, which is covered by the following license:';
                 'Copyright (c) 2008, Andriy Nych';
@@ -696,7 +730,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''Multicore - Parallel processing on multiple cores'' by Markus Buehren from http://www.mathworks.com/matlabcentral/fileexchange/13775-multicore-parallel-processing-on-multiple-cores, which is covered by the following license:';
                 'Copyright (c) 2007, Markus Buehren';
@@ -723,7 +757,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''Differential Evolution'' by Markus Buehren from http://www.mathworks.com/matlabcentral/fileexchange/18593-differential-evolution, which is covered by the following license:';
                 'Copyright (c) 2008, Markus Buehren';
@@ -750,7 +784,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''Another Particle Swarm Toolbox'' by Sam Chen from http://www.mathworks.com/matlabcentral/fileexchange/25986-another-particle-swarm-toolbox, which is covered by the following license:';
                 'Copyright (c) 2009, Sam Chen';
@@ -762,7 +796,7 @@ classdef FLIMX < handle
                 '    * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution';
                 char(13);
                 'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.',
-                
+
                 newline;
                 'This software uses ''settings dialog'' by Rody Oldenhuis from http://www.mathworks.com/matlabcentral/fileexchange/26312-settings-dialog, which is covered by the following license:';
                 'Copyright (c) 2010, Rody Oldenhuis';
@@ -789,7 +823,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''ROC curve'' by Giuseppe Cardillo from http://www.mathworks.com/matlabcentral/fileexchange/19950-roc-curve, which is covered by the following license:';
                 'Copyright (c) 2014, Giuseppe Cardillo';
@@ -816,7 +850,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''Clinical Test Performance'' by Giuseppe Cardillo from http://www.mathworks.com/matlabcentral/fileexchange/12705-clinical-test-performance, which is covered by the following license:';
                 'Copyright (c) 2006, Giuseppe Cardillo';
@@ -843,7 +877,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''rotate xtick labels of an axes'' by Brian Katz from http://www.mathworks.com/matlabcentral/fileexchange/3486-xticklabel-rotate, which is covered by the following license:';
                 'Copyright (c) 2003, Brian Katz';
@@ -874,7 +908,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''findjobj'' by Yair Altman from http://www.mathworks.com/matlabcentral/fileexchange/14317-findjobj-find-java-handles-of-matlab-graphic-objects, which is covered by the following license:';
                 'Copyright (c) 2014, Yair Altman';
@@ -901,7 +935,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses the color maps ''Magma'', ''Inferno'', ''Plasma'', ''Virirdis'' by Nathaniel Smith & Stefan van der Walt from https://bids.github.io/colormap, which is covered by the following license:';
                 'CC0 1.0 Universal';
@@ -913,7 +947,7 @@ classdef FLIMX < handle
                 'to mpl-colormaps.';
                 'You should have received a copy of the CC0 legalcode along with this';
                 'work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.';
-                
+
                 newline;
                 'This software uses ''DirSize'' by Richard Moore from https://de.mathworks.com/matlabcentral/fileexchange/41300-dirsize, which is covered by the following license:';
                 'Copyright (c) 2013, Richard Moore';
@@ -940,7 +974,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses parts of Coye, Tyler (2015). A Novel Retinal Blood Vessel Segmentation Algorithm for Fundus Images (http://www.mathworks.com/matlabcentral/fileexchange/50839), MATLAB Central File Exchange.[retrieved 20th August 2017]';
                 'Copyright (c) 2017, Tyler Coye';
@@ -968,7 +1002,7 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''disk_free'' by Igor from https://www.mathworks.com/matlabcentral/fileexchange/41904-disk-usage, which is covered by the following license:';
                 'Copyright (c) 2013, Igor';
@@ -994,10 +1028,9 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 };
         end
-        
+
     end %methods(Static)
 end
-

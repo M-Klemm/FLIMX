@@ -41,91 +41,96 @@ classdef subject4Import < fluoSubject
         function this = subject4Import(study,name)
             %constructor
             this = this@fluoSubject(study,name);
+            %init measurement and result objects
+            this.myMeasurement = measurement4Import(this);
+            this.myMeasurement.setProgressCallback(@this.updateProgress);
+            this.myResult = result4Import(this);
+            this.isInitialized = true;
         end
         
         %% input methods
         function importMeasurementFile(this,fn)
             %import measurement file
             this.myMeasurement.setSourceFile(fn);
-            this.importMeasurement2FDTree();
+%             this.importMeasurement2FDTree();
         end
         
         function importMeasurementObj(this,obj)
             %import a measurement object
             this.myMeasurement.importMeasurementObj(obj); %sets the source file in myMeasurement from obj
-            this.importMeasurement2FDTree();
+%             this.importMeasurement2FDTree();
         end
         
         function importResult(this,fn,resultType,ch,position,scaling)
             %import a result from ASCII files
-            ch = this.myResult.importResult(fn,resultType,ch,position,scaling);
-            %this.updateSubjectChannel(ch,'result');
-            idx = find(this.resultIsDirty);
-            for i = 1:length(idx)
-                this.updateSubjectChannel(idx(i),'result');
-            end
+            this.initMode = true;
+            this.myResult.importResult(fn,resultType,ch,position,scaling);
+            this.importResult2FDTree();
         end
         
-        function importResultStruct(this,rs,ch,position,scaling)
-            %import a result from a result struct
-            this.myResult.importResultStruct(rs,ch,position,scaling);
-            %this.updateSubjectChannel(ch,'result');
-            idx = find(this.resultIsDirty);
-            for i = 1:length(idx)
-                this.updateSubjectChannel(idx(i),'result');
-            end
-            this.myParent.clearArithmeticRIs(); %not sure if needed here
-        end
-        
-        function addFLIMItems(this,ch,itemsStruct)
-            %import (additional) FLIM items to this result
-            this.myResult.addFLIMItems(ch,itemsStruct);
-            idx = find(this.resultIsDirty);
-            for i = 1:length(idx)
-                this.updateSubjectChannel(idx(i),'result');
-            end
-            %we might overwrite something that is used for an arithmetic image -> clear them 
-            %(we don't have a method to clear only a specific subject, thus clear the whole study)
-            this.myParent.clearArithmeticRIs();
-        end
-        
-        function init(this)
-            %init measurement and result objects
-            this.myMeasurement = measurement4Import(this);
-            this.myMeasurement.setProgressCallback(@this.updateProgress);
-            this.myResult = result4Import(this);
-        end
+%         function importResultStruct(this,rs,ch,position,scaling)
+%             %import a result from a result struct
+%             this.initMode = true;
+%             this.myResult.importResultStruct(rs,ch,position,scaling);
+%             this.importResult2FDTree();
+%         end
+%         
+%         function addFLIMItems(this,ch,itemsStruct)
+%             %import (additional) FLIM items to this result
+%             this.myResult.addFLIMItems(ch,itemsStruct);
+%             idx = find(this.resultIsDirty);
+%             for i = 1:length(idx)
+%                 this.updateSubjectChannel(idx(i),'result');
+%             end
+%             %we might overwrite something that is used for an arithmetic image -> clear them 
+%             %(we don't have a method to clear only a specific subject, thus clear the whole study)
+%             this.myParent.clearArithmeticRIs();
+%         end
     end %methods
     
-    methods (Access = protected)
-        function importMeasurement2FDTree(this)
-            %import a measurement to FDTree
-            ROIVec = this.myMeasurement.ROICoord; %save old ROIVec if there is one
-            %this.myMeasurement.setSourceFile(fn);
-            if(~isempty(ROIVec))
-                this.myMeasurement.setROICoord(ROIVec);
-            end
-            if(~this.myMeasurement.fileInfoLoaded)
-                this.myMeasurement.getFileInfoStruct([]);
-            end
-            %add me to my study
-            this.myParent.addSubject(this.name);
-            %guess position of the eye
-            this.myMeasurement.guessEyePosition();
-            for ch = 1:this.myMeasurement.nrSpectralChannels
-                %read the actual payload
-                if(ch == 1 && isempty(this.myMeasurement.ROICoord))
-                    %get full roi
-                    ROIVec = [1 this.myMeasurement.getRawXSz() 1 this.myMeasurement.getRawYSz()];
-                    %ROIVec = importWizard.getAutoROI(this.myMeasurement.getRawDataFlat(ch),this.preProcessParams.roiBinning);
-                    if(ROIVec(1) > 5 || ROIVec(3) > 5 || ROIVec(2) < this.myMeasurement.rawXSz-5 || ROIVec(4) < this.myMeasurement.rawYSz-5)
-                        this.myMeasurement.setROICoord(ROIVec);
-                    end
-                end
-                %save in fdtree
-                this.updateSubjectChannel(ch,'measurement');
-            end
-        end
+    methods (Access = protected)        
+%         function importMeasurement2FDTree(this)
+%             %import a measurement to FDTree
+%             ROIVec = this.myMeasurement.ROICoord; %save old ROIVec if there is one
+%             if(~isempty(ROIVec))
+%                 this.myMeasurement.setROICoord(ROIVec);
+%             end
+%             if(~this.myMeasurement.fileInfoLoaded)
+%                 this.myMeasurement.getFileInfoStruct([]);
+%             end
+%             %add me to my study
+%             this.myParent.addSubject(this.name);
+%             %guess position of the eye
+%             this.myMeasurement.guessEyePosition();
+%             for ch = 1:this.myMeasurement.nrSpectralChannels
+%                 %read the actual payload
+%                 if(ch == 1 && isempty(this.myMeasurement.ROICoord))
+%                     %get full roi
+%                     ROIVec = [1 this.myMeasurement.getRawXSz() 1 this.myMeasurement.getRawYSz()];
+%                     %ROIVec = importWizard.getAutoROI(this.myMeasurement.getRawDataFlat(ch),this.preProcessParams.roiBinning);
+%                     if(ROIVec(1) > 5 || ROIVec(3) > 5 || ROIVec(2) < this.myMeasurement.rawXSz-5 || ROIVec(4) < this.myMeasurement.rawYSz-5)
+%                         this.myMeasurement.setROICoord(ROIVec);
+%                     end
+%                 end
+%                 %save in fdtree
+%                 this.updateSubjectChannel(ch,'measurement');
+%             end
+%             subjectApp = this.myParent.getSubject4Approx(this.name);            
+%             subjectApp.reset();
+%         end
+        
+%         function importResult2FDTree(this)
+%             %import a result to FDTree
+%             this.initMode = true;
+%             idx = find(this.myResult.dirtyFlags);
+%             for i = 1:length(idx)
+%                 this.updateSubjectChannel(idx(i),'result');
+%             end
+%             this.initMode = false;            
+%             subjectApp = this.myParent.getSubject4Approx(this.name);
+%             %subjectApp.updateSubjectChannel([],'measurement'); %check if measurement is dirty before we reset the object
+%             subjectApp.reset();
+%         end
         
     end
 end %classdef

@@ -124,9 +124,7 @@ classdef FLIMXSplashScreen < handle
             this.visHandles.patchWaitLong = patch(xpatch,ypatch,'r','EdgeColor','r','Parent',this.visHandles.axesWaitLong);%,'EraseMode','normal'
             this.visHandles.textWaitLong = text(1,0,'','Parent',this.visHandles.axesWaitLong); 
             vi = FLIMX.getVersionInfo();
-            major = floor(vi.client_revision/100);
-            minor = vi.client_revision - major*100;
-            set(this.visHandles.textVersion,'String',sprintf('Version: %d.%d',major,minor));
+            set(this.visHandles.textVersion,'String',sprintf('Version: %d.%d.%d',vi.client_revision_major,vi.client_revision_minor,vi.client_revision_fix));
             set(this.visHandles.textSplash,'String','This may take a few moments...');
         end                
     end %methods protected

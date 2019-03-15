@@ -33,9 +33,9 @@ classdef StatsMVGroupMgr < handle
     %
     properties(SetAccess = protected,GetAccess = protected)
         visObj = [];                %handle to FLIMXVisGUI object
-        visHandles = [];            %handle to clusterMgr GUI
+        visHandles = [];            %handle to MVGroupMgr GUI
         curStudyName = '';          %name of currently selected study
-        curMVGroupName = '';        %name of currently selected cluster
+        curMVGroupName = '';        %name of currently selected MVGroup
         cwX = [];                   %classwidth of selected target on x axis
         cwY = [];                   %classwidth of selected target on y axis
         oldMVs = [];
@@ -116,7 +116,7 @@ classdef StatsMVGroupMgr < handle
             curChNr = this.visObj.getChannel('l');
             allObjs = this.visObj.fdt.getChObjStr(this.curStudyName,curSubName,curChNr);
             if(~isempty(this.curMVGroupName))
-                cMVs = this.visObj.fdt.getClusterTargets(this.curStudyName,this.curMVGroupName);
+                cMVs = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
             else
                 cMVs.x = [];
                 cMVs.y = [];
@@ -193,21 +193,21 @@ classdef StatsMVGroupMgr < handle
         
         function updateGUI(this)
             %update GUI function
-            %update cluster list
-            allClusterStr = this.visObj.fdt.getStudyClustersStr(this.curStudyName,0);
-            idx = strncmp('MVGroup_',allClusterStr,8);
+            %update MVGroup list
+            allMVGroupStr = this.visObj.fdt.getMVGroupNames(this.curStudyName,0);
+            idx = strncmp('MVGroup_',allMVGroupStr,8);
             if(~isempty(idx))
-                allClusterStr = allClusterStr(idx);
+                allMVGroupStr = allMVGroupStr(idx);
             end
-            if(isempty(allClusterStr))
+            if(isempty(allMVGroupStr))
                 set(this.visHandles.popupMVGroups,'String',cellstr('-none-'));
                 set(this.visHandles.popupMVGroups,'Value',1);
                 this.curMVGroupName = '';
             else
-                set(this.visHandles.popupMVGroups,'String',allClusterStr);
-                set(this.visHandles.popupMVGroups,'Value',min(get(this.visHandles.popupMVGroups,'Value'),length(allClusterStr)));
-                clusterStr = get(this.visHandles.popupMVGroups,'String');
-                this.curMVGroupName = clusterStr{get(this.visHandles.popupMVGroups,'Value')};
+                set(this.visHandles.popupMVGroups,'String',allMVGroupStr);
+                set(this.visHandles.popupMVGroups,'Value',min(get(this.visHandles.popupMVGroups,'Value'),length(allMVGroupStr)));
+                MVGroupStr = get(this.visHandles.popupMVGroups,'String');
+                this.curMVGroupName = MVGroupStr{get(this.visHandles.popupMVGroups,'Value')};
             end
             %enable / disable UI controls
             if(isempty(this.curMVGroupName))
@@ -227,7 +227,7 @@ classdef StatsMVGroupMgr < handle
         end
         
         function updateGlobalCtrls(this)
-            %update UI controls for global cluster selection
+            %update UI controls for global MVGroup selection
             %enable / disable UI controls
             if(isempty(this.curMVGroupName))
                 set(this.visHandles.tableStudyViews,'Data',[],'Enable','Off');
@@ -238,12 +238,12 @@ classdef StatsMVGroupMgr < handle
                 return
             end
             set(this.visHandles.tableStudyViews,'Enable','On');
-            selectedConditions = this.visObj.fdt.getGlobalClusterTargets(this.curMVGroupName);
+            selectedConditions = this.visObj.fdt.getGlobalMVGroupTargets(this.curMVGroupName);
             set(this.visHandles.tableSelectedViews,'Data',selectedConditions,'Enable','On');
             studyStr = this.visObj.fdt.getStudyNames();
             tableData = cell(0,2);
             if(~isempty(selectedConditions))
-                %show name of global cluster
+                %show name of global MVGroup
                 set(this.visHandles.textGlobalClusterViews,'String',sprintf('Selected Conditions (%s):',this.curMVGroupName));
                 %show conditions of all studies
                 for i = 1:length(studyStr)
@@ -308,13 +308,13 @@ classdef StatsMVGroupMgr < handle
         
         function GUI_ROICallback(this,hObject,eventdata)
             %change ROI info of current MVGroup
-            cMVs = this.visObj.fdt.getClusterTargets(this.curStudyName,this.curMVGroupName);
+            cMVs = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
             cMVs.ROI = this.getROIInfo();
-            %update clusters in all studies
+            %update MVGroups in all studies
             studies = this.visObj.fdt.getStudyNames();
             for i=1:length(studies)
-                if(ismember(this.curMVGroupName,this.visObj.fdt.getStudyClustersStr(studies{i},0)))
-                    this.visObj.fdt.setClusterTargets(studies{i},this.curMVGroupName,cMVs);
+                if(ismember(this.curMVGroupName,this.visObj.fdt.getMVGroupNames(studies{i},0)))
+                    this.visObj.fdt.setStudyMVGroupTargets(studies{i},this.curMVGroupName,cMVs);
                     this.visObj.fdt.clearAllRIs(studies{i},this.curMVGroupName);
                 end
             end
@@ -324,7 +324,7 @@ classdef StatsMVGroupMgr < handle
         end
         
         function GUI_popupMVGroupsCallback(this,hObject,eventdata)
-            %select cluster
+            %select MVGroup
             this.updateGUI();
         end
         
@@ -345,19 +345,19 @@ classdef StatsMVGroupMgr < handle
                 return
             end
             selStr = selStr(get(this.lLB,'Value'));
-            cMVs = this.visObj.fdt.getClusterTargets(this.curStudyName,this.curMVGroupName);
+            cMVs = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
             if(strcmp('buttonSelectX',get(hObject,'Tag')))
-                %add cluster target to x axis
+                %add MVGroup target to x axis
                 cMVs.x(end+1) = selStr;
             else
-                %add cluster target to y axis
+                %add MVGroup target to y axis
                 cMVs.y(end+1) = selStr;
             end
-            %update clusters in all studies
+            %update MVGroups in all studies
             studies = this.visObj.fdt.getStudyNames();
             for i=1:length(studies)
-                if(ismember(this.curMVGroupName,this.visObj.fdt.getStudyClustersStr(studies{i},0)))
-                    this.visObj.fdt.setClusterTargets(studies{i},this.curMVGroupName,cMVs);
+                if(ismember(this.curMVGroupName,this.visObj.fdt.getMVGroupNames(studies{i},0)))
+                    this.visObj.fdt.setStudyMVGroupTargets(studies{i},this.curMVGroupName,cMVs);
                     this.visObj.fdt.clearAllRIs(studies{i},this.curMVGroupName);
                 end
             end
@@ -370,7 +370,7 @@ classdef StatsMVGroupMgr < handle
             %callback function from the remove (deselect) button
             selStr = get(this.(sprintf('%sLB',this.curAxis)),'String');
             selStr = selStr(get(this.(sprintf('%sLB',this.curAxis)),'Value'));
-            cMVs = this.visObj.fdt.getClusterTargets(this.curStudyName,this.curMVGroupName);
+            cMVs = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
             if(strcmp('x',this.curAxis))
                 %remove all targets
                 idx = strcmpi(selStr,cMVs.x);
@@ -380,11 +380,11 @@ classdef StatsMVGroupMgr < handle
                 idx = strcmpi(selStr,cMVs.y);
                 cMVs.y = cMVs.y(~idx);
             end
-            %update clusters in all studies
+            %update MVGroups in all studies
             studies = this.visObj.fdt.getStudyNames();
             for i=1:length(studies)
-                if(ismember(this.curMVGroupName,this.visObj.fdt.getStudyClustersStr(studies{i},0)))
-                    this.visObj.fdt.setClusterTargets(studies{i},this.curMVGroupName,cMVs);
+                if(ismember(this.curMVGroupName,this.visObj.fdt.getMVGroupNames(studies{i},0)))
+                    this.visObj.fdt.setStudyMVGroupTargets(studies{i},this.curMVGroupName,cMVs);
                     this.visObj.fdt.clearAllRIs(studies{i},this.curMVGroupName);
                 end
             end
@@ -394,7 +394,7 @@ classdef StatsMVGroupMgr < handle
         end
         
         function GUI_addMVGroupCallback(this,hObject,eventdata)
-            %add a new cluster
+            %add a new MVGroup
             options.Resize='on';
             options.WindowStyle='modal';
             options.Interpreter='none';
@@ -412,7 +412,7 @@ classdef StatsMVGroupMgr < handle
                 %remove white spaces
                 gn(isstrprop(gn,'wspace')) = [];
                 %check if name is available
-                if(any(strcmp(['MVGroup_' gn],this.visObj.fdt.getStudyClustersStr(this.curStudyName,0))))
+                if(any(strcmp(['MVGroup_' gn],this.visObj.fdt.getMVGroupNames(this.curStudyName,0))))
                     choice = questdlg(sprintf('This multivariate group %s exists already. Please choose another name.',gn),...
                         'Error creating MVGroup','Choose new Name','Cancel','Choose new Name');
                     % Handle response
@@ -431,8 +431,8 @@ classdef StatsMVGroupMgr < handle
             cMVs.x = cell(0,0);
             cMVs.y = cell(0,0);
             cMVs.ROI = this.getROIInfo();
-            this.visObj.fdt.setClusterTargets(this.curStudyName,gn,cMVs);
-            newMVg = this.visObj.fdt.getStudyClustersStr(this.curStudyName,0);
+            this.visObj.fdt.setStudyMVGroupTargets(this.curStudyName,gn,cMVs);
+            newMVg = this.visObj.fdt.getMVGroupNames(this.curStudyName,0);
             set(this.visHandles.popupMVGroups,'String',newMVg);
             idx = find(strcmp(gn,newMVg));
             if(isempty(idx))
@@ -443,18 +443,18 @@ classdef StatsMVGroupMgr < handle
         end
         
         function GUI_deleteMVGroupCallback(this,hObject,eventdata)
-            %delete selected cluster
+            %delete selected MVGroup
             if(isempty(this.curMVGroupName))
                 return
             end
-            this.visObj.fdt.removeCluster(this.curStudyName,this.curMVGroupName);
+            this.visObj.fdt.removeMVGroup(this.curStudyName,this.curMVGroupName);
             this.visObj.setupGUI();
             this.visObj.updateGUI([]);
             this.updateGUI();
         end
         
         function GUI_renameMVGroupCallback(this,hObject,eventdata)
-            %rename selected cluster
+            %rename selected MVGroup
             gn = this.curMVGroupName;
             if(length(gn) < 9)
                 return
@@ -477,7 +477,7 @@ classdef StatsMVGroupMgr < handle
                 %remove white spaces
                 gn(isstrprop(gn,'wspace')) = [];
                 %check if name is available
-                if(any(strcmp(['MVGroup_' gn],this.visObj.fdt.getStudyClustersStr(this.curStudyName,0))))
+                if(any(strcmp(['MVGroup_' gn],this.visObj.fdt.getMVGroupNames(this.curStudyName,0))))
                     choice = questdlg(sprintf('This multivariate group %s exists already. Please choose another name.',gn),...
                         'Error creating MVGroup','Choose new Name','Cancel','Choose new Name');
                     % Handle response
@@ -492,49 +492,49 @@ classdef StatsMVGroupMgr < handle
                 end
             end
             gn = ['MVGroup_' gn];
-            this.visObj.fdt.setClusterName(this.curStudyName,this.curMVGroupName,gn);
+            this.visObj.fdt.setMVGroupName(this.curStudyName,this.curMVGroupName,gn);
             this.visObj.setupGUI();
             this.visObj.updateGUI([]);
             this.updateGUI();
         end
         
         function addConditionCallback(this,hObject,eventdata)
-            %add study condition to global cluster selection
+            %add study condition to global MVGroup selection
             if(isempty(this.studyConditionTableIdx))
                 return
             end
             studyConditions = get(this.visHandles.tableStudyViews,'Data'); %study views and corresponding studies
-            %check if cluster is available yet in selected study
-            clusterStr = this.visObj.fdt.getStudyClustersStr(studyConditions{this.studyConditionTableIdx,1},0);
-            if(isempty(clusterStr) || ~ismember(this.curMVGroupName,clusterStr))
-                choice = questdlg(sprintf('%s is not available in %s. Add the selected cluster to this study?',...
-                    this.curMVGroupName,studyConditions{this.studyConditionTableIdx,1}),'Cluster not available','Yes','No','Yes');
+            %check if MVGroup is available yet in selected study
+            MVGroupStr = this.visObj.fdt.getMVGroupNames(studyConditions{this.studyConditionTableIdx,1},0);
+            if(isempty(MVGroupStr) || ~ismember(this.curMVGroupName,MVGroupStr))
+                choice = questdlg(sprintf('%s is not available in %s. Add the selected MVGroup to this study?',...
+                    this.curMVGroupName,studyConditions{this.studyConditionTableIdx,1}),'MVGroup not available','Yes','No','Yes');
                 switch choice
                     case 'No'
                         return
                 end                
-                %add current cluster to study
-                cMVs = this.visObj.fdt.getClusterTargets(this.curStudyName,this.curMVGroupName);
-                this.visObj.fdt.setClusterTargets(studyConditions{this.studyConditionTableIdx,1},this.curMVGroupName,cMVs);
+                %add current MVGroup to study
+                cMVs = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
+                this.visObj.fdt.setStudyMVGroupTargets(studyConditions{this.studyConditionTableIdx,1},this.curMVGroupName,cMVs);
             end
-            selectedConditions = this.visObj.fdt.getGlobalClusterTargets(this.curMVGroupName);
+            selectedConditions = this.visObj.fdt.getGlobalMVGroupTargets(this.curMVGroupName);
             if(isempty(selectedConditions))
                 selectedConditions = cell(0,2);
             end
             selectedConditions(end+1,:) = cell(1,2);
             selectedConditions(end,:) = studyConditions(this.studyConditionTableIdx,:);
-            this.visObj.fdt.setGlobalClusterTargets(this.curMVGroupName,selectedConditions);
+            this.visObj.fdt.setGlobalMVGroupTargets(this.curMVGroupName,selectedConditions);
             this.updateGlobalCtrls();
             this.visObj.setupGUI();
             this.visObj.updateGUI([]);
         end
         
         function removeConditionCallback(this,hObject,eventdata)
-            %remove study condition from global cluster selection
+            %remove study condition from global MVGroup selection
             if(~isempty(this.conditionSelectionTableIdx))
-                selectedConditions = this.visObj.fdt.getGlobalClusterTargets(this.curMVGroupName);
+                selectedConditions = this.visObj.fdt.getGlobalMVGroupTargets(this.curMVGroupName);
                 selectedConditions(this.conditionSelectionTableIdx,:) = [];
-                this.visObj.fdt.setGlobalClusterTargets(this.curMVGroupName,selectedConditions);
+                this.visObj.fdt.setGlobalMVGroupTargets(this.curMVGroupName,selectedConditions);
             end
             this.updateGlobalCtrls();
             this.visObj.setupGUI();
@@ -552,7 +552,7 @@ classdef StatsMVGroupMgr < handle
         end
         
         function closeCallback(this,hObject,eventdata)
-            % close clusterMgr GUI
+            % close MVGroupMgr GUI
             if(~isempty(this.visHandles) && ishandle(this.visHandles.StatsMVGroupMgrFigure))
                 delete(this.visHandles.StatsMVGroupMgrFigure);
             end

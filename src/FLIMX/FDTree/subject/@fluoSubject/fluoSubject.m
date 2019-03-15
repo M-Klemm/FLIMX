@@ -1,4 +1,4 @@
-classdef fluoSubject < handle
+classdef fluoSubject < FDTreeNode
     %=============================================================================================================
     %
     % @file     fluoSubject.m
@@ -32,14 +32,16 @@ classdef fluoSubject < handle
     % @brief    A class to represent a subject, consisting of fluoFile, result and other data
     %
     properties(GetAccess = public, SetAccess = protected)
-        name = '';
-        myParent = [];
+%         name = '';
+%         myParent = [];
         filesOnHDD = false(2,0);
         myMeasurement = [];
         myResult = [];      
         myParamMgr = [];        
         progressCb = cell(0,0); %callback function handles for progress bars
         lastApproxObj = cell(0,0);
+        initMode = false;
+        isInitialized = false;
     end
     
     properties (Dependent = true)
@@ -54,8 +56,12 @@ classdef fluoSubject < handle
         
         isDirty = false;
         resultIsDirty = false;
+        nonEmptyChannelList = [];
+        nonEmptyMeasurementChannelList = [];
         nonEmptyResultChannelList = [];
         resultType = '';
+        position = '';
+        pixelResolution = 0;
         
         aboutInfo = [];
         computationParams = [];
@@ -70,30 +76,40 @@ classdef fluoSubject < handle
     end
     
     methods
-        function this = fluoSubject(study,name)
+        function this = fluoSubject(parentObj,name)
             %constructor
-            this.name = name;            
-            if(isa(study,'FStudy'))
-                this.setStudy(study);
-                hp = this.getParentParamMgr();
-                if(~isempty(hp))
-                    this.myParamMgr = subjectParamMgr(this,hp.getParamSection('about'));
-                end
-            elseif(isa(study,'paramMgr'))
-                this.myParamMgr = subjectParamMgr(this,study.getParamSection('about'));
+            this = this@FDTreeNode(parentObj,name);           
+            if(isa(parentObj,'FDTStudy'))
+                this.initParamMgr();
+            elseif(isa(parentObj,'FDTree'))
+                this.initParamMgr();
+                this.myParent = [];
+            elseif(isa(parentObj,'paramMgr'))
+                this.myParent = [];
+                this.myParamMgr = subjectParamMgr(this,parentObj.getParamSection('about'));
             else
                 error('fluoSubject: No handle to study or parameter manager given');
+            end            
+        end
+        
+        function  pingLRUCacheTable(this,obj)
+            %ping LRU table for object obj
+            if(~isempty(this.myParent))
+                this.myParent.pingLRUCacheTable(obj);
             end
-            this.init();
-            this.loadParameters();
         end
         
         %% input methods
         function init(this)
-            %init measurement and result objects            
-            this.myMeasurement = measurement4Approx(this);
-            this.myMeasurement.setProgressCallback(@this.updateProgress);
-            this.myResult = result4Approx(this);
+            %init measurement and result objects 
+            if(this.initMode)
+                %this is a recursion
+                return
+            end
+            this.initMode = true;
+            this.loadParameters();
+            this.initMode = false;
+            this.isInitialized = true;
         end
                 
         function clearROAData(this)
@@ -105,10 +121,19 @@ classdef fluoSubject < handle
 %             end
         end
         
-%         function clearApproxObj(this)
-%             %clear cached approx object
-%             this.lastApproxObj = cell(0,0);
-%         end
+        function initParamMgr(this)
+            %reset parameter manager
+            hp = this.getParentParamMgr();
+            if(~isempty(hp))
+                this.myParamMgr = subjectParamMgr(this,hp.getParamSection('about'));
+            end            
+        end        
+        
+        function clearCachedApproxObj(this)
+            %delete the last used approximation object, this will trigger a
+            %re-generation of the approx. object if required
+            this.lastApproxObj = cell(0,0);
+        end
         
         function setStudy(this,study)
             %set name of my study or handle to my study object
@@ -127,6 +152,9 @@ classdef fluoSubject < handle
         
         function setMeasurementROICoord(this,roi)
             %set roi coordinates for measurement, resets results
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myMeasurement.setROICoord(roi);
             this.myResult.allocResults(1:this.nrSpectralChannels,roi(4)-roi(3)+1,roi(2)-roi(1)+1);
         end
@@ -157,18 +185,24 @@ classdef fluoSubject < handle
                 this.update();
             end
             %load the ROI info again, as binning parameters might have changed
-            this.lastApproxObj = cell(0,0);
-        end
+            this.clearCachedApproxObj();
+        end        
                 
         function update(this)
             %pull current paramters from FLIMX and save them into local parameter manager
+%             if(~this.isInitialized)
+%                 this.init();
+%             end
             this.myParamMgr.setParamSection('result',this.getParentParamMgr().getParamSection('result'));
             this.updateAuxiliaryData([]);
-            this.lastApproxObj = cell(0,0);
+            this.clearCachedApproxObj();
         end
         
         function updateAuxiliaryData(this,chList)
             %update auxiliaryData in my result from measurement, clears results
+%             if(~this.isInitialized)
+%                 this.init();
+%             end
             ad.fileInfo = [];
             ad.measurementROIInfo = [];
             ad.IRF.vector = [];
@@ -209,7 +243,7 @@ classdef fluoSubject < handle
                     if(isfield(ad.measurementROIInfo,'ROISupport'))
                         ad.measurementROIInfo.ROISupport = [];
                     end
-                    if(~isempty(this.myIRFMgr))
+                    if(~isempty(this.myIRFMgr) && ~isempty(ad.fileInfo))
                         if(this.basicParams.approximationTarget == 2 && chList > 2)
                             ch = chList -2;
                         else
@@ -322,6 +356,9 @@ classdef fluoSubject < handle
             %set pixel resolution field in fileInfoStruct to new value,
             %target = '' update measurement and result, target = 'm' update
             %measurement only, target = 'r' update result only
+            if(~this.isInitialized)
+                this.init();
+            end
             if(isempty(target))
                 this.myMeasurement.pixelResolution = val;
                 this.myResult.setPixelResolution(val);
@@ -336,6 +373,9 @@ classdef fluoSubject < handle
             %set position field in fileInfoStruct to new value
             %target = '' update measurement and result, target = 'm' update
             %measurement only, target = 'r' update result only
+            if(~this.isInitialized)
+                this.init();
+            end
             if(isempty(target))
                 this.myMeasurement.position = val;
                 this.myResult.setPosition(val);
@@ -371,24 +411,35 @@ classdef fluoSubject < handle
             %return fileinfo struct
             out = [];
             if(~isMultipleCall())
-                if(~isempty(this.myResult.getNonEmptyChannelList))
-                    out = this.myResult.getFileInfoStruct(ch);
+                %try to get file info from measurement
+                if(isempty(ch) && ~isempty(this.myMeasurement.nonEmptyChannelList))
+                    %pick first available channel
+                    ch = this.myMeasurement.nonEmptyChannelList(1);
                 end
-                if(isempty(out))% && this.checkFileInfoLoaded())
-                    %result doesn't have fileInfo, try to get it from measurement
-                    if(isempty(ch) && ~isempty(this.myMeasurement.nonEmptyChannelList))
-                        %pick first available channel
-                        ch = this.myMeasurement.nonEmptyChannelList(1);
+                if(~isempty(ch))
+                    out = this.myMeasurement.getFileInfoStruct(ch);
+                else
+                    %try to get file info from result
+                    if(~this.isInitialized)
+                        this.init();
                     end
-                    if(~isempty(ch))
-                        out = this.myMeasurement.getFileInfoStruct(ch);
+                    if(~isempty(this.myResult.getNonEmptyChannelList))
+                        out = this.myResult.getFileInfoStruct(ch);
                     end
                 end
+%                 if(isempty(out))% && this.checkFileInfoLoaded())
+%                     %result doesn't have fileInfo, 
+%                 end
             end
         end
         
         function saveMatFile2Disk(this,ch)
             %save measurements and results to disk, if ch is empty, save all channels
+            if(isempty(this.getMyFolder()))
+                %there is no path to write to -> nothing to do
+                %set dirty flags to false?
+                return
+            end            
             if(isempty(ch))
                 for ch = 1:this.nrSpectralChannels
                     this.saveMatFile2Disk(ch);
@@ -396,6 +447,9 @@ classdef fluoSubject < handle
                 return
             end
             this.myMeasurement.saveMatFile2Disk(ch);
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myResult.saveMatFile2Disk(ch);            
         end
         
@@ -408,6 +462,9 @@ classdef fluoSubject < handle
                 return
             end
             this.myMeasurement.exportMatFile(ch,folder);
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myResult.exportMatFile(ch,folder); 
         end
                      
@@ -417,7 +474,7 @@ classdef fluoSubject < handle
 %                 expDir = this.folderParams.export;
 %                 addStr = '';
 %             end
-%             if(~isdir(expDir))
+%             if(~isfolder(expDir))
 %                 warndlg(sprintf('Could not find Export-Path:\n %s\n\nInstead results will be saved to:\n %s',expDir,cd),...
 %                     'Export Path not found!','modal');
 %                 expDir = cd;
@@ -453,7 +510,30 @@ classdef fluoSubject < handle
         
         function out = get.resultType(this)
             %return string with result type
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myResult.resultType;
+        end
+        
+        function out = get.position(this)
+            %get measurement position (e.g. OD or OS)            
+            fi = this.getFileInfoStruct([]);
+            if(~isempty(fi))
+                out = fi.position;
+            else
+                out = this.myMeasurement.position;
+            end
+        end
+        
+        function out = get.pixelResolution(this)
+            %get pixel resolution
+            fi = this.getFileInfoStruct([]);
+            if(~isempty(fi))
+                out = fi.pixelResolution;
+            else
+                out = this.myMeasurement.pixelResolution;
+            end
         end
         
         %% output methods measurement
@@ -489,13 +569,23 @@ classdef fluoSubject < handle
             end
         end
         
-        function out = get.nonEmptyResultChannelList(this)
+        function out = get.nonEmptyChannelList(this)
             %get number of spectral channels
-            if(strcmp(this.resultType,'ASCII'))
+            out = this.getNonEmptyChannelList('');
+        end
+        
+        function out = get.nonEmptyMeasurementChannelList(this)
+            %get number of spectral channels in measurements
+            out = this.myMeasurement.nonEmptyChannelList;
+        end
+        
+        function out = get.nonEmptyResultChannelList(this)
+            %get number of spectral channels in results
+%             if(strcmp(this.resultType,'ASCII'))
                 out = this.myResult.nonEmptyChannelList;
-            else
-                out = this.myMeasurement.nonEmptyChannelList;
-            end
+%             else
+%                 out = this.myMeasurement.nonEmptyChannelList;
+%             end
         end
         
         function out = get.nrSpectralChannels(this)
@@ -619,30 +709,56 @@ classdef fluoSubject < handle
         function [initData,binLevels,masks,nrPixels] = getInitData(this,ch,target)
             %returns data for initialization fit of the corners of the ROI, each corner has >= target photons
             [initData,binLevels,masks,nrPixels] = this.myMeasurement.getInitData(ch,target);
-        end
+        end 
         
         function out = getMyFolder(this)
             %return subjects working folder
-            out = fullfile(this.myParent.myDir,this.name);
+            if(isempty(this.myParent))
+                out = '';                
+            else
+                out = fullfile(this.myParent.myDir,this.name);
+            end
         end
-        %% output result
+        
+        function out = getMyParamMgr(this)
+            %return subjects parameter manager
+            out = this.myParamMgr;
+        end
+        
         function out = get.resultIsDirty(this)
             %return flag if result is dirty
             out = this.myResult.isDirty;
         end
         
+        function out = getResultType(this)
+            %get the result type ('ASCII' or 'FluoDecayFit')
+            if(~this.isInitialized)
+                this.init();
+            end
+            out = this.myResult.getResultType();
+        end
+        
         function out = getResultNames(this,ch,isInitResult)
             %get the names of the result structure
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myResult.getResultNames(ch,isInitResult);
         end
         
         function out = isInitResult(this,ch)
             %true if init result was set
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myResult.isInitResult(ch);
         end
         
         function out = isPixelResult(this,ch,y,x,initFit)
             %true if pixel result was set
+            if(~this.isInitialized)
+                this.init();
+            end
             if(nargin == 2)
                 out = this.myResult.isPixelResult(ch);
             else
@@ -652,6 +768,9 @@ classdef fluoSubject < handle
         
         function out = getInitFLIMItem(this,ch,pStr)
             %return specific init result, e.g. tau 1
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myResult.getInitFLIMItem(ch,pStr);
             if(strncmp(pStr,'AnisotropyQuick',15) && ~isempty(out) && sum(out(:)) == 0 && this.basicParams.approximationTarget == 2)
                 %build AnisotropyQuick
@@ -677,6 +796,9 @@ classdef fluoSubject < handle
         
         function out = getPixelFLIMItem(this,ch,pStr,y,x)
             %return specific pixel result, e.g. tau 1, optional pixel coordinates
+            if(~this.isInitialized)
+                this.init();
+            end
             if(nargin == 5) %toDo: fix this ugly construct
                 out = this.myResult.getPixelFLIMItem(ch,pStr,y,x);
             else
@@ -709,6 +831,9 @@ classdef fluoSubject < handle
         
         function [apObj, xVec, hShift, oset, chi2, chi2Tail, TotalPhotons, iterations, time, slopeStart, iVec] = getVisParams(this,ch,y,x,initFit)
             %get parameters for visualization of current fit in channel ch
+            if(~this.isInitialized)
+                this.init();
+            end
             if(initFit)
                 apObjs = this.getInitApproxObjs(ch);
                 apObj = apObjs{sub2ind([this.initFitParams.gridSize this.initFitParams.gridSize],y,x)};
@@ -720,6 +845,9 @@ classdef fluoSubject < handle
         
         function out = getInitApproxObjs(this,ch)
             %make parameter structure needed for approximation of initialization
+            if(~this.isInitialized)
+                this.init();
+            end
             vp = this.volatilePixelParams;
 %             params.volatileChannel = this.getVolatileChannelParams(0);
             params.basicFit = this.basicParams;
@@ -731,22 +859,6 @@ classdef fluoSubject < handle
             params.basicFit.optimizerInitStrategy = 1;
             ad = this.myResult.getAuxiliaryData(ch);
             %fix certain parameters to values from initialization
-            %             if(~isempty(params.basicFit.fix2InitTargets))
-            %                 %sStr = params.basicFit.(sprintf('constMaskSaveStrCh%d',ch));
-            %                 for i = 1:length(params.basicFit.fix2InitTargets)
-            %                     idx = find(strcmp('h-Shift (tc)',params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))),1);
-            %                     if(~isempty(idx))
-            %                         params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(idx) = [];
-            %                         params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx) = [];
-            %                     end
-            %                     idx = find(strcmp('Scatter Shift 1',params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))),1);
-            %                     if(~isempty(idx))
-            %                         params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(idx) = [];
-            %                         params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx) = [];
-            %                     end
-            %                 end
-            %                 [vp, params.volatileChannel] = paramMgr.makeVolatileParams(params.basicFit,this.myMeasurement.nrSpectralChannels);
-            %             end
             if(params.basicFit.approximationTarget == 2 && params.basicFit.anisotropyR0Method == 2 && ch < 3)
                 idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Tau 2');
                 params.basicFit.(sprintf('constMaskSaveValCh%d',ch)) = double(params.basicFit.(sprintf('constMaskSaveValCh%d',ch)));
@@ -757,14 +869,6 @@ classdef fluoSubject < handle
                     params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(end+1,1) = {'Tau 2'};
                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(1,end+1) = 0;
                 end
-                %                 idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'hShift');
-                %                 if(~any(idx))
-                %                     if(isempty(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))) || ~iscell(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))))
-                %                         params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)) = cell(0,0);
-                %                     end
-                %                     params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(end+1,1) = {'hShift'};
-                %                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(1,end+1) = 0;
-                %                 end
             end
             if(any(this.volatilePixelParams.globalFitMask))
                 allIRFs = cell(1,ad.fileInfo.nrSpectralChannels);
@@ -797,11 +901,6 @@ classdef fluoSubject < handle
             if(ch < 3 || params.basicFit.approximationTarget == 1)
                 idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Offset');
                 if(any(idx))
-%                     if(params.preProcessing.roiAdaptiveBinEnable)
-%                         bf = 1;
-%                     else
-%                         bf = (1+2*params.preProcessing.roiBinning).^2;
-%                     end
                     %fixed offset is usually for static binning 2; now scale it with the average number of pixels used for initialization
                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx(1)) = params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(end) ./ params.pixelFit.gridSize^2 .* mean(nrPixels(:));
                 end
@@ -847,6 +946,9 @@ classdef fluoSubject < handle
         
         function out = getApproxObjCopy(this,ch)
             %get a copy of the approx. object
+            if(~this.isInitialized)
+                this.init();
+            end
             if(length(this.lastApproxObj) < ch || isempty(this.lastApproxObj{ch}))
                 this.lastApproxObj{ch} = this.makeApproxObj(ch);
             end
@@ -855,8 +957,10 @@ classdef fluoSubject < handle
         
         function out = makeApproxObj(this,ch)
             %build an approximation object
+            if(~this.isInitialized)
+                this.init();
+            end
             vp = this.volatilePixelParams;
-%             params.volatileChannel = this.getVolatileChannelParams(0);
             params.basicFit = this.basicParams;
             params.preProcessing = this.preProcessParams;
             params.computation = this.computationParams;
@@ -872,14 +976,6 @@ classdef fluoSubject < handle
                     params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(end+1,1) = {'Tau 2'};
                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(1,end+1) = 0;
                 end
-%                 idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'hShift');
-%                 if(~any(idx))
-%                     if(isempty(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))) || ~iscell(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))))
-%                         params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)) = cell(0,0);
-%                     end
-%                     params.basicFit.(sprintf('constMaskSaveStrCh%d',ch))(end+1,1) = {'hShift'};
-%                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(1,end+1) = 0;
-%                 end
             end
             if(any(vp.globalFitMask))
                 allIRFs = cell(1,this.myMeasurement.nrSpectralChannels);
@@ -946,7 +1042,10 @@ classdef fluoSubject < handle
         end
                 
         function out = getApproxObj(this,ch,y,x)
-            %make parameter structure needed for approximation            
+            %make parameter structure needed for approximation
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.getApproxObjCopy(ch);
             %fix certain paramters to initialization values
             bp = out.basicParams;
@@ -1007,7 +1106,7 @@ classdef fluoSubject < handle
                 out.setNeighborData(nbs);
             end
             %load init data into the object
-            if(out.basicParams.optimizerInitStrategy == 2 || ~isempty(out.basicParams.fix2InitTargets))                
+            if(~strcmp(this.myResult.resultType,'ASCII') && (out.basicParams.optimizerInitStrategy == 2 || ~isempty(out.basicParams.fix2InitTargets)))                
                 if(any(out.volatilePixelParams.globalFitMask))
                     for chTmp = 1:out.fileInfo(ch).nrSpectralChannels
                         %out.setInitializationData(chTmp,out.getNonConstantXVec(chTmp,this.getPixelFLIMItem(chTmp,'iVec',y,x)));
@@ -1066,101 +1165,158 @@ classdef fluoSubject < handle
         %% output parameters
         function out = get.aboutInfo(this)
             %get version info of me
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myResult.aboutInfo;
         end
         
         function out = get.computationParams(this)
             %get computation parameters
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myParamMgr.getParamSection('computation');
         end
         
         function set.computationParams(this,val)
             %set computation parameters
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myParamMgr.setParamSection('computation',val);
         end
                 
         function set.folderParams(this,val)
             %set folder parameters
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myParamMgr.setParamSection('folders',val);
         end
         
         function out = get.preProcessParams(this)
             %get pre processing parameters
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myParamMgr.getParamSection('pre_processing');
         end
         
         function set.preProcessParams(this,val)
             %set pre processing parameters
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myParamMgr.setParamSection('pre_processing',val);
-            this.lastApproxObj = cell(0,0);
+            this.clearCachedApproxObj();
         end
         
         function out = get.basicParams(this)
             %get basic fit parameters
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myParamMgr.getParamSection('basic_fit');
         end
         
         function set.basicParams(this,val)
             %set basic fit parameters
-            this.myParamMgr.setParamSection('basic_fit',val);
-            this.lastApproxObj = cell(0,0);
+            if(~this.isInitialized)
+                this.init();
+            end
+            this.myParamMgr.setParamSection('basic_fit',val,this.initMode);
+            this.clearCachedApproxObj();
             %this.myParamMgr.makeVolatileParams();
         end
         
         function out = get.initFitParams(this)
             %get init fit parameters
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myParamMgr.getParamSection('init_fit');
         end
         
         function set.initFitParams(this,val)
             %set init fit parameters
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myParamMgr.setParamSection('init_fit',val);
         end
         
         function out = get.pixelFitParams(this)
             %get per pixel fit parameters
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myParamMgr.getParamSection('pixel_fit');
         end
         
         function set.pixelFitParams(this,val)
             %set per pixel fit parameters
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myParamMgr.setParamSection('pixel_fit',val);            
-            this.lastApproxObj = cell(0,0);
+            this.clearCachedApproxObj();
         end
         
         function out = get.boundsParams(this)
             %get bounds
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myParamMgr.getParamSection('bounds');
         end
         
         function set.boundsParams(this,val)
             %set bounds
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myParamMgr.setParamSection('bounds',val);
-            this.lastApproxObj = cell(0,0);
+            this.clearCachedApproxObj();
         end
         
         function out = get.optimizationParams(this)
             %get optimizer parameters
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myParamMgr.getParamSection('optimization');
         end        
         
         function set.optimizationParams(this,val)
             %set optimizer parameters
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myParamMgr.setParamSection('optimization',val);
         end
         
         function out = get.volatilePixelParams(this)
             %get volatile fit parameters for all pixels
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myParamMgr.getParamSection('volatilePixel');
         end        
         
         function set.volatilePixelParams(this,val)
             %set volatile fit parameters for all pixels
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myParamMgr.setParamSection('volatilePixel',val);
         end
         
         function out = getVolatileChannelParams(this,ch)
             %get volatile fit parameters for specific channel (ch = empty returns cell with all channels)
+            if(~this.isInitialized)
+                this.init();
+            end
             out = this.myParamMgr.getVolatileChannelParams(ch);
         end        
         
@@ -1183,13 +1339,12 @@ classdef fluoSubject < handle
         
         function updateSubjectChannel(this,ch,flag)
             %update a specific channel of a subject, flag signalizes 'measurement', 'result' or '' for both
-            subjectID = this.name;
-%             subject = this.getSubject(subjectID);
-%             if(isempty(subject))
-%                 subject = this.addSubject(subjectID);
+%             if(~this.isInitialized)
+%                 this.init();
 %             end
+            subjectID = this.name;
             %todo: remove old files
-            this.myParent.removeChannel(subjectID,ch);
+            this.myParent.removeResultChannelFromMemory(subjectID,ch); %this is only defined in FDTSubject!!
             %save mat files for measurements and results
             if(strcmp(flag,'result'))
                 %save only result, we can assume we already have the measurement
@@ -1199,12 +1354,12 @@ classdef fluoSubject < handle
             elseif(strcmp(flag,'measurement'))
                 %todo: make interface
                 this.myMeasurement.saveMatFile2Disk(ch);
-                %old results are now invalid
-                this.myParent.removeSubjectResult(subjectID);
+                %old results are now invalid -> delete them
+                this.myParent.deleteChannel(subjectID,ch,'result');
             else
                 this.saveMatFile2Disk(ch);
             end
-            this.myParent.checkSubjectFiles(subjectID);
+            %this.myParent.checkSubjectFiles(subjectID);
             
 %             this.checkIRFInfo(ch);
 %             %add empty channel
@@ -1216,6 +1371,22 @@ classdef fluoSubject < handle
     end
     
     methods(Access = protected)
+        function setPosition(this,val)
+            %set position
+            if(ischar(val))
+                this.myMeasurement.position = val;
+                this.myResult.setPosition(val);
+            end
+        end
+        
+        function setPixelResolution(this,val)
+            %set pixel resolution
+            if(isnumeric(val) && val > 0)
+                this.myMeasurement.pixelResolution = val;
+                this.myResult.setPixelResolution(val);
+            end
+        end
+        
         function out = getParentParamMgr(this)
             %return parameter manager from study (parent)
             out = this.myParent.FLIMXParamMgrObj;

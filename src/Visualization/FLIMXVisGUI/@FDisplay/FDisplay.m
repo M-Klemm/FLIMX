@@ -551,10 +551,10 @@ classdef FDisplay < handle
                 case 3  %view clusters
                     %get merged view cluster object
                     clusterID = sprintf('Condition%s',dType{1});
-                    hfd{1} = this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),clusterID,dTypeNr(1),scale);
+                    hfd{1} = this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),clusterID,dTypeNr(1),scale,this.ROIType,this.ROISubType,this.ROIInvertFlag);
                 case 4 %global clusters
                     clusterID = sprintf('Global%s',dType{1});
-                    hfd{1} = this.visObj.fdt.getGlobalClusterObj(this.visObj.getChannel(this.mySide),clusterID,scale);
+                    hfd{1} = this.visObj.fdt.getGlobalMVGroupObj(this.visObj.getChannel(this.mySide),clusterID,scale);
             end            
             %save new hfd(s)            
             this.myhfdMain = hfd;
@@ -567,16 +567,16 @@ classdef FDisplay < handle
                     case 2 %study view histogram
                         if(~(dTypeNr == 0))
                             this.sethfdSupp(this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
-                                this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1));
+                                this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1,this.ROIType,this.ROISubType,this.ROIInvertFlag));
                         else
                             this.sethfdSupp({[]});
                         end
-                    case 3 %global histogram
-                        if(~isnan(dTypeNr))
-                            this.sethfdSupp(this.visObj.fdt.getGlobalObjMerged(this.visObj.getChannel(this.mySide),dType{1},dTypeNr));
-                        else
-                            this.sethfdSupp(hfd);
-                        end
+%                     case 3 %global histogram
+%                         if(~isnan(dTypeNr))
+%                             this.sethfdSupp(this.visObj.fdt.getGlobalObjMerged(this.visObj.getChannel(this.mySide),dType{1},dTypeNr,this.ROIType,this.ROISubType,this.ROIInvertFlag));
+%                         else
+%                             this.sethfdSupp(hfd);
+%                         end
                 end
             else
                 %crossSections                    
@@ -642,9 +642,9 @@ classdef FDisplay < handle
             %make current main plot
             [hfd, hfdInt] = this.gethfd();
             hAx = this.h_m_ax;
+            cla(hAx);
+            axis(hAx,'off');
             if(isempty(hfd{1}))
-                cla(hAx);
-                axis(hAx,'off');
                 return
             end
             dispDim = this.mDispDim;
@@ -674,7 +674,7 @@ classdef FDisplay < handle
                     %ROI in 2D / 3D
                     current_img = hfd{i}.getROIImage(rc,rt,rs,ri);
                 end
-                if(isempty(current_img))
+                if(isempty(current_img) || all(isnan(current_img(:))) || all(isinf(current_img(:))))
                     return
                 end
                 %z scaling
@@ -1015,13 +1015,13 @@ classdef FDisplay < handle
                 %set anchor to the center of the image
                 this.zoomAnchor = [max(1,floor(xFullRange./2));max(1,floor(yFullRange./2))];
             else
-                xNewRange = xFullRange./this.mZoomFactor;
-                xNewHalfRange = floor(xNewRange./2);
-                yNewRange = yFullRange./this.mZoomFactor;
-                yNewHalfRange = floor(yNewRange./2);
-                this.zoomAnchor(1) = max(xNewHalfRange+1,min(xFullRange-xNewHalfRange,this.zoomAnchor(1)));
-                this.zoomAnchor(2) = max(yNewHalfRange+1,min(yFullRange-yNewHalfRange,this.zoomAnchor(2)));
-                this.zoomAnchor = anchor(:);
+%                 xNewRange = xFullRange./this.mZoomFactor;
+%                 xNewHalfRange = floor(xNewRange./2);
+%                 yNewRange = yFullRange./this.mZoomFactor;
+%                 yNewHalfRange = floor(yNewRange./2);
+%                 this.zoomAnchor(1) = max(xNewHalfRange+1,min(xFullRange-xNewHalfRange,this.zoomAnchor(1)));
+%                 this.zoomAnchor(2) = max(yNewHalfRange+1,min(yFullRange-yNewHalfRange,this.zoomAnchor(2)));
+                this.zoomAnchor = anchor(:);                
             end
         end
         
@@ -1217,13 +1217,13 @@ classdef FDisplay < handle
                                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(char(list(typeSel,:)));
                                 [centers, histo] = this.visObj.fdt.getStudyHistogram(...
                                     this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),...
-                                    this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1));
-                            case 3 %global histogram
-                                list = get(this.h_m_p,'String');
-                                typeSel = get(this.h_m_p,'Value');
-                                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(char(list(typeSel,:)));
-                                [centers, histo] = this.visObj.fdt.getGlobalHistogram(...
-                                    this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1));
+                                    this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1),this.ROIType,this.ROISubType,this.ROIInvertFlag);
+%                             case 3 %global histogram
+%                                 list = get(this.h_m_p,'String');
+%                                 typeSel = get(this.h_m_p,'Value');
+%                                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(char(list(typeSel,:)));
+%                                 [centers, histo] = this.visObj.fdt.getGlobalHistogram(...
+%                                     this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1));
                         end
                         if(isempty(centers))
                             cla(this.h_s_ax);
@@ -1458,7 +1458,11 @@ classdef FDisplay < handle
                 data(:,1) = hfd{1}.getDescriptiveStatisticsDescriptionShort();
                 tmp = hfd{1}.getROIStatistics(this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag);
                 %data(:,2) = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%{num2str(tmp(i),'%.3G')};
-                data(:,2) = FLIMXFitGUI.num4disp(tmp);
+                if(isempty(tmp))
+                    data(:,2) = cell(size(data,1),1);
+                else
+                    data(:,2) = FLIMXFitGUI.num4disp(tmp);
+                end
                 %remove not needed parameters
                 %data([4,8,9],:) = [];              
                 set(this.h_ds_t,'Data',data);

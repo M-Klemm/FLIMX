@@ -267,7 +267,7 @@ classdef importFolderGUI < handle
             end
             xpatch = [0 x x 0];
             set(this.visHandles.patchProgress,'XData',xpatch,'Parent',this.visHandles.axesProgress)
-            if nargin>2,
+            if(nargin > 2)
                 % update waitbar
                 yl = ylim(this.visHandles.axesProgress);
                 set(this.visHandles.textProgress,'Position',[1,yl(2)/2,0],'String',varargin{2},'Parent',this.visHandles.axesProgress);

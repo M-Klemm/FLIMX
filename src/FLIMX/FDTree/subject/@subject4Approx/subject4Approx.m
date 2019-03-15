@@ -33,15 +33,26 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
     %
     properties(GetAccess = public, SetAccess = private)
     end
-    
-    properties (Dependent = true) 
+
+    properties (Dependent = true)
     end
-    
+
     methods
         function this = subject4Approx(study,name)
             %constructor
             %this.FLIMXObj = hFLIMX;
             this = this@fluoSubject(study,name);
+            this.reset();
+        end
+
+        %% input methods
+        function reset(this)
+            %reset measurement and result objects
+            this.initMode = true;
+            this.myMeasurement = measurement4Approx(this);
+            this.myMeasurement.setProgressCallback(@this.updateProgress);
+            this.myResult = result4Approx(this);
+            this.initMode = false;
             chList = find(any(this.myMeasurement.dirtyFlags,2));
             if(~isempty(chList))
                 %something was changed when loading the measurement (e.g. reflection mask was recalculated), save it for later use
@@ -49,75 +60,130 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
                     this.myMeasurement.saveMatFile2Disk(chList(i));
                 end
             end
+            this.isInitialized = false;
         end
-        
-        %% input methods
-        function init(this)
-            %init measurement and result objects
-            this.myMeasurement = measurement4Approx(this);
-            this.myMeasurement.setProgressCallback(@this.updateProgress);
-            this.myResult = result4Approx(this);
-        end
-        
+
         function setResultDirty(this,ch,flag)
-            %set dirty flag 
+            %set dirty flag
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myResult.setDirty(ch,flag);
         end
-        
+
+        function setResultType(this,val)
+            %set the result type string; only 'FluoDecayFit' (default) and 'ASCII' are valid
+            if(~this.isInitialized)
+                this.init();
+            end
+            this.myResult.setResultType(val);
+        end
+
         function setEffectiveTime(this,ch,t)
             %set the effective run time for the approximation of ch
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myResult.setEffectiveTime(ch,t);
         end
-        
+
         function setPixelFLIMItem(this,ch,pStr,val)
             %set FLIMItem pStr to value val or add new FLIMItem
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myResult.setPixelFLIMItem(ch,pStr,val);
         end
-        
+
         function setInitFLIMItem(this,ch,pStr,val)
             %set FLIMItem pStr to value val or add new FLIMItem
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myResult.setInitFLIMItem(ch,pStr,val);
         end
-        
+
         function addInitResult(this,ch,indices,resultStruct)
             %add single results to our inner results structure
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myResult.addInitResult(ch,indices,resultStruct);
         end
-        
+
         function addSingleResult(this,ch,row,col,resultStruct)
             %add single results to our inner results structure
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myResult.addSingleResult(ch,row,col,resultStruct);
             if(isempty(this.myResult.getPixelFLIMItem(ch,'Intensity')))
                 this.setPixelFLIMItem(ch,'Intensity',this.getROIDataFlat(ch,false));
             end
         end
-        
+
         function addMultipleResults(this,ch,indices,resultStruct)
             %add mupltiple results according to their indices
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myResult.addMultipleResults(ch,indices,resultStruct);
         end
-        
+
         function addResultColumn(this,ch,col,resultStruct)
             %add complete results column from a cell array to our inner results structure
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myResult.addResultColumn(ch,col,resultStruct);
         end
-        
+
         function addResultRow(this,ch,row,resultStruct)
             %add complete results row from a cell array to our inner results structure
+            if(~this.isInitialized)
+                this.init();
+            end
             this.myResult.addResultRow(ch,row,resultStruct);
         end
-        
-        
+
+        function clearROA(this)
+            %clears measurement data and results of current region of approximation
+            if(~this.isInitialized)
+                this.init();
+            end
+            this.myMeasurement.clearROIData();
+            this.clearROAResults(false);
+        end
+
+        function clearROAResults(this,saveToDiskFlag)
+            %clear the results of current region of approximation
+            %this.myMeasurement.clearROAData();
+            if(~this.isInitialized)
+                this.init();
+            end
+            roa = this.ROICoordinates;
+            this.myResult.allocResults(1:this.nrSpectralChannels,roa(4)-roa(3)+1,roa(2)-roa(1)+1);
+            if(saveToDiskFlag)
+                this.saveMatFile2Disk([]);
+            end
+        end
+
         %% output
         function out = getApproximationPixelIDs(this,ch)
             %return indices of all pixels in channel ch which have the min. required number of photons
-            out = find(this.getROIDataFlat(ch,false) >= this.basicParams.photonThreshold);            
+            if(~this.isInitialized)
+                this.init();
+            end
+            out = find(this.getROIDataFlat(ch,false) >= this.basicParams.photonThreshold);
         end
-        
+
         function [parameterCell, idx] = getApproxParamCell(this,ch,pixelPool,fitDim,initFit,optimizationParams,aboutInfo)
             %put all data needed for approximation in a cell array (corresponds to makePixelFit interface)
+            if(~this.isInitialized)
+                this.init();
+            end
             if(initFit)
-                %initialization fit                
+                %initialization fit
                 if(any(pixelPool > this.initFitParams.gridSize^2))
                     parameterCell = [];
                     idx = [];
@@ -147,26 +213,13 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
                 else %y
                     [idx(:,1), idx(:,2)] = ind2sub([y x],pixelPool);
                 end
-                %subject = this.FLIMXObj.curSubject;
                 for i = 1:nPixel %loop over roi pixel
                     apObjs{i} = getApproxObj(this,ch,idx(i,1),idx(i,2));
                 end
             end
-%             %% build init vector
-%             if(isvector(initVec) && nPixel > 1)
-%                 initVec = repmat(initVec,1,nPixel);
-%             elseif((~isvector(initVec) && nPixel ~= size(initVec,2)) || isempty(initVec))
-%                 %we have more than one initVec but not one for each pixel
-%                 initVec = zeros(this.volatilePixelParams.nApproxParamsAllCh,nPixel);
-%             end
             %% assemble cell
             parameterCell(1) = {apObjs};
             parameterCell(2) = {optimizationParams};
-%             if(initFit)
-%                 parameterCell(3) = {initVec};
-%             else
-%                 parameterCell(3) = {initVec(:,1:length(pixelPool))};
-%             end
             parameterCell(3) = {aboutInfo};
         end
 
@@ -176,23 +229,23 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
                 binFactor = this.myMeasurement.roiBinning;
             end
             this.myMeasurement.makeROIData(channel,binFactor);
-        end       
-        
-        
+        end
+
+
     end
     methods(Access = protected)
         % Override copyElement method:
-        function cpObj = copyElement(this)            
-            %make sure we create the approx. objects for all channels            
+        function cpObj = copyElement(this)
+            %make sure we create the approx. objects for all channels
             for ch = 1:this.nrSpectralChannels
                 this.getApproxObj(ch,1,1);
             end
             % Make a shallow copy of all properties
             cpObj = copyElement@matlab.mixin.Copyable(this);
             % Make a deep copy of the DeepCp object
-            cpObj.myParent = []; 
+            cpObj.myParent = [];
             cpObj.progressCb = cell(0,0);
         end
     end
-    
+
 end

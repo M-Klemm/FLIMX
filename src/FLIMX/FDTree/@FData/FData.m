@@ -32,7 +32,7 @@ classdef FData < handle
     % @brief    A class to represent a base class of a fluorescence lifetime parameter
     %
     properties(SetAccess = protected,GetAccess = public)
-        uid = []; %unique object identifier
+        %uid = []; %unique object identifier
         id = 0; %running number        
         sType = [];
         rawImage = [];
@@ -43,7 +43,10 @@ classdef FData < handle
         rawImgYSz = [];  
         rawImgZSz = [];
     end
-    properties(Dependent = true, SetAccess = public,GetAccess = public) 
+    properties(Dependent = true, SetAccess = protected, GetAccess = public) 
+        name = '';
+    end
+    properties(Dependent = true, SetAccess = public, GetAccess = public) 
         dType = [];
         globalScale = [];       
         subjectName = [];
@@ -60,7 +63,7 @@ classdef FData < handle
     methods
         function this = FData(parent,nr,rawImage)
             %constructor of the FData class
-            this.uid = datenum(clock);
+            %this.uid = datenum(clock);
             this.id = nr;            
             this.sType = 1; %default to linear data scaling
             this.myParent = parent;
@@ -70,7 +73,7 @@ classdef FData < handle
             this.logColor_data = [];
         end
         
-        function out = getSize(this)
+        function out = getMemorySize(this)
             %determine memory size of the FData
             props = properties(this);
             props{11} = 'cachedImage';
@@ -111,14 +114,14 @@ classdef FData < handle
             this.cachedImage = ci;
         end
         
-        function flag = eq(obj1,obj2)
-            %compare two FData objects            
-            if(obj1.uid - obj2.uid < eps('double'))
-                flag = true;
-            else
-                flag = false;
-            end
-        end
+%         function flag = eq(obj1,obj2)
+%             %compare two FData objects
+%             if(obj1.uid - obj2.uid < eps('double'))
+%                 flag = true;
+%             else
+%                 flag = false;
+%             end
+%         end
            
         %% input functions
         function setRawData(this,val)
@@ -209,6 +212,11 @@ classdef FData < handle
         end          
         
         %% output functions
+        function out = get.name(this)
+            %return my ID as string
+            out = num2str(this.id);
+        end
+        
         function out = get.dType(this)
             %get current data type
             out = this.myParent.getDType();
@@ -254,6 +262,11 @@ classdef FData < handle
                 end
             end
         end
+        
+        function out = isArithmeticImage(this)
+            %return true, if dType is an arithmetic image
+            out = this.myParent.isArithmeticImage();
+        end
 
         function out = getZScaling(this)
             %get z scaling parameters
@@ -295,7 +308,7 @@ classdef FData < handle
                 out(isinf(out)) = 0;
             end
             %don't filter intensity image
-            if(~(strcmpi(this.dType,'intensity') || strncmp('MVGroup',this.dType,7) || strncmp('ConditionMVGroup',this.dType,16) || strncmp('GlobalMVGroup',this.dType,13)))
+            if(~this.isArithmeticImage() && ~(strcmpi(this.dType,'intensity') && strncmp('MVGroup',this.dType,7) && strncmp('ConditionMVGroup',this.dType,16) && strncmp('GlobalMVGroup',this.dType,13)))
                 if(isempty(this.rawImgFilt))
                     out = this.filter(out);
                     this.rawImgFilt = out;
@@ -650,12 +663,7 @@ classdef FData < handle
             this.setSType(2);
             out = this;
         end
-        
-        function out = getSaveMaxMemFlag(this)
-            %get saveMaxMem flag from parent
-            out = this.myParent.getSaveMaxMemFlag();
-        end
-        
+                
         function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
             [alg, params] = this.myParent.getDataSmoothFilter();
@@ -703,13 +711,13 @@ classdef FData < handle
                 end
                 switch strtrim(statsType)
                     case 'mean'
-                        out(i,1) = mean(ci(:));
+                        out(i,1) = mean(ci(:),'omitnan');
                     case 'median'
-                        out(i,1) = median(ci(:));
+                        out(i,1) = median(ci(:),'omitnan');
                     case 'SD'
-                        out(i,1) = std(ci(:));
+                        out(i,1) = std(ci(:),'omitnan');
                     case 'CV'
-                        out(i,1) = 100*std(ci(:))./mean(ci(:));
+                        out(i,1) = 100*std(ci(:),'omitnan')./mean(ci(:),'omitnan');
                 end
             end
         end
@@ -731,7 +739,17 @@ classdef FData < handle
             %make statistics
             if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag) || this.isEmptyStat)%calculate statistics only if necessary
                 [statistics.descriptive, statistics.histogram, statistics.histogramCenters] = this.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIInvertFlag,false);
+                if(isempty(statistics.histogramCenters) || sum(statistics.histogram(:)) == 0)
+                    statistics.descriptive = [];
+                    statistics.histogram = [];
+                    this.cachedImage.statistics = statistics;
+                    return
+                end
                 this.cachedImage.statistics = statistics;
+                this.cachedImage.ROI.ROICoordinates = ROICoordinates;
+                this.cachedImage.ROI.ROIType = ROIType;
+                this.cachedImage.ROI.ROISubType = ROISubType;
+                this.cachedImage.ROI.ROIInvertFlag = ROIInvertFlag;
             end
         end              
         
@@ -1053,10 +1071,10 @@ classdef FData < handle
             else
                 stats(1) = imageHistogramCenters(min(pos,length(imageHistogramCenters)));
             end
-            stats(2) = median(imageData);
-            stats(3) = mean(imageData);
-            stats(4) = var(imageData);
-            stats(5) = std(imageData);
+            stats(2) = median(imageData,'omitnan');
+            stats(3) = mean(imageData,'omitnan');
+            stats(4) = var(imageData,'omitnan');
+            stats(5) = std(imageData,'omitnan');
             stats(6) = 100*stats(5)./stats(3);
             stats(7) = skewness(imageData);
             stats(8) = kurtosis(imageData);
@@ -1064,7 +1082,7 @@ classdef FData < handle
             t = icdf('t',1-(1-0.95)/2,px-1); %confidence level 95%
             stats(9) = stats(3) - t*stats(5)/sqrt(px);
             stats(10) = stats(3) + t*stats(5)/sqrt(px);
-            stats(11) = sum(imageData(:));
+            stats(11) = sum(imageData(:),'omitnan');
             stats(12) = numel(imageData);
         end
         

@@ -58,14 +58,14 @@ classdef subject4Sim < fluoSubject
             this.myMeasurement = measurement4Sim(this,fi);
             this.myMeasurement.setProgressCallback(@this.updateProgress);
             this.myResult = result4Approx(this);
-            this.loadParameters();
+            this.init(); %loadParameters();
         end
         
         %% input methods
-        function init(this)            
-            %overload subject's init method to do nothing
-            %we'll init our properties later            
-        end
+%         function init(this)            
+%             %overload subject's init method to do nothing
+%             %we'll init our properties later            
+%         end
         
         function setMeasurementData(this,channel,data)
             %set raw data for measurement in channel

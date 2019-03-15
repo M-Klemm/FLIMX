@@ -269,35 +269,31 @@ set(hObject,'String',opt.name);
 
 function editValA_Callback(hObject, eventdata, handles)
 % value for relational condition of column A
-val = str2double(get(hObject,'String'));
+val = get(hObject,'String');
 opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
-if(~isempty(val))    
-    if(isnan(val))
-        %input is not valid
-        errordlg('This is not a valid value! Please insert another number!',...
-                    'Error entering value');
-    else
-        %save new value
-        opt.valA = val;
-        set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
-    end
+if(isempty(val))
+    %input is not valid
+    errordlg('This is not a valid value! Please insert another number or string!',...
+        'Error entering value');
+else
+    %save new value
+    opt.valA = val;
+    set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
 end
 set(hObject,'String',opt.valA);
 
 function editValB_Callback(hObject, eventdata, handles)
 % value for relational condition of column B
-val = str2double(get(hObject,'String'));
+val = get(hObject,'String');
 opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
-if(~isempty(val))    
-    if(isnan(val))
-        %input is not valid
-        errordlg('This is not a valid value! Please insert another number!',...
-                    'Error entering value');
-    else
-        %save new value
-        opt.valB = val;
-        set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
-    end
+if(isempty(val))
+    %input is not valid
+    errordlg('This is not a valid value! Please insert another number or string!',...
+        'Error entering value');
+else
+    %save new value
+    opt.valB = val;
+    set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
 end
 set(hObject,'String',opt.valB);    
 

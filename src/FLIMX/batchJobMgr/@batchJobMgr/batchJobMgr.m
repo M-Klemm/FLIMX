@@ -53,7 +53,7 @@ classdef batchJobMgr < handle
         function this = batchJobMgr(flimX,myDir)
             %constructor for batchJobMgr
             this.myDir = myDir;
-            if(~isdir(myDir))
+            if(~isfolder(myDir))
                 [status, message, ~] = mkdir(myDir);
                 if(~status)
                     error('FLIMX:batchJobMgr:createRootFolder','Could not create batch job manager root folder: %s\n%s',myDir,message);
@@ -68,7 +68,7 @@ classdef batchJobMgr < handle
         function job = addJob(this,jName)
             %create a new job
             jDir = fullfile(this.myDir,jName);
-            if(~isdir(jDir))
+            if(~isfolder(jDir))
                 [status, message, ~] = mkdir(jDir);
                 if(~status)
                     error('FLIMX:batchJobMgr:addJob','Could not create folder for batch job: %s\n%s',jDir,message);
@@ -302,9 +302,10 @@ classdef batchJobMgr < handle
             end
             params = job.getParams();
             %delete old fit results
-            this.FLIMXObj.fdt.removeSubjectResult(job.getStudy(),job.getSubject())
+            %this.FLIMXObj.fdt.removeSubjectResult(job.getStudy(),job.getSubject());
             %now load new subject and batch job parameters
             if(this.FLIMXObj.setCurrentSubject(job.getStudy(),FDTree.defaultConditionName(),job.getSubject()))
+                this.FLIMXObj.curSubject.clearROAResults(true); %delete old fit results
                 this.FLIMXObj.curSubject.loadParameters('batchJob',params);
                 this.FLIMXObj.FLIMFitGUI.currentChannel = job.myChannel(1);
                 this.FLIMXObj.FLIMFitGUI.setupGUI();

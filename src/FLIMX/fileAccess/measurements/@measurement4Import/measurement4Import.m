@@ -42,31 +42,31 @@ classdef measurement4Import < measurementInFDTree & measurementReadRawData
     methods
         function this = measurement4Import(hSubject)
             %constructor
-            this = this@measurementReadRawData(hSubject.myParamMgr);
-            this = this@measurementInFDTree(hSubject.myParamMgr,@hSubject.getMyFolder);
+            this = this@measurementReadRawData(@hSubject.myParamMgr);
+            this = this@measurementInFDTree(@hSubject.myParamMgr,@hSubject.getMyFolder);
             this.dirtyFlags = true(size(this.dirtyFlags));
         end
         %% input methods
-        function importMeasurementObj(this,obj)
-            %import a measurement object copying its content
-            %copy all properties
-            this.progressCb = obj.progressCb;
-            this.sourceFile = obj.sourceFile;
-            this.sourcePath = obj.sourcePath;
-            this.ROICoord = obj.ROICoord;
-            this.rawXSz = obj.rawXSz;
-            this.rawYSz = obj.rawYSz;
-            this.fileInfo = obj.fileInfo;            
-            this.fileInfoLoaded = obj.fileInfoLoaded;
-            this.rawFluoData = obj.rawFluoData;
-            this.roiFluoData = obj.roiFluoData;
-            this.rawFluoDataFlat = obj.rawFluoDataFlat;
-            this.roiFluoData = obj.roiFluoData;
-            this.roiFluoDataFlat = obj.roiFluoDataFlat;
-            this.roiMerged = obj.roiMerged;  
-            this.initData = obj.initData;
-            this.setDirtyFlags([],1:4,true);
-        end
+%         function importMeasurementObj(this,obj)
+%             %import a measurement object copying its content
+%             %copy all properties
+%             this.progressCb = obj.progressCb;
+%             this.sourceFile = obj.sourceFile;
+%             this.sourcePath = obj.sourcePath;
+%             this.ROICoord = obj.ROICoord;
+%             this.rawXSz = obj.rawXSz;
+%             this.rawYSz = obj.rawYSz;
+%             this.fileInfo = obj.fileInfo;
+%             this.fileInfoLoaded = obj.fileInfoLoaded;
+%             this.rawFluoData = obj.rawFluoData;
+%             this.roiFluoData = obj.roiFluoData;
+%             this.rawFluoDataFlat = obj.rawFluoDataFlat;
+%             this.roiFluoData = obj.roiFluoData;
+%             this.roiFluoDataFlat = obj.roiFluoDataFlat;
+%             this.roiMerged = obj.roiMerged;  
+%             this.initData = obj.initData;
+%             this.setDirtyFlags([],1:4,true);
+%         end
         
         function fileInfo = getFileInfoStruct(this,channel)
             %get file info struct

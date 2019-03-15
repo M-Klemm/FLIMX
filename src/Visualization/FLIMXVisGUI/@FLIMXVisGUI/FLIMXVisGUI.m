@@ -75,16 +75,16 @@ classdef FLIMXVisGUI < handle
             end
             if(this.generalParams.cmIntensityInvert)
                 this.dynParams.cmIntensity = flipud(this.dynVisParams.cmIntensity);
-            end            
+            end
             this.dynParams.mouseButtonDown = false;
             %this.dynParams.mouseButtonUp = false;
             this.dynParams.mouseButtonDownROI = [];
             this.dynParams.mouseButtonIsLeft = false;
             this.dynParams.mouseButtonIsInsideROI = false;
             this.dynParams.lastExportFile = 'image.png';
-            %init objects            
+            %init objects
             this.fdt.setShortProgressCallback(@this.updateShortProgressbar);
-            this.fdt.setLongProgressCallback(@this.updateLongProgressbar);            
+            this.fdt.setLongProgressCallback(@this.updateLongProgressbar);
         end %constructor
         
         %% input functions        
@@ -235,7 +235,7 @@ classdef FLIMXVisGUI < handle
                     %setup main popup menus
                     chObj = this.fdt.getChObjStr(curStudy,curSubject,this.getChannel(s));
                     if(~isempty(chObj))
-                        MVGroupNames = this.fdt.getStudyClustersStr(curStudy,1);
+                        MVGroupNames = this.fdt.getMVGroupNames(curStudy,1);
                         idx = strncmp('MVGroup_',MVGroupNames,8);
                         if(~isempty(idx))
                             MVGroupNames = MVGroupNames(idx);
@@ -282,7 +282,7 @@ classdef FLIMXVisGUI < handle
                             set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
                             set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
                         case 4 %global clusters
-                            globalMVGroupNames = this.fdt.getGlobalClustersStr();
+                            globalMVGroupNames = this.fdt.getGlobalMVGroupNames();
                             idx = strncmp('MVGroup_',globalMVGroupNames,8);
                             if(~isempty(idx))
                                 globalMVGroupNames = globalMVGroupNames(idx);
@@ -523,7 +523,7 @@ classdef FLIMXVisGUI < handle
             %Open GUI to configure FLIMXVis visualization options
             defaults.flimvis = this.visParams;
             defaults.general = this.generalParams; %todo
-            new = GUI_FLIMXVisGUIVisualizationOptions(defaults.flimvis,defaults.general,defaults);
+            new = GUI_FLIMXVisGUIVisualizationOptions(defaults.flimvis,defaults.general,defaults,this.FLIMXObj.fdt);
             if(~isempty(new))
                 %save to disc
                 if(new.isDirty(1) == 1)
@@ -735,7 +735,7 @@ classdef FLIMXVisGUI < handle
                 case {1,3,4} %univariate / condition cluster
                     [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(list(ma_pop_sel,:));
                 case 2 %multivariate
-                    cMVs = this.fdt.getClusterTargets(this.getStudy(s),list{ma_pop_sel});
+                    cMVs = this.fdt.getStudyMVGroupTargets(this.getStudy(s),list{ma_pop_sel});
                     %get multivariate targets out of cluster targets
                     MVTargets = unique([cMVs.x,cMVs.y]);
                     dType = cell(length(MVTargets),1);
@@ -1068,6 +1068,7 @@ classdef FLIMXVisGUI < handle
                                 if(this.objHandles.(sprintf('%sdo',thisSide)).mZoomFactor > 1)
                                     dTarget = this.dynParams.mouseButtonDownCoord-cpMain;
                                     this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);
+                                    this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor
                                     this.objHandles.(sprintf('%sdo',thisSide)).makeZoom();
                                 end
                             end
@@ -1168,7 +1169,7 @@ classdef FLIMXVisGUI < handle
             %% main axes
             if(~isempty(cpMain) && this.getROIDisplayMode(thisSide) < 3)
                 %user clicked in a main axes
-                %this.dynParams.mouseButtonUp = false;
+                ROIBorderID = 0;
                 if(this.getROIType(thisSide) >= 1)
                     %there is an ROI active
                     thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
@@ -1387,7 +1388,7 @@ classdef FLIMXVisGUI < handle
                                 %move zoom anchor
                                 if(this.objHandles.(sprintf('%sdo',thisSide)).mZoomFactor > 1)
                                     dTarget = this.dynParams.mouseButtonDownCoord-cpMain;
-                                    this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);
+                                    this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);                                    
                                     this.objHandles.(sprintf('%sdo',thisSide)).makeZoom();
                                 end
                             end
@@ -1395,8 +1396,18 @@ classdef FLIMXVisGUI < handle
                     end %if(~isempty(cpMain))
                     otherROIObj.updateGUI([]);
                     this.myStatsGroupComp.clearResults();
-                    this.objHandles.rdo.updatePlots();
-                    this.objHandles.ldo.updatePlots();
+                    if(this.fdt.isArithmeticImage(this.getStudy('r'),this.getFLIMItem('r')))
+                        tZA = this.objHandles.rdo.zoomAnchor;
+                        this.objHandles.rdo.sethfdMain([]);
+                        this.objHandles.rdo.setZoomAnchor(tZA);
+                    end
+                    this.objHandles.rdo.updatePlots(); %this will also update the statistics table
+                    if(this.fdt.isArithmeticImage(this.getStudy('l'),this.getFLIMItem('l')))
+                        tZA = this.objHandles.ldo.zoomAnchor;
+                        this.objHandles.ldo.sethfdMain([]);
+                        this.objHandles.ldo.setZoomAnchor(tZA);
+                    end
+                    this.objHandles.ldo.updatePlots(); %this will also update the statistics table
                     %draw mouse overlay on this side in main axes
                     this.objHandles.(sprintf('%sdo',thisSide)).drawCPMain(cpMain);
                     if(this.getROIDisplayMode(thisSide) == 1 && this.getROIDisplayMode(otherSide) == 1 || this.getROIDisplayMode(thisSide) == 2 && this.getROIDisplayMode(otherSide) == 2 && thisROIObj.ROIType == otherROIObj.ROIType)
@@ -1404,7 +1415,7 @@ classdef FLIMXVisGUI < handle
                     else
                         %other side displays something else, clear possible invalid mouse overlay
                         this.objHandles.(sprintf('%sdo',otherSide)).drawCPMain([]);
-                    end                    
+                    end
                 elseif(~isempty(cpMain) && isempty(cpSupp) && ~this.visHandles.enableMouse_check.Value || this.getROIType(thisSide) < 1)
                     %click in main axis with ROI definition disabled or no ROI active
                     if(~this.dynParams.mouseButtonIsLeft)

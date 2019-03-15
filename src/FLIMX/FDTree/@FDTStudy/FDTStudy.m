@@ -1,10 +1,10 @@
-classdef FStudy < handle
+classdef FDTStudy < FDTreeNode
     %=============================================================================================================
     %
-    % @file     FStudy.m
+    % @file     FDTStudy.m
     % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
-    % @version  1.0
-    % @date     July, 2015
+    % @version  2.0
+    % @date     January, 2019
     %
     % @section  LICENSE
     %
@@ -32,47 +32,53 @@ classdef FStudy < handle
     % @brief    A class to represent a study (contains subjectDataSets)
     %
     properties(SetAccess = protected,GetAccess = public)
-        myParent = [];
-        name = [];              %name of study
         myDir = '';             %study's working directory
         revision = [];          %revision of the study code/dataformat
-        mySubjects = [];        %subjects in study
         myStudyInfoSet = [];    %subject info in study
         myConditionStatistics = [];  %merged objects to save statistics
         IRFInfo = [];           %struct to save information on the used IRF
-        isDirty = false;        %flag if something of the study was changed
+        isDirty = false;        %flag is true if something of the study was changed
+        isLoaded = false;       %flag is true if study was loaded from disk
     end
     properties (Dependent = true)
         FLIMXParamMgrObj = [];
     end
     
     methods
-        function this = FStudy(parent,sDir,name)
-            % Constructor for FStudy.
-            this.myParent = parent;
-            this.name = name;
-            this.revision = 26;
+        function this = FDTStudy(parent,sDir,name)
+            % Constructor for FDTStudy
+            this = this@FDTreeNode(parent,name);
+            this.revision = 28;
             this.myDir = sDir;
-            this.mySubjects = LinkedList();
             this.myStudyInfoSet = studyIS(this);
             this.myConditionStatistics = LinkedList();
         end
         
-        function out = getSize(this)
-            %determine memory size of the study
-            out = 0;
-            for i = 1:this.mySubjects.queueLen
-                subject = this.getSubject(i);
-                if(~isempty(subject))
-                    out = out + subject.getSize();
-                end
+        function  pingLRUCacheTable(this,obj)
+            %ping LRU table for object obj
+            if(~isempty(this.myParent))
+                this.myParent.pingLRUCacheTable(obj);
             end
-            %todo: add studyInfoSet and ConditionStatistics
-            %fprintf(1, 'Study size %d bytes\n', out);
         end
+        
+%         function out = getSize(this)
+%             %determine memory size of the study
+%             out = 0;
+%             for i = 1:this.nrChildren
+%                 subject = this.getSubject(i);
+%                 if(~isempty(subject))
+%                     out = out + subject.getSize();
+%                 end
+%             end
+%             %todo: add studyInfoSet and ConditionStatistics
+%             %fprintf(1, 'Study size %d bytes\n', out);
+%         end
         
         function load(this)
             %load study data from disk
+            if(isMultipleCall())
+                return
+            end
             try
                 import = load(fullfile(this.myDir,'studyData.mat'));
             catch
@@ -80,14 +86,14 @@ classdef FStudy < handle
                 return
             end
             import = import.export;            
-            if(import.revision ~= this.revision)
+            if(import.revision < this.revision)
                 %version problem
                 import = this.updateStudyVer(import);
             end            
             dirty = this.isDirty; %loadStudyIS may reset dirty flag from revision update
             this.name = import.name;
             this.myStudyInfoSet.loadStudyIS(import);            
-            this.checkSubjectFiles('');
+            %this.checkSubjectFiles('');
             this.setDirty(dirty || this.isDirty);
             if(this.isDirty)
                 %study version updated
@@ -97,18 +103,11 @@ classdef FStudy < handle
             subjects = this.myStudyInfoSet.getAllSubjectNames();
             for i=1:length(subjects)
                 %add subject to mySubjects
-                channels = this.myStudyInfoSet.getFileChs(i);
+                %channels = this.myStudyInfoSet.getFileChs(i);
                 %add empty subject
-                subjectID = subjects{i};
-                this.addSubject(subjectID);
-                %add empty channels
-                for j=1:length(channels)
-                    if(~isempty(channels{j}))
-                        %this.checkIRFInfo(channels{j});
-                        this.addObj(subjectID,channels{j},[],[],[]);
-                    end
-                end
+                this.addSubject(subjects{i});                
             end
+            this.isLoaded = true;
         end
                 
         function updateShortProgress(this,prog,text)
@@ -121,10 +120,18 @@ classdef FStudy < handle
             this.myParent.updateLongProgress(prog,text);
         end
         
+        function updateStudyMgrProgress(this,prog,text)
+            %update the progress bar of study manager
+            this.myParent.updateStudyMgrProgress(prog,text);
+        end
+        
         %% input functions
         function addObj(this,subjectID,chan,dType,gScale,data)
             %add an object to FDTree and generate id (running number) automatically
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 subject = this.addSubject(subjectID);
             end
@@ -136,7 +143,10 @@ classdef FStudy < handle
         
         function addObjID(this,nr,subjectID,chan,dType,gScale,data)
             %add an object to FDTree with specific id (running number)
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 subject = this.addSubject(subjectID);
             end
@@ -146,32 +156,38 @@ classdef FStudy < handle
             end
         end
         
-        function subject = addSubject(this,subjectID)
+        function subject = addSubject(this,subjectName)
             %add subject(name = subjectID) to study data and make its directory
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectName);
             if(isempty(subject))
-                subject = subjectDS(this,subjectID);
-                this.mySubjects.insertID(subject,subjectID);
-                this.myStudyInfoSet.addSubject(subjectID);
                 %make dir if not present
-                sDir = fullfile(this.myDir,subjectID);
-                if(~isdir(sDir))
+                sDir = fullfile(this.myDir,subjectName);
+                if(~isfolder(sDir))
                     [status, message, ~] = mkdir(sDir);
                     if(~status)
                         error('FLIMX:FDTree:addSubject','Could not create subject folder: %s\n%s',sDir,message);
                     end
                 end
+                subject = FDTSubject(this,sDir,subjectName);
+                this.addChildByName(subject,subjectName);
+                this.myStudyInfoSet.addSubject(subjectName);                
             end
         end
         
         function setSubjectName(this,subjectID,newName)
             %set subject name
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(~isempty(subject))
                 %set name in tree
                 subject.setSubjectName(newName);
                 %set name in study info set
-                idx = this.getSubjectNr(subjectID);
+                idx = this.getChild(subjectID);
                 this.myStudyInfoSet.setSubjectName(newName,idx);
                 %rename folder (if one exists)
                 oldpath = fullfile(this.myDir,subjectID);
@@ -179,63 +195,63 @@ classdef FStudy < handle
                 if(exist(oldpath,'dir') ~= 0)
                     movefile(oldpath,newpath);
                 end
-                this.mySubjects.changeID(subjectID,newName);
+                this.renameChild(subjectID,newName);
                 this.myStudyInfoSet.sortSubjects();
                 %save because study info on disk was changed
                 this.save();
             end
         end
         
-        function setClusterTargets(this,clusterID,targets)
-            %set multivariate targets for cluster
+        function setMVGroupTargets(this,MVGroupID,targets)
+            %set multivariate targets for MVGroup
             %this.MVTargets = sort(val);
-            this.myStudyInfoSet.setClusterTargets(clusterID,targets);
+            if(~this.isLoaded)
+                this.load();
+            end
+            this.myStudyInfoSet.setMVGroupTargets(MVGroupID,targets);
         end
         
-        function setClusterName(this,clusterID,val)
-            %set cluster name            
-            %set name of local cluster objects
+        function setMVGroupName(this,MVGroupID,val)
+            %set MVGroup name
+            if(~this.isLoaded)
+                this.load();
+            end
+            %set name of local MVGroup objects
             subStr = this.getSubjectsNames(FDTree.defaultConditionName());
             for i=1:length(subStr)
-                subject = this.getSubject(subStr{i});
+                subject = this.getChild(subStr{i});
                 if(~isempty(subject))
-                    subject.setdType(clusterID,val);
+                    subject.setdType(MVGroupID,val);
                 end
             end
-            %set name of condition cluster objects
+            %set name of condition MVGroup objects
             conditionStr = this.myStudyInfoSet.getDataFromStudyInfo('subjectInfoConditionalColumnNames');
-            conditionClusterID = sprintf('Condition%s',clusterID);
+            conditionMVGroupID = sprintf('Condition%s',MVGroupID);
             for i=1:length(conditionStr)
                 condition = this.getConditionObj(conditionStr{i});
                 if(~isempty(condition))
-                    condition.setdType(conditionClusterID,sprintf('Condition%s',val));
+                    condition.setdType(conditionMVGroupID,sprintf('Condition%s',val));
                 end
             end
             %set name in study info set
-            this.myStudyInfoSet.setClusterName(clusterID,val);
+            this.myStudyInfoSet.setMVGroupName(MVGroupID,val);
             this.setDirty(true);
         end
         
         function clearSubjectCI(this,subjectID)
             %clear current images (result ROI) of a subject
-            subject = this.getSubject(subjectID);
+            subject = this.getChild(subjectID);
             if(~isempty(subject))
                 subject.clearAllCIs('');
-                for ch = 1:2
-                    if(subject.channelResultIsLoaded(ch))
-                        subject.loadChannelResult(ch);
-                    elseif(subject.channelMesurementIsLoaded(ch))
-                        subject.loadChannelMeasurement(ch,true);
-                    end
-                end
+%                 for ch = 1:2
+%                     subject.loadChannel(ch,true);
+%                 end
             end
         end
         
         function clearAllCIs(this,dType)
             %clear current images of datatype dType in all subject
-            for i = 1:this.mySubjects.queueLen
-                this.mySubjects.getDataByPos(i).clearAllCIs(dType);
-            end
+            clearAllCIs@FDTreeNode(this,dType);
             %clear current images of datatype dType in all merged subjects
             for i = 1:this.myConditionStatistics.queueLen
                 this.myConditionStatistics.getDataByPos(i).clearAllCIs(dType);
@@ -244,9 +260,7 @@ classdef FStudy < handle
         
         function clearAllFIs(this,dType)
             %clear filtered raw images of datatype dType in all subject
-            for i = 1:this.mySubjects.queueLen
-                this.mySubjects.getDataByPos(i).clearAllFIs(dType);
-            end
+            clearAllFIs@FDTreeNode(this,dType);
             %clear filtered raw images of datatype dType in all merged subjects
             for i = 1:this.myConditionStatistics.queueLen
                 this.myConditionStatistics.getDataByPos(i).clearAllFIs(dType);
@@ -255,16 +269,24 @@ classdef FStudy < handle
         
         function clearAllRIs(this,dType)
             %clear raw images of datatype dType in all subjects
-            for i = 1:this.mySubjects.queueLen
-                this.mySubjects.getDataByPos(i).clearAllRIs(dType);
-                if(strncmp(dType,'MVGroup',7))
-                    %clear corresponding condition cluster object
-                    conditionClusterID = sprintf('Condition%s',dType);
-                    for j=1:this.myConditionStatistics.queueLen
-                        this.myConditionStatistics.getDataByPos(j).clearAllRIs(conditionClusterID);
-                    end
+            clearAllRIs@FDTreeNode(this,dType);
+            if(strncmp(dType,'MVGroup',7))
+                %clear corresponding condition MVGroup object
+                conditionMVGroupID = sprintf('Condition%s',dType);
+                for j=1:this.myConditionStatistics.queueLen
+                    this.myConditionStatistics.getDataByPos(j).clearAllRIs(conditionMVGroupID);
                 end
             end
+%             for i = 1:this.nrChildren
+%                 this.mySubjects.getDataByPos(i).clearAllRIs(dType);
+%                 if(strncmp(dType,'MVGroup',7))
+%                     %clear corresponding condition MVGroup object
+%                     conditionMVGroupID = sprintf('Condition%s',dType);
+%                     for j=1:this.myConditionStatistics.queueLen
+%                         this.myConditionStatistics.getDataByPos(j).clearAllRIs(conditionMVGroupID);
+%                     end
+%                 end
+%             end
         end
         
         function clearArithmeticRIs(this)
@@ -278,41 +300,51 @@ classdef FStudy < handle
         end
         
         function setName(this,name)
-            % set new name for study
+            %set new name for study
             this.name = name;
             this.setDirty(true);
         end
         
         function setStudyDir(this,sDir)
-            %
+            %set the working directory for this study object
             this.myDir = sDir;
         end
         
         function setResultROICoordinates(this,subjectID,dType,dTypeNr,ROIType,ROICoord)
             %set the ROI vector at subject subjectID
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 return
             end
             this.myStudyInfoSet.setResultROICoordinates(subjectID,ROIType,ROICoord);
+            this.clearArithmeticRIs(); %todo: check if an AI uses an ROI
             this.clearObjMerged();
-            this.clearClusters(subjectID,dType,dTypeNr);
+            this.clearMVGroups(subjectID,dType,dTypeNr);
         end
         
         function setResultZScaling(this,subjectID,ch,dType,dTypeNr,zValues)
             %set the z scaling at subject subjectID
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 return
             end
             this.myStudyInfoSet.setResultZScaling(subjectID,ch,dType,dTypeNr,zValues);
             this.clearObjMerged();
-            this.clearClusters(subjectID,dType,dTypeNr);
+            this.clearMVGroups(subjectID,dType,dTypeNr);
         end
         
         function setResultColorScaling(this,subjectID,ch,dType,dTypeNr,colorBorders)
             %set the color scaling at subject subjectID
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 return
             end
@@ -321,8 +353,11 @@ classdef FStudy < handle
         
         function setResultCrossSection(this,subjectID,dim,csDef)
             %set the cross section for subject subName and dimension dim
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.setResultCrossSection(subjectID,dim,csDef);
-            subject = this.getSubject(subjectID);
+            subject = this.getChild(subjectID);
             if(~isempty(subject))
                 subject.setResultCrossSection(dim,csDef);
             end
@@ -330,6 +365,9 @@ classdef FStudy < handle
                 
         function setAllFLIMItems(this,subjectID,ch,items)
             %
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.setAllFLIMItems(subjectID,ch,items);
         end
         
@@ -349,21 +387,33 @@ classdef FStudy < handle
         
         function addColumn(this,name)
             %add new column to study info
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.addColumn(name);
         end
         
         function addConditionalColumn(this,val)
             %add new conditional column to study info with definition val
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.addConditionalColumn(val);
         end
         
         function setConditionalColumnDefinition(this,colName,opt)
             %set definition for conditional column
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.setConditionalColumnDefinition(colName,opt);
         end
         
         function setSubjectInfoColumnName(this,newColumnName,idx)
             %give column at idx a new name
+            if(~this.isLoaded)
+                this.load();
+            end
             %check if idx is a conditional column
             conditions = this.myStudyInfoSet.getDataFromStudyInfo('subjectInfoConditionalColumnNames');
             allColumnNames = this.myStudyInfoSet.getDataFromStudyInfo('subjectInfoAllColumnNames');
@@ -381,16 +431,25 @@ classdef FStudy < handle
         
         function setSubjectInfo(this,irow,icol,newData)
             %set data in subject info at specific row and column
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.setSubjectInfo(irow,icol,newData);
         end
         
         function setSubjectInfoConditionalColumnDefinition(this,def,idx)
             %set definition def of a conditional column with the index idx
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.setSubjectInfoConditionalColumnDefinition(def,idx);
         end
         
         function importStudyInfo(this,file,mode)
             %import study info (subject info table) from excel file, mode 1: delete all old, mode 2: update old & add new
+            if(~this.isLoaded)
+                this.load();
+            end
             %check file
             [typ, desc] = xlsfinfo(file);
             if(isempty(typ))
@@ -445,7 +504,10 @@ classdef FStudy < handle
         
         function importSubject(this,importSubject)
             %import a new subject object (and possibly study)
-            subject = this.getSubject(importSubject.name);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(importSubject.name);
             if(isempty(subject))
                 subject = this.addSubject(importSubject.name);
             end
@@ -453,14 +515,14 @@ classdef FStudy < handle
             this.clearSubjectFiles(importSubject.name);
             %save mat files for measurements and results
             importSubject.exportMatFile([],fullfile(this.myDir,importSubject.name));
-            this.checkSubjectFiles(importSubject.name);
+            %this.checkSubjectFiles(importSubject.name);
             chs = importSubject.getNonEmptyChannelList('');
             if(~isempty(chs))
                 for ch = chs
-                    subject.removeChannel(ch);
+                    subject.removeResultChannelFromMemory(ch);
                     this.addObj(importSubject.name,ch,[],[],[]);
                 end
-                subject.loadChannelMeasurement(chs(1),false);
+%                 subject.loadChannel(chs(1),false);
             end
         end
         
@@ -468,12 +530,12 @@ classdef FStudy < handle
             %remove all channels in all subjects from memory
             subStr = this.getSubjectsNames(FDTree.defaultConditionName());
             for i=1:length(subStr)
-                subject = this.getSubject(subStr{i});
+                subject = this.getChild(subStr{i});
                 chs = subject.getNrChannels();
                 if(~isempty(chs))
                     for ch = 1:chs
                         if(subject.channelResultIsLoaded(ch))
-                            subject.removeChannel(ch);
+                            subject.removeResultChannelFromMemory(ch);
                             this.addObj(subject.name,ch,[],[],[]);
                         end
                     end
@@ -515,7 +577,7 @@ classdef FStudy < handle
 %             chs = fluoFileObj.getNonEmptyChannelList();
 %             if(~isempty(chs))
 %                 for ch = chs
-%                     subject.removeChannel(ch);
+%                     subject.removeResultChannelFromMemory(ch);
 %                 end
 %                 subject.loadChannelMeasurement(chs(1));
 %             end
@@ -524,22 +586,31 @@ classdef FStudy < handle
         function setArithmeticImageDefinition(this,aiName,aiParam)
             %set name and definition of arithmetic image for a study
             this.clearArithmeticRIs();
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.setArithmeticImageDefinition(aiName,aiParam);
         end
         
         function setConditionColor(this,cName,val)
             %set condition color
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.setConditionColor(cName,val);
         end
         
         %% removing functions
         function removeArithmeticImageDefinition(this,aiName)
             %remove arithmetic image for a study
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.removeArithmeticImageDefinition(aiName);
             %remove the arithmetic image from each subject
             %do NOT load subjects from disk
-            for i = 1:this.mySubjects.queueLen
-                if(this.mySubjects.getDataByPos(i).channelResultIsLoaded(1))
+            for i = 1:this.nrChildren
+                if(this.getChildAtPos(i).channelResultIsLoaded(1))
                     this.removeObj(i,1,aiName,0);
                 end
             end
@@ -547,22 +618,28 @@ classdef FStudy < handle
         
         function removeObj(this,subjectID,chan,dType,id)
             %remove object from subject
-            [subject, subjectPos] = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            [subject, subjectPos] = this.getChild(subjectID);
             if(~isempty(subject))
                 subject.removeObj(chan,dType,id);
                 this.clearObjMerged(chan,dType,id);
                 if(subject.getNrChannels == 0)
                     %no channels in subject anymore -> remove whole subject
-                    this.mySubjects.removePos(subjectPos);
+                    this.deleteChildByPos(subjectPos);
                 end
             end
         end
         
-        function removeChannel(this,subjectID,ch)
+        function removeResultChannelFromMemory(this,subjectID,ch)
             %remove channel of a subject
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(~isempty(subject))
-                subject.removeChannel(ch);
+                subject.removeResultChannelFromMemory(ch);
                 %if(subject.getNrChannels == 0)
                 %no channels in subject anymore -> remove whole subject
                 %this.mySubjects.removePos(subjectPos);
@@ -571,62 +648,91 @@ classdef FStudy < handle
             end
         end
         
-        function removeSubjectResult(this,subjectID)
-            %remove all results of a subject
-            subject = this.getSubject(subjectID);
+        function deleteChannel(this,subjectID,ch,type)
+            %delete channel of a subject from memory and disk
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(~isempty(subject))
-                subject.removeChannel([]);
-                this.myStudyInfoSet.removeSubjectResult(subjectID);
-                %find result files
-                subDir = fullfile(this.myDir,subject.name);
-                files = rdir(sprintf('%s%sresult_ch*.mat',subDir,filesep));
-                for i = 1:length(files)
-                    try
-                        delete(files(i).name);
-                    catch ME
-                        %todo
-                    end
+                subject.deleteChannel(ch,type);
+                %if(subject.getNrChannels == 0)
+                %no channels in subject anymore -> remove whole subject
+                %this.mySubjects.removePos(subjectPos);
+                %end
+                if(strcmp(type,'result'))
+                    subject.removeResultChannelFromMemory([]);
+                    this.myStudyInfoSet.removeSubjectResult(subjectID);
+                    this.clearObjMerged(ch);
                 end
             end
         end
         
+%         function removeSubjectResult(this,subjectID)
+%             %remove all results of a subject
+%             if(~this.isLoaded)
+%                 this.load();
+%             end
+%             subject = this.getChild(subjectID);
+%             if(~isempty(subject))
+%                 subject.removeResultChannelFromMemory([]);
+%                 this.myStudyInfoSet.removeSubjectResult(subjectID);
+%                 %find result files
+%                 subDir = fullfile(this.myDir,subject.name);
+%                 files = rdir(sprintf('%s%sresult_ch*.mat',subDir,filesep));
+%                 for i = 1:length(files)
+%                     try
+%                         delete(files(i).name);
+%                     catch ME
+%                         %todo
+%                     end
+%                 end
+%             end
+%         end
+        
         function removeSubject(this,subjectID)
             %remove a subject
-            [subject, subjectPos] = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            [subject, subjectPos] = this.getChild(subjectID);
             if(~isempty(subject))
-                this.mySubjects.removePos(subjectPos);
+                this.deleteChildByPos(subjectPos);
                 this.myStudyInfoSet.removeSubject(subjectID);                
                 this.clearObjMerged();
             end
         end
         
-        function removeCluster(this,clusterID)
-            %remove cluster and corresponding objects            
-            %delete local cluster objects
+        function removeMVGroup(this,MVGroupID)
+            %remove MVGroup and corresponding objects            
+            if(~this.isLoaded)
+                this.load();
+            end
+            %delete local MVGroup objects
             subStr = this.getSubjectsNames(FDTree.defaultConditionName());
             for i=1:length(subStr)
-                subject = this.getSubject(subStr{i});
+                subject = this.getChild(subStr{i});
                 if(~isempty(subject))
                     [~, chNrs] = this.getChStr(subStr{i});
                     for j=1:length(chNrs)
-                        subject.removeObj(chNrs(j),clusterID,0);
+                        subject.removeObj(chNrs(j),MVGroupID,0);
                     end
                 end
             end
-            %delete condition cluster objects
+            %delete condition MVGroup objects
             conditionStr = this.myStudyInfoSet.getDataFromStudyInfo('subjectInfoConditionalColumnNames');
-            conditionClusterID = sprintf('Condition%s',clusterID);
+            conditionMVGroupID = sprintf('Condition%s',MVGroupID);
             for i=1:length(conditionStr)
                 condition = this.getConditionObj(conditionStr{i});
                 if(~isempty(condition))
                     [~, chNrs] = condition.getChStr();
                     for j=1:length(chNrs)
-                        condition.removeObj(chNrs(j),conditionClusterID,0);
+                        condition.removeObj(chNrs(j),conditionMVGroupID,0);
                     end
                 end
             end
-            %delete cluster parameter in study info set
-            this.myStudyInfoSet.removeCluster(clusterID);
+            %delete MVGroup parameter in study info set
+            this.myStudyInfoSet.removeMVGroup(MVGroupID);
             this.setDirty(true);
         end
         
@@ -650,15 +756,15 @@ classdef FStudy < handle
             end
         end
         
-        function clearClusters(this,subjectID,dType,dTypeNr)
-            %clear local and condition clusters
-            clusterStr = this.getStudyClustersStr(1);
-            subject = this.getSubject(subjectID);
+        function clearMVGroups(this,subjectID,dType,dTypeNr)
+            %clear local and condition MVGroups
+            MVGroupStr = this.getMVGroupNames(1);
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 return
             end
             if(strncmp('MVGroup',dType,7))
-                %ROI of cluster was changed
+                %ROI of MVGroup was changed
                 for i = 1:this.myConditionStatistics.queueLen
                     subStr = this.getSubjectsNames(this.myConditionStatistics.getDataByPos(i).name);
                     if(ismember(subjectID,subStr))
@@ -666,34 +772,34 @@ classdef FStudy < handle
                         this.myConditionStatistics.getDataByPos(i).clearAllRIs(sprintf('Condition%s',dType));
                     end
                 end
-                this.myParent.clearGlobalObjMerged(sprintf('Global%s',dType));
+%                 this.myParent.clearGlobalObjMerged(sprintf('Global%s',dType));
             elseif(strncmp('ConditionMVGroup',dType,16))
                 for i = 1:this.myConditionStatistics.queueLen
                     this.myConditionStatistics.getDataByPos(i).clearAllRIs(dType);
                 end
-                this.myParent.clearGlobalObjMerged(sprintf('Global%s',dType(5:end)));
-            elseif(strncmp('GlobalMVGroup',dType,13))
-                this.myParent.clearGlobalObjMerged(dType);
+%                 this.myParent.clearGlobalObjMerged(sprintf('Global%s',dType(5:end)));
+%             elseif(strncmp('GlobalMVGroup',dType,13))
+%                 this.myParent.clearGlobalObjMerged(dType);
             else
                 %normal dType
                 curGS = subject.getGlobalScale(dType);
-                for i = 1:length(clusterStr)
-                    cMVs = this.getClusterTargets(clusterStr{i});
+                for i = 1:length(MVGroupStr)
+                    cMVs = this.getMVGroupTargets(MVGroupStr{i});
                     cDType = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
                     cGS = subject.getGlobalScale(cDType{1});
                     tmp = sprintf('%s %d',dType,dTypeNr);
                     if(ismember(tmp,cMVs.x) || ismember(tmp,cMVs.y) || curGS && cGS)
-                        %clear local clusters
-                        subject.clearAllRIs(clusterStr{i})
-                        %clear condition clusters
+                        %clear local MVGroups
+                        subject.clearAllRIs(MVGroupStr{i})
+                        %clear condition MVGroups
                         for j = 1:this.myConditionStatistics.queueLen
                             subStr = this.getSubjectsNames(this.myConditionStatistics.getDataByPos(j).name);
                             if(ismember(subjectID,subStr))
                                 %condition contains subject
-                                this.myConditionStatistics.getDataByPos(j).clearAllRIs(sprintf('Condition%s',clusterStr{i}));
+                                this.myConditionStatistics.getDataByPos(j).clearAllRIs(sprintf('Condition%s',MVGroupStr{i}));
                             end
                         end
-                        this.myParent.clearGlobalObjMerged(sprintf('Global%s',clusterStr{i}));
+%                         this.myParent.clearGlobalObjMerged(sprintf('Global%s',MVGroupStr{i}));
                     end
                 end
             end
@@ -701,6 +807,9 @@ classdef FStudy < handle
         
         function removeColumn(this,colName)
             %reomve column in study data and condition if required
+            if(~this.isLoaded)
+                this.load();
+            end
             cond = this.myStudyInfoSet.getColumnDependencies(colName);
             if(~isempty(cond))
                 %we have a reference column
@@ -729,7 +838,7 @@ classdef FStudy < handle
             save(fullfile(this.myDir,'studyData.mat'),'export');
             %remove unnecessary files
             this.checkStudyFiles();
-            this.checkSubjectFiles([]);
+            %this.checkSubjectFiles([]);
             this.isDirty = false;
         end
         
@@ -740,17 +849,16 @@ classdef FStudy < handle
         
         function out = getFDataObj(this,subjectID,chan,dType,id,sType)
             %get FData object
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 out = [];
                 return
             end
-            %load channel chan of subject on demand
-            if(~subject.channelResultIsLoaded(chan)) %todo: check if requested dType is intensity and we have only a measurement (and no result)
-                subject.loadChannel(chan);
-            end
             %check if is arithmetic image
-            %to do: move this to subjectDS?
+            %to do: move this to FDTSubject class?
             [aiNames, aiParams] = this.myStudyInfoSet.getArithmeticImageDefinition();
             idx = strcmp(dType,aiNames);
             if(sum(idx) == 1) %found 1 arithmetic image
@@ -766,20 +874,34 @@ classdef FStudy < handle
             out = subject.getFDataObj(chan,dType,id,sType);
         end
         
+        function out = isArithmeticImage(this,dType)
+            %return true, if dType is an arithmetic image
+            aiNames = this.myStudyInfoSet.getArithmeticImageDefinition();
+            idx = strcmp(dType,aiNames);
+            out = sum(idx) == 1;
+        end
+        
         function out = getSubject4Approx(this,subjectID)
-            %get subject object which includes measurements and results            
+            %get subject object which includes measurements and results
+            if(~this.isLoaded)
+                this.load();
+            end
             if(~ischar(subjectID))
                 subjectID = this.myStudyInfoSet.idx2SubName(subjectID);
             end
-            if(any(strcmp(subjectID,this.getSubjectsNames(FDTree.defaultConditionName()))))
-                out = subject4Approx(this,subjectID);
-            else
-                out = [];
-            end
+            out = this.getChild(subjectID);
+%             if(~isempty(subject))
+%                 out = subject.getSubject4Approx();
+%             else
+%                 out = [];
+%             end
         end
         
         function out = getSubject4Import(this,subjectID)
             %get subject object to import measurements or results
+            if(~this.isLoaded)
+                this.load();
+            end
             if(~ischar(subjectID))
                 subjectID = this.myStudyInfoSet.idx2SubName(subjectID);
             end
@@ -796,6 +918,9 @@ classdef FStudy < handle
         
         function [resultObj, isBH, chNrs] = getResultObj(this,subjectID,chan)
             %get fluoDecayFitResult object, chan = [] loads all channels
+            if(~this.isLoaded)
+                this.load();
+            end
             %get all FLIM data for subject subjectID
             resultObj = []; isBH = false;
             chNrs = cell2mat(this.myStudyInfoSet.getResultFileChs(subjectID));
@@ -879,12 +1004,15 @@ classdef FStudy < handle
         
         function out = getStudyObjs(this,cName,chan,dType,id,sType)
             %get all fData objects of datatype dType and with id from a study
+            if(~this.isLoaded)
+                this.load();
+            end
             out = cell(0,0);
             tStart = clock;
             persistent lastUpdate                
             if(strcmp(cName,FDTree.defaultConditionName()))
                 %get all objects
-                for i=1:this.mySubjects.queueLen
+                for i=1:this.nrChildren
                     %try to get data
                     fData = this.getFDataObj(i,chan,dType,id,sType);
                     if(~isempty(fData))
@@ -892,8 +1020,8 @@ classdef FStudy < handle
                         out(end+1) = {fData};
                     end
                     if(isempty(lastUpdate) || etime(clock, lastUpdate) > 1)
-                        [~, minutes, secs] = secs2hms(etime(clock,tStart)/i*(this.mySubjects.queueLen-i));
-                        this.updateLongProgress(i/this.mySubjects.queueLen,sprintf('%02.1f%% - %02.0fmin %02.0fsec',i/this.mySubjects.queueLen*100,minutes,secs));
+                        [~, minutes, secs] = secs2hms(etime(clock,tStart)/i*(this.nrChildren-i));
+                        this.updateLongProgress(i/this.nrChildren,sprintf('%02.1f%% - %02.0fmin %02.0fsec',i/this.nrChildren*100,minutes,secs));
                         lastUpdate = clock;
                     end
                     if(this.getCancelFlag())
@@ -910,8 +1038,8 @@ classdef FStudy < handle
                         %we found an object
                         out(end+1) = {fData};
                     end
-                    if(isempty(lastUpdate) || etime(clock, lastUpdate) > 1) %i == 1 || mod(i,5) == 0 || i == this.mySubjects.queueLen)
-                        [~, minutes secs] = secs2hms(etime(clock,tStart)/i*(length(subjectNames)-i));
+                    if(isempty(lastUpdate) || etime(clock, lastUpdate) > 1) %i == 1 || mod(i,5) == 0 || i == this.nrChildren)
+                        [~, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(subjectNames)-i));
                         this.updateLongProgress(i/length(subjectNames),sprintf('%02.1f%% - %02.0fmin %02.0fsec',i/length(subjectNames)*100,minutes,secs));
                         lastUpdate = clock;
                     end
@@ -924,18 +1052,21 @@ classdef FStudy < handle
         end
         
         function out = getFDataMergedObj(this,cName,chan,dType,id,sType,ROIType,ROISubType,ROIInvertFlag)
-            %get merged subjectDS for histogram and statistics
+            %get merged subject object for histogram and statistics
+            if(~this.isLoaded)
+                this.load();
+            end
             condition = this.getConditionObj(cName);
             if(isempty(condition) || isempty(condition.getFDataObj(chan,dType,id,sType)))
-                %distinguish between merged statistics and condition clusters
+                %distinguish between merged statistics and condition MVGroups
                 if(strncmp(dType,'ConditionMVGroup',16))
                     %add condition object
-                    condition = subjectDS(this,cName);
+                    condition = FDTSubject(this,[],cName);
                     this.myConditionStatistics.insertEnd(condition,cName);
-                    %make condition cluster
-                    clusterID = dType(10:end);
-                    [cimg, lblx, lbly, cw] = this.makeConditionCluster(cName,chan,clusterID);
-                    %add condition cluster
+                    %make condition MVGroup
+                    MVGroupID = dType(10:end);
+                    [cimg, lblx, lbly, cw] = this.makeConditionMVGroupObj(cName,chan,MVGroupID);
+                    %add condition MVGroup
                     condition.addObjID(0,chan,dType,0,cimg);
                     out = condition.getFDataObj(chan,dType,id,sType);
                     out.setupXLbl(lblx,cw);
@@ -965,6 +1096,9 @@ classdef FStudy < handle
                 
         function out = getConditionName(this,cNr)
             %get name of condition out of study data
+            if(~this.isLoaded)
+                this.load();
+            end
             if(cNr == 1)
                 %all subjects
                 out = FDTree.defaultConditionName();
@@ -976,22 +1110,26 @@ classdef FStudy < handle
                 return
             end
             out = subjectInfoHeaders{cNr};
-        end
-        
+        end        
         
         function out = getSubjectName(this,subjectID)
             %get subject name
-            %todo: implement shortcut if subjectID is already a string
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 out = [];
                 return
             end
-            out = subject.getSubjectName();
+            out = subject.name;
         end
         
         function [condition, conditionPos] = getConditionObj(this,cName)
             %check if cName is in myConditionStatistics and return the condition object
+            if(~this.isLoaded)
+                this.load();
+            end
             condition = [];
             conditionPos = [];
             if(ischar(cName))
@@ -1004,25 +1142,43 @@ classdef FStudy < handle
         
         function nr = getSubjectNr(this,subjectID)
             %get subject number
+            if(~this.isLoaded)
+                this.load();
+            end
             nr = this.myStudyInfoSet.subName2idx(subjectID);
         end
         
-        function [measurements, results] = getSubjectFilesStatus(this,subjectID)
-            %returns which channels are available for a subject in a study
-            measurements = cell2mat(this.myStudyInfoSet.getMeasurementFileChs(subjectID));
-            results = cell2mat(this.myStudyInfoSet.getResultFileChs(subjectID));            
+        function [measurementChs, resultChs, position, resolution] = getSubjectFilesStatus(this,subjectID)
+            %returns which channels are available for a subject in a study            
+            subject = this.getChild(subjectID);
+            if(~isempty(subject))
+                %measurements
+                measurementChs = subject.nonEmptyMeasurementChannelList;
+                %results
+                resultChs = subject.nonEmptyResultChannelList;  
+                position = subject.position;
+                resolution = subject.pixelResolution;
+            end            
+%             measurements = cell2mat(this.myStudyInfoSet.getMeasurementFileChs(subjectID));
+%             results = cell2mat(this.myStudyInfoSet.getResultFileChs(subjectID));            
         end
         
-        function out = getClusterTargets(this,clusterID)
-            %get cluster targets from study info
-            out = this.myStudyInfoSet.getClusterTargets(clusterID);
+        function out = getMVGroupTargets(this,MVGroupID)
+            %get MVGroup targets from study info
+            if(~this.isLoaded)
+                this.load();
+            end
+            out = this.myStudyInfoSet.getMVGroupTargets(MVGroupID);
         end
         
         function nr = getNrSubjects(this,cName)
             %get number of subjects in study with condition cName
+            if(~this.isLoaded)
+                this.load();
+            end
             if(strcmp(cName,FDTree.defaultConditionName()))
                 %no condition
-                nr = this.mySubjects.queueLen;
+                nr = this.nrChildren;
             else
                 %get number according to conditional column
                 idx = this.myStudyInfoSet.subjectInfoColumnName2idx(cName);
@@ -1034,10 +1190,13 @@ classdef FStudy < handle
         
         function dStr = getSubjectsNames(this,cName)
             %get a string of all subjects in the study
-            dStr = cell(0,0);
-            for i=1:this.mySubjects.queueLen
-                dStr(i,1) = {this.mySubjects.getDataByPos(i).getSubjectName};
+            if(~this.isLoaded)
+                this.load();
             end
+            dStr = this.getNamesOfAllChildren();%cell(0,0);
+%             for i=1:this.nrChildren
+%                 dStr(i,1) = {this.mySubjects.getDataByPos(i).getSubjectName};
+%             end
             if(strcmp(cName,FDTree.defaultConditionName()))
                 %no condition selected, show all subjects
 %                 %make sure no suject name is empty
@@ -1057,32 +1216,39 @@ classdef FStudy < handle
         
         function [str, chNrs] = getChStr(this,subjectID)
             %get a string and numbers of all loaded channels in subject
-%             subject = this.getSubject(subjectID);
-%             if(isempty(subject))
-%                 str = [];
-%                 chNrs = [];
-%                 return
-%             end
-            [measurements, results] = this.getSubjectFilesStatus(subjectID);
-            chNrs = union(measurements,results);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
+            if(isempty(subject))
+                str = [];
+                chNrs = [];
+                return
+            end
+            [str, chNrs] = subject.getChStr();
+%             [measurements, results] = this.getSubjectFilesStatus(subjectID);
+%             chNrs = union(measurements,results);
 %             str = cell(length(chNrs),1);
 %             for i = 1:length(chNrs)
 %                 str(i,1) = {sprintf('Ch %d',chNrs(i))};
 %             end
-            str = sprintfc('Ch %d',chNrs(:));
+%             str = sprintfc('Ch %d',chNrs(:));
             %[str, nrs] = subject.getChStr();
         end
         
         function str = getChObjStr(this,subjectID,ch)
             %get a string of all objects in channel ch in subject
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 str = [];
                 return
             end
-            if(~subject.channelResultIsLoaded(ch))
-                subject.loadChannel(ch);
-            end
+%             if(~subject.channelResultIsLoaded(ch))
+%                 subject.loadChannel(ch,false);
+%             end
             %get existing FLIMitems in channel + arithmetic images (which may have not been computed yet)
             str = this.getArithmeticImageDefinition();
             if(isempty(str{1}))
@@ -1091,25 +1257,30 @@ classdef FStudy < handle
                 str = unique([subject.getChObjStr(ch);str]);
             end
         end
-        
-        
-        function str = getChClusterObjStr(this,subjectID,ch)
-            %get a string of all cluster objects in channel ch in subject
-            subject = this.getSubject(subjectID);
-            if(isempty(subject))
-                str = [];
-                return
-            end
-            if(~subject.subjectIsLoaded(ch))
-                subject.loadChannel(ch);
-            end
-            %get existing FLIMitems in channel + arithmetic images (which may have not been computed yet)
-            str = subject.getChClusterObjStr(ch);
-        end
+                
+%         function str = getMVGroupNames(this,subjectID,ch)
+%             %get a string of all MVGroup objects in channel ch in subject
+%             if(~this.isLoaded)
+%                 this.load();
+%             end
+%             subject = this.getChild(subjectID);
+%             if(isempty(subject))
+%                 str = [];
+%                 return
+%             end
+% %             if(~subject.subjectIsLoaded(ch))
+% %                 subject.loadChannel(ch,false);
+% %             end
+%             %get existing FLIMitems in channel + arithmetic images (which may have not been computed yet)
+%             str = subject.getMVGroupNames(ch);
+%         end
         
         function out = getHeight(this,subjectID)
             %get image height in subject
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 out = 0;
                 return
@@ -1119,7 +1290,10 @@ classdef FStudy < handle
         
         function out = getWidth(this,subjectID)
             %get image width in subject
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 out = 0;
                 return
@@ -1127,42 +1301,16 @@ classdef FStudy < handle
             out = subject.getWidth();
         end
         
-        function out = getSaveMaxMemFlag(this)
-            %get saveMaxMem flag from parent
-            out = this.myParent.getSaveMaxMemFlag();
-        end
-        
-        function [alg params] = getDataSmoothFilter(this)
+        function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
-            [alg params] = this.myParent.getDataSmoothFilter();
+            [alg, params] = this.myParent.getDataSmoothFilter();
         end
-        
-        function [MSX MSXMin MSXMax] = getMSX(this,subjectID)
-            %get manual scaling parameters for x in subject
-            subject = this.getSubject(subjectID);
-            if(isempty(subject))
-                MSX = [];
-                MSXMin = [];
-                MSXMax = [];
-                return
-            end
-            [MSX MSXMin MSXMax] = subject.getMSX();
-        end
-        
-        function [MSY MSYMin MSYMax] = getMSY(this,subjectID)
-            %get manual scaling parameters for y in subject
-            subject = this.getSubject(subjectID);
-            if(isempty(subject))
-                MSY = [];
-                MSYMin = [];
-                MSYMax = [];
-                return
-            end
-            [MSY MSYMin MSYMax] = subject.getMSY();
-        end
-        
+                
         function data = getStudyPayload(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,dataProc)
             %get merged payload from all subjects of channel chan, datatype dType and 'running number' within a study for a certain ROI
+            if(~this.isLoaded)
+                this.load();
+            end
             hg = this.getStudyObjs(cName,chan,dType,id,1);
             if(isempty(hg))
                 return
@@ -1184,6 +1332,9 @@ classdef FStudy < handle
         
         function [centers, histMerge, histTable, colDescription] = getStudyHistogram(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
             %combine all histograms of channel chan, datatype dType and 'running number' within a study
+            if(~this.isLoaded)
+                this.load();
+            end
             hg = this.getFDataMergedObj(cName,chan,dType,id,1,ROIType,ROISubType,ROIInvertFlag);
             if(~isempty(hg))
                 if(nargout > 2)
@@ -1237,8 +1388,7 @@ classdef FStudy < handle
                     end
                 else
                     %2 output arguments -> non-strict version
-                    centers = hg.getCIHistCenters();
-                    histMerge = hg.getCIHist();
+                    [histMerge, centers] = hg.getCIHist(ROIType,ROISubType,ROIInvertFlag);
                     histTable = [];
                     colDescription = cell(0,0);
                 end
@@ -1249,6 +1399,9 @@ classdef FStudy < handle
         
         function [stats, statsDesc, subjectDesc] = getStudyStatistics(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,strictFlag)
             %get statistics for all subjects in study studyID, condition cName and channel chan of datatype dType with 'running number' id
+            if(~this.isLoaded)
+                this.load();
+            end
             stats = []; statsDesc = []; subjectDesc = [];
             hg = this.getStudyObjs(cName,chan,dType,id,1);
             if(isempty(hg))
@@ -1271,6 +1424,9 @@ classdef FStudy < handle
         
         function items = getAllFLIMItems(this,subjectID,ch)
             %
+            if(~this.isLoaded)
+                this.load();
+            end
             items = this.myStudyInfoSet.getAllFLIMItems(subjectID,ch);
         end
                         
@@ -1279,50 +1435,77 @@ classdef FStudy < handle
 %             out = this.myStudyInfoSet.getResultFileChs(j);
 %         end
         
-        function out = getStudyClustersStr(this,mode)
-            %get list of clusters in study
-            %mode 0 - get all subject clusters
-            %mode 1 - get only calculable clusters
-            out = this.myStudyInfoSet.getStudyClustersStr(mode);
+        function out = getMVGroupNames(this,mode)
+            %get list of MVGroups in study
+            %mode 0 - get all subject MVGroups
+            %mode 1 - get only calculable MVGroups
+            if(~this.isLoaded)
+                this.load();
+            end
+            out = this.myStudyInfoSet.getMVGroupNames(mode);
         end
         
         function out = getConditionalColumnDefinition(this,idx)
             %return definition of a conditional column with index idx
+            if(~this.isLoaded)
+                this.load();
+            end
             out = this.myStudyInfoSet.getConditionalColumnDefinition(idx);
         end
                 
         function out = getSubjectInfo(this,subName)
             %return the data of all columns in subject info
+            if(~this.isLoaded)
+                this.load();
+            end
             out = this.myStudyInfoSet.getSubjectInfo(subName);
         end
         
         function out = getSubjectInfoConditionalColumnDefinitions(this)
             %return definitions of all conditional columns in subject info
+            if(~this.isLoaded)
+                this.load();
+            end
             out = this.myStudyInfoSet.getSubjectInfoConditionalColumnDefinitions();
         end
         
         function out = getResultROICoordinates(this,subName,ROIType)
             %
+            if(~this.isLoaded)
+                this.load();
+            end
             out = this.myStudyInfoSet.getResultROICoordinates(subName,ROIType);
         end
         
         function out = getResultZScaling(this,subName,ch,dType,dTypeNr)
             %
+            if(~this.isLoaded)
+                this.load();
+            end
             out = this.myStudyInfoSet.getResultZScaling(subName,dType,ch,dTypeNr);
         end
         
         function out = getResultColorScaling(this,subName,ch,dType,dTypeNr)
             %
+            if(~this.isLoaded)
+                this.load();
+            end
             out = this.myStudyInfoSet.getResultColorScaling(subName,dType,ch,dTypeNr);
         end
                 
         function out = getResultCrossSection(this,subName)
             %return cross section defintion for subject
+            if(~this.isLoaded)
+                this.load();
+            end
             out = this.myStudyInfoSet.getResultCrossSection(subName);
         end
         
         function data = makeInfoSetExportStruct(this,subName)
             %
+            if(~this.isLoaded)
+                this.load();
+            end
             data = this.myStudyInfoSet.makeExportStruct(subName);
         end
         
@@ -1333,16 +1516,65 @@ classdef FStudy < handle
         
         function idx = subjectInfoColumnName2idx(this,columnName)
             %get the index of a subject info column or check if index is valid
+            if(~this.isLoaded)
+                this.load();
+            end
             idx = this.myStudyInfoSet.subjectInfoColumnName2idx(columnName);
         end
         
         function data = getSubjectFilesData(this)
-            %
-            data = this.myStudyInfoSet.getSubjectFilesData();
+            %return a cell with subject names, their measurement and result channels
+            %data = this.myStudyInfoSet.getSubjectFilesData();
+            if(~this.isLoaded)
+                this.load();
+            end            
+            data = cell(this.nrChildren,5);
+            lastUpdate = clock;
+            tStart = clock;
+            for i = 1:this.nrChildren
+                subject = this.getChildAtPos(i);
+                if(~isempty(subject))
+                    data{i,1} = subject.name;
+                    [msChannels, rsChannels, pos, res] = this.getSubjectFilesStatus(i);
+                    %measurements
+                    %msChannels = subject.nonEmptyMeasurementChannelList;
+                    if(isempty(msChannels))
+                        data{i,2} = 'none';
+                    else
+                        str = num2str(msChannels(1));
+                        for j = 2:length(msChannels)
+                            str = sprintf('%s, %d',str,msChannels(j));
+                        end
+                        data{i,2} = str;
+                    end
+                    %results
+                    %rsChannels = subject.nonEmptyResultChannelList;
+                    if(isempty(rsChannels))
+                        data{i,3} = 'none';
+                    else
+                        str = num2str(rsChannels(1));
+                        for j = 2:length(rsChannels)
+                            str = sprintf('%s, %d',str,rsChannels(j));
+                        end
+                        data{i,3} = str;
+                    end
+                    data{i,4} = pos;
+                    data{i,5} = res;
+                end
+                if(etime(clock, lastUpdate) > 0.5)
+                    [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(this.nrChildren-i)); %mean cputime for finished runs * cycles left
+                    this.updateStudyMgrProgress(i/this.nrChildren,sprintf('Scan subjects: %0.1f%% - Time left: %dmin %.0fsec',100*i/this.nrChildren,minutes+hours*60,secs));
+                    lastUpdate = clock;
+                end
+            end
+            this.updateStudyMgrProgress(0,'');            
         end
         
         function out = getDataFromStudyInfo(this,descriptor,subName,colName)
             %get data from study info defined by descriptor
+            if(~this.isLoaded)
+                this.load();
+            end
             switch nargin
                 case 2
                     out = this.myStudyInfoSet.getDataFromStudyInfo(descriptor);
@@ -1357,11 +1589,17 @@ classdef FStudy < handle
         
         function exportStudyInfo(this,file)
             %export study info (subject info table) to excel file
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.exportStudyInfo(file);
         end
         
         function out = getAllIRFInfo(this)
             %
+            if(~this.isLoaded)
+                this.load();
+            end
             out = this.myStudyInfoSet.getAllIRFInfo();
         end
         
@@ -1387,17 +1625,26 @@ classdef FStudy < handle
         
         function [aiStr, aiParam] = getArithmeticImageDefinition(this)
             %get names and definitions of arithmetic images for a study
+            if(~this.isLoaded)
+                this.load();
+            end
             [aiStr, aiParam] = this.myStudyInfoSet.getArithmeticImageDefinition();
         end
         
         function out = getConditionColor(this,cName)
             %get color of condition
+            if(~this.isLoaded)
+                this.load();
+            end
             out = this.myStudyInfoSet.getConditionColor(cName);
         end
         
         function out = isMember(this,subjectID,chan,dType)
             %function checks combination of subject, channel and datatype
-            subject = this.getSubject(subjectID);
+            if(~this.isLoaded)
+                this.load();
+            end
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 out = false;
             elseif(isempty(chan))
@@ -1423,32 +1670,41 @@ classdef FStudy < handle
         end
         
         %% compute functions and other methods                        
-        function [cimg, lblx, lbly, cw] = makeConditionCluster(this,cName,chan,clusterID)
-            %make merged clusters for a study condition
+        function [cimg, lblx, lbly, cw] = makeConditionMVGroupObj(this,cName,chan,MVGroupID)
+            %make merged MVGroups for a study condition
+            if(~this.isLoaded)
+                this.load();
+            end
             cimg = []; lblx = []; lbly = [];
-            clusterObjs = this.getStudyObjs(cName,chan,clusterID,0,1);            
-            cMVs = this.getClusterTargets(clusterID);
+            MVGroupObjs = this.getStudyObjs(cName,chan,MVGroupID,0,1);            
+            cMVs = this.getMVGroupTargets(MVGroupID);
             if(isempty(cMVs.x) || isempty(cMVs.y))
                 return
             end
             %get reference classwidth
             [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
             cw = getHistParams(this.getStatsParams(),chan,dType{1},dTypeNr(1));            
-            %get merged clusters from subjects of condition
-            for i=1:length(clusterObjs)
+            %get merged MVGroups from subjects of condition
+            for i=1:length(MVGroupObjs)
                 %use whole image for scatter plots, ignore any ROIs
-                [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,clusterObjs{i}.getROIImage([],0,1,0),clusterObjs{i}.getCIXLbl([],0,1,0),clusterObjs{i}.getCIYLbl([],0,1,0),cw);
+                [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,MVGroupObjs{i}.getROIImage([],0,1,0),MVGroupObjs{i}.getCIXLbl([],0,1,0),MVGroupObjs{i}.getCIYLbl([],0,1,0),cw);
             end
         end
                 
-        function [cimg lblx lbly colors logColors] = makeGlobalCluster(this,chan,clusterID)
-            %make global cluster object
-            [cimg lblx lbly colors logColors] = this.myParent.makeGlobalCluster(chan,clusterID);
+        function [cimg, lblx, lbly, colors, logColors] = makeGlobalMVGroupObj(this,chan,MVGroupID)
+            %make global MVGroup object
+            if(~this.isLoaded)
+                this.load();
+            end
+            [cimg, lblx, lbly, colors, logColors] = this.myParent.makeGlobalMVGroupObj(chan,MVGroupID);
         end
         
-        function makeObjMerged(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
-            %compute and save merged subjectDS for statistics
+        function ciMerged = makeObjMerged(this,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
+            %compute and save merged subject object for statistics
             %get subjects
+            if(~this.isLoaded)
+                this.load();
+            end
             hg = this.getStudyObjs(cName,chan,dType,id,1);
             if(isempty(hg))
                 return
@@ -1459,33 +1715,33 @@ classdef FStudy < handle
                 ci = hg{i}.getROIImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
                 ciMerged = [ciMerged; ci(:);];
             end
-            %add subjectDSMerged
+            %add subject representing the merged data
             condition = this.getConditionObj(cName);
             if(isempty(condition))
                 %add condition to list
-                condition = subjectDS(this,cName);
+                condition = FDTSubject(this,[],cName);
                 this.myConditionStatistics.insertEnd(condition,cName);
             end
             condition.addObjMergeID(id,chan,dType,1,ciMerged);
         end
         
-        function [subject, subjectPos] = getSubject(this,subjectID)
-            %check if subjectID is in mySubjects and return the subject
-            subject = [];
-            subjectPos = [];
-            if(ischar(subjectID))
-                subjectPos = this.myStudyInfoSet.subName2idx(subjectID);
-            elseif(isnumeric(subjectID))
-                if(subjectID > this.mySubjects.queueLen)
-                    return
-                else
-                    subjectPos = subjectID;
-                end
-            end
-            if(~isempty(subjectPos))
-                subject = this.mySubjects.getDataByPos(subjectPos);
-            end
-        end
+%         function [subject, subjectPos] = getSubject(this,subjectID)
+%             %check if subjectID is in mySubjects and return the subject
+%             subject = [];
+%             subjectPos = [];
+%             if(ischar(subjectID))
+%                 subjectPos = this.myStudyInfoSet.subName2idx(subjectID);
+%             elseif(isnumeric(subjectID))
+%                 if(subjectID > this.nrChildren)
+%                     return
+%                 else
+%                     subjectPos = subjectID;
+%                 end
+%             end
+%             if(~isempty(subjectPos))
+%                 subject = this.mySubjects.getDataByPos(subjectPos);
+%             end
+%         end
         
         function checkStudyFiles(this)
             %check study and its corresponding files on hard disk
@@ -1493,7 +1749,7 @@ classdef FStudy < handle
             SubFiles = {curDir.name};
             for i = 3:size(SubFiles,2)
                 subDir = fullfile(this.myDir,SubFiles{i});
-                if(isdir(subDir))
+                if(isfolder(subDir))
                     idx = this.myStudyInfoSet.subName2idx(SubFiles{i});
                     if(isempty(idx))
                         %something on disk, but we don't know the subject
@@ -1506,6 +1762,9 @@ classdef FStudy < handle
         
         function checkSubjectFiles(this,subjectID)
             %check data files on disk for subject and update this.subjectFiles
+            if(~this.isLoaded)
+                this.load();
+            end
             if(isempty(subjectID))
                 %check all subjects
                 %clear all old results
@@ -1523,7 +1782,7 @@ classdef FStudy < handle
                     %we don't know this subject, try to clear it
                     this.clearSubjectFiles(subjectID)
                     return
-                elseif(~isempty(idx) && ~isdir(subDir))
+                elseif(~isempty(idx) && ~isfolder(subDir))
                     %we know the subject but there is nothing on disk
                     this.myStudyInfoSet.clearFilesList(idx);
                     this.myStudyInfoSet.clearROI(idx);
@@ -1570,7 +1829,7 @@ classdef FStudy < handle
                     this.myStudyInfoSet.clearCrossSections(idx);
                 end
                 subDir = fullfile(this.myDir,subName);
-                if(~isdir(subDir))
+                if(~isfolder(subDir))
                     return
                 end
                 [status, message, messageid] = rmdir(subDir,'s');
@@ -1580,19 +1839,22 @@ classdef FStudy < handle
         
         function checkConditionRef(this,colN)
             %
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.checkConditionRef(colN);
         end
         
         function swapColumn(this,col,n)
             %
+            if(~this.isLoaded)
+                this.load();
+            end
             this.myStudyInfoSet.swapColumn(col,n);
         end
         
         function oldStudy = updateStudyVer(this,oldStudy)
             %make old study data compatible with current version
-%             uiwait(warndlg(sprintf(...
-%                 'Study "%s" is not compatible with current FLIMVis version!\nFLIMVis will now update your study to Revision-No. %d!',...
-%                 oldStudy.name,this.revision),'Study Data incompatible!','modal'));
             oldStudy = this.myStudyInfoSet.updateStudyInfoSet(oldStudy);
         end
         

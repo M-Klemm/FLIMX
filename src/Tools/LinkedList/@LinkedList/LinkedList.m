@@ -78,7 +78,6 @@ classdef LinkedList < handle
                     newList(1:pos-1,:) = this.myList(1:pos-1,:);
                     newList(pos,:) = {data,id};
                     newList(pos+1:end,:) = this.myList(pos:end,:);
-                    %this.queue = this.queue +1;
                     this.myList = newList;
                 end
             end
@@ -94,19 +93,15 @@ classdef LinkedList < handle
                 this.insertEnd(data);
                 return
             end
-            if(this.queueLen == 0)
-                this.setIDType(id);
-            end
             newList = cell(this.queueLen+1,2);
             newList(1:pos-1,:) = this.myList(1:pos-1,:);
             newList(pos,:) = {data,pos};
             newList(pos+1:end,:) = this.myList(pos:end,:);
-            %this.queue = this.queue +1;
             this.myList = newList;
             this.updateIDs();
         end
         
-        function id = insertEnd(this, theData, id)
+        function id = insertEnd(this, data, id)
             %insert data at the end of the list
             if(nargin < 3)
                 if(this.queueLen == 0)
@@ -118,8 +113,7 @@ classdef LinkedList < handle
             if(this.queueLen == 0)
                 this.setIDType(id);
             end
-            this.myList(end+1,:) = {theData,id};
-            %this.queue = this.queue +1;
+            this.myList(end+1,:) = {data,id};
         end
         
         function [data, pos] = getDataByID(this,id)
@@ -143,18 +137,17 @@ classdef LinkedList < handle
         
         function [data, id] = getDataByPos(this,pos)
             %get data at position pos in list
-            if(isempty(pos) || pos > this.queueLen)
+            if(this.queueLen == 0 || isempty(pos) || pos < 1 || pos > this.queueLen)
                 data = [];
                 id = [];
                 return
             end
-            data = this.myList{pos,1};
-            id = this.myList{pos,2};
+            [data, id] = this.myList{pos,:};
         end
         
         function id = getIDByPos(this,pos)
             %get id of node at position pos
-            if(isempty(pos) || pos > this.queueLen)
+            if(this.queueLen == 0 || isempty(pos) || pos > this.queueLen)
                 id = [];
                 return
             end
@@ -194,9 +187,7 @@ classdef LinkedList < handle
             if(this.queueLen < 1 || this.IDisChar)
                 return %nothing to do
             end
-            for i = 1:this.queueLen
-                this.myList(i,2) = {i};
-            end
+            this.myList(:,2) = num2cell(1:this.queueLen);
         end
         
         function changeID(this,id,new)
@@ -251,6 +242,14 @@ classdef LinkedList < handle
             %remove all elements of the list
             this.myList = cell(0,2);
             %this.queue = 0;
+        end
+        
+        function out = funOnAllElements(this,fHandle)
+            %run a function on all list elements
+            out = [];
+%             if(isa(fHandle, 'function_handle'))
+                out = cellfun(fHandle,this.myList(:,1),'UniformOutput',false);
+%             end
         end
     end %methods
     

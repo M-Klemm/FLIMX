@@ -207,11 +207,6 @@ classdef FDataNormal < FData
             ROI.ROISubType = ROISubType;
             ROI.ROIInvertFlag = ROIInvertFlag;
             this.cachedImage.ROI = ROI;
-%             %Check save max memory flag
-%             if(~this.getSaveMaxMemFlag())
-%                 %no max memory saving mode
-                %save current image in FData Object
-%             end
             out = ci;
         end
  

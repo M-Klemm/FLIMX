@@ -189,6 +189,7 @@ classdef studyMgr < handle
                 curComp = viewport.getComponents;
                 this.myJTableFiles = curComp(1);
             end
+            this.fdt.setStudyMgrProgressCb(@this.plotProgressbar);
         end
         
         function out = isOpenVisWnd(this)
@@ -197,12 +198,16 @@ classdef studyMgr < handle
         end
         
         function checkVisWnd(this)
-            %
+            %check if figure is open, if not, open it, if it is open, bring it to the front            
             if(~this.isOpenVisWnd())
                 %no study manager window - open one
                 this.createVisWnd();
             end
+            this.visHandles.studyMgrFigure.Pointer = 'watch';
+            %drawnow
             this.updateGUI();
+            this.visHandles.studyMgrFigure.Pointer = 'arrow';
+            %drawnow
             figure(this.visHandles.studyMgrFigure);
         end
         
@@ -211,6 +216,8 @@ classdef studyMgr < handle
             if(~this.isOpenVisWnd())
                 return
             end
+            this.visHandles.studyMgrFigure.Pointer = 'watch';
+            drawnow
             sStr = this.allStudiesStr;
             if(isempty(sStr))
                 set(this.visHandles.popupStudySelection,'String','no studies found');
@@ -247,7 +254,7 @@ classdef studyMgr < handle
             else
                 this.visHandles.tableStudyData.RowName = cell(0,0);
             end
-            set(this.visHandles.tableFileData,'ColumnName',this.fdt.getDataFromStudyInfo(this.curStudyName,'filesHeaders'),'Data',subjectFilesData);
+            set(this.visHandles.tableFileData,'Data',subjectFilesData); %'ColumnName',this.fdt.getDataFromStudyInfo(this.curStudyName,'filesHeaders'),
             sStr = this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName());
             if(isempty(sStr))
                 set(this.visHandles.popupSubjectSelection,'String','no subjects found');
@@ -259,6 +266,8 @@ classdef studyMgr < handle
                     this.setSelectedSubjects(this.selectedSubjects);
                 end
             end
+            this.visHandles.studyMgrFigure.Pointer = 'arrow';
+            drawnow
         end
         
         function addStudy(this,sName)
@@ -362,8 +371,7 @@ classdef studyMgr < handle
                 this.fdt.copySubject(this.myClipboard{2},subName,destinationStudyName,subName);                
                 %update progress bar
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/(i-2)*(nSubjects-(i-2))); %mean cputime for finished runs * cycles left
-                this.plotProgressbar((i-2)/nSubjects,[],...
-                    sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec', 100*(i-2)/nSubjects,hours,minutes,secs));
+                this.plotProgressbar((i-2)/nSubjects,sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec', 100*(i-2)/nSubjects,hours,minutes,secs));
                 %workaround for deleting subjects in cut-mode
                 queue{end+1} = subName;
                 if(this.stop)
@@ -385,7 +393,7 @@ classdef studyMgr < handle
                 this.fdt.saveStudy(this.myClipboard{2});
             end
             this.fdt.checkConditionRef(destinationStudyName,[]);
-            this.plotProgressbar(0,'','');
+            this.plotProgressbar(0,'');
         end
         
         function importResults4Subjects(this,subjects)
@@ -409,8 +417,8 @@ classdef studyMgr < handle
                 opt.fdt = this.fdt;
                 subject = this.fdt.getSubject4Approx(this.curStudyName,subjects(i));
                 fi = [];
-                if(~isempty(subject) && ~isempty(subject.nonEmptyResultChannelList))
-                    fi = subject.getFileInfoStruct(subject.nonEmptyResultChannelList(1));
+                if(~isempty(subject) && ~isempty(subject.nonEmptyChannelList))
+                    fi = subject.getFileInfoStruct(subject.nonEmptyChannelList(1));
                 end
                 if(isempty(subject) || isempty(fi))
                     fi = measurementFile.getDefaultFileInfo();
@@ -605,7 +613,7 @@ classdef studyMgr < handle
                 end
                 %update progress bar
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(studyNames)-i)); %mean cputime for finished runs * cycles left
-                this.plotProgressbar((i-1)/(length(studyNames)),[],sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec - Importing study ''%s''. This may take a few minutes!',100*(i-1)/length(studyNames),hours,minutes,secs,newStudyNames{i}));
+                this.plotProgressbar((i-1)/(length(studyNames)),sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec - Importing study ''%s''. This may take a few minutes!',100*(i-1)/length(studyNames),hours,minutes,secs,newStudyNames{i}));
                 %check for additional files on disk
                 fn = rdir(fullfile(path,sprintf('%s~FLIMX~%s*.flimxstudy',userNames{i},studyNames{i})));
                 if(~isempty(fn))
@@ -613,7 +621,7 @@ classdef studyMgr < handle
                     this.fdt.importStudy(newStudyNames{i},{fn.name});
                 end                
             end           
-            this.plotProgressbar(0,'','');
+            this.plotProgressbar(0,'');
             this.updateGUI();
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
@@ -1120,21 +1128,21 @@ classdef studyMgr < handle
                 end
                 [pos, res] = GUI_subjectFileInfo(fi.position,fi.pixelResolution);
                 if(~isempty(pos) && (~strcmp(pos,fi.position) || abs(res-fi.pixelResolution) > eps))
-                    this.plotProgressbar(0.25,[],'25% - Updating File Info');
+                    this.plotProgressbar(0.25,'25% - Updating File Info');
                     %update subject
                     subject.updatePixelResolution(res,[]);
                     subject.updatePosition(pos,[]);
                     %                     subject.saveMatFile2Disk([]);
                     %                     this.FLIMXObj.fdt.clearSubjectCI(this.curStudyName,subNrs(i));
                     
-                    this.plotProgressbar(0.50,[],'50% - Updating File Info');
-                    chList = subject.nonEmptyResultChannelList;
+                    this.plotProgressbar(0.50,'50% - Updating File Info');
+                    chList = subject.nonEmptyChannelList;
                     for chIdx = 1:length(chList)
                         subject.updateSubjectChannel(chList(chIdx),'');
-                        this.plotProgressbar(0.50+0.5*chIdx/length(chList),[],sprintf('%2.0f%% - Updating File Info',(0.50+0.5*chIdx/length(chList))*100));
+                        this.plotProgressbar(0.50+0.5*chIdx/length(chList),sprintf('%2.0f%% - Updating File Info',(0.50+0.5*chIdx/length(chList))*100));
                     end
                 end
-                this.plotProgressbar(0,[],'');
+                this.plotProgressbar(0,'');
             end
             this.updateGUI();
             this.visObj.updateGUI('');
@@ -1199,14 +1207,14 @@ classdef studyMgr < handle
                 end
                 this.fdt.removeSubjectResult(this.curStudyName,subNrs(i));
                 if(rem(i,10)<eps)
-                    this.plotProgressbar(i/length(subNrs),[],sprintf('%2.0f%% - Deleting Subject Results',(i/length(subNrs))*100));
+                    this.plotProgressbar(i/length(subNrs),sprintf('%2.0f%% - Deleting Subject Results',(i/length(subNrs))*100));
                 end
 %                 %check if deleted result is currently loaded in fitGUI
 %                 if(strcmp(this.FLIMXObj.curFluoFile.studyName,this.curStudyName) && strcmp(this.FLIMXObj.curFluoFile.datasetName,subName))
 %                     this.FLIMXObj.curResultObj.allocResults();
 %                 end
             end
-            this.plotProgressbar(0,[],'');
+            this.plotProgressbar(0,'');
             this.updateGUI();
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
@@ -1231,10 +1239,9 @@ classdef studyMgr < handle
                 subjectID = this.fdt.getSubjectName(studies{orgStudyID},subNrs(i));
                 this.fdt.copySubjectROI(studies{orgStudyID},studies{destStudyID},subjectID)
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/(i)*(nSubjects-(i))); %mean cputime for finished runs * cycles left
-                this.plotProgressbar((i)/nSubjects,[],...
-                    sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec', 100*(i)/nSubjects,hours,minutes,secs));
+                this.plotProgressbar((i)/nSubjects,sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec', 100*(i)/nSubjects,hours,minutes,secs));
             end
-            this.plotProgressbar(0,'','');
+            this.plotProgressbar(0,'');
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
         end
@@ -1350,7 +1357,7 @@ classdef studyMgr < handle
             this.stop = true;
         end
         
-        function plotProgressbar(this,x,varargin)
+        function plotProgressbar(this,x,text)
             %update progress bar, progress x: 0..1, varargin{1}: title (currently unused), varargin{2}: text on progressbar
             x = max(0,min(100*x,100));
             if(~ishandle(this.visHandles.studyMgrFigure))
@@ -1361,7 +1368,7 @@ classdef studyMgr < handle
             if(nargin > 0)
                 % update waitbar
                 yl = ylim(this.visHandles.axesProgress);
-                set(this.visHandles.textProgress,'Position',[1,yl(2)/2,0],'String',varargin{2},'Parent',this.visHandles.axesProgress);
+                set(this.visHandles.textProgress,'Position',[1,yl(2)/2,0],'String',text,'Parent',this.visHandles.axesProgress);
             end
             drawnow;
         end
@@ -1438,6 +1445,10 @@ classdef studyMgr < handle
             if(this.isOpenVisWnd())
                 studies = get(this.visHandles.popupStudySelection,'String');
                 idx = find(strcmp(val,studies),1);
+                if(~isempty(idx) && idx == this.visHandles.popupStudySelection.Value)
+                    %target study is already selected -> nothing to do
+                    return
+                end
                 if(~isempty(idx))
                     set(this.visHandles.popupStudySelection,'Value',idx);
                 end

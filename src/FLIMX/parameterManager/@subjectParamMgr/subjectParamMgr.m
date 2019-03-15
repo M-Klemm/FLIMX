@@ -36,15 +36,16 @@ classdef subjectParamMgr < paramMgr
         volatilePixelParams = [];
         volatileChannelParams = cell(2,1);
     end
-    
+
     properties (Dependent = true)
         fluoFileObj = [];
         resultObj = [];
+        initMode = false;
     end
-    
+
     methods
         function this = subjectParamMgr(hSubject,about)
-            %constructor            
+            %constructor
             this = this@paramMgr(about);
             %check if subject has a parent (a simulated subject may have not)
             if(~isempty(hSubject.myParent))
@@ -63,7 +64,7 @@ classdef subjectParamMgr < paramMgr
             %make volatile parameters struct
             this.volatilePixelParams.nModelParamsPerCh = 0;
             this.volatilePixelParams.nApproxParamsAllCh = 0;
-            this.volatilePixelParams.nGFApproxParamsPerCh = 0;              
+            this.volatilePixelParams.nGFApproxParamsPerCh = 0;
             this.volatilePixelParams.globalFitMask = []; %mask which elements in xVec are globally fitted
             this.volatilePixelParams.compatibleGPUs = []; %list of compatible GPUs
             this.volatilePixelParams.nScatter = 0;
@@ -74,9 +75,9 @@ classdef subjectParamMgr < paramMgr
             this.volatileChannelParams{1} = cp;
             this.volatileChannelParams{2} = cp;
         end
-        
+
         %% input methods
-        
+
         %% output methods
         function out = get.fluoFileObj(this)
             %get handle to measurement
@@ -85,7 +86,7 @@ classdef subjectParamMgr < paramMgr
                 out = this.mySubject.myMeasurement;
             end
         end
-        
+
         function out = get.resultObj(this)
             %get handle to result
             out = [];
@@ -93,7 +94,23 @@ classdef subjectParamMgr < paramMgr
                 out = this.mySubject.myResult;
             end
         end
-        
+
+        function out = get.initMode(this)
+            %return init mode flag
+            out = false;
+            if(~isempty(this.mySubject))
+                out = this.mySubject.initMode;
+            end
+%             mo = this.fluoFileObj;
+%             ro = this.resultObj;
+%             if(~isempty(mo))
+%                 out = mo.initMode;
+%             end
+%             if(~isempty(ro))
+%                 out = out || ro.initMode;
+%             end
+        end
+
         function out = getVolatileChannelParams(this,ch)
             %return volatile parameters for channel ch
             out = [];
@@ -103,7 +120,7 @@ classdef subjectParamMgr < paramMgr
                 out = this.volatileChannelParams{ch};
             end
         end
-                
+
         %% compute methods
         function makeVolatileParams(this)
             %update the number of fit paramters
@@ -124,13 +141,13 @@ classdef subjectParamMgr < paramMgr
             %             end
             [this.volatilePixelParams, this.volatileChannelParams] = paramMgr.makeVolatileParams(basicParams,this.mySubject.nrSpectralChannels);
         end
-        
+
     end
-    
+
     methods(Access = protected)
-        %internal methods        
+        %internal methods
         function goOn = setSection(this,sStr,new,resetResults)
-            %single parameter struct            
+            %single parameter struct
             %update new sections
             goOn = true;
             if(strcmp('volatilePixel',sStr))
@@ -158,59 +175,61 @@ classdef subjectParamMgr < paramMgr
                 end
                 this.data.(sStr) = tmp;
                 %update other objects if necessary
-                switch sStr
-                    case 'pre_processing'
-                        %possible binning change
-                        if(~isempty(this.fluoFileObj))
-                            %check if something has changed
-                            for j = 1:length(fields)
-                                if(old.(fields{j}) ~= new.(fields{j}))
-                                    this.fluoFileObj.clearROAData();
-                                    break
+                if(~this.initMode)
+                    switch sStr
+                        case 'pre_processing'
+                            %possible binning change
+                            if(~isempty(this.fluoFileObj))
+                                %check if something has changed
+                                for j = 1:length(fields)
+                                    if(old.(fields{j}) ~= new.(fields{j}) && resetResults)
+                                        this.fluoFileObj.clearROIData();
+                                        break
+                                    end
                                 end
-                            end                            
-                        end
-                    case 'basic_fit'
-                        this.volatileChannelParams{1}.cVec = [];
-                        this.volatileChannelParams{2}.cVec = [];
-                        if(~isempty(this.fluoFileObj))
-                            this.makeVolatileParams();
-                            if(resetResults)
+                            end
+                        case 'basic_fit'
+                            this.volatileChannelParams{1}.cVec = [];
+                            this.volatileChannelParams{2}.cVec = [];
+                            if(~isempty(this.fluoFileObj))
+                                this.makeVolatileParams();
+                                if(resetResults)
+                                    for ch = 1:this.fluoFileObj.nrSpectralChannels
+                                        this.resultObj.allocResults(ch,this.mySubject.YSz,this.mySubject.XSz);
+                                    end
+                                end
+                            end
+                        case 'init_fit'
+                            if(~isempty(this.fluoFileObj) && (isfield(new,'gridSize') && new.gridSize ~= old.gridSize || isfield(new,'gridPhotons') && new.gridPhotons ~= old.gridPhotons))
+                                this.fluoFileObj.clearInitFitData();
                                 for ch = 1:this.fluoFileObj.nrSpectralChannels
                                     this.resultObj.allocResults(ch,this.fluoFileObj.getROIYSz(),this.fluoFileObj.getROIXSz());
                                 end
                             end
-                        end
-                    case 'init_fit'
-                        if(~isempty(this.fluoFileObj) && (isfield(new,'gridSize') && new.gridSize ~= old.gridSize || isfield(new,'gridPhotons') && new.gridPhotons ~= old.gridPhotons))
-                            this.fluoFileObj.clearInitData();
-                            for ch = 1:this.fluoFileObj.nrSpectralChannels
-                                this.resultObj.allocResults(ch,this.fluoFileObj.getROIYSz(),this.fluoFileObj.getROIXSz());
-                            end
-                        end
-                    case 'computation'
-                        %check GPU support
-%                         warning('off','parallel:gpu:DeviceCapability');
-%                         if(isfield(new,'useGPU') && new.useGPU && isempty(this.volatilePixelParams.compatibleGPUs) && isGpuAvailable())
-%                             GPUList = [];
-%                             for i = 1:gpuDeviceCount
-%                                 info = gpuDevice(i);
-%                                 if(info.DeviceSupported)
-%                                     GPUList = [GPUList i];
-%                                 end
-%                             end
-%                             this.volatilePixelParams.compatibleGPUs = GPUList;
-%                         elseif(isfield(new,'useGPU') && ~new.useGPU)
-%                             this.volatilePixelParams.compatibleGPUs = [];
-%                         end
-%                         warning('on','parallel:gpu:DeviceCapability');
+                        case 'computation'
+                            %check GPU support
+                            %                         warning('off','parallel:gpu:DeviceCapability');
+                            %                         if(isfield(new,'useGPU') && new.useGPU && isempty(this.volatilePixelParams.compatibleGPUs) && isGpuAvailable())
+                            %                             GPUList = [];
+                            %                             for i = 1:gpuDeviceCount
+                            %                                 info = gpuDevice(i);
+                            %                                 if(info.DeviceSupported)
+                            %                                     GPUList = [GPUList i];
+                            %                                 end
+                            %                             end
+                            %                             this.volatilePixelParams.compatibleGPUs = GPUList;
+                            %                         elseif(isfield(new,'useGPU') && ~new.useGPU)
+                            %                             this.volatilePixelParams.compatibleGPUs = [];
+                            %                         end
+                            %                         warning('on','parallel:gpu:DeviceCapability');
+                    end
                 end
             else
                 goOn = false;
                 warning('paramMgr:setSection','Parameter section %s not found in config file. The section has been ignored.',sStr);
             end
         end
-        
+
         function out = getSection(this,sStr)
             %get a section from the config file
             out = [];
@@ -226,6 +245,6 @@ classdef subjectParamMgr < paramMgr
                 out = getSection@paramMgr(this,sStr);
             end
         end
-        
+
     end
 end
