@@ -554,11 +554,13 @@ classdef resultFile < handle
                     return
                 end
             end
+            str = pStr(isstrprop(pStr, 'alpha'));
+            nr = str2double(pStr(isstrprop(pStr, 'digit')));
             if(isfield(this.results.init{ch,1},pStr))
                 out = this.results.init{ch,1}.(pStr);
-            elseif(strcmp(pStr,'AmplitudePercent'))
+            elseif(strcmp(str,'AmplitudePercent'))
                 %make amplitude in percent
-                nr = str2double(pStr(17:end));
+                %nr = str2double(pStr(17:end));
                 if(isnan(nr))
                     out = [];
                     return
@@ -573,9 +575,9 @@ classdef resultFile < handle
                 end
                 out(isnan(out)) = 0;
                 out = 100*out./sum(tmp,3);
-            elseif(strcmp(pStr,'Q'))
+            elseif(strcmp(str,'Q'))
                 %make Q
-                nr = str2double(pStr(2:end));
+                %nr = str2double(pStr(2:end));
                 if(isnan(nr))
                     out = [];
                     return
@@ -594,17 +596,18 @@ classdef resultFile < handle
             elseif(strcmp(pStr,'TauMean'))
                 %make mean of taus
                 %Tm= a1*T1+a2*T2+a3*T3/(a1+a2+a3)
-                amp = this.getInitFLIMItem(ch,'Amplitude1');
+                amp = this.getPixelFLIMItem(ch,'Amplitude1');
                 tmp = zeros(size(amp));
                 out = zeros(size(amp));
-                for i = 1:this.basicParams.nExp
+                expMask = find(~this.basicParams.tciMask);
+                for i = expMask
                     amp = this.getInitFLIMItem(ch,sprintf('Amplitude%d',i));
                     tmp = tmp + amp .* this.getInitFLIMItem(ch,sprintf('Tau%d',i));
                     out = out + amp;
                 end
                 out = tmp./out;
                 out(isnan(out)) = 0;
-            elseif(strcmp(pStr,'TauMean'))
+            elseif(strcmp(pStr,'TauMeanIS'))
                 %make mean of taus
                 %Tm= a1*T1+a2*T2+a3*T3/(a1+a2+a3)
                 amp = this.getInitFLIMItem(ch,'Amplitude1');
@@ -656,11 +659,13 @@ classdef resultFile < handle
                     return
                 end
             end
+            str = pStr(isstrprop(pStr, 'alpha'));
+            nr = str2double(pStr(isstrprop(pStr, 'digit')));
             if(isfield(this.results.pixel{ch,1},pStr))
                 out = this.results.pixel{ch,1}.(pStr);
-            elseif(strcmp(pStr,'AmplitudePercent'))
+            elseif(strcmp(str,'AmplitudePercent'))
                 %make amplitude in percent
-                nr = str2double(pStr(17:end));
+                %nr = str2double(pStr(17:end));
                 if(isnan(nr) || nr > this.basicParams.nExp)
                     out = [];
                     return
@@ -675,9 +680,9 @@ classdef resultFile < handle
                 end
                 out(isnan(out)) = 0;
                 out = 100*out./sum(abs(tmp),3);
-            elseif(strcmp(pStr,'Q'))
+            elseif(strcmp(str,'Q'))
                 %make Q
-                nr = str2double(pStr(2:end));
+                %nr = str2double(pStr(2:end));
                 if(isnan(nr) || nr > this.basicParams.nExp)
                     out = [];
                     return
