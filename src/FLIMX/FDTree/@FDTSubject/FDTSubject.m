@@ -1312,7 +1312,7 @@ classdef FDTSubject < subject4Approx
                         out = zeros(size(dataA),'like',dataA);
                         out(idxB & idx) = dataB(idxB & idx);
                         out(idxA & idx) = dataA(idxA & idx);
-                    otherwise %+,-,*,/,>,<,>=,<=,==
+                    otherwise %+,-,*,/,>,<,>=,<=,==,~=
                         eval(sprintf('out = (dataA %s dataB);',op));
                         idx = true(size(out));
                 end

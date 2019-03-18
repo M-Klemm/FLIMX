@@ -2221,8 +2221,12 @@ classdef studyIS < handle
                     neg = '';
                     opWeight = 1;
                 case {'+','-','.*','./'}
-                     op = str;
-                     opWeight = 2;
+                    op = str;
+                    opWeight = 2;
+                case '!='
+                    op = '~=';
+                    neg = '';
+                    opWeight = 3;
                 otherwise % <,<=,>,>=,==
                     op = str;
                     opWeight = 3;
