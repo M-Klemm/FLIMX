@@ -945,9 +945,10 @@ classdef resultFile < handle
             %save result channel to disk
             if(isempty(ch))
                 %save all channels
-                for ch = this.nonEmptyChannelList
-                    this.exportMatFile(ch,'');
-                    this.filesOnHDD(ch,1) = true;
+                chList = this.nonEmptyChannelList;
+                for ch = 1:length(chList)
+                    this.exportMatFile(chList(ch),'');
+                    this.filesOnHDD(chList(ch),1) = true;
                 end
             else
                 this.exportMatFile(ch,'');

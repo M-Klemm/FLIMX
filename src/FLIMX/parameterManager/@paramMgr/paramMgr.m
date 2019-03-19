@@ -46,6 +46,7 @@ classdef paramMgr < handle
         pixelFitParams = [];
         boundsParams = [];
         optimizationParams = [];
+        roiParams = [];
     end
     
     methods
@@ -142,6 +143,11 @@ classdef paramMgr < handle
             params = this.getParamSection('bounds');
         end
         
+        function params = get.roiParams(this)
+            %get roi info
+            params = this.getParamSection('region_of_interest');
+        end
+        
         function set.generalParams(this,val)
             %set general parameters
             this.setParamSection('general',val);
@@ -186,7 +192,11 @@ classdef paramMgr < handle
             %set bounds
             this.setParamSection('bounds',val);
         end
-                
+        
+        function set.roiParams(this,val)
+            %set roi info
+            this.setParamSection('region_of_interest',val);
+        end        
         function def = getDefaults(this)
             %get default FluoDecayFit parameters
             def.about.config_revision = this.about.config_revision;
@@ -529,8 +539,7 @@ classdef paramMgr < handle
             def.flimvis_gui.ETDRS_subfield_values   =   'none';
             def.flimvis_gui.ETDRS_subfield_bg_enable=   1;
             def.flimvis_gui.ETDRS_subfield_bg_color =   [0.3 0.3 0.3 0.33];
-            
-            
+                        
             def.statistics.amp1_lb        	=	[1 1];
             def.statistics.amp1_lim       	=	[0 0];
             def.statistics.amp1_ub        	=	[1000 1000];
@@ -625,6 +634,9 @@ classdef paramMgr < handle
             def.filtering.ifilter     	=	1;
             def.filtering.ifilter_size	=	3;
             def.filtering.ifilter_type	=	2;
+            
+            def.region_of_interest.vicinityDistance     =   1;
+            def.region_of_interest.vicinityDiameter     =   3;
             
             def.general.openFitGUIonStartup     = 1;
             def.general.openVisGUIonStartup     = 1;

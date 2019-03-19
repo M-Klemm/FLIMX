@@ -115,14 +115,14 @@ classdef FDTree < FDTreeNode
             while(sum(this.LRUTableInfo(:,3)) > threshold)
                 %for i = 1:size(this.LRUTableObjs,1)-1
                 %find oldest entry
-                [~, id] = min([this.LRUTableObjs{:,2}]);
+                [~, id] = min([this.LRUTableInfo(:,2)]);
                 obj = this.LRUTableObjs{id,1};
                 if(obj.isDirty)
                     obj.saveMatFile2Disk([]);
                 end
                 obj.clearCacheMemory(); %free RAM
                 this.LRUTableObjs(id) = []; %remove obj from table
-                this.LRUTableInfo(id,1:3) = []; %remove objs info from table
+                this.LRUTableInfo(id,:) = []; %remove objs info from table
                 if(size(this.LRUTableInfo,1) == 1)
                     %keep at least one entry (the just added obj)
                     break
@@ -787,12 +787,12 @@ classdef FDTree < FDTreeNode
             out = study.getSubject4Import(subjectID);
         end
         
-%         function out = getGlobalObjMerged(this,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
+%         function out = getGlobalObjMerged(this,chan,dType,id,ROIType,ROISubType,ROIVicinity)
 %             %get merged subjectDS of all studies
 %             out = this.myConditionsMerged.getFDataObj(chan,dType,id,1);
 %             if(isempty(out))
 %                 %try to merge subjects
-%                 this.makeGlobalObjMerged(chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
+%                 this.makeGlobalObjMerged(chan,dType,id,ROIType,ROISubType,ROIVicinity);
 %                 out = this.myConditionsMerged.getFDataObj(chan,dType,id,1);
 %             end
 %         end
@@ -819,11 +819,11 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function out = getStudyObjMerged(this,studyID,cName,chan,dType,id,sType,ROIType,ROISubType,ROIInvertFlag)
+        function out = getStudyObjMerged(this,studyID,cName,chan,dType,id,sType,ROIType,ROISubType,ROIVicinity)
             %get merged subjectDS of a certain study
             study = this.getChild(studyID);
             if(~isempty(study))
-                out = study.getFDataMergedObj(cName,chan,dType,id,sType,ROIType,ROISubType,ROIInvertFlag);
+                out = study.getFDataMergedObj(cName,chan,dType,id,sType,ROIType,ROISubType,ROIVicinity);
             else
                 out = [];
             end
@@ -1024,6 +1024,11 @@ classdef FDTree < FDTreeNode
                 out = [];
             end
         end
+        
+        function out = getVicinityInfo(this)
+            %get vicinity info
+            out = this.FLIMXParamMgrObj.roiParams;
+        end
                 
         function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
@@ -1047,35 +1052,35 @@ classdef FDTree < FDTreeNode
 %             end
 %         end
         
-        function [centers, histMerge, histTable, colDescription] = getStudyHistogram(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
+        function [centers, histMerge, histTable, colDescription] = getStudyHistogram(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIVicinity)
             %combine all histograms of study studyID, channel chan, datatype dType and 'running number' id into a single table
             study = this.getChild(studyID);
             if(~isempty(study))
                 if(nargout == 2)
-                    [centers, histMerge] = study.getStudyHistogram(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
+                    [centers, histMerge] = study.getStudyHistogram(cName,chan,dType,id,ROIType,ROISubType,ROIVicinity);
                 else
-                    [centers, histMerge, histTable, colDescription] = study.getStudyHistogram(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
+                    [centers, histMerge, histTable, colDescription] = study.getStudyHistogram(cName,chan,dType,id,ROIType,ROISubType,ROIVicinity);
                 end
             else
                 centers = []; histTable = []; histMerge = []; colDescription = cell(0,0);
             end
         end
         
-        function [stats, statsDesc, subjectDesc] = getStudyStatistics(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,strictFlag)
+        function [stats, statsDesc, subjectDesc] = getStudyStatistics(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIVicinity,strictFlag)
             %get statistics for all subjects in study studyID, Condition cName and channel chan of datatype dType with 'running number' id
             study = this.getChild(studyID);
             if(~isempty(study))
-                [stats, statsDesc, subjectDesc] = study.getStudyStatistics(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,strictFlag);
+                [stats, statsDesc, subjectDesc] = study.getStudyStatistics(cName,chan,dType,id,ROIType,ROISubType,ROIVicinity,strictFlag);
             else
                 stats = []; statsDesc = []; subjectDesc = [];
             end
         end
         
-        function data = getStudyPayload(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,dataProc)
+        function data = getStudyPayload(this,studyID,cName,chan,dType,id,ROIType,ROISubType,ROIVicinity,dataProc)
             %get merged payload from all subjects of study studyID, channel chan, datatype dType and 'running number' within a study for a certain ROI
             study = this.getChild(studyID);
             if(~isempty(study))
-                data = study.getStudyPayload(cName,chan,dType,id,ROIType,ROISubType,ROIInvertFlag,dataProc);
+                data = study.getStudyPayload(cName,chan,dType,id,ROIType,ROISubType,ROIVicinity,dataProc);
             else
                 data = [];
             end            
@@ -1386,7 +1391,7 @@ classdef FDTree < FDTreeNode
         end
         
         %% compute functions                
-%         function makeGlobalObjMerged(this,chan,dType,id,ROIType,ROISubType,ROIInvertFlag)
+%         function makeGlobalObjMerged(this,chan,dType,id,ROIType,ROISubType,ROIVicinity)
 %             %make global merged FData object
 %             ciMerged = [];
 %             for i=1:this.nrChildren
@@ -1396,7 +1401,7 @@ classdef FDTree < FDTreeNode
 %                 if(isempty(study))
 %                     continue
 %                 end
-%                 ciMergedStudy = study.makeObjMerged(FDTree.defaultConditionName(),chan,dType,id,ROIType,ROISubType,ROIInvertFlag);
+%                 ciMergedStudy = study.makeObjMerged(FDTree.defaultConditionName(),chan,dType,id,ROIType,ROISubType,ROIVicinity);
 % %                 for j=1:length(hg)
 % %                     ci = hg{j}.getROIImage(); %[],0,1,0
 %                     ciMerged = [ciMerged; ciMergedStudy(:);];

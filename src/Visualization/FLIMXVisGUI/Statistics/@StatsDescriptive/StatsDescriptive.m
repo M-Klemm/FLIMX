@@ -67,7 +67,7 @@ classdef StatsDescriptive < handle
         currentSheetName = '';
         ROIType = 1;
         ROISubType = 1;
-        ROIInvertFlag = 0;
+        ROIVicinityFlag = 0;
         alpha = 5;
     end
     
@@ -88,6 +88,7 @@ classdef StatsDescriptive < handle
             set(this.visHandles.popupSelFLIMParam,'Callback',@this.GUI_SelFLIMParamPop_Callback);
             set(this.visHandles.popupSelROIType,'Callback',@this.GUI_SelROITypePop_Callback);
             set(this.visHandles.popupSelROISubType,'Callback',@this.GUI_SelROITypePop_Callback);
+            set(this.visHandles.popupSelROIVicinity,'Callback',@this.GUI_SelROITypePop_Callback);
             set(this.visHandles.popupSelStatParam,'Callback',@this.GUI_SelStatParamPop_Callback);
             %export
             set(this.visHandles.buttonExportExcel,'Callback',@this.GUI_buttonExcelExport_Callback);
@@ -381,7 +382,7 @@ classdef StatsDescriptive < handle
                                 for s = 1:length(subjects)
                                     fdt = this.visObj.fdt.getFDataObj(this.study,subjects{s},this.ch,this.dType,this.id,1);
                                     rc = fdt.getROICoordinates(this.ROIType);
-                                    data = fdt.getROIImage(rc,this.ROIType,this.ROISubType,this.ROIInvertFlag);
+                                    data = fdt.getROIImage(rc,this.ROIType,this.ROISubType,this.ROIVicinityFlag);
                                     if(this.ROIType == 1)
                                         txt = {'C','IS','IN','II','IT','OS','ON','OI','OT','IR','OR','FC'}';
                                         rStr = txt{this.ROISubType};
@@ -459,6 +460,10 @@ classdef StatsDescriptive < handle
                 flag = 'on';
             end
             set(this.visHandles.popupSelROISubType,'Visible',flag);
+            if(this.ROIType > 1)
+                flag = 'on';
+            end
+            set(this.visHandles.popupSelROIVicinity,'Visible',flag);
             %params
             oldPStr = get(this.visHandles.popupSelFLIMParam,'String');
             if(iscell(oldPStr))
@@ -512,7 +517,7 @@ classdef StatsDescriptive < handle
                 
         function makeStats(this)
             %collect stats info from FDTree
-            [this.subjectStats, this.statsDesc, this.subjectDesc] = this.visObj.fdt.getStudyStatistics(this.study,this.condition,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,true);
+            [this.subjectStats, this.statsDesc, this.subjectDesc] = this.visObj.fdt.getStudyStatistics(this.study,this.condition,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag,true);
             [this.statHist, this.statCenters] = this.makeHistogram(this.statPos);
             [this.normDistTests, this.normDistTestsLegend]= this.makeNormalDistributionTests(this.statPos);
         end
@@ -735,8 +740,8 @@ classdef StatsDescriptive < handle
             out = get(this.visHandles.popupSelROISubType,'Value');
         end
         
-        function out = get.ROIInvertFlag(this)
-            out = 0; %get(this.visHandles.popupSelROISubType,'Value');
+        function out = get.ROIVicinityFlag(this)
+            out = get(this.visHandles.popupSelROIVicinity,'Value');
         end
         
         function out = get.alpha(this)
@@ -774,6 +779,7 @@ classdef StatsDescriptive < handle
             this.visHandles.checkExportSubjectData.Enable = flag;
             this.visHandles.popupSelROIType.Enable = flag;
             this.visHandles.popupSelROISubType.Enable = flag;
+            this.visHandles.popupSelROIVicinity.Enable = flag;
             this.visHandles.popupSelStatParam.Enable = flag;
             this.visHandles.editClassWidth.Enable = flag;
             this.visHandles.editAlpha.Enable = flag;

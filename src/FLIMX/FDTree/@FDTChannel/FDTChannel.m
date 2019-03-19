@@ -262,6 +262,11 @@ classdef FDTChannel < FDTreeNode
             out = this.myParent.getFileInfoStruct(this.getMyPositionInParent());
         end
         
+        function out = getVicinityInfo(this)
+            %get vicinity info
+            out = this.myParent.getVicinityInfo();
+        end
+        
         function out = getMySubjectName(this)
             %return the current subject name
             out = this.myParent.name;
@@ -370,13 +375,13 @@ classdef FDTChannel < FDTreeNode
                 if(isempty(hfd))
                     return
                 end
-                ci = hfd.getROIImage(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIInvertFlag);
+                ci = hfd.getROIImage(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
 %                 if(hfd.checkClasswidth(ci))
 %                     return
 %                 end
                 temp(1,:) = ci(~isnan(ci(:)));
-                CImaxs(1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIInvertFlag);
-                CImins(1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIInvertFlag);
+                CImaxs(1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
+                CImins(1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
                 %get reference classwidth
                 cw = getHistParams(this.getStatsParams(),this.getMyPositionInParent(),dType{1},dTypeNr(1));
             end
@@ -388,13 +393,13 @@ classdef FDTChannel < FDTreeNode
                     if(isempty(hfd))
                         return
                     end
-                    ci = hfd.getROIImage(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIInvertFlag);
+                    ci = hfd.getROIImage(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
 %                     if(hfd.checkClasswidth(ci))
 %                         return
 %                     end
                     temp(yTargets+1,:) = ci(~isnan(ci(:)));
-                    CImaxs(yTargets+1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIInvertFlag);
-                    CImins(yTargets+1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIInvertFlag);
+                    CImaxs(yTargets+1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
+                    CImins(yTargets+1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
                 end
                 %define reference (i.e. x axis)
                 ref = reshape(temp(1,:,:),1,[])';

@@ -397,8 +397,13 @@ classdef result4Approx < resultFile
                 end
                 return
             end
-            fn = fieldnames(resultStruct);            
-            tmp = this.getPixelResult(ch); 
+            fn = fieldnames(resultStruct);
+            if(length(this.results.pixel) >= ch && ~isempty(this.results.pixel{ch,1}))
+                tmp = this.results.pixel{ch,1};
+            else
+                this.allocPixelResult(ch);
+                tmp = this.results.pixel{ch,1};
+            end
             %add only new results
             if(any(strcmpi(fn,'chi2')) && tmp.chi2(row,col) > 0 && tmp.chi2(row,col) < resultStruct.chi2)
                 return
@@ -578,7 +583,16 @@ classdef result4Approx < resultFile
                 %dimension mismatch -> post error message
                 return
             end
-            tmp = this.getInitResult(ch);
+            if(length(this.results.init) >= ch && ~isempty(this.results.init{ch,1}))
+                tmp = this.results.init{ch,1};
+            else
+                this.allocInitResult(ch);
+                tmp = this.results.init{ch,1};
+            end
+%             if(isempty(tmp))
+%                 %should not happen
+%                 tmp = this.makeResultStructs(this.initFitParams.gridSize,this.initFitParams.gridSize);
+%             end
             newIdx = 1:size(indices,1);
             if(any(strcmpi(fn,'chi2')))
                 for i = size(indices,1) : -1 : 1

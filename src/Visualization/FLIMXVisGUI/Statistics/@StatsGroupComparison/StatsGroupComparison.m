@@ -68,7 +68,7 @@ classdef StatsGroupComparison < handle
         HistSumScale = 1;
         ROIType = 1;
         ROISubType = 1;
-        ROIInvertFlag = 0;
+        ROIVicinityFlag = 0;
     end
     
     methods
@@ -445,6 +445,10 @@ classdef StatsGroupComparison < handle
                 flag = 'on';
             end
             set(this.visHandles.popupSelROISubType,'Visible',flag);
+            if(this.ROIType > 1)
+                flag = 'on';
+            end
+            set(this.visHandles.popupSelROIVicinity,'Visible',flag);
             %params
             if(isempty(coStr))
                 set(this.visHandles.popupSelParam,'String','FLIM param','Value',1);
@@ -495,20 +499,6 @@ classdef StatsGroupComparison < handle
             set(this.visHandles.buttonMostSigClassColor,'Enable',enFlag,'Visible',holmVisFlag);
             set(this.visHandles.textMostSigClassColor,'Enable',enFlag,'Visible',holmVisFlag);            
             set(this.visHandles.menuSSRocTable,'Visible',holmVisFlag);
-        end
-        
-        function updateGUI(this)
-            %update tables and axes            
-            try
-                set(this.visHandles.buttonUpdateGUI,'String',sprintf('<html><img src="file:/%s"/> Update</html>',FLIMX.getAnimationPath()));
-                drawnow;
-            end
-            tData = this.getCurrentTableData();
-            this.clearPlots();
-            if(isempty(tData))
-                set(this.visHandles.buttonUpdateGUI,'String','Update');
-                return
-            end
             if(get(this.visHandles.popupDispStudy,'Value') == 1)
                 %pathology group
                 backColor = this.settings.colorPath;
@@ -521,6 +511,21 @@ classdef StatsGroupComparison < handle
                 textColor = [0 0 0];
             end
             set(this.visHandles.popupDispStudy,'Backgroundcolor',backColor,'ForegroundColor',textColor);
+        end
+        
+        function updateGUI(this)
+            %update tables and axes            
+            try
+                set(this.visHandles.buttonUpdateGUI,'String',sprintf('<html><img src="file:/%s"/> Update</html>',FLIMX.getAnimationPath()));
+                drawnow;
+            end
+            tData = this.getCurrentTableData();
+            this.clearPlots();           
+            
+            if(isempty(tData))
+                set(this.visHandles.buttonUpdateGUI,'String','Update');
+                return
+            end
             cEdit = true(1,size(tData,2));
             if(length(cEdit) > 10000)
                 button = questdlg(sprintf('%d classes have been computed. This will consume a lot of RAM and the GUI will be very slow! Please increase class width.\n\nContinue?',length(cEdit)),'Too many classes','Yes','No','No');
@@ -808,7 +813,7 @@ classdef StatsGroupComparison < handle
                 rocdata(1:size(patients,1),1) = patients(:,histClass);
                 rocdata(1:size(patients,1),2) = ones(size(patients,1),1);
                 rocdata(size(patients,1)+1:end,1) = healthy(:,histClass);
-                stats = this.visObj.fdt.getStudyStatistics(this.study1,this.condition1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,false);
+                stats = this.visObj.fdt.getStudyStatistics(this.study1,this.condition1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag,false);
                 %we simply use the ROI size of the last subject, which might be wrong, as subjects are not checked to have identical ROI sizes yet
                 %also, it is quite expensive to calculate the study statistics only to get the ROI size
                 this.rocData = roc(rocdata,[],[],false,stats(1,end));
@@ -820,12 +825,14 @@ classdef StatsGroupComparison < handle
             h = 0; p = []; ci = []; stats = [];
             str = get(this.visHandles.popupExtAnalysis,'String');
             str = str{get(this.visHandles.popupExtAnalysis,'Value')};
-            if(isempty(this.grpData))                
-                this.grpData{1} = this.visObj.fdt.getStudyPayload(this.study1,this.condition1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,str);
-                this.grpData{2} = this.visObj.fdt.getStudyPayload(this.study2,this.condition2,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag,str);
+            if(isempty(this.grpData))
+                this.grpData{1} = this.visObj.fdt.getStudyPayload(this.study1,this.condition1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag,str);
+                this.grpData{2} = this.visObj.fdt.getStudyPayload(this.study2,this.condition2,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag,str);
             end
             dataP = this.grpData{1};
             dataC = this.grpData{2};
+            dataP(isnan(dataP)) = [];
+            dataC(isnan(dataC)) = [];
             if(~isempty(dataP) && ~isempty(dataC))
                 switch get(this.visHandles.popupTestSel,'Value')
                     case 1 %One-sample paired t-test
@@ -843,11 +850,15 @@ classdef StatsGroupComparison < handle
                         end
                         [p,h,stats] = signrank(dataP,dataC,'Alpha',this.alpha);
                         ci = [];
-                    case 4 %Wilcoxon rank sum test  
+                    case 4 %Wilcoxon rank sum test
                         [p,h,stats] = ranksum(dataP,dataC,'Alpha',this.alpha);
                         ci = [];
-                end                
-            end            
+                end
+            end
+            if(isnan(h))
+                h = 0;
+                p = 1;
+            end
         end
         
         function makePValues(this)
@@ -888,11 +899,11 @@ classdef StatsGroupComparison < handle
         function makeHistTables(this)
             %make histogram tables
             %first get the centers for all groups
-            centers = unique([this.visObj.fdt.getStudyHistogram(this.study1,this.condition1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag)...
-                this.visObj.fdt.getStudyHistogram(this.study2,this.condition2,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag)]);
+            centers = unique([this.visObj.fdt.getStudyHistogram(this.study1,this.condition1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag)...
+                this.visObj.fdt.getStudyHistogram(this.study2,this.condition2,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag)]);
             %now insert each histogram table at the correct position
             for j = 1:2
-                [grpCenters, histMerge, histTable, colDescr] = this.visObj.fdt.getStudyHistogram(eval(sprintf('this.study%d',j)),eval(sprintf('this.condition%d',j)),this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIInvertFlag);
+                [grpCenters, histMerge, histTable, colDescr] = this.visObj.fdt.getStudyHistogram(eval(sprintf('this.study%d',j)),eval(sprintf('this.condition%d',j)),this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag);
                 if(~isempty(grpCenters))
                     tab = zeros(length(colDescr),length(centers)); %subjects x classes
                     start = find(centers == grpCenters(1));
@@ -1219,8 +1230,8 @@ classdef StatsGroupComparison < handle
             out = get(this.visHandles.popupSelROISubType,'Value');
         end
         
-        function out = get.ROIInvertFlag(this)
-            out = 0;%get(this.visHandles.popupSelROISubType,'Value');
+        function out = get.ROIVicinityFlag(this)
+            out = get(this.visHandles.popupSelROIVicinity,'Value');
         end
         
     end %methods

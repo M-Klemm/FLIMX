@@ -93,7 +93,7 @@ classdef FData < handle
             ci.ROI.ROICoordinates = zeros(2,2,'int16');
             ci.ROI.ROIType = 0;
             ci.ROI.ROISubType = 0;
-            ci.ROI.ROIInvertFlag = 0;
+            ci.ROI.ROIVicinity = 0;
             ci.data = [];
             ci.colors = [];
             ci.info.ZMin = [];
@@ -298,6 +298,11 @@ classdef FData < handle
             out = this.myParent.getFileInfoStruct();
         end
         
+        function out = getVicinityInfo(this)
+            %get vicinity info
+            out = this.myParent.getVicinityInfo();
+        end
+        
         function out = getFullImage(this)
             %get raw image with respect to linear/log scaling
             out = this.rawImage;
@@ -348,62 +353,62 @@ classdef FData < handle
             out = this.cachedImage.ROI.ROISubType;
         end
         
-        function [ROICoordinates, ROIType, ROISubType, ROIInvertFlag] = getCachedImageROIInfo(this)
+        function [ROICoordinates, ROIType, ROISubType, ROIVicinity] = getCachedImageROIInfo(this)
             %get ROI info of cached image
             ROI = this.cachedImage.ROI;
             ROICoordinates = ROI.ROICoordinates;
             ROIType = ROI.ROIType;
             ROISubType = ROI.ROISubType;
-            ROIInvertFlag = ROI.ROIInvertFlag;
+            ROIVicinity = ROI.ROIVicinity;
         end
         
-        function out = getROIImage(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getROIImage(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get cached image
             %use whole image if we don't get ROI coordinates
             if(isempty(ROICoordinates))
                 ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
             end
-            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
+            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
                 %we've got this image segment already
-                this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+                this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
             end
             out = this.cachedImage.data;
         end
         
-        function out = getCIColor(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getCIColor(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get current image colors
-            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag) || isempty(this.cachedImage.colors) && ~isempty(this.color_data))
+            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity) || isempty(this.cachedImage.colors) && ~isempty(this.color_data))
                 %update only if we have color data
-                this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+                this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
             end
             out = this.cachedImage.colors;
         end
         
-        function out = getCImin(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getCImin(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get minimum of current image
             if(ROIType == 0)
                 out = this.rawImgZSz(1);
             else
-                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
-                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
+                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
                 end
                 out = this.cachedImage.info.ZMin;
             end
         end
         
-        function out = getCImax(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getCImax(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get maximum of current image
             if(ROIType == 0)
                 out = this.rawImgZSz(2);
             else
-                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
-                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
+                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
                 end
                 out = this.cachedImage.info.ZMax;
             end
         end
         
-        function out = getCIminLbl(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getCIminLbl(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get label for minimum of current image
             if(ROIType == 0)
                 zVec = this.getZScaling();
@@ -413,14 +418,14 @@ classdef FData < handle
                     out = this.makeZlbls(this.rawImgZSz(1),this.rawImgZSz(2));
                 end
             else
-                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
-                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
+                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
                 end
                 out = this.cachedImage.info.ZLblMin;
             end
         end
         
-        function out = getCImaxLbl(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getCImaxLbl(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get label for maximum of current image
             if(ROIType == 0)
                 zVec = this.getZScaling();
@@ -430,8 +435,8 @@ classdef FData < handle
                     [~,out] = this.makeZlbls(this.rawImgZSz(1),this.rawImgZSz(2));
                 end
             else
-                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
-                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
+                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
                 end
                 out = this.cachedImage.info.ZLblMax;
             end
@@ -449,22 +454,22 @@ classdef FData < handle
             end            
         end
         
-        function out = ROIIsCached(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = ROIIsCached(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %check if this ROI is in my cache
             out = false;
             if(isempty(ROICoordinates))
                 return
             end            
-            [cROICoordinates, cROIType, cROISubType, cROIInvertFlag] = this.getCachedImageROIInfo();
+            [cROICoordinates, cROIType, cROISubType, cROIVicinity] = this.getCachedImageROIInfo();
             if(isempty(cROICoordinates))
                 return
             end  
-            if(all(size(cROICoordinates) == size(ROICoordinates)) && all(cROICoordinates(:) == ROICoordinates(:)) && cROIType == ROIType && cROISubType == ROISubType && cROIInvertFlag == ROIInvertFlag && ~isempty(this.cachedImage.data))
+            if(all(size(cROICoordinates) == size(ROICoordinates)) && all(cROICoordinates(:) == ROICoordinates(:)) && cROIType == ROIType && cROISubType == ROISubType && cROIVicinity == ROIVicinity && ~isempty(this.cachedImage.data))
                 out = true;
             end
         end
         
-        function out = getCIXLbl(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getCIXLbl(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get x labels for current image
             if(isempty(this.rawImgXSz))
                 out = [];
@@ -479,8 +484,8 @@ classdef FData < handle
                 XLblStart = [];
                 XLblTick = this.getDefaultXLblTick();
             else
-                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
-                   this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag); 
+                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
+                   this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity); 
                 end
                 XSz = this.cachedImage.info.XSz;
                 XLblStart = this.cachedImage.info.XLblStart;
@@ -537,7 +542,7 @@ classdef FData < handle
             end
         end
         
-        function out = getCIYLbl(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getCIYLbl(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get x labels for current image
             if(isempty(this.rawImgYSz))
                 out = [];
@@ -552,8 +557,8 @@ classdef FData < handle
                 YLblStart = [];
                 YLblTick = this.getDefaultYLblTick();
             else
-                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
-                   this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag); 
+                if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
+                   this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity); 
                 end
                 YSz = this.cachedImage.info.YSz;
                 YLblStart = this.cachedImage.info.YLblStart;
@@ -606,48 +611,48 @@ classdef FData < handle
             %dummy - no functioniality
         end
         
-        function out = getCIxSz(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getCIxSz(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get size in x of current image
-            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
-                this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
+                this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
             end
             out = this.cachedImage.info.XSz;
         end
         
-        function out = getCIySz(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getCIySz(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get size in y of current image
-            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
-                   this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag); 
+            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
+                   this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity); 
             end
             out = this.cachedImage.info.YSz;
         end
         
-        function [hist,centers] = getCIHist(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function [hist,centers] = getCIHist(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get histogram of current image
-            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag))
+            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
                 this.clearCachedImage();
-                this.updateCIStats(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+                this.updateCIStats(ROICoordinates,ROIType,ROISubType,ROIVicinity);
             elseif(this.isEmptyStat)               
-                this.updateCIStats(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+                this.updateCIStats(ROICoordinates,ROIType,ROISubType,ROIVicinity);
             end
             hist = this.cachedImage.statistics.histogram;
             centers = this.cachedImage.statistics.histogramCenters;
         end
         
-        function [hist,centers] = getCIHistStrict(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function [hist,centers] = getCIHistStrict(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get histogram of current image using strict rules            
-            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag) || isempty(this.cachedImage.statistics.histogramStrict))
-                [~, this.cachedImage.statistics.histogramStrict, this.cachedImage.statistics.histogramStrictCenters] = this.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIInvertFlag,true);
+            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity) || isempty(this.cachedImage.statistics.histogramStrict))
+                [~, this.cachedImage.statistics.histogramStrict, this.cachedImage.statistics.histogramStrictCenters] = this.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
             end
             hist = this.cachedImage.statistics.histogramStrict;
             centers = this.cachedImage.statistics.histogramStrictCenters;
         end
                 
-        function out = getROIStatistics(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getROIStatistics(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get statistcs of current image
             %check 
-            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag) || this.isEmptyStat)
-                this.updateCIStats(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity) || this.isEmptyStat)
+                this.updateCIStats(ROICoordinates,ROIType,ROISubType,ROIVicinity);
             end
             out = this.cachedImage.statistics.descriptive;
         end
@@ -697,7 +702,7 @@ classdef FData < handle
             ri = this.getFullImage();
             out = zeros(9,1);
             for i = 1:9
-                ci = this.getImgSeg(ri,ROICoord,ROIType,i,0,this.getFileInfoStruct()); %ROICoord,ROIType,ROISubType,ROIInvertFlag,fileInfo
+                ci = this.getImgSeg(ri,ROICoord,ROIType,i,0,this.getFileInfoStruct(),this.getVicinityInfo());
                 ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
                 cim = FData.getNonInfMinMax(1,ci);
                 %set possible "-inf" in curImg to "cim"
@@ -722,10 +727,10 @@ classdef FData < handle
             end
         end
         
-        function [stats, histogram, histCenters] = makeStatistics(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag,strictFlag)
+        function [stats, histogram, histCenters] = makeStatistics(this,ROICoordinates,ROIType,ROISubType,ROIVicinity,strictFlag)
             %make statistics for a certain ROI
 %             if(~isempty(ROICoordinates))                
-                ci = this.getROIImage(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+                ci = this.getROIImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
 %             else
 %                 ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
 %                 ci = this.getImgSeg(this.getFullImage(),ROICoordinates,2,0,0,this.getFileInfoStruct());
@@ -735,10 +740,10 @@ classdef FData < handle
             stats = FData.computeDescriptiveStatistics(ci,histogram,histCenters);            
         end
         
-        function updateCIStats(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function updateCIStats(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %make statistics
-            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIInvertFlag) || this.isEmptyStat)%calculate statistics only if necessary
-                [statistics.descriptive, statistics.histogram, statistics.histogramCenters] = this.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIInvertFlag,false);
+            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity) || this.isEmptyStat)%calculate statistics only if necessary
+                [statistics.descriptive, statistics.histogram, statistics.histogramCenters] = this.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,false);
                 if(isempty(statistics.histogramCenters) || sum(statistics.histogram(:)) == 0)
                     statistics.descriptive = [];
                     statistics.histogram = [];
@@ -749,13 +754,18 @@ classdef FData < handle
                 this.cachedImage.ROI.ROICoordinates = ROICoordinates;
                 this.cachedImage.ROI.ROIType = ROIType;
                 this.cachedImage.ROI.ROISubType = ROISubType;
-                this.cachedImage.ROI.ROIInvertFlag = ROIInvertFlag;
+                this.cachedImage.ROI.ROIVicinity = ROIVicinity;
             end
         end              
         
         function [histogram, centers] = makeHist(this,imageData,strictFlag)
             %make histogram for display puposes
             ci = imageData(~(isnan(imageData(:)) | isinf(imageData(:))));
+            if(isempty(ci))
+                histogram = [];
+                centers = [];
+                return
+            end
             [cw,lim,c_min,c_max] = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
             if(lim)
                 ci = ci(ci >= c_min & ci <= c_max);               
@@ -862,19 +872,26 @@ classdef FData < handle
     end%methods(protected)
     
     methods(Static)
-        function [data,idx] = getImgSeg(data,ROICoord,ROIType,ROISubType,ROIInvertFlag,fileInfo)
+        function [data,idx] = getImgSeg(data,ROICoord,ROIType,ROISubType,ROIVicinity,fileInfo,vicinityInfo)
             %make current data segment respecting x / y scaling
             %data can be 2- or 3- dimensional
-            idx = [];
-            if(isempty(data) || isempty(ROICoord))                
+            idx = [];            
+            if(isempty(data) || isempty(ROICoord))
                 return;
+            end
+            if(~isempty(vicinityInfo))
+                vicDist = vicinityInfo.vicinityDistance;
+                vicDiameter = vicinityInfo.vicinityDiameter;
+            else
+                vicDist = 1;
+                vicDiameter = 3;
+                %todo: warning/error message
             end
             [y,x,z] = size(data);
             switch ROIType
                 case 1 %ETDRS grid
-                    %fi = this.getFileInfoStruct();
                     if(~isempty(fileInfo))
-                        res = fileInfo.pixelResolution; %
+                        res = fileInfo.pixelResolution;
                         side = fileInfo.position;
                     else
                         res = 58.66666666666;
@@ -947,69 +964,95 @@ classdef FData < handle
                             thetaRange = [-pi, 0; 0, pi];
                             r = rOuter;
                     end
-                    [data,idx] = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,ROISubType,rCenter,rInner);                    
-                case {2,3} %rectangle
-                    if(ROICoord(2,2) > x && ROICoord(2,1) < 1)
-                        temp = zeros(y,ROICoord(2,2)-ROICoord(2,1)+1,z,'like',data);
-                        temp(:,-ROICoord(2,1)+(1:x),:) = data(:,1:x,:);
-                        data = temp;
-                        clear temp;
-                    elseif(ROICoord(2,2) > x)
-                        temp = zeros(y,ROICoord(2,2)-ROICoord(2,1)+1,z,'like',data);
-                        temp(:,ROICoord(2,1):x,:) = data(:,ROICoord(2,1):x,:);
-                        data = temp;
-                        clear temp;
-                    elseif(ROICoord(2,1) < 1)
-                        temp = zeros(y,ROICoord(2,2)-ROICoord(2,1)+1,z,'like',data);
-                        temp(:,-ROICoord(2,1)+2:end,:) = data(:,1:ROICoord(2,2),:);
-                        data = temp;
-                        clear temp;
-                    else
-                        data = data(:,ROICoord(2,1):ROICoord(2,2),:);
+                    [tmpData,idx] = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,ROISubType,rCenter,rInner,1,0,0);
+                    if(ROIVicinity == 1)
+                        data = tmpData;
+                    elseif(ROIVicinity == 2)
+                        mask = true(y,x);
+                        mask(idx) = false;
+                        data(idx) = NaN;
+                        idx = find(mask);
+                    elseif(ROIVicinity == 3)
+                        mask = false(y,x);
+                        mask(idx) = true;
+                        outerMask = FData.computeVicinityMask(mask,vicDist,vicDiameter);
+%                         outerMask = imdilate(mask,true(2*(vicDist+vicDiameter)+1));
+%                         innerMask = imdilate(mask,true(2*vicDist+1));
+%                         outerMask(innerMask) = false;
+                        data(~outerMask) = NaN;
+                        idx = find(outerMask);
                     end
-                    %update x (size of curImg)
-                    x = ROICoord(2,2)-ROICoord(2,1)+1;
-                    if(ROICoord(1,2) > y && ROICoord(1,1) < 1)
-                        temp = zeros(ROICoord(1,2)-ROICoord(1,1)+1,x,z,'like',data);
-                        temp(-ROICoord(1,1)+(1:y),:,:) = data(1:y,:,:);
-                        data = temp;
-                        clear temp;
-                    elseif(ROICoord(1,2) > y)
-                        temp = zeros(ROICoord(1,2)-ROICoord(1,1)+1,x,z,'like',data);
-                        temp(ROICoord(1,1):y,:,:) = data(ROICoord(1,1):y,:,:);
-                        data = temp;
-                        clear temp;
-                    elseif(ROICoord(1,1) < 1)
-                        temp = zeros(ROICoord(1,2)-ROICoord(1,1)+1,x,z,'like',data);
-                        temp(-ROICoord(1,1)+2:end,:,:) = data(1:ROICoord(1,2),:,:);
-                        data = temp;
-                        clear temp;
-                    else
-                        data = data(ROICoord(1,1):ROICoord(1,2),:,:);
+                    data = FData.removeNaNBoundingBox(data);
+                case {2,3} %rectangle
+                    rc = zeros(2,4);
+                    rc(:,1) = ROICoord(:,1);
+                    rc(:,2) = [ROICoord(1,2);ROICoord(2,1);];
+                    rc(:,3) = ROICoord(:,2);
+                    rc(:,4) = [ROICoord(1,1);ROICoord(2,2);];
+                    rc(2,1:2) = rc(2,1:2)-0.5; %workaround for specific poly2mask behavior
+                    rc(1,[1,4]) = rc(1,[1,4])-0.5; %workaround for specific poly2mask behavior
+                    mask = poly2mask(rc(2,:),rc(1,:),y,x);
+                    if(ROIVicinity == 1)
+                        data(~mask) = NaN;
+                        idx = find(mask);
+                        data = FData.removeNaNBoundingBox(data);
+                    elseif(ROIVicinity == 2)
+                        data(mask) = NaN;
+                        idx = find(~mask);
+                        data = FData.removeNaNBoundingBox(data);
+                    elseif(ROIVicinity == 3)
+%                         outerMask = imdilate(mask,true(2*(vicDist+vicDiameter)+1));
+%                         innerMask = imdilate(mask,true(2*vicDist+1));
+%                         outerMask(innerMask) = false;
+                        outerMask = FData.computeVicinityMask(mask,vicDist,vicDiameter);
+                        data(~outerMask) = NaN;
+                        idx = find(outerMask);
+                        data = FData.removeNaNBoundingBox(data);
                     end
                 case {4,5} %circle
                     r = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
                     thetaRange = [-pi, 0; 0, pi];
-                    data = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,0,[],[]);
+                    [data,idx] = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,0,[],[],ROIVicinity,vicDist,vicDiameter);
                 case {6,7} %polygon
                     %check whether there are at least three vertices of the polygon yet
-                    [~,vertices]=size(ROICoord);
+                    [~,vertices] = size(ROICoord);
                     if(vertices > 2)
                         %create mask out of polygon
+                        [minY, posY] = min(ROICoord(1,:));
+                        [minX, posX] = min(ROICoord(2,:));
+                        ROICoord(1,posY) = minY-0.5; %workaround for specific poly2mask behavior
+                        ROICoord(2,posX) = minX-0.5; %workaround for specific poly2mask behavior
                         mask = poly2mask(ROICoord(2,:),ROICoord(1,:),y,x);
                         %apply mask to data, delete all rows and columns which
                         %are unneeded(outside of the Polygon)
-                        data(~mask)=NaN;
-                        data(~any(~isnan(data),2),:)=[];
-                        data(: ,~any(~isnan(data),1))=[];
+                        if(ROIVicinity == 1)
+                            data(~mask) = NaN;
+                            data(~any(~isnan(data),2),:) = [];
+                            data(: ,~any(~isnan(data),1)) = [];
+                            idx = find(~isnan(data));
+                        elseif(ROIVicinity == 2)
+                            data(mask) = NaN;
+                            idx = find(~mask);
+                        elseif(ROIVicinity == 3)
+%                             outerMask = imdilate(mask,true(2*(vicDist+vicDiameter)+1));
+%                             innerMask = imdilate(mask,true(2*vicDist+1));
+%                             outerMask(innerMask) = false;
+                            outerMask = FData.computeVicinityMask(mask,vicDist,vicDiameter);
+                            data(~outerMask) = NaN;
+                            idx = find(outerMask);
+                        end
                     end
                 otherwise
                     
             end
         end
         
-        function [out,idx] = getCircleSegment(data,coord,r,thetaRange,ROISubType,rCenter,rInner)
+        function [out,idx] = getCircleSegment(data,coord,r,thetaRange,ROISubType,rCenter,rInner,ROIVicinity,vicDist,vicDiameter)
             %get sircle or a segment of a circle from data at position coord
+            if(ROIVicinity == 3)
+                [out,idx] = FData.getCircleSegment(data,coord,r++vicDist+vicDiameter,thetaRange,11,0,r+vicDist,1,0,0);
+                return
+            end
             [y,x,z] = size(data);
             px = -ceil(r):ceil(r);
             [xCord,yCord] = meshgrid(px, px);
@@ -1040,10 +1083,40 @@ classdef FData < handle
             Xm = Xm(rows,cols);
             mask = mask(rows,cols);
             %create output matrix, unused / empty pixels are NaN
-            out = nan(size(mask),'like',data);
-            % idx = sub2ind([dataYSz,dataXSz],tmpYcoord(mask),tmpXcoord(mask));
-            idx = Ym(mask)+y.*(Xm(mask)-1);
-            out(mask) = data(idx);
+            if(ROIVicinity == 1)
+                out = nan(size(mask),'like',data);
+                %idx = sub2ind([dataYSz,dataXSz],tmpYcoord(mask),tmpXcoord(mask));
+                idx = Ym(mask)+y.*(Xm(mask)-1);
+                out(mask) = data(idx);
+            elseif(ROIVicinity == 2)
+                idx = Ym(mask)+y.*(Xm(mask)-1);
+                out = data;
+                out(idx) = NaN;
+                idx = find(~isnan(out));
+                idx = idx(:);
+            end
+        end
+        
+        function outerMask = computeVicinityMask(mask,vicDist,vicDiameter)
+            %compute a vicinity mask from an ROI mask
+            %             outerMask = mask;
+            %             kernel = true(3,3);
+            %             for i = 1:vicDist+vicDiameter
+            %                 outerMask = imdilate(outerMask,kernel);
+            %             end
+            %             innerMask = mask;
+            %             for i = 1:vicDist
+            %                 innerMask = imdilate(innerMask,true(2*vicDist+1));
+            %             end
+            outerMask = imdilate(mask,true(2*(vicDist+vicDiameter)+1));
+            innerMask = imdilate(mask,true(2*vicDist+1));
+            outerMask(innerMask) = false;
+        end
+        
+        function data = removeNaNBoundingBox(data)
+            %return only valid data, remove surrounding NaNs
+            data(~any(~isnan(data),2),:) = [];
+            data(: ,~any(~isnan(data),1)) = [];
         end
         
         function out = getNonInfMinMax(param,data)

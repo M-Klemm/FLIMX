@@ -95,7 +95,7 @@ classdef ColorCtrl < handle
             rc = this.myFDisplay.ROICoordinates;
             rt = this.myFDisplay.ROIType;
             rs = this.myFDisplay.ROISubType;
-            ri = this.myFDisplay.ROIInvertFlag;
+            ri = this.myFDisplay.ROIVicinity;
             [~, centers] = hfd.getCIHist(rc,rt,rs,ri);
         end
         
@@ -275,7 +275,7 @@ classdef ColorCtrl < handle
                 rc = this.myFDisplay.ROICoordinates;
                 rt = this.myFDisplay.ROIType;
                 rs = this.myFDisplay.ROISubType;
-                ri = this.myFDisplay.ROIInvertFlag;
+                ri = this.myFDisplay.ROIVicinity;
                 data = hfd.getROIImage(rc,rt,rs,ri);
             else
                 %get full image

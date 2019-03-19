@@ -82,7 +82,7 @@ classdef StatsMVGroupMgr < handle
             %ROI handling
             set(this.visHandles.popupROIType,'Callback',@this.GUI_ROICallback);
             set(this.visHandles.popupROISubType,'Callback',@this.GUI_ROICallback);
-            set(this.visHandles.checkROIInvert,'Callback',@this.GUI_ROICallback);
+            set(this.visHandles.popupROIVicinity,'Callback',@this.GUI_ROICallback);
             %initialize other values
             this.curAxis = 'x';
             this.setUIHandles();
@@ -122,7 +122,7 @@ classdef StatsMVGroupMgr < handle
                 cMVs.y = [];
                 cMVs.ROI.ROIType = 0;
                 cMVs.ROI.ROISubType = 1;
-                cMVs.ROI.ROIInvertFlag = 0;
+                cMVs.ROI.ROIVicinity = 1;
             end
             %remove all current targets from allObjs
             if(isempty(allObjs))
@@ -176,7 +176,7 @@ classdef StatsMVGroupMgr < handle
                     visFlag = 'off';
                 end
                 set(this.visHandles.popupROISubType,'Value',cMVs.ROI.ROISubType,'Visible',visFlag);
-                %set(this.visHandles.checkROIInvert,'Value',cMVs.ROI.ROIInvertFlag);
+                set(this.visHandles.popupROIVicinity,'Value',cMVs.ROI.ROIVicinity);
             end
             if(isempty(allObjs))
                 set(this.lLB,'String','','Value',1);
@@ -295,7 +295,7 @@ classdef StatsMVGroupMgr < handle
             %get ROI type, subtype and invert flag from GUI
             ROI.ROIType = get(this.visHandles.popupROIType,'Value')-1;
             ROI.ROISubType = get(this.visHandles.popupROISubType,'Value');
-            ROI.ROIInvertFlag = get(this.visHandles.checkROIInvert,'Value');            
+            ROI.ROIVicinity = get(this.visHandles.popupROIVicinity,'Value');            
         end
         
         %% GUI callbacks

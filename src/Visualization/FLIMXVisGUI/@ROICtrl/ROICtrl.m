@@ -42,7 +42,7 @@ classdef ROICtrl < handle
         
         roi_type_popup = [];
         roi_subtype_popup = []
-        roi_invert_check = [];
+        roi_vicinity_popup = [];
         roi_table = [];
         roi_table_clearLast_button = [];
         roi_table_clearAll_button = [];
@@ -84,7 +84,7 @@ classdef ROICtrl < handle
         editYu = 0;
         ROIType = 0;
         ROISubType = 0;
-        ROIInvertFlag = 0;
+        ROIVicinity = 0;
     end
     
     methods
@@ -139,9 +139,9 @@ classdef ROICtrl < handle
             out = get(this.roi_subtype_popup,'Value');
         end
         
-        function out = get.ROIInvertFlag(this)
+        function out = get.ROIVicinity(this)
             %get current state of ROI invert flag
-            out = get(this.roi_invert_check,'Value');
+            out = get(this.roi_vicinity_popup,'Value');
         end
         
         function enDisAble(this,argEn,argVis)
@@ -341,7 +341,7 @@ classdef ROICtrl < handle
             %setup GUI controls for current ROI Type
             switch this.ROIType
                 case 1 %ETDRS grid
-                    set(this.roi_invert_check,'Visible','off');
+                    set(this.roi_vicinity_popup,'Visible','on');
                     set(this.roi_subtype_popup,'Visible','on');
                     this.enDisAble('off','off');
                     set(this.x_check,'Visible','on');
@@ -356,14 +356,14 @@ classdef ROICtrl < handle
                     set(this.roi_table_clearLast_button,'Visible','off');
                     set(this.roi_table_clearAll_button,'Visible','off');
                 case {2,3} %rectangle
-                    % set(this.roi_invert_check,'Visible','on');
+                    set(this.roi_vicinity_popup,'Visible','on');
                     set(this.roi_subtype_popup,'Visible','off');
                     this.enDisAble('on','on');
                     set(this.roi_table,'Visible','off');
                     set(this.roi_table_clearLast_button,'Visible','off');
                     set(this.roi_table_clearAll_button,'Visible','off');
                 case {4,5} %circle
-                    % set(this.roi_invert_check,'Visible','on');
+                    set(this.roi_vicinity_popup,'Visible','on');
                     set(this.roi_subtype_popup,'Visible','off');
                     this.enDisAble('on','on');
                     set(this.y_sz_text','Enable','off','Visible','off');
@@ -375,14 +375,14 @@ classdef ROICtrl < handle
                     set(this.roi_table_clearLast_button,'Visible','off');
                     set(this.roi_table_clearAll_button,'Visible','off');
                 case {6,7} %polygon
-                    % set(this.roi_invert_check,'Visible','on');
+                    set(this.roi_vicinity_popup,'Visible','on');
                     set(this.roi_subtype_popup,'Visible','off');
                     set(this.roi_table,'Visible','on');
                     set(this.roi_table_clearLast_button,'Visible','on');
                     set(this.roi_table_clearAll_button,'Visible','on');
                     this.enDisAble('off','off');
                 otherwise %switch to 'none'
-                    set(this.roi_invert_check,'Visible','off');
+                    set(this.roi_vicinity_popup,'Visible','off');
                     set(this.roi_subtype_popup,'Visible','off');
                     this.enDisAble('off','off');
                     set(this.roi_table,'Visible','off');
@@ -464,13 +464,13 @@ classdef ROICtrl < handle
             out = zeros(2,3,'int16');
             hfd = this.myHFD;
             out(1,1) = 1;
-            out(2,1) = this.ROIInvertFlag;
+            out(2,1) = this.ROIVicinity;
             out(1,2) = hfd.yLbl2Pos(sscanf(get(this.y_lo_edit,'String'),'%i',1)); %sscanf(s,'%f',1);
             out(2,2) = hfd.xLbl2Pos(sscanf(get(this.x_lo_edit,'String'),'%i',1));
             if(this.ROIType == 1)
                 out(:,3) = out(:,2);
             elseif(this.ROIType == 6 || this.ROIType == 7)
-                out = int16([[1;this.ROIInvertFlag], cell2mat(get(this.roi_table,'Data'))]);
+                out = int16([[1;this.ROIVicinity], cell2mat(get(this.roi_table,'Data'))]);
 %                 if(size(tmp,2) < size(out,2))
 %                     out(:,1:size(tmp,2)) = tmp;
 %                 end
@@ -627,7 +627,7 @@ classdef ROICtrl < handle
             dims =['x','y','z'];
             this.roi_type_popup = this.visObj.visHandles.(sprintf('roi_type_%s_popup',s));
             this.roi_subtype_popup = this.visObj.visHandles.(sprintf('roi_subtype_%s_popup',s));
-            this.roi_invert_check = this.visObj.visHandles.(sprintf('roi_invert_%s_check',s));
+            this.roi_vicinity_popup = this.visObj.visHandles.(sprintf('roi_vicinity_%s_popup',s));
             this.roi_table = this.visObj.visHandles.(sprintf('roi_%s_table',s));
             this.roi_table_clearLast_button = this.visObj.visHandles.(sprintf('roi_table_clearLast_%s_button',s));
             this.roi_table_clearAll_button = this.visObj.visHandles.(sprintf('roi_table_clearAll_%s_button',s));

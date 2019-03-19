@@ -727,7 +727,7 @@ classdef fluoSubject < FDTreeNode
         
         function out = get.resultIsDirty(this)
             %return flag if result is dirty
-            out = this.myResult.isDirty;
+            out = this.myResult.dirtyFlags;
         end
         
         function out = getResultType(this)

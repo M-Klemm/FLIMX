@@ -336,7 +336,9 @@ classdef measurementInFDTree < measurementFile
         
         function out = getNonEmptyChannelList(this)
             %return a list of channel numbers "with data"
-            out = unique([getNonEmptyChannelList@measurementFile(this),find(this.filesOnHDD)]);
+            nec1 = getNonEmptyChannelList@measurementFile(this);
+            nec2 = find(this.filesOnHDD);
+            out = unique([nec1(:);nec2(:)]);
         end
         
         function out = getLoadedChannelList(this)
