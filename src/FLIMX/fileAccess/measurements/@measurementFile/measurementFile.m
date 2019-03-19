@@ -227,7 +227,7 @@ classdef measurementFile < handle
         function out = getDirtyFlags(this,ch,flagPos)
             %return dirty falgs for a channel
             out = false(size(flagPos));
-            if(ch <= size(this.dirtyFlags,1) && all(flagPos > 0) && all(flagPos <= 4))
+            if(max(ch) <= size(this.dirtyFlags,1) && all(flagPos > 0) && all(flagPos <= 4))
                 out = this.dirtyFlags(ch,flagPos);
             end
         end
@@ -986,9 +986,10 @@ classdef measurementFile < handle
             %save result channel to disk
             if(isempty(ch))
                 %save all channels
-                for ch = this.nonEmptyChannelList
-                    this.exportMatFile(ch,'');
-                    this.filesOnHDD(1,ch) = true;
+                chList = this.nonEmptyChannelList;
+                for ch = 1:length(chList)
+                    this.exportMatFile(chList(ch),'');
+                    this.filesOnHDD(1,chList(ch)) = true;
                 end
             else
                 this.exportMatFile(ch,'');

@@ -115,14 +115,14 @@ classdef FDTree < FDTreeNode
             while(sum(this.LRUTableInfo(:,3)) > threshold)
                 %for i = 1:size(this.LRUTableObjs,1)-1
                 %find oldest entry
-                [~, id] = min([this.LRUTableObjs{:,2}]);
+                [~, id] = min([this.LRUTableInfo(:,2)]);
                 obj = this.LRUTableObjs{id,1};
                 if(obj.isDirty)
                     obj.saveMatFile2Disk([]);
                 end
                 obj.clearCacheMemory(); %free RAM
                 this.LRUTableObjs(id) = []; %remove obj from table
-                this.LRUTableInfo(id,1:3) = []; %remove objs info from table
+                this.LRUTableInfo(id,:) = []; %remove objs info from table
                 if(size(this.LRUTableInfo,1) == 1)
                     %keep at least one entry (the just added obj)
                     break

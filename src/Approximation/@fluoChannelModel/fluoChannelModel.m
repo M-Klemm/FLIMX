@@ -120,7 +120,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         
         function out = get.fileInfo(this)
             %return fileInfo struct for my channel
-            out = this.myParent.getFileInfo(this.myChannelNr);
+            out = this.myParent.getFileInfoStruct(this.myChannelNr);
         end
         function out = get.volatilePixelParams(this)
             %return volatilePixelParams struct for my channel
