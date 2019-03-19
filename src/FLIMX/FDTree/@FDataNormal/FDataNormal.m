@@ -75,14 +75,14 @@ classdef FDataNormal < FData
             out = this.crossSectionX;
         end
         
-        function [minVal, maxVal] = getCrossSectionXBorders(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function [minVal, maxVal] = getCrossSectionXBorders(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get borders for x crossSection (minVal = 0 if crossSection disabled)
-            lbl = this.getCIXLbl(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+            lbl = this.getCIXLbl(ROICoordinates,ROIType,ROISubType,ROIVicinity);
             minVal = lbl(1);
             maxVal = lbl(end);
         end
         
-        function out = getCrossSectionXVal(this,isRelative,isMatrixPos,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getCrossSectionXVal(this,isRelative,isMatrixPos,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get current crossSection position of x axis
             if(isRelative && ROIType ~= 0) %val is relative to roi
                 switch ROIType
@@ -118,14 +118,14 @@ classdef FDataNormal < FData
             out = this.crossSectionY;
         end
         
-        function [minVal, maxVal] = getCrossSectionYBorders(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function [minVal, maxVal] = getCrossSectionYBorders(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get borders for y crossSection (minVal = 0 if crossSection disabled)
-            lbl = this.getCIYLbl(ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+            lbl = this.getCIYLbl(ROICoordinates,ROIType,ROISubType,ROIVicinity);
             minVal = lbl(1);
             maxVal = lbl(end);
         end
         
-        function out = getCrossSectionYVal(this,isRelative,isMatrixPos,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getCrossSectionYVal(this,isRelative,isMatrixPos,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get current crossSection position of y axis
             if(isRelative && ROIType ~= 0) %val is relative to roi
                 switch ROIType
@@ -157,7 +157,7 @@ classdef FDataNormal < FData
         end
 
         %% compute functions         
-        function out = updateCurrentImage(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = updateCurrentImage(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %make current image segment from this.rawImage using x,y and z limits
             %compute minimum and maximum of this segment, also for labels (linear)
             if(isempty(this.rawImage))
@@ -166,11 +166,11 @@ classdef FDataNormal < FData
             end
             this.clearCachedImage();
             %cut ROI
-            ci = this.getImgSeg(this.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIInvertFlag,this.getFileInfoStruct());
+            ci = this.getImgSeg(this.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
             if(this.sType == 2)
-                this.cachedImage.colors = this.getImgSeg(this.logColor_data,ROICoordinates,ROIType,ROISubType,ROIInvertFlag,this.getFileInfoStruct());
+                this.cachedImage.colors = this.getImgSeg(this.logColor_data,ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
             else
-                this.cachedImage.colors = this.getImgSeg(this.color_data,ROICoordinates,ROIType,ROISubType,ROIInvertFlag,this.getFileInfoStruct());
+                this.cachedImage.colors = this.getImgSeg(this.color_data,ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
             end            
             cim = FData.getNonInfMinMax(1,ci);
             %set possible "-inf" in ci to "cim"
@@ -205,7 +205,7 @@ classdef FDataNormal < FData
             ROI.ROICoordinates = ROICoordinates;
             ROI.ROIType = ROIType;
             ROI.ROISubType = ROISubType;
-            ROI.ROIInvertFlag = ROIInvertFlag;
+            ROI.ROIVicinity = ROIVicinity;
             this.cachedImage.ROI = ROI;
             out = ci;
         end

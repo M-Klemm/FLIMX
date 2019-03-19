@@ -41,6 +41,8 @@ classdef AICtrl < handle
         FLIMItemC = [];
         ROIB = [];
         ROIC = [];
+        ROIVicinityB = [];
+        ROIVicinityC = [];
         normalizeA = [];
         normalizeB = [];
         normalizeC = [];        
@@ -89,6 +91,8 @@ classdef AICtrl < handle
             set(this.FLIMItemC,'Visible',param);
             set(this.ROIB,'Visible',param);
             set(this.ROIC,'Visible',param);
+            set(this.ROIVicinityB,'Visible',param);
+            set(this.ROIVicinityC,'Visible',param);
             set(this.normalizeA,'Visible',param);
             set(this.normalizeB,'Visible',param);
             set(this.normalizeC,'Visible',param);
@@ -210,14 +214,17 @@ classdef AICtrl < handle
             set(this.normalizeC,'Value',aiParam{idx}.normalizeC);
             this.updateItemPopup(this.chB.Value-1,'FLIMItem','B',aiParam{idx});
             this.updateItemPopup(this.chB.Value-1,'ROI','B',aiParam{idx});
+            this.ROIVicinityB.Value = aiParam{idx}.ROIVicinityB;
             this.updateItemPopup(this.chC.Value-1,'FLIMItem','C',aiParam{idx});
             this.updateItemPopup(this.chC.Value-1,'ROI','C',aiParam{idx});
+            this.ROIVicinityC.Value = aiParam{idx}.ROIVicinityC;
             %first calculation target
             switch aiParam{idx}.compAgainstB
                 case 'val'
                     this.targetSelB.Value = 3;
                     set(this.FLIMItemB,'Enable','off','Visible','off');
                     set(this.ROIB,'Enable','off','Visible','off');
+                    set(this.ROIVicinityB,'Enable','off','Visible','off');
                     set(this.chB,'Enable','off','Visible','off');
                     set(this.valB,'Enable','on','Visible','on','String',aiParam{idx}.valB);
                     set(this.normalizeB,'Enable','off','Visible','off');
@@ -227,6 +234,7 @@ classdef AICtrl < handle
                     %second flim item
                     set(this.FLIMItemB,'Enable','on','Visible','on');
                     set(this.ROIB,'Enable','off','Visible','off');
+                    set(this.ROIVicinityB,'Enable','off','Visible','off');
                     set(this.valB,'Enable','off','Visible','off');
                     set(this.normalizeB,'Enable','on','Visible','on');
                     set(this.chB,'Enable','on','Visible','on');
@@ -234,6 +242,7 @@ classdef AICtrl < handle
                     this.targetSelB.Value = 2;                    
                     set(this.FLIMItemB,'Enable','off','Visible','off');
                     set(this.ROIB,'Enable','on','Visible','on');
+                    set(this.ROIVicinityB,'Enable','on','Visible','on');
                     set(this.valB,'Enable','off','Visible','off');
                     set(this.normalizeB,'Enable','off','Visible','off');
                     set(this.chB,'Enable','on','Visible','on');
@@ -251,6 +260,7 @@ classdef AICtrl < handle
                 set(this.valC,'Enable','off','Visible','off');
                 set(this.FLIMItemC,'Enable','off','Visible','off');
                 set(this.ROIC,'Enable','off','Visible','off');
+                set(this.ROIVicinityC,'Enable','off','Visible','off');
                 set(this.normalizeC,'Enable','off','Visible','off');
                 set(this.chC,'Enable','off','Visible','off');
                 set(this.targetSelC,'Visible','off');
@@ -262,6 +272,7 @@ classdef AICtrl < handle
                         this.targetSelC.Value = 3;
                         set(this.FLIMItemC,'Enable','off','Visible','off');
                         set(this.ROIC,'Enable','off','Visible','off');
+                        set(this.ROIVicinityC,'Enable','off','Visible','off');
                         set(this.chC,'Enable','off','Visible','off');
                         set(this.valC,'Enable','on','Visible','on','String',aiParam{idx}.valC);
                         set(this.normalizeC,'Enable','off','Visible','off');                        
@@ -270,6 +281,7 @@ classdef AICtrl < handle
                         %third flim item
                         set(this.FLIMItemC,'Enable','on','Visible','on');
                         set(this.ROIC,'Enable','off','Visible','off');
+                        set(this.ROIVicinityC,'Enable','off','Visible','off');
                         set(this.valC,'Enable','off','Visible','off');
                         set(this.normalizeC,'Enable','on','Visible','on');
                         set(this.chC,'Enable','on','Visible','on');
@@ -277,6 +289,7 @@ classdef AICtrl < handle
                         this.targetSelC.Value = 2;
                         set(this.FLIMItemC,'Enable','off','Visible','off');
                         set(this.ROIC,'Enable','on','Visible','on');
+                        set(this.ROIVicinityC,'Enable','on','Visible','on');
                         set(this.valC,'Enable','off','Visible','off');
                         set(this.normalizeC,'Enable','off','Visible','off');
                         set(this.chC,'Enable','on','Visible','on');
@@ -320,6 +333,7 @@ classdef AICtrl < handle
             aiParams.FLIMItemB = str{get(this.FLIMItemB,'Value')};
             str = get(this.ROIB,'String');
             aiParams.ROIB = str{get(this.ROIB,'Value')};
+            aiParams.ROIVicinityB = this.ROIVicinityB.Value;
             switch this.targetSelB.Value
                 case 1
                     aiParams.compAgainstB = 'FLIMItem';
@@ -331,7 +345,8 @@ classdef AICtrl < handle
             str = get(this.FLIMItemC,'String');
             aiParams.FLIMItemC = str{get(this.FLIMItemC,'Value')};
             str = get(this.ROIC,'String');
-            aiParams.ROIC = str{get(this.ROIC,'Value')};            
+            aiParams.ROIC = str{get(this.ROIC,'Value')};
+            aiParams.ROIVicinityC = this.ROIVicinityC.Value;
             switch this.targetSelC.Value
                 case 1
                     aiParams.compAgainstC = 'FLIMItem';
@@ -382,6 +397,10 @@ classdef AICtrl < handle
             set(this.ROIB,'Callback',@this.ui_Callback,'TooltipString','Select Region of Interest (ROI), its mean value will be used for the arithmetic image calculation');
             this.ROIC = this.visObj.visHandles.ai_roi_c_pop;
             set(this.ROIC,'Callback',@this.ui_Callback,'TooltipString','Select Region of Interest (ROI), its mean value will be used for the arithmetic image calculation');
+            this.ROIVicinityB = this.visObj.visHandles.ai_roi_vic_b_pop;
+            set(this.ROIVicinityB,'Callback',@this.ui_Callback,'TooltipString','Select ''inside'' for the area insode the ROI coordinates, ''invert'' to exclude the ROI area from further analysis or ''vicinity'' to use the area surrounding the ROI');
+            this.ROIVicinityC = this.visObj.visHandles.ai_roi_vic_c_pop;
+            set(this.ROIVicinityC,'Callback',@this.ui_Callback,'TooltipString','Select ''inside'' for the area insode the ROI coordinates, ''invert'' to exclude the ROI area from further analysis or ''vicinity'' to use the area surrounding the ROI');
             this.targetSelB = this.visObj.visHandles.ai_targetSel_b_pop;
             set(this.targetSelB,'Callback',@this.ui_Callback,'TooltipString','Select target for arithmetic operation: FLIM parameter (e.g. Tau1), mean value of region of interest (ROI) or a numeric value (e.g. for comparison with a threshold)');
             this.targetSelC = this.visObj.visHandles.ai_targetSel_c_pop;
@@ -473,15 +492,17 @@ classdef AICtrl < handle
             %default values for aiParams struct
             aiParams.FLIMItemA = 'Amplitude 1';
             aiParams.FLIMItemB = 'Tau 1';
-            aiParams.FLIMItemC = 'Tau 1'; %new
-            aiParams.ROIB = 'Rectangle #1'; %new
-            aiParams.ROIC = 'Circle #1'; %new
+            aiParams.FLIMItemC = 'Tau 1';
+            aiParams.ROIB = 'Rectangle #1';
+            aiParams.ROIVicinityB = 1;
+            aiParams.ROIC = 'Circle #1';
+            aiParams.ROIVicinityC = 1;
             aiParams.normalizeA = 0;
             aiParams.normalizeB = 0;
-            aiParams.normalizeC = 0; %new
+            aiParams.normalizeC = 0;
             aiParams.chA = 0;
             aiParams.chB = 0;
-            aiParams.chC = 0; %new
+            aiParams.chC = 0;
             aiParams.opA = '<';
             aiParams.opB = '-no op-';
             aiParams.compAgainstB = 'val';

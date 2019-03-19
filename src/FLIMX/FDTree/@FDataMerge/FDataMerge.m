@@ -103,7 +103,7 @@ classdef FDataMerge < FData
             %don't filter
         end
         
-        function out = getROIImage(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = getROIImage(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get cached image
             out = this.rawImage;
         end
@@ -141,17 +141,17 @@ classdef FDataMerge < FData
                 ROICoordinates = zeros(2,2,'int16');
                 ROIType = varargin{1};
                 ROISubType = varargin{2};
-                ROIInvertFlag = varargin{3};
+                ROIVicinity = varargin{3};
             else
                 ROICoordinates = varargin{1};
                 ROIType = varargin{2};
                 ROISubType = varargin{3};
-                ROIInvertFlag = varargin{4};
+                ROIVicinity = varargin{4};
             end            
-            [hist,centers] = getCIHist@FData(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag);
+            [hist,centers] = getCIHist@FData(this,ROICoordinates,ROIType,ROISubType,ROIVicinity);
         end
         
-        function out = ROIIsCached(this,ROICoordinates,ROIType,ROISubType,ROIInvertFlag)
+        function out = ROIIsCached(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %check if this ROI is in my cache
             out = true;
         end

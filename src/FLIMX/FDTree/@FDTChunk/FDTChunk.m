@@ -292,6 +292,11 @@ classdef FDTChunk < FDTreeNode
             out = this.myParent.getFileInfoStruct();
         end
         
+        function out = getVicinityInfo(this)
+            %get vicinity info
+            out = this.myParent.getVicinityInfo();
+        end
+        
         function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
             [alg, params] = this.myParent.getDataSmoothFilter();

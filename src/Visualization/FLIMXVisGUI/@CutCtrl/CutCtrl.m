@@ -52,7 +52,7 @@ classdef CutCtrl < handle
         ROICoordinates = [];
         ROIType = 0;
         ROISubType = 0;
-        ROIInvertFlag = 0;
+        ROIVicinity = 0;
     end
 
     methods
@@ -131,14 +131,14 @@ classdef CutCtrl < handle
                 minVal = tmp(1);
                 maxVal = tmp(2);
             else
-                [minVal, maxVal] = hfd.(sprintf('getCrossSection%sBorders',upper(this.myAxis)))(this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag);
+                [minVal, maxVal] = hfd.(sprintf('getCrossSection%sBorders',upper(this.myAxis)))(this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIVicinity);
             end
             minVal = double(minVal);
             maxVal = double(maxVal);
             step = hfd.(sprintf('get%sLblTick',upper(this.myAxis)));
             eFlag = hfd.(sprintf('getCrossSection%s',upper(this.myAxis)));
             iFlag = hfd.(sprintf('getCrossSection%sInv',upper(this.myAxis)));
-            cur = hfd.(sprintf('getCrossSection%sVal',upper(this.myAxis)))(false,false,this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag);
+            cur = hfd.(sprintf('getCrossSection%sVal',upper(this.myAxis)))(false,false,this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIVicinity);
             %check borders
             cur = max(min(cur,maxVal),minVal);
         end
@@ -158,9 +158,9 @@ classdef CutCtrl < handle
             out = this.visObj.getROISubType('l');
         end
         
-        function out = get.ROIInvertFlag(this)
+        function out = get.ROIVicinity(this)
             %get current state of ROI invert flag
-            out = this.visObj.getROIInvertFlag('l');
+            out = this.visObj.getROIVicinity('l');
         end
         
     end %methods 

@@ -914,9 +914,9 @@ classdef FLIMXFitGUI < handle
             e_vec = zeros(length(data),1);
             data(isnan(data)) = 0;
             if(apObj.basicParams.approximationTarget == 2 && ch == 4)
-                e_vec(1:apObj.getFileInfo(ch).nrTimeChannels) = ((data(1:apObj.getFileInfo(ch).nrTimeChannels))-(model(1:apObj.getFileInfo(ch).nrTimeChannels)))./(model(1:apObj.getFileInfo(ch).nrTimeChannels))*100;
+                e_vec(1:apObj.getFileInfoStruct(ch).nrTimeChannels) = ((data(1:apObj.getFileInfoStruct(ch).nrTimeChannels))-(model(1:apObj.getFileInfoStruct(ch).nrTimeChannels)))./(model(1:apObj.getFileInfoStruct(ch).nrTimeChannels))*100;
             else
-                e_vec(1:apObj.getFileInfo(ch).nrTimeChannels) = ((data(1:apObj.getFileInfo(ch).nrTimeChannels))-(model(1:apObj.getFileInfo(ch).nrTimeChannels)))./sqrt(abs(data(1:apObj.getFileInfo(ch).nrTimeChannels))); % Weighting in lsqnonlin is 1/std; in Poisson statistics: 1/sqrt(counts)
+                e_vec(1:apObj.getFileInfoStruct(ch).nrTimeChannels) = ((data(1:apObj.getFileInfoStruct(ch).nrTimeChannels))-(model(1:apObj.getFileInfoStruct(ch).nrTimeChannels)))./sqrt(abs(data(1:apObj.getFileInfoStruct(ch).nrTimeChannels))); % Weighting in lsqnonlin is 1/std; in Poisson statistics: 1/sqrt(counts)
             end
             nz_idx =  apObj.getDataNonZeroMask(ch);
             ds = find(nz_idx,1,'first');

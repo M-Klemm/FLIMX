@@ -60,6 +60,7 @@ classdef FDisplay < handle
         h_ETDRSGrid = [];
         h_ETDRSGridText = [];
         h_Polygon = [];
+        h_ROIArea = [];
         h_cmImage = [];
         pixelResolution = 0;
         measurementPosition = 'OS';
@@ -71,7 +72,7 @@ classdef FDisplay < handle
         ROICoordinates = [];
         ROIType = [];
         ROISubType = [];
-        ROIInvertFlag = [];
+        ROIVicinity = [];
         crossSectionXVal = 0;
         crossSectionYVal = 0;
         crossSectionXInv = 0;
@@ -171,7 +172,7 @@ classdef FDisplay < handle
             rc = this.ROICoordinates;
             rt = this.ROIType;
             rs = this.ROISubType;
-            ri = this.ROIInvertFlag;
+            ri = this.ROIVicinity;
             [~, histCenters] = hfd{1}.getCIHist(rc,rt,rs,ri);
             if(~ischar(target) && isnumeric(target) && length(target) == 2)
                 %we've got zoom borders
@@ -253,7 +254,7 @@ classdef FDisplay < handle
                 rc = this.ROICoordinates;
                 rt = this.ROIType;
                 rs = this.ROISubType;
-                ri = this.ROIInvertFlag;
+                ri = this.ROIVicinity;
                 ci = hfd.getROIImage(rc,rt,rs,ri);
             end
             if(isempty(cp) || isempty(ci))
@@ -300,6 +301,30 @@ classdef FDisplay < handle
             end
             op = double(op);
             cp = double(cp);
+            try
+                delete(this.h_ROIArea);
+            end
+            if(this.staticVisParams.ROI_fill_enable && (this.ROIVicinity ~= 1 || this.ROIType == 1 && this.ROIVicinity == 1))
+                %draw ETDRS grid segments or inverted / vicinity ROI areas
+                gc = this.staticVisParams.ROIColor;
+                fileInfo.pixelResolution = this.pixelResolution;
+                fileInfo.position = this.measurementPosition;
+                mask = zeros(size(this.mainExportXls),'single');
+                [~,idx] = FData.getImgSeg(zeros(size(this.mainExportXls)),[op cp],this.ROIType,this.ROISubType,this.ROIVicinity,fileInfo,this.visObj.fdt.getVicinityInfo());
+                if(~isempty(idx))
+                    mask(idx) = 1;
+                    mask = repmat(mask,1,1,4);
+                    mask(:,:,1) = mask(:,:,1) .* gc(1);
+                    mask(:,:,2) = mask(:,:,2) .* gc(2);
+                    mask(:,:,3) = mask(:,:,3) .* gc(3);
+                    mask(:,:,4) = mask(:,:,4) .* this.staticVisParams.ETDRS_subfield_bg_color(end);
+                    hold(this.h_m_ax,'on');
+                    this.h_ROIArea = image(this.h_m_ax,mask(:,:,1:3),'AlphaData',mask(:,:,4));
+                    hold(this.h_m_ax,'off');
+                end
+            end
+            
+            
             switch ROIType
                 case 1
                     this.drawETDRSGrid(cp,drawTextFlag);
@@ -358,7 +383,7 @@ classdef FDisplay < handle
                 try
                     delete(this.h_Rectangle);
                 end
-                if(this.staticVisParams.ROI_fill_enable)
+                if(this.staticVisParams.ROI_fill_enable && this.ROIVicinity == 1)
                     fc = [gc this.staticVisParams.ETDRS_subfield_bg_color(end)];
                     this.h_Rectangle = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
                 else
@@ -382,7 +407,7 @@ classdef FDisplay < handle
                 try
                     delete(this.h_Circle);
                 end
-                if(this.staticVisParams.ROI_fill_enable)
+                if(this.staticVisParams.ROI_fill_enable  && this.ROIVicinity == 1)
                     fc = [gc this.staticVisParams.ETDRS_subfield_bg_color(end)];
                     this.h_Circle = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
                 else
@@ -403,7 +428,7 @@ classdef FDisplay < handle
                 try
                     delete(this.h_Polygon);
                 end
-                if(this.staticVisParams.ROI_fill_enable)
+                if(this.staticVisParams.ROI_fill_enable && this.ROIVicinity == 1)
                     this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls,'EdgeColor',gc,'FaceColor',gc,'FaceAlpha',this.staticVisParams.ETDRS_subfield_bg_color(end),'Parent',this.h_m_ax);
                 else
                     this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls,'EdgeColor',gc,'FaceAlpha',0,'Parent',this.h_m_ax);
@@ -413,10 +438,10 @@ classdef FDisplay < handle
         
         function drawETDRSGrid(this,cp,drawTextFlag)
             %draw ETDRS grid into 2D plot
-            if isMultipleCall();  return;  end            
-            idxG = ishghandle(this.h_ETDRSGrid); 
-            idxT = ishghandle(this.h_ETDRSGridText); 
-            if(isempty(cp)) 
+            if isMultipleCall();  return;  end
+            idxG = ishghandle(this.h_ETDRSGrid);
+            idxT = ishghandle(this.h_ETDRSGridText);
+            if(isempty(cp))
                 delete(this.h_ETDRSGrid(idxG));
                 delete(this.h_ETDRSGridText(idxT));
                 return
@@ -427,7 +452,7 @@ classdef FDisplay < handle
                 %radius ring1 = 500 µm
                 d1 = 1000/res;
                 d2 = 3000/res;
-                d3 = 6000/res;                
+                d3 = 6000/res;
                 lw = this.staticVisParams.ROILinewidth;
                 ls = this.staticVisParams.ROILinestyle;
                 fs = this.staticVisParams.fontsize;
@@ -445,25 +470,7 @@ classdef FDisplay < handle
                     try
                         delete(this.h_ETDRSGrid(idxG));
                     end
-                    h = zeros(8,1); 
-                    if(this.staticVisParams.ROI_fill_enable)
-                        %draw filled segment below the grid
-                        fileInfo.pixelResolution = res;
-                        fileInfo.position = this.measurementPosition;
-                        mask = zeros(size(this.mainExportXls),'single');
-                        [~,idx] = FData.getImgSeg(zeros(size(this.mainExportXls)),[cp cp],this.ROIType,this.ROISubType,this.ROIInvertFlag,fileInfo);
-                        if(~isempty(idx))
-                            mask(idx) = 1;
-                            mask = repmat(mask,1,1,4);
-                            mask(:,:,1) = mask(:,:,1) .* gc(1);
-                            mask(:,:,2) = mask(:,:,2) .* gc(2);
-                            mask(:,:,3) = mask(:,:,3) .* gc(3);
-                            mask(:,:,4) = mask(:,:,4) .* this.staticVisParams.ETDRS_subfield_bg_color(end);
-                            hold(this.h_m_ax,'on');
-                            h(8) = image(this.h_m_ax,mask(:,:,1:3),'AlphaData',mask(:,:,4));
-                            hold(this.h_m_ax,'off');
-                        end
-                    end
+                    h = zeros(7,1);
                     h(1) = rectangle('Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                     h(2) = rectangle('Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                     h(3) = rectangle('Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
@@ -505,11 +512,11 @@ classdef FDisplay < handle
                     set(this.h_ETDRSGridText(2),'Position',[cp(2),cp(1)+d1/2+(d2-d1)/4,cp(1)],'String',txt{2});
                     set(this.h_ETDRSGridText(3),'Position',[cp(2)-(d1/2+(d2-d1)/4),cp(1)],'String',txt{3});
                     set(this.h_ETDRSGridText(4),'Position',[cp(2),cp(1)-d1/2-(d2-d1)/4,cp(1)],'String',txt{4});
-                    set(this.h_ETDRSGridText(5),'Position',[cp(2)+(d1/2+(d2-d1)/4),cp(1)],'String',txt{5});                    
+                    set(this.h_ETDRSGridText(5),'Position',[cp(2)+(d1/2+(d2-d1)/4),cp(1)],'String',txt{5});
                     set(this.h_ETDRSGridText(6),'Position',[cp(2),cp(1)+d2/2+(d3-d2)/4,cp(1)],'String',txt{6});
                     set(this.h_ETDRSGridText(9),'Position',[cp(2)-(d2/2+(d3-d2)/4),cp(1)],'String',txt{7});
                     set(this.h_ETDRSGridText(7),'Position',[cp(2),cp(1)-d2/2-(d3-d2)/4,cp(1)],'String',txt{8});
-                    set(this.h_ETDRSGridText(8),'Position',[cp(2)+(d2/2+(d3-d2)/4),cp(1)],'String',txt{9});                    
+                    set(this.h_ETDRSGridText(8),'Position',[cp(2)+(d2/2+(d3-d2)/4),cp(1)],'String',txt{9});
                 else
                     delete(this.h_ETDRSGridText(idxT));
                     h = zeros(9,1);
@@ -551,7 +558,7 @@ classdef FDisplay < handle
                 case 3  %view clusters
                     %get merged view cluster object
                     clusterID = sprintf('Condition%s',dType{1});
-                    hfd{1} = this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),clusterID,dTypeNr(1),scale,this.ROIType,this.ROISubType,this.ROIInvertFlag);
+                    hfd{1} = this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),clusterID,dTypeNr(1),scale,this.ROIType,this.ROISubType,this.ROIVicinity);
                 case 4 %global clusters
                     clusterID = sprintf('Global%s',dType{1});
                     hfd{1} = this.visObj.fdt.getGlobalMVGroupObj(this.visObj.getChannel(this.mySide),clusterID,scale);
@@ -567,13 +574,13 @@ classdef FDisplay < handle
                     case 2 %study view histogram
                         if(~(dTypeNr == 0))
                             this.sethfdSupp(this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
-                                this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1,this.ROIType,this.ROISubType,this.ROIInvertFlag));
+                                this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1,this.ROIType,this.ROISubType,this.ROIVicinity));
                         else
                             this.sethfdSupp({[]});
                         end
 %                     case 3 %global histogram
 %                         if(~isnan(dTypeNr))
-%                             this.sethfdSupp(this.visObj.fdt.getGlobalObjMerged(this.visObj.getChannel(this.mySide),dType{1},dTypeNr,this.ROIType,this.ROISubType,this.ROIInvertFlag));
+%                             this.sethfdSupp(this.visObj.fdt.getGlobalObjMerged(this.visObj.getChannel(this.mySide),dType{1},dTypeNr,this.ROIType,this.ROISubType,this.ROIVicinity));
 %                         else
 %                             this.sethfdSupp(hfd);
 %                         end
@@ -614,7 +621,7 @@ classdef FDisplay < handle
             rc = this.ROICoordinates;
             rt = this.ROIType;
             rs = this.ROISubType;
-            ri = this.ROIInvertFlag;
+            ri = this.ROIVicinity;
             this.current_img_min = single(hfd{1}.getCImin(rc,rt,rs,ri));
             if(isnan(this.current_img_min))
                 this.current_img_min = 0;
@@ -664,7 +671,7 @@ classdef FDisplay < handle
             rc = this.ROICoordinates;
             rt = this.ROIType;
             rs = this.ROISubType;
-            ri = this.ROIInvertFlag;
+            ri = this.ROIVicinity;
             for i = 1:nrFD
                 %get image data to display
                 if(dispDim == 1)
@@ -1003,7 +1010,7 @@ classdef FDisplay < handle
             rc = this.ROICoordinates;
             rt = this.ROIType;
             rs = this.ROISubType;
-            ri = this.ROIInvertFlag;
+            ri = this.ROIVicinity;
             if(this.mDispDim == 1 && ~isempty(hfd.rawImgXSz) && ~isempty(hfd.rawImgYSz))
                 xFullRange = hfd.rawImgXSz(end);
                 yFullRange = hfd.rawImgYSz(end);
@@ -1035,7 +1042,7 @@ classdef FDisplay < handle
             rc = this.ROICoordinates;
             rt = this.ROIType;
             rs = this.ROISubType;
-            ri = this.ROIInvertFlag;
+            ri = this.ROIVicinity;
             if(this.mDispDim == 1)
                 xFullRange = hfd.rawImgXSz(end);
                 yFullRange = hfd.rawImgYSz(end);
@@ -1099,7 +1106,7 @@ classdef FDisplay < handle
                 rc = this.ROICoordinates;
                 rt = this.ROIType;
                 rs = this.ROISubType;
-                ri = this.ROIInvertFlag;
+                ri = this.ROIVicinity;
                 xlbl = hfd{1}.getCIXLbl(rc,rt,rs,ri);
                 ylbl = hfd{1}.getCIYLbl(rc,rt,rs,ri);
             end
@@ -1143,7 +1150,7 @@ classdef FDisplay < handle
             rc = this.ROICoordinates;
             rt = this.ROIType;
             rs = this.ROISubType;
-            ri = this.ROIInvertFlag;
+            ri = this.ROIVicinity;
             [~, centers] = hfd{1}.getCIHist(rc,rt,rs,ri);            
             if(length(centers) > 1)
                 classWidth = centers(2)-centers(1);
@@ -1200,7 +1207,7 @@ classdef FDisplay < handle
             rc = this.ROICoordinates;
             rt = this.ROIType;
             rs = this.ROISubType;
-            ri = this.ROIInvertFlag;
+            ri = this.ROIVicinity;
             switch this.sDispMode
                 case 1 %nothing to do
                     cla(this.h_s_ax);
@@ -1217,7 +1224,7 @@ classdef FDisplay < handle
                                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(char(list(typeSel,:)));
                                 [centers, histo] = this.visObj.fdt.getStudyHistogram(...
                                     this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide),...
-                                    this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1),this.ROIType,this.ROISubType,this.ROIInvertFlag);
+                                    this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1),this.ROIType,this.ROISubType,this.ROIVicinity);
 %                             case 3 %global histogram
 %                                 list = get(this.h_m_p,'String');
 %                                 typeSel = get(this.h_m_p,'Value');
@@ -1456,7 +1463,7 @@ classdef FDisplay < handle
                 set(this.h_ds_t,'Data',cell(0,0));
             else
                 data(:,1) = hfd{1}.getDescriptiveStatisticsDescriptionShort();
-                tmp = hfd{1}.getROIStatistics(this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIInvertFlag);
+                tmp = hfd{1}.getROIStatistics(this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIVicinity);
                 %data(:,2) = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%{num2str(tmp(i),'%.3G')};
                 if(isempty(tmp))
                     data(:,2) = cell(size(data,1),1);
@@ -1569,9 +1576,9 @@ classdef FDisplay < handle
             out = this.visObj.getROISubType(this.mySide);
         end
         
-        function out = get.ROIInvertFlag(this)
+        function out = get.ROIVicinity(this)
             %
-            out = this.visObj.getROIInvertFlag(this.mySide);
+            out = this.visObj.getROIVicinity(this.mySide);
         end
         
         function out = get.crossSectionXVal(this)

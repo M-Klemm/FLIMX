@@ -71,9 +71,9 @@ classdef FDataScatterPlot < FDataNormal
             out = this.ROISubType;
         end
         
-        function out = getROIInvertFlag(this)
+        function out = getROIVicinity(this)
             %get type of grid roi (number corresponding to type)
-            out = this.ROIInvertFlag;
+            out = this.ROIVicinity;
         end
         
         function out = getZScaling(this)
@@ -125,9 +125,9 @@ classdef FDataScatterPlot < FDataNormal
             this.ROISubType = val;
         end
         
-        function setROIInvertFlag(this,val)
+        function setROIVicinity(this,val)
             %set type of grid roi (number corresponding to type)
-            this.ROIInvertFlag = val;
+            this.ROIVicinity = val;
         end
         
         function setZScaling(this,data)

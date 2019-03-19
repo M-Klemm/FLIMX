@@ -1860,9 +1860,9 @@ classdef studyIS < handle
             end
                         
             if(oldStudy.revision < 28)
-                %update arithmetic image info
-                def = AICtrl.getDefStruct;
+                %update arithmetic image info                
                 if(isfield(oldStudy,'arithmeticImageInfo'))
+                    def = AICtrl.getDefStruct;
                     for i = 1:size(oldStudy.arithmeticImageInfo,1)
                         tmp = oldStudy.arithmeticImageInfo{i,2};
                         if(isfield(tmp,'valCombi'))
@@ -1886,6 +1886,19 @@ classdef studyIS < handle
                     end
                 end
             end
+            
+            if(oldStudy.revision < 29)
+                %update arithmetic image info                
+                if(isfield(oldStudy,'arithmeticImageInfo'))
+                    def = AICtrl.getDefStruct;
+                    for i = 1:size(oldStudy.arithmeticImageInfo,1)
+                        tmp = oldStudy.arithmeticImageInfo{i,2};
+                        tmp = orderfields(checkStructConsistency(tmp,def));
+                        oldStudy.arithmeticImageInfo{i,2} = tmp;
+                    end
+                end
+            end
+            
             this.setDirty(true);
         end
         

@@ -1009,6 +1009,11 @@ classdef FDTSubject < subject4Approx
             %get width of subject
             out = this.XSz;
         end
+        
+        function out = getVicinityInfo(this)
+            %get vicinity info
+            out = this.myParent.getVicinityInfo();
+        end
                 
         function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
@@ -1264,7 +1269,7 @@ classdef FDTSubject < subject4Approx
                         if(isempty(fd))
                             return
                         end
-                        out = fd.getROIImage(this.getROICoordinates(ROItype),ROItype,ROISubtype,0);
+                        out = fd.getROIImage(this.getROICoordinates(ROItype),ROItype,ROISubtype,aiParams.(sprintf('ROIVicinity%s',layer)));
                         out = mean(out(:),'omitnan');
                 end
             end

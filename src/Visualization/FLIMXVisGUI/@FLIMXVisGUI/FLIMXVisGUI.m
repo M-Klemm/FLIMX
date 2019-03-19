@@ -820,9 +820,9 @@ classdef FLIMXVisGUI < handle
             out = this.objHandles.(sprintf('%sROI',s)).ROISubType;
         end
         
-        function out = getROIInvertFlag(this,s)
+        function out = getROIVicinity(this,s)
             %get the subtype of the ROI of side s
-            out = this.objHandles.(sprintf('%sROI',s)).ROIInvertFlag;
+            out = this.objHandles.(sprintf('%sROI',s)).ROIVicinity;
         end
         
         function out = getStatsParams(this)
@@ -1068,7 +1068,6 @@ classdef FLIMXVisGUI < handle
                                 if(this.objHandles.(sprintf('%sdo',thisSide)).mZoomFactor > 1)
                                     dTarget = this.dynParams.mouseButtonDownCoord-cpMain;
                                     this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);
-                                    this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor
                                     this.objHandles.(sprintf('%sdo',thisSide)).makeZoom();
                                 end
                             end
@@ -1921,6 +1920,7 @@ classdef FLIMXVisGUI < handle
                 set(this.visHandles.(sprintf('ms_%s_z_check',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Enable or disable z scaling');
                 set(this.visHandles.(sprintf('roi_type_%s_popup',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Select ROI type');
                 set(this.visHandles.(sprintf('roi_subtype_%s_popup',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Select subfield of ETDRS grid');
+                set(this.visHandles.(sprintf('roi_vicinity_%s_popup',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Select ''inside'' for the area insode the ROI coordinates, ''invert'' to exclude the ROI area from further analysis or ''vicinity'' to use the area surrounding the ROI');
                 set(this.visHandles.(sprintf('roi_%s_table',ax)),'CellEditCallback',@this.GUI_roi_Callback);
                 set(this.visHandles.(sprintf('roi_table_clearLast_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Clear last node of current polygon ROI');
                 set(this.visHandles.(sprintf('roi_table_clearAll_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Clear all nodes of current polygon ROI');
