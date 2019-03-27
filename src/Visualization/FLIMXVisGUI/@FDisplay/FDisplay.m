@@ -206,7 +206,9 @@ classdef FDisplay < handle
             xlim(this.h_s_ax,[lb ub]);
             this.mySuppXZoomScale = [lb ub];
             xtick = get(this.h_s_ax,'XTick');
-            set(this.h_s_ax,'XTickLabel',FLIMXFitGUI.num4disp(histCenters(xtick-lb+1)'));
+            newLabelTicks = xtick-lb+1;
+            newLabelTicks(newLabelTicks <= 0 | newLabelTicks > length(histCenters)) = [];
+            set(this.h_s_ax,'XTickLabel',FLIMXFitGUI.num4disp(histCenters(newLabelTicks)'));
         end
         
         function out = getDispView(this)
@@ -304,7 +306,7 @@ classdef FDisplay < handle
             try
                 delete(this.h_ROIArea);
             end
-            if(this.staticVisParams.ROI_fill_enable && (this.ROIVicinity ~= 1 || this.ROIType == 1 && this.ROIVicinity == 1))
+            if(this.staticVisParams.ROI_fill_enable && (this.ROIVicinity ~= 1 || ROIType > 1000 && ROIType < 2000 && this.ROIVicinity == 1))
                 %draw ETDRS grid segments or inverted / vicinity ROI areas
                 gc = this.staticVisParams.ROIColor;
                 fileInfo.pixelResolution = this.pixelResolution;
@@ -322,46 +324,44 @@ classdef FDisplay < handle
                     this.h_ROIArea = image(this.h_m_ax,mask(:,:,1:3),'AlphaData',mask(:,:,4));
                     hold(this.h_m_ax,'off');
                 end
-            end
-            
-            
-            switch ROIType
-                case 1
-                    this.drawETDRSGrid(cp,drawTextFlag);
-                case {2,3}
-                    if(isempty(op))
-                        return
-                    end
-                    this.drawRectangle(cp,op-cp,drawTextFlag);
-                case {4,5}
-                    if(isempty(op))
-                        return
-                    end
-                    radius = sqrt(sum((op-cp).^2));
-                    this.drawCircle(op,radius,drawTextFlag);
-                case {6,7}
-                    this.drawPolygon([op,cp],drawTextFlag);
-                otherwise
-                    try
-                        delete(this.h_Rectangle);
-                        this.h_Rectangle = [];
-                    end
-                    try
-                        delete(this.h_Circle);
-                        this.h_Circle = [];
-                    end
-                    try
-                        delete(this.h_ETDRSGrid);
-                        this.h_ETDRSGrid = [];
-                    end
-                    try
-                        delete(this.h_ETDRSGridText);
-                        this.h_ETDRSGridText = [];
-                    end
-                    try
-                        delete(this.h_Polygon);
-                        this.h_Polygon = [];
-                    end
+            end            
+            %draw ROI lines
+            if(ROIType > 1000 && ROIType < 2000)
+                this.drawETDRSGrid(cp,drawTextFlag);
+            elseif(ROIType > 2000 && ROIType < 3000)
+                if(isempty(op))
+                    return
+                end
+                this.drawRectangle(cp,op-cp,drawTextFlag);
+            elseif(ROIType > 3000 && ROIType < 4000)
+                if(isempty(op))
+                    return
+                end
+                radius = sqrt(sum((op-cp).^2));
+                this.drawCircle(op,radius,drawTextFlag);
+            elseif(ROIType > 4000 && ROIType < 5000)
+                this.drawPolygon([op,cp],drawTextFlag);
+            else
+                try
+                    delete(this.h_Rectangle);
+                    this.h_Rectangle = [];
+                end
+                try
+                    delete(this.h_Circle);
+                    this.h_Circle = [];
+                end
+                try
+                    delete(this.h_ETDRSGrid);
+                    this.h_ETDRSGrid = [];
+                end
+                try
+                    delete(this.h_ETDRSGridText);
+                    this.h_ETDRSGridText = [];
+                end
+                try
+                    delete(this.h_Polygon);
+                    this.h_Polygon = [];
+                end
             end
         end
         
@@ -799,8 +799,7 @@ classdef FDisplay < handle
                         %draw ROI if TOP view
                         if(dispDim == 1)
                             %check roi
-                            rt = this.ROIType;
-                            if(rt >= 1)
+                            if(rt > 1000)
                                 ROICoord = this.ROICoordinates;
                                 if(~isempty(ROICoord))
                                     this.drawROI(rt,ROICoord(:,1),ROICoord(:,2:end),true);

@@ -126,12 +126,58 @@ classdef ROICtrl < handle
         
         function out = get.ROIType(this)
             %get current ROI type
-            out = get(this.roi_type_popup,'Value')-1;
+            str = this.roi_type_popup.String;
+            nr = this.roi_type_popup.Value;
+            if(iscell(str))
+                str = str{nr};
+            elseif(ischar(str))
+                %nothing to do
+            else
+                %should not happen
+            end
+            out = ROICtrl.ROIItem2ROIType(str);
+            %out = get(this.roi_type_popup,'Value')-1;
         end
         
         function set.ROIType(this,val)
-            %get current ROI type
-            this.roi_type_popup.Value = max(1,min(length(this.roi_type_popup.String),val+1));
+            %set current ROI type
+            str = this.roi_type_popup.String;
+            if(ischar(str))
+                str = {str};
+            end
+            [newStr,~,ROITypeFine] = ROICtrl.ROIType2ROIItem(val);
+            idx = find(strcmp(str,newStr),1,'first');
+            if(isempty(idx))
+                %add new item to popup
+                ROIStr = strsplit(newStr,'#');
+                idx = find(strncmp(str,ROIStr{1},length(ROIStr{1})));
+                oldTypes = [];
+                for i = idx(:)'
+                    oldTypes = [oldTypes ROICtrl.ROIItem2ROIType(str{i})];
+                end
+                d = val - max(oldTypes) -1;
+                oldPStr = [];
+                if(idx(end) < length(str))
+                    oldPStr = str(idx(end)+1:end,1);
+                end
+                for i = d:-1:0
+                    str{idx(1)+ROITypeFine-1-i,1} = sprintf('%s#%d',ROIStr{1},ROITypeFine-i);
+                end
+                if(~isempty(oldPStr))
+                    %append remaining old ROI items
+                    pos = idx(end)+d+2;
+                    str(pos:pos+length(oldPStr)-1) = oldPStr;
+                end
+                %now find the index of the newly added item
+                idx = find(strcmp(str,newStr),1,'first');
+                if(isempty(idx))
+                    %should not happen
+                    return
+                end
+                this.roi_type_popup.String = str;
+            end
+            this.roi_type_popup.Value = idx;
+            %this.roi_type_popup.Value = max(1,min(length(this.roi_type_popup.String),val+1));
         end
         
         function out = get.ROISubType(this)
@@ -182,9 +228,10 @@ classdef ROICtrl < handle
             %callback function of the edit field
             current = str2double(get(this.(sprintf('%s_%s_edit',dim,bnd)),'String'));
             %check for validity
-            switch this.ROIType
-                case {2,3} %rectangles
-                    current = this.checkBnds(dim,bnd,current);
+            rt = this.ROIType;
+            if(rt > 2000 && rt < 3000)
+                %rectangles
+                current = this.checkBnds(dim,bnd,current);
             end
             set(this.(sprintf('%s_%s_edit',dim,bnd)),'String',current);
             this.save();
@@ -209,29 +256,32 @@ classdef ROICtrl < handle
                     otherBnd = 'lo';
             end
             other = [];
-            switch this.ROIType
-                case 1 %ETDRS grid
-                    switch target
-                        case 'inc'
-                            d = 1;
-                        case 'dec'
-                            d = -1;
-                    end
-                    switch dim
-                        case 'x'
-                            current = min(max(1,this.editXlo+d),hfd.rawImgXSz(2));
-                        case 'y'
-                            current = min(max(1,this.editYlo+d),hfd.rawImgXSz(2));
-                    end
-                case {2,3} %rectangles
-                    current = this.(sprintf('%s%s',target,thisEdit))(dim);
-                    %increase/decrease and check for validity
-                    current = this.checkBnds(dim,thisBnd,current);
-                case {4,5} %circles
-                    current = this.(sprintf('%s%s',target,thisEdit))(dim);
-                    if(strcmp(thisBnd,'lo'))
-                        other = this.(sprintf('%s%s',target,otherEdit))(dim);
-                    end
+            rt = this.ROIType;
+            if(rt > 1000 && rt < 2000)
+                %ETDRS grid
+                switch target
+                    case 'inc'
+                        d = 1;
+                    case 'dec'
+                        d = -1;
+                end
+                switch dim
+                    case 'x'
+                        current = min(max(1,this.editXlo+d),hfd.rawImgXSz(2));
+                    case 'y'
+                        current = min(max(1,this.editYlo+d),hfd.rawImgXSz(2));
+                end
+            elseif(rt > 2000 && rt < 3000)
+                %rectangles
+                current = this.(sprintf('%s%s',target,thisEdit))(dim);
+                %increase/decrease and check for validity
+                current = this.checkBnds(dim,thisBnd,current);
+            elseif(rt > 3000 && rt < 4000)
+                %circles
+                current = this.(sprintf('%s%s',target,thisEdit))(dim);
+                if(strcmp(thisBnd,'lo'))
+                    other = this.(sprintf('%s%s',target,otherEdit))(dim);
+                end
             end
             set(this.(sprintf('%s_%s_edit',dim,thisBnd)),'String',current);
             if(~isempty(other))
@@ -250,8 +300,10 @@ classdef ROICtrl < handle
         function buttonClearLastCallback(this)
             %callback function to clear last node of current polygon
             data = get(this.roi_table,'Data');
-            if(~isempty(data) && this.ROIType >= 6 && this.ROIType <= 7)
-                choice = questdlg(sprintf('Delete last node (y=%d, x=%d) of Polygon #%d ROI in subject %s?',data{1,end},data{2,end},this.ROIType-5,this.myHFD.subjectName),'Clear last Polygon ROI node?','Yes','No','No');
+            rt = this.ROIType;
+            if(~isempty(data) && rt > 4000 && rt < 5000)
+                [~,~,ROITypeFine] = ROICtrl.ROIType2ROIItem(this.ROIType);
+                choice = questdlg(sprintf('Delete last node (y=%d, x=%d) of Polygon #%d ROI in subject %s?',data{1,end},data{2,end},ROITypeFine,this.myHFD.subjectName),'Clear last Polygon ROI node?','Yes','No','No');
                 switch choice
                     case 'Yes'
                         data(:,end) = [];
@@ -263,7 +315,8 @@ classdef ROICtrl < handle
         
         function buttonClearAllCallback(this)
             %callback function to clear all nodes of current polygon
-            if(this.ROIType >= 6 && this.ROIType <= 7)
+            rt = this.ROIType;
+            if(rt > 4000 && rt < 5000)
                 choice = questdlg(sprintf('Delete all nodes of Polygon #%d ROI in subject %s?',this.ROIType-5,this.myHFD.subjectName),'Clear all Polygon ROI nodes?','Yes','No','No');
                 switch choice
                     case 'Yes'
@@ -271,6 +324,61 @@ classdef ROICtrl < handle
                         this.save();
                 end
             end
+        end
+        
+        function addNewROI(this)
+            %add another ROI of the current type
+            rt = this.ROIType;
+%             hfd = this.myHFD;
+            if(rt == 0) %isempty(hfd) || 
+                return
+            end
+            pStr = this.roi_type_popup.String;
+            if(ischar(pStr))
+                pStr = {pStr};
+            end
+            allROT = cellfun(@ROICtrl.ROIItem2ROIType,pStr);
+            [str,c,f] = ROICtrl.ROIType2ROIItem(rt);
+            idx = allROT > c*1000 & allROT < (c+1)*1000;
+            this.ROIType = max(allROT(idx))+1;
+            ROIInfo = zeros(2,3,'int16');
+            this.updateGUI(ROIInfo(:,2:end));
+            this.save();
+        end
+        
+        function deleteROI(this)
+            %delete current ROI
+            rt = this.ROIType;
+            if(rt > 1001 && rt < 2000 || rt > 2002 && rt < 3000 || rt > 3002 && rt < 4000 || rt > 4002 && rt < 5000)
+                hfd = this.myHFD;
+                if(isempty(hfd))
+                    return
+                end
+%                 ROIInfo = this.getCurROIInfo();
+%                 if(strncmp('ConditionMVGroup',hfd.dType,16))
+%                     tmp = hfd.dType;
+%                     this.visObj.fdt.clearMVGroups(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
+%                     hfd.setROICoordinates(this.ROIType,ROIInfo);
+%                 elseif(strncmp('GlobalMVGroup',hfd.dType,13))
+%                     hfd.setROICoordinates(this.ROIType,ROIInfo);
+%                 else
+                    this.visObj.fdt.deleteResultROICoordinates(this.visObj.getStudy(this.mySide),hfd.dType,hfd.id,rt);
+%                 end
+                this.ROIType = rt-1;
+                this.setupGUI();
+                this.updateGUI([]);
+            end
+        end
+        
+        function resetROI(this)
+            %reset current ROI
+            rt = this.ROIType;
+            if(rt == 0)
+                return
+            end
+            ROIInfo = zeros(2,3,'int16');
+            this.updateGUI(ROIInfo(:,2:end));
+            this.save();
         end
         
         function popupCallback(this,type)
@@ -281,7 +389,7 @@ classdef ROICtrl < handle
         
         function setStartPoint(this,coord)
             %set coordinates(y,x) of ROI start point
-            if(this.ROIType < 6)
+            if(this.ROIType < 4000)
                 ROICoord = this.getCurROIInfo();
                 ROICoord = ROICoord(:,2:end);
                 if(isempty(coord))
@@ -296,19 +404,26 @@ classdef ROICtrl < handle
             %set coordinates(y,x) of ROI end point
             ROICoord = this.getCurROIInfo();
             ROICoord = ROICoord(:,2:end);
-            if(this.ROIType < 6)
+            rt = this.ROIType;
+            coord = int16(coord);
+            if(rt < 4000)
                 if(isempty(coord))
                     coord = [0,0];
                 end
                 ROICoord(:,2) = coord;
-                if(this.ROIType == 1)
+                if(rt > 1000 && rt < 2000) %ETDRS
                     ROICoord(:,1) = coord;
                 end
             else
-                ROICoord(:,end+1) = coord;
+                %polygon
+                %add only unique pixels
+                idx = sum(ROICoord - coord,1);
+                if(all(idx))
+                    ROICoord(:,end+1) = coord;
+                end
             end
             if(saveFlag)
-                if(this.ROIType == 2 || this.ROIType == 3)
+                if(rt > 2000 && rt < 3000) %rectangle
                     ROICoord = sort(ROICoord,2);
                 end
                 this.updateGUI(ROICoord);
@@ -326,8 +441,9 @@ classdef ROICtrl < handle
             ROICoord = this.getCurROIInfo();
             ROICoord = ROICoord(:,2:end);
             ROICoord = bsxfun(@minus,ROICoord,int16(d));
+            rt = this.ROIType;
             if(saveFlag)
-                if(this.ROIType == 2 || this.ROIType == 3)
+                if(rt > 2000 && rt < 3000) %rectangle
                     ROICoord = sort(ROICoord,2);
                 end
                 this.updateGUI(ROICoord);
@@ -339,55 +455,68 @@ classdef ROICtrl < handle
         
         function setupGUI(this)
             %setup GUI controls for current ROI Type
-            switch this.ROIType
-                case 1 %ETDRS grid
-                    set(this.roi_vicinity_popup,'Visible','on');
-                    set(this.roi_subtype_popup,'Visible','on');
-                    this.enDisAble('off','off');
-                    set(this.x_check,'Visible','on');
-                    set(this.y_check,'Visible','on');
-                    set(this.x_lo_edit,'Visible','on','Enable','on');
-                    set(this.y_lo_edit,'Visible','on','Enable','on');
-                    set(this.x_lo_dec_button,'Enable','on','Visible','on');
-                    set(this.x_lo_inc_button,'Enable','on','Visible','on');
-                    set(this.y_lo_dec_button,'Enable','on','Visible','on');
-                    set(this.y_lo_inc_button,'Enable','on','Visible','on');
-                    set(this.roi_table,'Visible','off');
-                    set(this.roi_table_clearLast_button,'Visible','off');
-                    set(this.roi_table_clearAll_button,'Visible','off');
-                case {2,3} %rectangle
-                    set(this.roi_vicinity_popup,'Visible','on');
-                    set(this.roi_subtype_popup,'Visible','off');
-                    this.enDisAble('on','on');
-                    set(this.roi_table,'Visible','off');
-                    set(this.roi_table_clearLast_button,'Visible','off');
-                    set(this.roi_table_clearAll_button,'Visible','off');
-                case {4,5} %circle
-                    set(this.roi_vicinity_popup,'Visible','on');
-                    set(this.roi_subtype_popup,'Visible','off');
-                    this.enDisAble('on','on');
-                    set(this.y_sz_text','Enable','off','Visible','off');
-                    set(this.y_sz_edit,'Enable','off','Visible','off');
-                    set(this.y_szMM_text','Enable','off','Visible','off');
-                    set(this.y_szPX_text','Enable','off','Visible','off');
-                    set(this.y_szMM_edit,'Enable','off','Visible','off');
-                    set(this.roi_table,'Visible','off');
-                    set(this.roi_table_clearLast_button,'Visible','off');
-                    set(this.roi_table_clearAll_button,'Visible','off');
-                case {6,7} %polygon
-                    set(this.roi_vicinity_popup,'Visible','on');
-                    set(this.roi_subtype_popup,'Visible','off');
-                    set(this.roi_table,'Visible','on');
-                    set(this.roi_table_clearLast_button,'Visible','on');
-                    set(this.roi_table_clearAll_button,'Visible','on');
-                    this.enDisAble('off','off');
-                otherwise %switch to 'none'
-                    set(this.roi_vicinity_popup,'Visible','off');
-                    set(this.roi_subtype_popup,'Visible','off');
-                    this.enDisAble('off','off');
-                    set(this.roi_table,'Visible','off');
-                    set(this.roi_table_clearLast_button,'Visible','off');
-                    set(this.roi_table_clearAll_button,'Visible','off');
+            hfd = this.myHFD;
+            if(isempty(hfd))
+                allROIStr = {ROICtrl.ROIType2ROIItem(0)};
+            else
+                allROT = hfd.getROICoordinates([]);
+                allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
+            end
+            set(this.roi_type_popup,'String',allROIStr,'Value',min(this.roi_type_popup.Value,length(allROIStr)));
+            rt = this.ROIType;
+            if(rt > 1000 && rt < 2000)
+                %ETDRS grid
+                set(this.roi_vicinity_popup,'Visible','on');
+                set(this.roi_subtype_popup,'Visible','on');
+                this.enDisAble('off','off');
+                set(this.x_check,'Visible','on');
+                set(this.y_check,'Visible','on');
+                set(this.x_lo_edit,'Visible','on','Enable','on');
+                set(this.y_lo_edit,'Visible','on','Enable','on');
+                set(this.x_lo_dec_button,'Enable','on','Visible','on');
+                set(this.x_lo_inc_button,'Enable','on','Visible','on');
+                set(this.y_lo_dec_button,'Enable','on','Visible','on');
+                set(this.y_lo_inc_button,'Enable','on','Visible','on');
+                set(this.roi_table,'Visible','off');
+                set(this.roi_table_clearLast_button,'Visible','off');
+                set(this.roi_table_clearAll_button,'Visible','off');
+            elseif(rt > 2000 && rt < 3000)
+                %rectangle
+                set(this.roi_vicinity_popup,'Visible','on');
+                set(this.roi_subtype_popup,'Visible','off');
+                this.enDisAble('on','on');
+                set(this.roi_table,'Visible','off');
+                set(this.roi_table_clearLast_button,'Visible','off');
+                set(this.roi_table_clearAll_button,'Visible','off');
+            elseif(rt > 3000 && rt < 4000)
+                %circle
+                set(this.roi_vicinity_popup,'Visible','on');
+                set(this.roi_subtype_popup,'Visible','off');
+                this.enDisAble('on','on');
+                set(this.y_sz_text','Enable','off','Visible','off');
+                set(this.y_sz_edit,'Enable','off','Visible','off');
+                set(this.y_szMM_text','Enable','off','Visible','off');
+                set(this.y_szPX_text','Enable','off','Visible','off');
+                set(this.y_szMM_edit,'Enable','off','Visible','off');
+                set(this.roi_table,'Visible','off');
+                set(this.roi_table_clearLast_button,'Visible','off');
+                set(this.roi_table_clearAll_button,'Visible','off');
+            elseif(rt > 4000 && rt < 5000)
+                %polygon
+                set(this.roi_vicinity_popup,'Visible','on');
+                set(this.roi_subtype_popup,'Visible','off');
+                set(this.roi_table,'Visible','on');
+                set(this.roi_table_clearLast_button,'Visible','on');
+                set(this.roi_table_clearAll_button,'Visible','on');
+                this.enDisAble('off','off');
+            else
+                %switch to 'none'
+                set(this.roi_vicinity_popup,'Visible','off');
+                set(this.roi_subtype_popup,'Visible','off');
+                this.enDisAble('off','off');
+                set(this.roi_table,'Visible','off');
+                set(this.roi_table_clearLast_button,'Visible','off');
+                set(this.roi_table_clearAll_button,'Visible','off');
             end
         end
         
@@ -397,17 +526,18 @@ classdef ROICtrl < handle
             if(isempty(hfd))
                 return
             end
+            rt = this.ROIType;
             if(isempty(ROICoord))
-                ROICoord = hfd.getROICoordinates(this.ROIType);
+                ROICoord = hfd.getROICoordinates(rt);
                 if(isempty(ROICoord) || ~any(ROICoord(:)))
-                    if(this.ROIType < 6)
+                    if(rt < 4000)
                         %ETDRS grid, rectangles, circles
                         ROICoord = [hfd.rawImgYSz; hfd.rawImgXSz];
                     else
                         ROICoord = [];
                     end
                 end
-                if(this.ROIType >= 6 && ~all(all(ROICoord,1)))
+                if(rt > 4000 && rt < 5000 && ~all(all(ROICoord,1)))
                     %polygons
                     ROICoord = ROICoord(:,all(ROICoord,1));
                 end
@@ -419,40 +549,41 @@ classdef ROICtrl < handle
                 res = 0;%58.66666666666/1000;
                 %todo: warning/error message
             end
-            if(isempty(ROICoord) && this.ROIType < 6)
+            if(isempty(ROICoord) && rt < 4000)
                 this.ROIType = 0;
                 this.popupCallback('');
             else
-                switch this.ROIType
-                    case 1 %ETDRS grid
-                        set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
-                        set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
-                    case {0,2,3} %rectangle
-                        set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
-                        set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
-                        set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
-                        set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
-                        d = abs(ROICoord(1,2)-ROICoord(1,1))+1;
-                        set(this.y_sz_edit,'String',num2str(d));
-                        set(this.y_szMM_edit,'String',FLIMXFitGUI.num4disp(res*double(d)));
-                        d = abs(ROICoord(2,2)-ROICoord(2,1))+1;
-                        set(this.x_sz_edit,'String',num2str(d));
-                        set(this.x_szMM_edit,'String',FLIMXFitGUI.num4disp(res*double(d)));
-                    case {4,5} %circle
-                        set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
-                        set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
-                        set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
-                        set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
-                        d = 2*sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
-                        set(this.x_sz_edit,'String',FLIMXFitGUI.num4disp(d));
-                        set(this.x_szMM_edit,'String',FLIMXFitGUI.num4disp(res*d));
-                    case {6,7} %polygon
-                        set(this.roi_table,'Data',num2cell(ROICoord))
-                        if(~isempty(ROICoord))
-                            set(this.roi_table,'ColumnWidth',num2cell(25*ones(1,size(ROICoord,2))));
-                        end
-                    otherwise
-                        
+                if(rt > 1000 && rt < 2000)
+                    %ETDRS grid
+                    set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
+                    set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
+                elseif(rt == 0 || rt > 2000 && rt < 3000)
+                    %rectangle
+                    set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
+                    set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
+                    set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
+                    set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
+                    d = abs(ROICoord(1,2)-ROICoord(1,1))+1;
+                    set(this.y_sz_edit,'String',num2str(d));
+                    set(this.y_szMM_edit,'String',FLIMXFitGUI.num4disp(res*double(d)));
+                    d = abs(ROICoord(2,2)-ROICoord(2,1))+1;
+                    set(this.x_sz_edit,'String',num2str(d));
+                    set(this.x_szMM_edit,'String',FLIMXFitGUI.num4disp(res*double(d)));
+                elseif(rt > 3000 && rt < 4000)
+                    %circle
+                    set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
+                    set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
+                    set(this.y_u_edit,'String',num2str(ROICoord(1,2)));
+                    set(this.x_u_edit,'String',num2str(ROICoord(2,2)));
+                    d = 2*sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
+                    set(this.x_sz_edit,'String',FLIMXFitGUI.num4disp(d));
+                    set(this.x_szMM_edit,'String',FLIMXFitGUI.num4disp(res*d));
+                elseif(rt > 4000 && rt < 5000)
+                    %polygon
+                    set(this.roi_table,'Data',num2cell(ROICoord))
+                    if(~isempty(ROICoord))
+                        set(this.roi_table,'ColumnWidth',num2cell(25*ones(1,size(ROICoord,2))));
+                    end
                 end
             end
         end
@@ -463,13 +594,17 @@ classdef ROICtrl < handle
             %      [enable,y1,y2]
             out = zeros(2,3,'int16');
             hfd = this.myHFD;
-            out(1,1) = 1;
+            if(isempty(hfd))
+                return
+            end
+            rt = this.ROIType;
+            out(1,1) = rt;
             out(2,1) = this.ROIVicinity;
             out(1,2) = hfd.yLbl2Pos(sscanf(get(this.y_lo_edit,'String'),'%i',1)); %sscanf(s,'%f',1);
             out(2,2) = hfd.xLbl2Pos(sscanf(get(this.x_lo_edit,'String'),'%i',1));
-            if(this.ROIType == 1)
+            if(rt > 1000 && rt < 2000)
                 out(:,3) = out(:,2);
-            elseif(this.ROIType == 6 || this.ROIType == 7)
+            elseif(rt > 4000 && rt < 5000)
                 out = int16([[1;this.ROIVicinity], cell2mat(get(this.roi_table,'Data'))]);
 %                 if(size(tmp,2) < size(out,2))
 %                     out(:,1:size(tmp,2)) = tmp;
@@ -612,7 +747,7 @@ classdef ROICtrl < handle
             ROIInfo = this.getCurROIInfo();
             if(strncmp('ConditionMVGroup',hfd.dType,16))
                 tmp = hfd.dType;
-                this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
+                this.visObj.fdt.clearMVGroups(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
                 hfd.setROICoordinates(this.ROIType,ROIInfo);
             elseif(strncmp('GlobalMVGroup',hfd.dType,13))
                 hfd.setROICoordinates(this.ROIType,ROIInfo);
@@ -650,92 +785,133 @@ classdef ROICtrl < handle
     end %methods protected
     
     methods(Static)
+        function out = ROIItem2ROIType(str)
+            %convert ROIItem (from ROI popup) to numeric ROIType
+            str = deblank(str);
+            if(strcmp(str,'-none-'))
+                out = 0;
+            elseif(strncmp(str,'ETDRS Grid',10))
+                out = 1001;
+                if(length(str) > 10)
+                    out = out + str2double(str(11:end));
+                end
+            elseif(strncmp(str,'Rectangle #',11))
+                out = 2000 + str2double(str(12:end));
+            elseif(strncmp(str,'Circle #',8))
+                out = 3000 + str2double(str(9:end));
+            elseif(strncmp(str,'Polygon #',9))
+                out = 4000 + str2double(str(10:end));
+            else
+                out = 0;
+            end
+        end
+        
+        function [str,ROITypeCoarse,ROITypeFine] = ROIType2ROIItem(ROIType)
+            %convert numeric ROIType to ROIItem (for ROI popup) 
+            ROITypeCoarse = floor(ROIType / 1000);
+            ROITypeFine = ROIType - ROITypeCoarse*1000;
+            switch ROITypeCoarse
+                case 1
+                    if(ROITypeFine == 1)
+                        str = 'ETDRS Grid';
+                    else
+                        str = sprintf('ETDRS Grid #%d',ROITypeFine);
+                    end
+                case 2
+                    str = sprintf('Rectangle #%d',ROITypeFine);
+                case 3
+                    str = sprintf('Circle #%d',ROITypeFine);
+                case 4
+                    str = sprintf('Polygon #%d',ROITypeFine);
+                otherwise
+                    str = '-none-';
+            end
+        end
+        
         function flag = mouseInsideROI(cp,ROIType,ROICoord)
             %check if coordinates of current point (cp) are inside an ROI (including the border), return true, otherwise return false
             flag = false;
             if(isempty(cp) || isempty(ROICoord))
                 return
-            end
-            switch ROIType
-                case {2,3}
-                    %rectangle
-                    if(cp(1) >= ROICoord(2,1) && cp(1) <= ROICoord(2,2) && cp(2) >= ROICoord(1,1) && cp(2) <= ROICoord(1,2))
-                        flag = true;
-                    end
-                case {4,5}
-                    %circle
-                    radius = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
-                    center = double(ROICoord(:,1));
-                    current = center - flipud(cp);
-                    [~,rho] = cart2pol(current(2),current(1));
-                    if(rho <= radius)
-                        flag = true;
-                    end
-                case {6,7}
-                    %polygon                    
-                    ROICoord = double(ROICoord);
-                    mask = poly2mask(ROICoord(2,:),ROICoord(1,:),max([ROICoord(1,:),cp(2)]),max([ROICoord(2,:),cp(1)]));
-                    flag = mask(cp(2),cp(1));
+            end            
+            if(ROIType > 2000 && ROIType < 3000)
+                %rectangle
+                if(cp(1) >= ROICoord(2,1) && cp(1) <= ROICoord(2,2) && cp(2) >= ROICoord(1,1) && cp(2) <= ROICoord(1,2))
+                    flag = true;
+                end
+            elseif(ROIType > 3000 && ROIType < 4000)
+                %circle
+                radius = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
+                center = double(ROICoord(:,1));
+                current = center - flipud(cp);
+                [~,rho] = cart2pol(current(2),current(1));
+                if(rho <= radius)
+                    flag = true;
+                end
+            elseif(ROIType > 4000 && ROIType < 5000)
+                %polygon
+                ROICoord = double(ROICoord);
+                mask = poly2mask(ROICoord(2,:),ROICoord(1,:),max([ROICoord(1,:),cp(2)]),max([ROICoord(2,:),cp(1)]));
+                flag = mask(cp(2),cp(1));
             end
         end
         
         function [out, numIdent] = mouseOverROIBorder(cp,ROIType,ROICoord,pixelMargin)
             %check if coordinates of current point (cp) are over the border of an ROI, return the mouse pointer type, otherwise return 'cross'
             out = 'cross'; numIdent = 0;
-            switch ROIType
-                case {2,3}
-                    %rectangle
-                    if(abs(ROICoord(2,2)-cp(1)) <= pixelMargin && abs(ROICoord(1,2)-cp(2)) <= pixelMargin)
-                        out = 'topr'; 
-                        numIdent = 2;
-                    elseif(abs(ROICoord(2,1)-cp(1)) <= pixelMargin && abs(ROICoord(1,2)-cp(2)) <= pixelMargin)
-                        out = 'topl'; 
-                        numIdent = 4;                        
-                    elseif(abs(ROICoord(2,1)-cp(1)) <= pixelMargin && abs(ROICoord(1,1)-cp(2)) <= pixelMargin)
-                        out = 'botl'; 
-                        numIdent = 6;  
-                    elseif(abs(ROICoord(2,2)-cp(1)) <= pixelMargin && abs(ROICoord(1,1)-cp(2)) <= pixelMargin)
-                        out = 'botr'; 
-                        numIdent = 8;  
-                    elseif(abs(ROICoord(2,1)-cp(1)) <= pixelMargin  && cp(2) >= ROICoord(1,1) && cp(2) <= ROICoord(1,2))
-                        out = 'left'; 
-                        numIdent = 5;
-                    elseif(abs(ROICoord(2,2)-cp(1)) <= pixelMargin  && cp(2) >= ROICoord(1,1) && cp(2) <= ROICoord(1,2))
-                        out = 'right';
-                        numIdent = 1;
-                    elseif(abs(ROICoord(1,2)-cp(2)) <= pixelMargin  && cp(1) >= ROICoord(2,1) && cp(1) <= ROICoord(2,2))
-                        out = 'top';
-                        numIdent = 3;
-                    elseif(abs(ROICoord(1,1)-cp(2)) <= pixelMargin && cp(1) >= ROICoord(2,1) && cp(1) <= ROICoord(2,2))
-                        out = 'bottom';
-                        numIdent = 7;
+            if(ROIType > 2000 && ROIType < 3000)
+                %rectangle
+                if(abs(ROICoord(2,2)-cp(1)) <= pixelMargin && abs(ROICoord(1,2)-cp(2)) <= pixelMargin)
+                    out = 'topr';
+                    numIdent = 2;
+                elseif(abs(ROICoord(2,1)-cp(1)) <= pixelMargin && abs(ROICoord(1,2)-cp(2)) <= pixelMargin)
+                    out = 'topl';
+                    numIdent = 4;
+                elseif(abs(ROICoord(2,1)-cp(1)) <= pixelMargin && abs(ROICoord(1,1)-cp(2)) <= pixelMargin)
+                    out = 'botl';
+                    numIdent = 6;
+                elseif(abs(ROICoord(2,2)-cp(1)) <= pixelMargin && abs(ROICoord(1,1)-cp(2)) <= pixelMargin)
+                    out = 'botr';
+                    numIdent = 8;
+                elseif(abs(ROICoord(2,1)-cp(1)) <= pixelMargin  && cp(2) >= ROICoord(1,1) && cp(2) <= ROICoord(1,2))
+                    out = 'left';
+                    numIdent = 5;
+                elseif(abs(ROICoord(2,2)-cp(1)) <= pixelMargin  && cp(2) >= ROICoord(1,1) && cp(2) <= ROICoord(1,2))
+                    out = 'right';
+                    numIdent = 1;
+                elseif(abs(ROICoord(1,2)-cp(2)) <= pixelMargin  && cp(1) >= ROICoord(2,1) && cp(1) <= ROICoord(2,2))
+                    out = 'top';
+                    numIdent = 3;
+                elseif(abs(ROICoord(1,1)-cp(2)) <= pixelMargin && cp(1) >= ROICoord(2,1) && cp(1) <= ROICoord(2,2))
+                    out = 'bottom';
+                    numIdent = 7;
+                end
+            elseif(ROIType > 3000 && ROIType < 4000)
+                %circle
+                radius = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
+                center = double(ROICoord(:,1));
+                angle = -pi/8:2*pi/360:pi/8;
+                pointerTypes = FLIMXVisGUI.getROIBorderPointerTypes;
+                for i = 1:8
+                    aTmp = angle + (i-1)*pi/4;
+                    pTmp = round(radius.*[sin(aTmp); cos(aTmp)]+center); %pixel coordinates
+                    idxTmp = abs(cp(2) - pTmp(1,:)) <= pixelMargin;
+                    hitTmp = abs(cp(1) - pTmp(2,idxTmp)) <= pixelMargin;
+                    if(~isempty(hitTmp) && any(hitTmp))
+                        out = pointerTypes{i};
+                        numIdent = i;
+                        return
                     end
-                case {4,5}
-                    %circle
-                    radius = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
-                    center = double(ROICoord(:,1));
-                    angle = -pi/8:2*pi/360:pi/8;
-                    pointerTypes = FLIMXVisGUI.getROIBorderPointerTypes;
-                    for i = 1:8
-                        aTmp = angle + (i-1)*pi/4;
-                        pTmp = round(radius.*[sin(aTmp); cos(aTmp)]+center); %pixel coordinates
-                        idxTmp = abs(cp(2) - pTmp(1,:)) <= pixelMargin;
-                        hitTmp = abs(cp(1) - pTmp(2,idxTmp)) <= pixelMargin;
-                        if(~isempty(hitTmp) && any(hitTmp))
-                            out = pointerTypes{i};
-                            numIdent = i;
-                            return
-                        end
+                end
+            elseif(ROIType > 4000 && ROIType < 5000)
+                %polygon
+                if(size(ROICoord,2) >= 1)
+                    idx = abs(cp(2) - ROICoord(1,1:end)) <= pixelMargin;
+                    if(any(idx) && any(abs(cp(1) - ROICoord(2,idx)) <= pixelMargin))
+                        out = 'crosshair';
+                        numIdent = 9;
                     end
-                case {6,7}
-                    %polygon
-                    if(size(ROICoord,2) >= 1)
-                        idx = cp(2) == ROICoord(1,1:end);
-                        if(any(idx) && ~isempty(cp(1) == ROICoord(2,idx)))
-                            out = 'crosshair';
-                            numIdent = 9;
-                        end
-                    end
+                end
             end
         end
         

@@ -478,12 +478,10 @@ classdef ZCtrl < handle
             hfd = this.myHFD;%(sprintf('myFDisplay%s',upper(this.mySide))).gethfd();
             if(isempty(hfd))
                 return
-            end            
-%             this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),hfd.dType,hfd.id);
-%             hfd.setZScaling([this.checkZ this.editZlo this.editZu]);
+            end
             if(strncmp('ConditionMVGroup',hfd.dType,16))
                 tmp = hfd.dType;
-                this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
+                this.visObj.fdt.clearMVGroups(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
                 hfd.setZScaling([this.checkZ this.editZlo this.editZu]);
             elseif(strncmp('GlobalMVGroup',hfd.dType,13))
                 hfd.setZScaling([this.checkZ this.editZlo this.editZu]);

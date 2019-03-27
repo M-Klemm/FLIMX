@@ -392,7 +392,7 @@ classdef ColorCtrl < handle
             end
             if(strncmp('ConditionMVGroup',hfd.dType,16))
                 %tmp = hfd.dType;
-                %this.visObj.fdt.clearClusters(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
+                %this.visObj.fdt.clearMVGroups(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),sprintf('GlobalMVGroup%s',tmp(12:end)),[]);
                 hfd.setResultColorScaling(this.getCurCSInfo());
             elseif(strncmp('GlobalMVGroup',hfd.dType,13))
                 hfd.setResultColorScaling(this.getCurCSInfo());

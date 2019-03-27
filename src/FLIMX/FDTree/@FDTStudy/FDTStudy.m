@@ -48,7 +48,7 @@ classdef FDTStudy < FDTreeNode
         function this = FDTStudy(parent,sDir,name)
             % Constructor for FDTStudy
             this = this@FDTreeNode(parent,name);
-            this.revision = 29;
+            this.revision = 30;
             this.myDir = sDir;
             this.myStudyInfoSet = studyIS(this);
             this.myConditionStatistics = LinkedList();
@@ -325,6 +325,21 @@ classdef FDTStudy < FDTreeNode
             this.clearMVGroups(subjectID,dType,dTypeNr);
         end
         
+        function deleteResultROICoordinates(this,dType,dTypeNr,ROIType)
+            %delete the ROI coordinates for ROIType
+            if(~this.isLoaded)
+                this.load();
+            end
+%             subject = this.getChild(subjectID);
+%             if(isempty(subject))
+%                 return
+%             end
+            this.myStudyInfoSet.deleteResultROICoordinates(ROIType);
+            this.clearArithmeticRIs(); %todo: check if an AI uses an ROI
+            this.clearObjMerged();
+%             this.clearMVGroups(subjectID,dType,dTypeNr);
+        end
+        
         function setResultZScaling(this,subjectID,ch,dType,dTypeNr,zValues)
             %set the z scaling at subject subjectID
             if(~this.isLoaded)
@@ -375,14 +390,6 @@ classdef FDTStudy < FDTreeNode
             %create a new subject and store its subject info
             subjectObj = this.addSubject(subName);
             this.myStudyInfoSet.insertSubject(subName,subjectInfo);
-            %add empty channels
-%             channels = this.myStudyInfoSet.getFileChs(subName);
-%             for j=1:length(channels)
-%                 if(~isempty(channels{j}))
-%                     %this.checkIRFInfo(channels{j});
-%                     this.addObj(subName,channels{j},[],[],[]);
-%                 end
-%             end
         end
         
         function addColumn(this,name)
@@ -1420,7 +1427,11 @@ classdef FDTStudy < FDTreeNode
                 subjectDesc(i) = {hg{i}.subjectName};
                 ROICoordinates = this.getResultROICoordinates(subjectDesc{i},ROIType);
                 if(strictFlag)
-                    stats(i,:) = hg{i}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
+                    if(~any(ROICoordinates))
+                        stats(i,:) = NaN;
+                    else
+                        stats(i,:) = hg{i}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
+                    end
                 else
                     stats(i,:) = hg{i}.getROIStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity);
                 end                
@@ -1475,7 +1486,7 @@ classdef FDTStudy < FDTreeNode
         end
         
         function out = getResultROICoordinates(this,subName,ROIType)
-            %
+            %return ROI coordinates for ROIType in a subject
             if(~this.isLoaded)
                 this.load();
             end

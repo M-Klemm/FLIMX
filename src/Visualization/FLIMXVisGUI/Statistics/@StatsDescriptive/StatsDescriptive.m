@@ -65,7 +65,7 @@ classdef StatsDescriptive < handle
         exportNormDistTests = 0;
         exportSubjectRawData = 0;
         currentSheetName = '';
-        ROIType = 1;
+        ROIType = 1001;
         ROISubType = 1;
         ROIVicinityFlag = 0;
         alpha = 5;
@@ -383,12 +383,13 @@ classdef StatsDescriptive < handle
                                     fdt = this.visObj.fdt.getFDataObj(this.study,subjects{s},this.ch,this.dType,this.id,1);
                                     rc = fdt.getROICoordinates(this.ROIType);
                                     data = fdt.getROIImage(rc,this.ROIType,this.ROISubType,this.ROIVicinityFlag);
-                                    if(this.ROIType == 1)
+                                    rt = this.ROIType;
+                                    if(rt > 1000 && rt < 2000)
                                         txt = {'C','IS','IN','II','IT','OS','ON','OI','OT','IR','OR','FC'}';
                                         rStr = txt{this.ROISubType};
                                     else
-                                        txt = {'Rect1','Rect2','Circ1','Circ2','Poly1','Poly2'};
-                                        rStr = txt{this.ROIType-1};
+                                        txt = {'Rect','Circ','Poly'};
+                                        rStr = sprintf('%s%d',txt{floor(rt/1000)},rt-floor(rt/1000)*1000);
                                     end                                        
                                     exportExcel(fn,data,{''},'',sprintf('%s_%s_%d_%s%d',subjects{s},rStr,this.ch,this.dType,this.id),'');
                                 end
@@ -445,22 +446,27 @@ classdef StatsDescriptive < handle
                 chStr = this.visObj.fdt.getChStr(this.study,ds1{1});
                 coStr = this.visObj.fdt.getChObjStr(this.study,ds1{1},this.ch);
                 coStr = sort(coStr);
+                allROT = this.visObj.fdt.getResultROICoordinates(this.study,ds1{1},[]);
+                allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
             else
                 chStr = [];
                 coStr = 'param';
+                allROIStr = {ROICtrl.ROIType2ROIItem(0)};
             end
             if(isempty(chStr))
                 chStr = 'Ch 1';
             end
             set(this.visHandles.popupSelCh,'String',chStr,'Value',min(length(chStr),get(this.visHandles.popupSelCh,'Value')));
             %ROI
-            if(this.ROIType ~= 1)
+            set(this.visHandles.popupSelROIType,'String',allROIStr,'Value',min(this.visHandles.popupSelROIType.Value,length(allROIStr)));
+            rt = this.ROIType;
+            if(rt == 0 || rt > 2000)
                 flag = 'off';
             else
                 flag = 'on';
             end
             set(this.visHandles.popupSelROISubType,'Visible',flag);
-            if(this.ROIType > 1)
+            if(rt > 1000)
                 flag = 'on';
             end
             set(this.visHandles.popupSelROIVicinity,'Visible',flag);
@@ -710,12 +716,13 @@ classdef StatsDescriptive < handle
                 end
             end
             if(get(this.visHandles.checkSNROI,'Value'))
-                if(this.ROIType == 1)
-                    str = get(this.visHandles.popupSelROISubType,'String');
+                rt = this.ROIType;
+                if(rt > 1000 && rt < 2000)
+                    str = this.visHandles.popupSelROISubType.String;
                     out = [out 'ETDRS ' str{this.ROISubType} '_'];
                 else
-                    str = get(this.visHandles.popupSelROIType,'String');
-                    out = [out str{this.ROIType+1} '_'];
+                    str = this.visHandles.popupSelROIType.String;
+                    out = [out str{this.visHandles.popupSelROIType.Value} '_'];
                 end
             end
             if(get(this.visHandles.checkSNCh,'Value'))
@@ -733,7 +740,17 @@ classdef StatsDescriptive < handle
         end
         
         function out = get.ROIType(this)
-            out = get(this.visHandles.popupSelROIType,'Value')-1;
+            str = this.visHandles.popupSelROIType.String;
+            nr = this.visHandles.popupSelROIType.Value;
+            if(iscell(str))
+                str = str{nr};
+            elseif(ischar(str))
+                %nothing to do
+            else
+                %should not happen
+            end
+            out = ROICtrl.ROIItem2ROIType(str);
+            %out = get(this.visHandles.popupSelROIType,'Value')-1;
         end
         
         function out = get.ROISubType(this)

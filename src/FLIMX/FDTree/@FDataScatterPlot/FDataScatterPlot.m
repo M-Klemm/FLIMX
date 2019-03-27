@@ -51,9 +51,10 @@ classdef FDataScatterPlot < FDataNormal
         
         function out = getROICoordinates(this,ROIType)
             %get coordinates of ROI
-            if(~isempty(ROIType) && isscalar(ROIType) && ROIType <= 7 && ROIType >= 1)
+            if(~isempty(ROIType) && isscalar(ROIType) && ROIType < 5000 && ROIType > 1000)
                 out = squeeze(this.ROICoordinates(ROIType,:,:));
-                if(ROIType <= 5)
+                if(ROIType < 4000)
+                    %no polygons
                     out = out(2:end,1:2)';
                 end
             else
@@ -98,18 +99,29 @@ classdef FDataScatterPlot < FDataNormal
             tmp = this.ROICoordinates;
             if(isempty(ROIType))
                 %set all ROI coordinates at once
-                if(size(ROICoord,1) == 7 && size(ROICoord,2) == 3 && size(ROICoord,3) >= 2)
+%                 if(size(ROICoord,1) == 7 && size(ROICoord,2) == 3 && size(ROICoord,3) >= 2)
                     tmp = int16(ROICoord);
-                end
+%                 end
             else
-                if(isempty(tmp) || size(tmp,1) ~= 7 || size(tmp,2) ~= 3)
+                if(isempty(tmp))% || size(tmp,1) ~= 7 || size(tmp,2) ~= 3)
+                    %todo: get default ROICoordinates from parent!?
                     tmp = zeros(7,3,2,'int16');
                 end
-                if(ROIType >= 1 && ROIType <= 7 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
-                    tmp(ROIType,:,1:2) = int16(ROICoord');
-                elseif(ROIType >= 6 && ROIType <= 7 && size(ROICoord,1) == 1 && size(ROICoord,2) == 3 && size(ROICoord,3) > 2)
+                if(ROIType > 1000 && ROIType < 5000 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
+                    idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
+                    if(~isempty(idx))
+                        tmp(idx,:,1:2) = int16(ROICoord');
+                    else
+                        return
+                    end
+                elseif(ROIType > 4000 && ROIType < 5000 && size(ROICoord,1) == 1 && size(ROICoord,2) == 3 && size(ROICoord,3) > 2)
                     tmp(:,:,3:size(ROICoord,3)) = zeros(7,2,size(ROICoord,3)-2,'int16');
-                    tmp(ROIType,:,:) = int16(ROICoord);
+                    idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
+                    if(~isempty(idx))
+                        tmp(idx,:,:) = int16(ROICoord);
+                    else
+                        return
+                    end
                 end
             end
             this.ROICoordinates = tmp;

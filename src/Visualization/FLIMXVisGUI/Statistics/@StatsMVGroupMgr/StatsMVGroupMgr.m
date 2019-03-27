@@ -169,8 +169,24 @@ classdef StatsMVGroupMgr < handle
                 end
                 allObjs = allObjs(~idx);
                 %set ROI controls
-                set(this.visHandles.popupROIType,'Value',cMVs.ROI.ROIType+1);
-                if(cMVs.ROI.ROIType == 1)
+                if(cMVs.ROI.ROIType == 0)
+                    this.visHandles.popupROIType.Value = cMVs.ROI.ROIType+1;
+                else
+                    pStr = this.popupROIType.String;
+                    if(ischar(pStr))
+                        pStr = {pStr};
+                    end
+                    newStr = ROICtrl.ROIType2ROIItem(cMVs.ROI.ROIType);
+                    idx = find(strcmp(pStr,newStr),1,'first');
+                    if(isempty(idx))
+                        this.visHandles.popupROIType.Value = idx;
+                    else
+                        %ROI Type not in popup menu
+                        %todo: add ROI Type to popup? It is not yet in the study!
+                        this.visHandles.popupROIType.Value = 0;
+                    end
+                end
+                if(cMVs.ROI.ROIType > 1000 && cMVs.ROI.ROIType < 2000)
                     visFlag = 'on';
                 else
                     visFlag = 'off';
@@ -293,7 +309,17 @@ classdef StatsMVGroupMgr < handle
         
         function ROI = getROIInfo(this)
             %get ROI type, subtype and invert flag from GUI
-            ROI.ROIType = get(this.visHandles.popupROIType,'Value')-1;
+            str = this.popupROIType.String;
+            nr = this.popupROIType.Value;
+            if(iscell(str))
+                str = str{nr};
+            elseif(ischar(str))
+                %nothing to do
+            else
+                %should not happen
+            end
+            ROI.ROIType = ROICtrl.ROIItem2ROIType(str);
+            %ROI.ROIType = get(this.visHandles.popupROIType,'Value')-1;
             ROI.ROISubType = get(this.visHandles.popupROISubType,'Value');
             ROI.ROIVicinity = get(this.visHandles.popupROIVicinity,'Value');            
         end
@@ -303,6 +329,15 @@ classdef StatsMVGroupMgr < handle
             %select study
             studyStr = get(hObject,'String');
             this.curStudyName = studyStr{get(hObject,'Value')};
+            %ROI
+            ds1 = this.visObj.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName);
+            if(~isempty(ds1))
+                allROT = this.visObj.fdt.getResultROICoordinates(this.curStudyName,ds1{1},[]);
+                allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
+            else
+                allROIStr = {ROICtrl.ROIType2ROIItem(0)};
+            end            
+            set(this.visHandles.popupROIType,'String',allROIStr,'Value',min(this.visHandles.popupROIType.Value,length(allROIStr)));
             this.updateGUI();
         end
         

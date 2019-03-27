@@ -85,19 +85,21 @@ classdef FDataNormal < FData
         function out = getCrossSectionXVal(this,isRelative,isMatrixPos,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get current crossSection position of x axis
             if(isRelative && ROIType ~= 0) %val is relative to roi
-                switch ROIType
-                    case 1
-                        %todo
-                        out = 0;
-                        return
-                    case {2,3}
-                        xMin = ROICoordinates(2,1);
-                    case {4,5}
-                        r = sqrt(sum((ROICoordinates(:,1)-ROICoordinates(:,2)).^2));
-                        xMin = ceil(ROICoordinates(2,1)-r);
-                    otherwise
-                        %todo
-                        xMin = 0;
+                if(ROIType > 1000 && ROIType < 2000)
+                    %ETDRS
+                    %todo
+                    out = 0;
+                    return
+                elseif(ROIType > 2000 && ROIType < 3000)
+                    %rectangle
+                    xMin = ROICoordinates(2,1);
+                elseif(ROIType > 3000 && ROIType < 4000)
+                    %circle
+                    r = sqrt(sum((ROICoordinates(:,1)-ROICoordinates(:,2)).^2));
+                    xMin = ceil(ROICoordinates(2,1)-r);
+                else
+                    %todo
+                    xMin = 0;
                 end
                 out = max(0,this.crossSectionXVal - xMin +1);
             else
@@ -128,19 +130,21 @@ classdef FDataNormal < FData
         function out = getCrossSectionYVal(this,isRelative,isMatrixPos,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get current crossSection position of y axis
             if(isRelative && ROIType ~= 0) %val is relative to roi
-                switch ROIType
-                    case 1
-                        %todo
-                        out = 0;
-                        return
-                    case {2,3}
-                        yMin = ROICoordinates(1,1);
-                    case {4,5}
-                        r = sqrt(sum((ROICoordinates(:,1)-ROICoordinates(:,2)).^2));
-                        yMin = ceil(ROICoordinates(1,1)-r);
-                    otherwise
-                        %todo
-                        yMin = 0;
+                if(ROIType > 1000 && ROIType < 2000)
+                    %ETDRS
+                    %todo
+                    out = 0;
+                    return
+                elseif(ROIType > 2000 && ROIType < 3000)
+                    %rectangle
+                    yMin = ROICoordinates(1,1);
+                elseif(ROIType > 3000 && ROIType < 4000)
+                    %circle
+                    r = sqrt(sum((ROICoordinates(:,1)-ROICoordinates(:,2)).^2));
+                    yMin = ceil(ROICoordinates(1,1)-r);
+                else
+                    %todo
+                    yMin = 0;
                 end
                 out = max(0,this.crossSectionYVal - yMin +1);
             else
