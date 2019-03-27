@@ -362,25 +362,25 @@ classdef result4Import < resultFile
                         end
                     case {'.bmp', '.tif', '.tiff', '.png'}
                         try
-                            [data_temp,map,transparency] = imread(file);
+                            [data_temp,~,transparency] = imread(file);
                             [~,~,zm] = size(data_temp);
                             if(zm == 1 && length(unique(data_temp)) < 3)
                                 data_temp = logical(data_temp);                            
                             elseif(zm == 3)
                                 %convert image to binary image
-                                data_temp = rgb2ind(data_temp(:,:,1:3),0.1,'nodither');
+                                data_temp = rgb2ind(data_temp(:,:,1:3),0.01,'nodither');
                                 if(~any(data_temp(:)) || all(data_temp(:)) && any(transparency(:)))
                                     %there is no structure in the RGB channels, try to use the transparency channel
-                                    data_temp = logical(transparency);
+                                    data_temp = ~(transparency < max(transparency(:)));
                                 end
                             elseif(zm == 4)
                                 %convert image to binary image
                                 transparency = squeeze(data_temp(:,:,4));
-                                data_temp = rgb2ind(data_temp(:,:,1:3),0.1,'nodither');
+                                data_temp = rgb2ind(data_temp(:,:,1:3),0.01,'nodither');
                                 if(~any(data_temp(:)) || all(data_temp(:)))
                                     %there is no structure in the RGB channels, try to use the transparency channel
                                     %this is the transparency mask, we use its inverted version
-                                    data_temp = ~transparency > 0.1;
+                                    data_temp = ~(transparency < max(transparency(:)));
                                 end
                             end
                             %flip the image by default

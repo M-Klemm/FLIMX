@@ -439,6 +439,14 @@ classdef FDTree < FDTreeNode
             end
         end
         
+        function deleteResultROICoordinates(this,studyName,dType,dTypeNr,ROIType)
+            %delete the ROI coordinates for study studyName at subject subjectID and ROIType
+            study = this.getChild(studyName);
+            if(~isempty(study))
+                study.deleteResultROICoordinates(dType,dTypeNr,ROIType);
+            end
+        end
+        
         function setResultZScaling(this,studyName,subjectID,ch,dType,dTypeNr,zValues)
             %set the z scaling for study studyName at subject subjectID and ROIType
             study = this.getChild(studyName);
@@ -1020,6 +1028,16 @@ classdef FDTree < FDTreeNode
             study = this.getChild(studyID);
             if(~isempty(study))
                 out = study.getWidth(subjectID);
+            else
+                out = [];
+            end
+        end
+        
+        function out = getResultROICoordinates(this,studyID,subjectID,ROIType)
+            %return ROI coordinates for ROIType in a subject in a study
+            study = this.getChild(studyID);
+            if(~isempty(study))
+                out = study.getResultROICoordinates(subjectID,ROIType);
             else
                 out = [];
             end

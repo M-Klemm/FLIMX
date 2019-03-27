@@ -44,11 +44,11 @@ items = items(~strcmpi(items,'iVec'));
 %select specific items
 if(mode == 1) %simple
     %keep = {'Tau','AmplitudePercent','Offset','TauMean','Q','hShift','chi2','AnisotropyQuick'};
-    remove = {'Amplitude','AmplitudeGuess','AmplitudeInit','TauGuess','TauInit','tc','tcGuess','Beta','OffsetGuess','OffsetInit','TauMeanGuess','hShiftGuess','hShiftInit','ScatterAmplitude','ScatterShift','ScatterOffset','RAUC','RAUCIS',...
+    remove = {'Amplitude','AmplitudeGuess','AmplitudeInit','TauGuess','TauInit','tc','tcGuess','tcInit','Beta','OffsetGuess','OffsetInit','TauMeanGuess','hShiftGuess','hShiftInit','ScatterAmplitude','ScatterShift','ScatterOffset','RAUC','RAUCIS',...
         'MaximumPosition','MaximumPhotons','TotalPhotons','chi2Tail','AnisotropyQuick','Time','Iterations','FunctionEvaluations','StartPosition','EndPosition','standalone','SlopeStartPosition','CleanUpHitMask'};
 elseif(mode == 2) %expert
     %keep = {'Tau','AmplitudePercent','Offset','TauMean','Q','shift','hShift','chi2','RAUC','RAUCIS','Amplitude','MaximumPosition','MaximumPhotons','chi2Tail','AnisotropyQuick','tc'};
-    remove = {'AmplitudeGuess','AmplitudeInit','TauGuess','TauInit','tcGuess','Beta','OffsetGuess','OffsetInit','TauMeanGuess','hShiftGuess','hShiftInit','ScatterAmplitude','ScatterShift','ScatterOffset',...
+    remove = {'AmplitudeGuess','AmplitudeInit','TauGuess','TauInit','tcGuess','tcInit','Beta','OffsetGuess','OffsetInit','TauMeanGuess','hShiftGuess','hShiftInit','ScatterAmplitude','ScatterShift','ScatterOffset',...
         'TotalPhotons','Time','Iterations','FunctionEvaluations','StartPosition','EndPosition','standalone','SlopeStartPosition','CleanUpHitMask'};
 else %all
     return

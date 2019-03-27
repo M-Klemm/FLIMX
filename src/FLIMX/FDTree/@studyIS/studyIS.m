@@ -40,7 +40,7 @@ classdef studyIS < handle
         subjectInfoConditionDefinition = cell(0,0); %condition / combination between patient data
         resultFileChs = cell(0,0); %result channels of each subject
         measurementFileChs = cell(0,0); %measurement channels of each subject
-        studyClusters = cell(0,0); %cluster parameters for this study
+        MVGroupTargets = cell(0,0); %cluster parameters for this study
         resultCrossSection = cell(0,0); %cross sections for each subject
         resultROICoordinates = cell(0,0); %rois for each subject  
         resultZScaling = cell(0,0); %z scaling for each subject
@@ -79,7 +79,7 @@ classdef studyIS < handle
             this.allFLIMItems = import.allFLIMItems;
             this.resultFileChs = import.resultFileChs;
             this.measurementFileChs = import.measurementFileChs;
-            this.studyClusters = import.studyClusters;
+            this.MVGroupTargets = import.MVGroupTargets;
             this.resultROICoordinates = import.resultROICoordinates;
             this.resultZScaling = import.resultZScaling;
             this.resultColorScaling = import.resultColorScaling;
@@ -178,19 +178,19 @@ classdef studyIS < handle
             %set MVGroup parameter for subject(s)
             if(nargin < 2)
                 %set all MVGroup parameter (initial case)
-                this.studyClusters = [];
-                this.studyClusters = targets;
+                this.MVGroupTargets = [];
+                this.MVGroupTargets = targets;
             else
                 %set single value
                 MVGroupNr = this.MVGroupName2idx(MVGroupID);
                 if(isempty(MVGroupNr))
                     %add MVGroup
-                    this.studyClusters(:,end+1) = cell(2,1);
-                    MVGroupNr = size(this.studyClusters,2);
-                    this.studyClusters(1,MVGroupNr) = {MVGroupID};
+                    this.MVGroupTargets(:,end+1) = cell(2,1);
+                    MVGroupNr = size(this.MVGroupTargets,2);
+                    this.MVGroupTargets(1,MVGroupNr) = {MVGroupID};
                 end
                 %set targets
-                this.studyClusters(2,MVGroupNr) = {targets};
+                this.MVGroupTargets(2,MVGroupNr) = {targets};
                 this.setDirty(true);
             end
         end
@@ -199,7 +199,7 @@ classdef studyIS < handle
             %set new MVGroup name
             MVGroupNr = this.MVGroupName2idx(MVGroupID);
             if(~isempty(MVGroupNr))
-                this.studyClusters(1,MVGroupNr) = {name};
+                this.MVGroupTargets(1,MVGroupNr) = {name};
             end
         end
         
@@ -301,12 +301,12 @@ classdef studyIS < handle
         
         function setResultROICoordinates(this,subName,ROIType,ROICoord)
             %set the ROI vector for subject subName
-            idx = this.subName2idx(subName);
-            if(isempty(idx))
+            subIdx = this.subName2idx(subName);
+            if(isempty(subIdx))
                 %subject not in study or ROIVec size is wrong
                 return
             end
-            tmp = this.resultROICoordinates{idx};
+            tmp = this.resultROICoordinates{subIdx};
             if(isempty(ROICoord))
                 ROICoord = zeros(3,2,'uint16');
             elseif(size(ROICoord,1) == 2 && size(ROICoord,2) == 1)
@@ -314,34 +314,79 @@ classdef studyIS < handle
             end
             if(isempty(ROIType))
                 %set all ROI coordinates at once
-                if(size(ROICoord,1) == 7 && size(ROICoord,2) == 3 && size(ROICoord,3) >= 2)
+                if(size(ROICoord,1) >= 7 && size(ROICoord,2) == 3 && size(ROICoord,3) >= 2)
                     tmp = int16(ROICoord);
                 end
             else
                 if(isempty(tmp) || size(tmp,1) < 7 || size(tmp,2) < 3)
                     tmp = zeros(7,3,2,'int16');
                 end
-                if(ROIType >= 1 && ROIType < 6 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
-                    tmp(ROIType,1:3,1:2) = int16(ROICoord');
-                elseif(ROIType >= 6 && ROIType <= 7 && size(ROICoord,1) == 2)
+                ROIType = int16(ROIType);
+                idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
+                if(isempty(idx))
+                    %new ROI
+                    this.addResultROIType(ROIType);
+                    tmp = this.resultROICoordinates{subIdx};
+                    idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
+                end
+                if(ROIType >= 1000 && ROIType < 4000 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
+                    %ETDRS, rectangle or cricle                    
+                    tmp(idx,1:3,1:2) = int16(ROICoord');                    
+                elseif(ROIType > 4000 && ROIType < 5000 && size(ROICoord,1) == 2)
                     %polygons
                     if(size(ROICoord,2) > size(tmp,2))
-                        tmpNew = zeros(7,size(ROICoord,2),2,'int16');
+                        tmpNew = zeros(size(tmp,1),size(ROICoord,2),2,'int16');
                         tmpNew(:,1:size(tmp,2),:) = tmp;
-                        tmpNew(ROIType,1:size(ROICoord,2),:) = int16(ROICoord');
+                        tmpNew(idx,1:size(ROICoord,2),:) = int16(ROICoord');
                         tmp = tmpNew;
                     else
-                        tmp(ROIType,1:size(ROICoord,2),1:2) = int16(ROICoord');
-                        tmp(ROIType,max(4,size(ROICoord,2)+1):end,:) = 0;
+                        tmp(idx,1:size(ROICoord,2),1:2) = int16(ROICoord');
+                        tmp(idx,max(4,size(ROICoord,2)+1):end,:) = 0;
                     end
                     %polygon could have shrinked, remove trailing zeros
                     idxZeros = squeeze(any(any(tmp,1),3));
                     idxZeros(1:3) = true;
                     tmp(:,find(idxZeros,1,'last')+1:end,:) = [];
                 end
+                %store ROIType just to be sure it is correct
+                tmp(idx,1,1) = ROIType;
             end
-            this.resultROICoordinates(idx) = {tmp};
+            this.resultROICoordinates(subIdx) = {tmp};
             this.setDirty(true);
+        end
+        
+        function deleteResultROICoordinates(this,ROIType)
+            %delete the ROI coordinates for ROIType
+            for i = 1:this.nrSubjects
+                tmp = this.resultROICoordinates{i};
+                if(isempty(tmp))
+                    continue
+                end
+                idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
+                if(~isempty(idx))
+                    tmp(idx,:,:) = [];
+                    this.resultROICoordinates(i) = {tmp};
+                end                
+            end
+        end
+        
+        function addResultROIType(this,ROIType)
+            %add an empty ROIType to all subjects in this study
+            for i = 1:this.nrSubjects
+                tmp = this.resultROICoordinates{i};
+                if(isempty(tmp))
+                    continue
+                end
+                [val,idx] = min(abs(tmp(:,1,1) - ROIType));
+                if(val > 0)
+                    tmpNew = zeros(size(tmp,1)+val,size(tmp,2),size(tmp,3),'int16');
+                    tmpNew(1:idx,:,:) = tmp(1:idx,:,:);
+                    tmpNew(idx+val+1:end,:,:) = tmp(idx+1:end,:,:);
+                    tmpNew(idx+1:idx+val,1,1) = (tmp(idx,1,1)+1 : 1 : tmp(idx,1,1)+val)';
+                    tmp = tmpNew;
+                    this.resultROICoordinates(i) = {tmp};
+                end
+            end
         end
         
         function setResultZScaling(this,subName,ch,dType,dTypeNr,zValues)
@@ -582,13 +627,37 @@ classdef studyIS < handle
             subjectPos = this.subName2idx(subName);
             this.resultFileChs(subjectPos,1:length(data.resultFileChs)) = data.resultFileChs;
             this.measurementFileChs(subjectPos,1:length(data.measurementFileChs)) = data.measurementFileChs;
-            this.allFLIMItems(subjectPos,1:length(data.allFLIMItems)) = data.allFLIMItems;
-            
+            this.allFLIMItems(subjectPos,1:length(data.allFLIMItems)) = data.allFLIMItems;            
             %fill subject info fields with data
             for i = 1:length(data.subjectInfoColumnNames)
                 str = data.subjectInfoColumnNames{i,1};
                 [~, idx] = ismember(str,this.subjectInfoColumnNames);
                 this.subjectInfo(subjectPos,idx) = data.subjectInfo(1,i);
+            end
+            %update ROICoordinates, if neccessary
+            subVec = 1:this.nrSubjects;
+            subVec(subjectPos) = [];
+            if(~isempty(subVec))
+                roiStudy = this.resultROICoordinates{subVec(1)};
+                roiSubject = data.resultROICoordinates{1,1};
+                %check which ROIs are missing in the subject
+                d = setdiff(roiStudy(:,1,1),roiSubject(:,1,1));
+                for i = 1:length(d)
+                    [val,idx] = min(abs(roiSubject(:,1,1) - d(i)));
+                    if(val > 0)
+                        tmpNew = zeros(size(roiSubject,1)+val,size(roiSubject,2),size(roiSubject,3),'int16');
+                        tmpNew(1:idx,:,:) = roiSubject(1:idx,:,:);
+                        tmpNew(idx+val+1:end,:,:) = roiSubject(idx+1:end,:,:);
+                        tmpNew(idx+1:idx+val,1,1) = (roiSubject(idx,1,1)+1 : 1 : roiSubject(idx,1,1)+val)';
+                        roiSubject = tmpNew;
+                    end                    
+                end
+                data.resultROICoordinates{1,1} = roiSubject;
+                %check which ROIs are missing in the study
+                d = setdiff(roiSubject(:,1,1),roiStudy(:,1,1));
+                for i = 1:length(d)
+                    this.addResultROIType(d(i));
+                end
             end
             this.resultROICoordinates(subjectPos) = data.resultROICoordinates;
             this.resultZScaling(subjectPos) = data.resultZScaling;
@@ -709,7 +778,7 @@ classdef studyIS < handle
             export.subjectInfoConditionDefinition = this.subjectInfoConditionDefinition;
             export.resultFileChs = this.resultFileChs(idx,:);
             export.measurementFileChs = this.measurementFileChs(idx,:);
-            export.studyClusters = this.studyClusters;
+            export.MVGroupTargets = this.MVGroupTargets;
             export.resultROICoordinates = this.resultROICoordinates(idx);
             export.resultZScaling = this.resultZScaling(idx);
             export.resultColorScaling = this.resultColorScaling(idx);
@@ -840,7 +909,7 @@ classdef studyIS < handle
         
         function out = getStudyMVGroups(this)
             %get study MVGroups
-            out = this.studyClusters;
+            out = this.MVGroupTargets;
         end
         
         function out = getMVGroupNames(this,mode)
@@ -848,11 +917,11 @@ classdef studyIS < handle
             %mode 0 - get all subject MVGroups
             %mode 1 - get only calculable MVGroups
             out = cell(0,0);
-            if(isempty(this.studyClusters))
+            if(isempty(this.MVGroupTargets))
                 return
             end            
-            MVGroupStr = this.studyClusters(1,:);
-            MVGroupTargets = this.studyClusters(2,:);
+            MVGroupStr = this.MVGroupTargets(1,:);
+            MVGroupTargets = this.MVGroupTargets(2,:);
             if(mode == 0)
                 out = MVGroupStr;
                 return
@@ -873,7 +942,7 @@ classdef studyIS < handle
                 out = [];
                 return
             end
-            targets = this.studyClusters{2,MVGroupNr};
+            targets = this.MVGroupTargets{2,MVGroupNr};
             if(isempty(targets))
                 %no targets
                 out = cell(0,0);
@@ -911,20 +980,24 @@ classdef studyIS < handle
                     end
                 end
                 out = double(cell2mat(this.resultROICoordinates(subName)));
-                if(~isempty(ROIType) && isscalar(ROIType) && ROIType <= size(out,1) && ROIType >= 1)
-                    out = squeeze(out(ROIType,:,:))';
-                    out = out(1:2,2:end);
-                    if(ROIType < 6)
-                        out = out(1:2,1:2);
-                    elseif(ROIType >= 6 && ROIType <= 7)
-                        %remove potential trailing zeros
-                        idx = any(out,1);
-                        idx(1:3) = true;
-                        out(:,find(idx,1,'last')+1:end) = [];
+                if(~isempty(ROIType) && isscalar(ROIType) && ROIType > 1000)
+                    idx = find(abs(out(:,1,1) - ROIType) < eps,1,'first');
+                    if(~isempty(idx))
+                        out = squeeze(out(idx,:,:))';
+                        out = out(1:2,2:end);
+                        if(ROIType < 4000)
+                            out = out(1:2,1:2);
+                        elseif(ROIType > 4000 && ROIType < 5000)
+                            %remove potential trailing zeros
+                            idx = any(out,1);
+                            idx(1:3) = true;
+                            out(:,find(idx,1,'last')+1:end) = [];
+                        end
+                    else
+                        out = [];
                     end
                 elseif(isempty(ROIType))
-                    %return all ROI coordinates
-                    
+                    %return all ROI coordinates                    
                 else
                     out = [];
                 end
@@ -1287,7 +1360,7 @@ classdef studyIS < handle
         function removeMVGroup(this,MVGroupID)
             %remove MVGroup
             MVGroupNr = this.MVGroupName2idx(MVGroupID);
-            this.studyClusters(:,MVGroupNr) = [];
+            this.MVGroupTargets(:,MVGroupNr) = [];
             this.setDirty(true);
         end
         
@@ -1467,13 +1540,13 @@ classdef studyIS < handle
         function idx = MVGroupName2idx(this,MVGroupName)
             %get the index of a MVGroup or check if index is valid
             idx = [];
-            if(isempty(this.studyClusters))
+            if(isempty(this.MVGroupTargets))
                 return
             end
             if(ischar(MVGroupName))
-                idx = find(strcmp(MVGroupName,this.studyClusters(1,:)),1);
+                idx = find(strcmp(MVGroupName,this.MVGroupTargets(1,:)),1);
             elseif(isnumeric(MVGroupName))
-                if(MVGroupName <= length(this.studyClusters(1,:)))
+                if(MVGroupName <= length(this.MVGroupTargets(1,:)))
                     idx = MVGroupName;
                 end
             end
@@ -1896,6 +1969,39 @@ classdef studyIS < handle
                         tmp = orderfields(checkStructConsistency(tmp,def));
                         oldStudy.arithmeticImageInfo{i,2} = tmp;
                     end
+                end
+            end
+            
+            if(oldStudy.revision < 30)
+                %ROIs now get IDs
+                if(isfield(oldStudy,'resultROICoordinates'))
+                    for i = 1:size(oldStudy.resultROICoordinates,1)
+                        tmp = oldStudy.resultROICoordinates{i,1};
+                        if(size(tmp,1) == 7)
+                            %each ROI Type gets an ID (ETDRS: 1000, rectange: 2000, circle: 3000, polygon: 4000) and a running number
+                            tmp(:,1,1) = [1001,2001,2002,3001,3002,4001,4002];
+                        else
+                            %should not happen -> delete invalid ROI
+                            tmp = zeros(7,3,2,'int16');
+                            tmp(:,1,1) = [1001,2001,2002,3001,3002,4001,4002];
+                        end
+                        oldStudy.resultROICoordinates{i,1} = tmp;
+                    end
+                end
+                if(isfield(oldStudy,'studyClusters'))
+                    oldStudy.MVGroupTargets = oldStudy.studyClusters;
+                    ROIVec = [1001,2001,2002,3001,3002,4001,4002];
+                    for i = 1:size(oldStudy.MVGroupTargets,2)                        
+                        if(~isempty(oldStudy.MVGroupTargets(:,i)))                            
+                            oldStudy.MVGroupTargets{2,i}.ROI.ROIVicinity = 1;
+                            if(oldStudy.MVGroupTargets{2,i}.ROI.ROIType >= 1 && oldStudy.MVGroupTargets{2,i}.ROI.ROIType <= 7)
+                                oldStudy.MVGroupTargets{2,i}.ROI.ROIType = ROIVec(oldStudy.MVGroupTargets{2,i}.ROI.ROIType);
+%                             else
+%                                 oldStudy.MVGroupTargets{2,i}.ROI.ROIType = 0;
+                            end
+                        end
+                    end
+                    oldStudy = rmfield(oldStudy,'studyClusters');
                 end
             end
             

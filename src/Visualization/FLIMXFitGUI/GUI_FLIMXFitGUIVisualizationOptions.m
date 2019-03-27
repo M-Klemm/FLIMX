@@ -121,13 +121,12 @@ xpatch = [0 0 0 0];
 ypatch = [0 0 1 1];
 handles.patchCacheMemory = patch(xpatch,ypatch,'m','EdgeColor','m','Parent',handles.axesCacheMemory);%,'EraseMode','normal'
 handles.textCacheMemory = text(1,0,'','Parent',handles.axesCacheMemory);
-rdh.handles = handles;
 %set tooltips
 handles.textCacheMemorySize = 'Set abount of memory (RAM) used to cache measurements and results';
 handles.textCacheMemoryUtilization = 'Shows the current utilization of the cache memory';
-updateGUI(handles, rdh);
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
-
+guidata(handles.FLIMXFitGUIVisualizationOptions,handles);
+updateGUI(handles, rdh);
 % UIWAIT makes GUI_FLIMXFitGUIVisualizationOptions wait for user response (see UIRESUME)
 uiwait(handles.FLIMXFitGUIVisualizationOptions);
 
@@ -362,7 +361,7 @@ if(rdh.general.maxMemoryCacheSize < curCacheSz)
 end
 rdh.isDirty(2) = 1;
 set(hFig,'userdata',rdh);
-updateGUI(rdh.handles,rdh);
+updateGUI(handles,rdh);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

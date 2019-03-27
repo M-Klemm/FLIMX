@@ -1258,10 +1258,10 @@ classdef FDTSubject < subject4Approx
                         lStr = sprintf('ROI%s',layer);
                         ROIs = AICtrl.getDefROIString();
                         if(strncmp(aiParams.(lStr),'ETDRS->',7))
-                            ROItype = 1;
+                            ROIType = 1001;
                             ROISubtype = find(strcmp(ROIs,aiParams.(lStr)));
                         else
-                            ROItype = find(strcmp(ROIs,aiParams.(lStr)))-14;
+                            ROIType = ROICtrl.ROIItem2ROIType(aiParams.(lStr));
                             ROISubtype = 0;
                         end
                         [dTypeA, dTypeANr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
@@ -1269,7 +1269,7 @@ classdef FDTSubject < subject4Approx
                         if(isempty(fd))
                             return
                         end
-                        out = fd.getROIImage(this.getROICoordinates(ROItype),ROItype,ROISubtype,aiParams.(sprintf('ROIVicinity%s',layer)));
+                        out = fd.getROIImage(this.getROICoordinates(ROIType),ROIType,ROISubtype,aiParams.(sprintf('ROIVicinity%s',layer)));
                         out = mean(out(:),'omitnan');
                 end
             end

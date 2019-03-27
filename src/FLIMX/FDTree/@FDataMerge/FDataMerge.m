@@ -111,11 +111,16 @@ classdef FDataMerge < FData
         function out = getROICoordinates(this,ROIType)
             %return ROI coordinates for a certain type of ROI
             out = this.ROICoordinates;
-            if(~isempty(ROIType) && isscalar(ROIType) && ROIType <= size(out,1))
-                if(ROIType >= 2 && ROIType <= 5)
-                    out = squeeze(out(ROIType,2:3,:))';
-                else %polygons
-                    out = squeeze(out(ROIType,2:end,:))';
+            if(~isempty(ROIType) && isscalar(ROIType))
+                idx = find(abs(out(:,1,1) - ROIType) < eps,1,'first');
+                if(~isempty(idx))
+                    if(ROIType > 2000 && ROIType < 4000)
+                        out = squeeze(out(idx,2:3,:))';
+                    else %polygons
+                        out = squeeze(out(idx,2:end,:))';
+                    end
+                else
+                    out = [];
                 end
             end
         end

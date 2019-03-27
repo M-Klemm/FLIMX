@@ -491,7 +491,7 @@ classdef FData < handle
                 XLblStart = this.cachedImage.info.XLblStart;
                 XLblTick = this.cachedImage.info.XLblTick;
             end
-            if(~isempty(ROICoordinates) && (ROIType == 0 || ROIType == 2 || ROIType == 3))
+            if(~isempty(ROICoordinates) && (ROIType == 0 || ROIType > 2000 && ROIType < 3000))
                 shift = ROICoordinates(2,1)-1;
             else
                 shift = 0;
@@ -564,7 +564,7 @@ classdef FData < handle
                 YLblStart = this.cachedImage.info.YLblStart;
                 YLblTick = this.cachedImage.info.YLblTick;
             end
-            if(~isempty(ROICoordinates) && (ROIType == 0 || ROIType == 2 || ROIType == 3))
+            if(~isempty(ROICoordinates) && (ROIType == 0 || ROIType > 2000 && ROIType < 3000))
                 shift = ROICoordinates(1,1)-1;
             else
                 shift = 0;
@@ -888,162 +888,154 @@ classdef FData < handle
                 %todo: warning/error message
             end
             [y,x,z] = size(data);
-            switch ROIType
-                case 1 %ETDRS grid
-                    if(~isempty(fileInfo))
-                        res = fileInfo.pixelResolution;
-                        side = fileInfo.position;
-                    else
-                        res = 58.66666666666;
-                        side = 'OS';
-                        %todo: warning/error message
-                    end
-                    rCenter = (1000/res/2);
-                    rInner = (3000/res/2);
-                    rOuter = (6000/res/2);
-                    switch ROISubType
-                        case 1 %central
-                            thetaRange = [0, pi; -pi, pi];
-                            r = rCenter;
-                        case 2 %inner superior
-                            thetaRange = [pi/4, pi/2; pi/2, 3*pi/4];
-                            r = rInner;
-                        case 3 %inner nasal
-                            if(strcmp(side,'OS'))
-                                thetaRange = [3*pi/4, pi; -pi, -3*pi/4];
-                            else
-                                thetaRange = [-pi/4, 0; 0, pi/4];
-                            end
-                            r = rInner;
-                        case 4 %inner inferior
-                            thetaRange = [-3*pi/4, -pi/2; -pi/2, -pi/4];
-                            r = rInner;
-                        case 5 %inner temporal
-                            if(strcmp(side,'OS'))
-                                thetaRange = [-pi/4, 0; 0, pi/4];
-                            else
-                                thetaRange = [3*pi/4, pi; -pi, -3*pi/4];
-                            end
-                            r = rInner;
-                        case 6 %outer superior
-                            thetaRange = [pi/4, pi/2; pi/2, 3*pi/4];
-                            r = rOuter;
-                        case 7 %outer nasal
-                            if(strcmp(side,'OS'))
-                                thetaRange = [3*pi/4, pi; -pi, -3*pi/4];
-                            else
-                                thetaRange = [-pi/4, 0; 0, pi/4];
-                            end
-                            r = rOuter;
-                        case 8 %outer inferior
-                            thetaRange = [-3*pi/4, -pi/2; -pi/2, -pi/4];
-                            r = rOuter;
-                        case 9 %outer temporal
-                            if(strcmp(side,'OS'))
-                                thetaRange = [-pi/4, 0; 0, pi/4];
-                            else
-                                thetaRange = [3*pi/4, pi; -pi, -3*pi/4];
-                            end
-                            r = rOuter;
-                        case 10 %inner ring
-                            thetaRange = [-pi, 0; 0, pi];
-                            r = rInner;
-                        case 11 %outer ring
-                            thetaRange = [-pi, 0; 0, pi];
-                            r = rOuter;
-                        case 12 %full circle
-                            thetaRange = [-pi, 0; 0, pi];
-                            r = rOuter;
-                        case 13 %center + inner ring
-                            thetaRange = [-pi, 0; 0, pi];
-                            r = rInner;
-                        case 14 %center + outer ring
-                            thetaRange = [-pi, 0; 0, pi];
-                            r = rOuter;
-                        case 15 %inner + outer ring
-                            thetaRange = [-pi, 0; 0, pi];
-                            r = rOuter;
-                    end
-                    [tmpData,idx] = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,ROISubType,rCenter,rInner,1,0,0);
-                    if(ROIVicinity == 1)
-                        data = tmpData;
-                    elseif(ROIVicinity == 2)
-                        mask = true(y,x);
-                        mask(idx) = false;
-                        data(idx) = NaN;
-                        idx = find(mask);
-                    elseif(ROIVicinity == 3)
-                        mask = false(y,x);
-                        mask(idx) = true;
-                        outerMask = FData.computeVicinityMask(mask,vicDist,vicDiameter);
-%                         outerMask = imdilate(mask,true(2*(vicDist+vicDiameter)+1));
-%                         innerMask = imdilate(mask,true(2*vicDist+1));
-%                         outerMask(innerMask) = false;
-                        data(~outerMask) = NaN;
-                        idx = find(outerMask);
-                    end
+            if(ROIType > 1000 && ROIType < 2000)
+                %ETDRS grid
+                if(~isempty(fileInfo))
+                    res = fileInfo.pixelResolution;
+                    side = fileInfo.position;
+                else
+                    res = 58.66666666666;
+                    side = 'OS';
+                    %todo: warning/error message
+                end
+                rCenter = (1000/res/2);
+                rInner = (3000/res/2);
+                rOuter = (6000/res/2);
+                switch ROISubType
+                    case 1 %central
+                        thetaRange = [0, pi; -pi, pi];
+                        r = rCenter;
+                    case 2 %inner superior
+                        thetaRange = [pi/4, pi/2; pi/2, 3*pi/4];
+                        r = rInner;
+                    case 3 %inner nasal
+                        if(strcmp(side,'OS'))
+                            thetaRange = [3*pi/4, pi; -pi, -3*pi/4];
+                        else
+                            thetaRange = [-pi/4, 0; 0, pi/4];
+                        end
+                        r = rInner;
+                    case 4 %inner inferior
+                        thetaRange = [-3*pi/4, -pi/2; -pi/2, -pi/4];
+                        r = rInner;
+                    case 5 %inner temporal
+                        if(strcmp(side,'OS'))
+                            thetaRange = [-pi/4, 0; 0, pi/4];
+                        else
+                            thetaRange = [3*pi/4, pi; -pi, -3*pi/4];
+                        end
+                        r = rInner;
+                    case 6 %outer superior
+                        thetaRange = [pi/4, pi/2; pi/2, 3*pi/4];
+                        r = rOuter;
+                    case 7 %outer nasal
+                        if(strcmp(side,'OS'))
+                            thetaRange = [3*pi/4, pi; -pi, -3*pi/4];
+                        else
+                            thetaRange = [-pi/4, 0; 0, pi/4];
+                        end
+                        r = rOuter;
+                    case 8 %outer inferior
+                        thetaRange = [-3*pi/4, -pi/2; -pi/2, -pi/4];
+                        r = rOuter;
+                    case 9 %outer temporal
+                        if(strcmp(side,'OS'))
+                            thetaRange = [-pi/4, 0; 0, pi/4];
+                        else
+                            thetaRange = [3*pi/4, pi; -pi, -3*pi/4];
+                        end
+                        r = rOuter;
+                    case 10 %inner ring
+                        thetaRange = [-pi, 0; 0, pi];
+                        r = rInner;
+                    case 11 %outer ring
+                        thetaRange = [-pi, 0; 0, pi];
+                        r = rOuter;
+                    case 12 %full circle
+                        thetaRange = [-pi, 0; 0, pi];
+                        r = rOuter;
+                    case 13 %center + inner ring
+                        thetaRange = [-pi, 0; 0, pi];
+                        r = rInner;
+                    case 14 %center + outer ring
+                        thetaRange = [-pi, 0; 0, pi];
+                        r = rOuter;
+                    case 15 %inner + outer ring
+                        thetaRange = [-pi, 0; 0, pi];
+                        r = rOuter;
+                end
+                [tmpData,idx] = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,ROISubType,rCenter,rInner,1,0,0);
+                if(ROIVicinity == 1)
+                    data = tmpData;
+                elseif(ROIVicinity == 2)
+                    mask = true(y,x);
+                    mask(idx) = false;
+                    data(idx) = NaN;
+                    idx = find(mask);
+                elseif(ROIVicinity == 3)
+                    mask = false(y,x);
+                    mask(idx) = true;
+                    outerMask = FData.computeVicinityMask(mask,vicDist,vicDiameter);
+                    data(~outerMask) = NaN;
+                    idx = find(outerMask);
+                end
+                data = FData.removeNaNBoundingBox(data);
+            elseif(ROIType > 2000 && ROIType < 3000)
+                %rectangle
+                rc = zeros(2,4);
+                rc(:,1) = ROICoord(:,1);
+                rc(:,2) = [ROICoord(1,2);ROICoord(2,1);];
+                rc(:,3) = ROICoord(:,2);
+                rc(:,4) = [ROICoord(1,1);ROICoord(2,2);];
+                rc(2,1:2) = rc(2,1:2)-0.5; %workaround for specific poly2mask behavior
+                rc(1,[1,4]) = rc(1,[1,4])-0.5; %workaround for specific poly2mask behavior
+                mask = poly2mask(rc(2,:),rc(1,:),y,x);
+                if(ROIVicinity == 1)
+                    data(~mask) = NaN;
+                    idx = find(mask);
                     data = FData.removeNaNBoundingBox(data);
-                case {2,3} %rectangle
-                    rc = zeros(2,4);
-                    rc(:,1) = ROICoord(:,1);
-                    rc(:,2) = [ROICoord(1,2);ROICoord(2,1);];
-                    rc(:,3) = ROICoord(:,2);
-                    rc(:,4) = [ROICoord(1,1);ROICoord(2,2);];
-                    rc(2,1:2) = rc(2,1:2)-0.5; %workaround for specific poly2mask behavior
-                    rc(1,[1,4]) = rc(1,[1,4])-0.5; %workaround for specific poly2mask behavior
-                    mask = poly2mask(rc(2,:),rc(1,:),y,x);
+                elseif(ROIVicinity == 2)
+                    data(mask) = NaN;
+                    idx = find(~mask);
+                    data = FData.removeNaNBoundingBox(data);
+                elseif(ROIVicinity == 3)
+                    outerMask = FData.computeVicinityMask(mask,vicDist,vicDiameter);
+                    data(~outerMask) = NaN;
+                    idx = find(outerMask);
+                    data = FData.removeNaNBoundingBox(data);
+                end
+            elseif(ROIType > 3000 && ROIType < 4000)
+                %circle
+                r = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
+                thetaRange = [-pi, 0; 0, pi];
+                [data,idx] = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,0,[],[],ROIVicinity,vicDist,vicDiameter);
+            elseif(ROIType > 4000 && ROIType < 5000)
+                %polygon
+                %check whether there are at least three vertices of the polygon yet
+                [~,vertices] = size(ROICoord);
+                if(vertices > 2)
+                    %create mask out of polygon
+                    [minY, posY] = min(ROICoord(1,:));
+                    [minX, posX] = min(ROICoord(2,:));
+                    ROICoord(1,posY) = minY-0.5; %workaround for specific poly2mask behavior
+                    ROICoord(2,posX) = minX-0.5; %workaround for specific poly2mask behavior
+                    mask = poly2mask(ROICoord(2,:),ROICoord(1,:),y,x);
+                    %apply mask to data, delete all rows and columns which
+                    %are unneeded(outside of the Polygon)
                     if(ROIVicinity == 1)
                         data(~mask) = NaN;
-                        idx = find(mask);
-                        data = FData.removeNaNBoundingBox(data);
+                        data(~any(~isnan(data),2),:) = [];
+                        data(: ,~any(~isnan(data),1)) = [];
+                        idx = find(~isnan(data));
                     elseif(ROIVicinity == 2)
                         data(mask) = NaN;
                         idx = find(~mask);
-                        data = FData.removeNaNBoundingBox(data);
                     elseif(ROIVicinity == 3)
-%                         outerMask = imdilate(mask,true(2*(vicDist+vicDiameter)+1));
-%                         innerMask = imdilate(mask,true(2*vicDist+1));
-%                         outerMask(innerMask) = false;
                         outerMask = FData.computeVicinityMask(mask,vicDist,vicDiameter);
                         data(~outerMask) = NaN;
                         idx = find(outerMask);
-                        data = FData.removeNaNBoundingBox(data);
                     end
-                case {4,5} %circle
-                    r = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
-                    thetaRange = [-pi, 0; 0, pi];
-                    [data,idx] = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,0,[],[],ROIVicinity,vicDist,vicDiameter);
-                case {6,7} %polygon
-                    %check whether there are at least three vertices of the polygon yet
-                    [~,vertices] = size(ROICoord);
-                    if(vertices > 2)
-                        %create mask out of polygon
-                        [minY, posY] = min(ROICoord(1,:));
-                        [minX, posX] = min(ROICoord(2,:));
-                        ROICoord(1,posY) = minY-0.5; %workaround for specific poly2mask behavior
-                        ROICoord(2,posX) = minX-0.5; %workaround for specific poly2mask behavior
-                        mask = poly2mask(ROICoord(2,:),ROICoord(1,:),y,x);
-                        %apply mask to data, delete all rows and columns which
-                        %are unneeded(outside of the Polygon)
-                        if(ROIVicinity == 1)
-                            data(~mask) = NaN;
-                            data(~any(~isnan(data),2),:) = [];
-                            data(: ,~any(~isnan(data),1)) = [];
-                            idx = find(~isnan(data));
-                        elseif(ROIVicinity == 2)
-                            data(mask) = NaN;
-                            idx = find(~mask);
-                        elseif(ROIVicinity == 3)
-%                             outerMask = imdilate(mask,true(2*(vicDist+vicDiameter)+1));
-%                             innerMask = imdilate(mask,true(2*vicDist+1));
-%                             outerMask(innerMask) = false;
-                            outerMask = FData.computeVicinityMask(mask,vicDist,vicDiameter);
-                            data(~outerMask) = NaN;
-                            idx = find(outerMask);
-                        end
-                    end
-                otherwise
-                    
+                end
             end
         end
         
