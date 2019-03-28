@@ -341,8 +341,7 @@ classdef ROICtrl < handle
             [str,c,f] = ROICtrl.ROIType2ROIItem(rt);
             idx = allROT > c*1000 & allROT < (c+1)*1000;
             this.ROIType = max(allROT(idx))+1;
-            ROIInfo = zeros(2,3,'int16');
-            this.updateGUI(ROIInfo(:,2:end));
+            this.updateGUI([]);
             this.save();
         end
         
