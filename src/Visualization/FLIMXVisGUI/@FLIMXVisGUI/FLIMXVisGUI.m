@@ -1731,6 +1731,8 @@ classdef FLIMXVisGUI < handle
                 end
             elseif(contains(tag,'button') && contains(tag,'roi_add'))
                 this.objHandles.(sprintf('%sROI',thisSide)).addNewROI();
+                this.objHandles.(sprintf('%sROI',otherSide)).setupGUI();
+                this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
             elseif(contains(tag,'button') && contains(tag,'roi_delete'))
                 rt = this.getROIType(thisSide);
                 ROIStr = ROICtrl.ROIType2ROIItem(rt);

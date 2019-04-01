@@ -906,8 +906,7 @@ classdef FDTSubject < subject4Approx
                 chObj = this.getChild(ch);
             end
             if(isempty(chObj) && ~isempty(ch))
-                if(strncmp(dType,'MVGroup',7) || strncmp(dType,'ConditionMVGroup',16)...
-                        || strncmp(dType,'GlobalMVGroup',13))
+                if(strncmp(dType,'MVGroup',7) || strncmp(dType,'ConditionMVGroup',16) || strncmp(dType,'GlobalMVGroup',13))
                     this.addChildByName(FDTChannel(this,ch),ch);
                     chObj = this.getChild(ch);
                 else                    

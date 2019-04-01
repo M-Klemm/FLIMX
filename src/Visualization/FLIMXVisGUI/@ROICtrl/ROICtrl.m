@@ -459,7 +459,11 @@ classdef ROICtrl < handle
                 allROIStr = {ROICtrl.ROIType2ROIItem(0)};
             else
                 allROT = hfd.getROICoordinates([]);
-                allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
+                if(isempty(allROT))
+                    allROIStr = {ROICtrl.ROIType2ROIItem(0)};
+                else
+                    allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
+                end
             end
             set(this.roi_type_popup,'String',allROIStr,'Value',min(this.roi_type_popup.Value,length(allROIStr)));
             rt = this.ROIType;
@@ -789,11 +793,11 @@ classdef ROICtrl < handle
             str = deblank(str);
             if(strcmp(str,'-none-'))
                 out = 0;
-            elseif(strncmp(str,'ETDRS Grid',10))
-                out = 1001;
-                if(length(str) > 10)
-                    out = out + str2double(str(11:end));
-                end
+            elseif(strncmp(str,'ETDRS Grid #',12))
+%                 out = 1001;
+%                 if(length(str) > 10)
+                    out = 1000 + str2double(str(13:end));
+%                 end
             elseif(strncmp(str,'Rectangle #',11))
                 out = 2000 + str2double(str(12:end));
             elseif(strncmp(str,'Circle #',8))
@@ -811,11 +815,11 @@ classdef ROICtrl < handle
             ROITypeFine = ROIType - ROITypeCoarse*1000;
             switch ROITypeCoarse
                 case 1
-                    if(ROITypeFine == 1)
-                        str = 'ETDRS Grid';
-                    else
+%                     if(ROITypeFine == 1)
+%                         str = 'ETDRS Grid';
+%                     else
                         str = sprintf('ETDRS Grid #%d',ROITypeFine);
-                    end
+%                     end
                 case 2
                     str = sprintf('Rectangle #%d',ROITypeFine);
                 case 3
@@ -912,6 +916,12 @@ classdef ROICtrl < handle
                     end
                 end
             end
+        end
+        
+        function out = getDefaultROIStruct()
+            %return default ROI struct for 1 ETDRS grid, 2 rectangles, 2 circles and 2 polygons
+            out = zeros(7,3,2,'int16');
+            out(:,1,1) = [1001,2001,2002,3001,3002,4001,4002];
         end
         
     end

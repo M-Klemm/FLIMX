@@ -319,7 +319,7 @@ classdef studyIS < handle
                 end
             else
                 if(isempty(tmp) || size(tmp,1) < 7 || size(tmp,2) < 3)
-                    tmp = zeros(7,3,2,'int16');
+                    tmp = ROICtrl.getDefaultROIStruct();
                 end
                 ROIType = int16(ROIType);
                 idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
