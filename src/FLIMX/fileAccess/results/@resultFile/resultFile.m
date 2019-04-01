@@ -596,7 +596,7 @@ classdef resultFile < handle
             elseif(strcmp(pStr,'TauMean'))
                 %make mean of taus
                 %Tm= a1*T1+a2*T2+a3*T3/(a1+a2+a3)
-                amp = this.getPixelFLIMItem(ch,'Amplitude1');
+                amp = this.getInitFLIMItem(ch,'Amplitude1');
                 tmp = zeros(size(amp));
                 out = zeros(size(amp));
                 expMask = find(~this.basicParams.tciMask);

@@ -310,7 +310,12 @@ classdef result4Approx < resultFile
                 %dimension mismatch -> post error message
                 return
             end
-            tmp = this.getPixelResult(ch);
+            if(length(this.results.pixel) >= ch && ~isempty(this.results.pixel{ch,1}))
+                tmp = this.results.pixel{ch,1};
+            else
+                this.allocPixelResult(ch);
+                tmp = this.results.pixel{ch,1};
+            end
             %add only new results
             newIdx = 1:size(indices,1);
             if(any(strcmpi(fn,'chi2')))
