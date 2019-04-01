@@ -46,19 +46,18 @@ classdef FDataScatterPlot < FDataNormal
         function this = FDataScatterPlot(parent,id,rawImage)
             %constructor of FDataScatterPlot class
             this = this@FDataNormal(parent,id,rawImage);
-            this.ROICoordinates = zeros(7,3,2,'int16');            
+            this.ROICoordinates = ROICtrl.getDefaultROIStruct();
         end
         
         function out = getROICoordinates(this,ROIType)
             %get coordinates of ROI
+            out = [];
             if(~isempty(ROIType) && isscalar(ROIType) && ROIType < 5000 && ROIType > 1000)
                 out = squeeze(this.ROICoordinates(ROIType,:,:));
                 if(ROIType < 4000)
                     %no polygons
                     out = out(2:end,1:2)';
-                end
-            else
-                out = [];
+                end                
             end
         end
         
