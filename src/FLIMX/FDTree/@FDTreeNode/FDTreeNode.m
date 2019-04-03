@@ -120,7 +120,7 @@ classdef FDTreeNode < handle
             %check if child is in myChildren
             if(ischar(childID))
                 [childObj, childID] = this.myChildren.getDataByID(childID);
-            elseif(isnumeric(childID) && ~isnan(childID) && ~isinf(childID))
+            elseif(~isempty(childID) && isnumeric(childID) && ~isnan(childID) && ~isinf(childID))
                 if(this.myChildren.IDisChar)
                     %child ids are characters, but a numeric child is requested
                     [childObj, childID] = this.myChildren.getDataByPos(childID);

@@ -349,6 +349,7 @@ classdef FLIMX < handle
             success = true;
             studyPos = find(strcmp(study,this.fdt.getStudyNames()),1);
             if(isempty(studyPos))
+                this.curSubject = this.fdt.getSubject4Import(study,'example_subject');
                 success = false;
                 return
             end
@@ -477,7 +478,7 @@ classdef FLIMX < handle
             out.config_revision = 266;
             out.client_revision_major = 4;
             out.client_revision_minor = 5;
-            out.client_revision_fix = 9;
+            out.client_revision_fix = 10;
             out.core_revision = 372;
             out.results_revision = 256;
             out.measurement_revision = 205;
