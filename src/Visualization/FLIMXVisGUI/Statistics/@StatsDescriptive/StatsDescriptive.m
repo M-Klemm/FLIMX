@@ -69,6 +69,7 @@ classdef StatsDescriptive < handle
         ROISubType = 1;
         ROIVicinityFlag = 0;
         alpha = 5;
+        allROITypes = cell(0,0);
     end
     
     methods
@@ -90,6 +91,7 @@ classdef StatsDescriptive < handle
             set(this.visHandles.popupSelROISubType,'Callback',@this.GUI_SelROITypePop_Callback);
             set(this.visHandles.popupSelROIVicinity,'Callback',@this.GUI_SelROITypePop_Callback);
             set(this.visHandles.popupSelStatParam,'Callback',@this.GUI_SelStatParamPop_Callback);
+            set(this.visHandles.checkDisplayAllROIs,'Callback',@this.GUI_checkDisplayAllROIs_Callback);
             %export
             set(this.visHandles.buttonExportExcel,'Callback',@this.GUI_buttonExcelExport_Callback);
             set(this.visHandles.checkSNFLIM,'Callback',@this.GUI_checkExcelExport_Callback);
@@ -188,6 +190,12 @@ classdef StatsDescriptive < handle
             this.setupGUI();
         end
         
+        function GUI_checkDisplayAllROIs_Callback(this,hObject,eventdata)
+            %
+            this.setupGUI();
+            this.updateGUI();
+        end
+        
         function GUI_buttonUpdateGUI_Callback(this,hObject,eventdata)
             %
             try
@@ -282,17 +290,26 @@ classdef StatsDescriptive < handle
                     FLIMIds = 1:this.totalDTypes;
                     this.clearResults();
             end
-            switch this.exportModeROI
-                case 1 %current ROI
-                    ROIIds = 1;
-                case 2 %all ETDRS grid ROIs
-                    set(this.visHandles.popupSelROIType,'Value',2); %switch to ETDRS grid
-                    this.setupGUI();
-                    this.clearResults();
-                    ROIIds = 1:length(get(this.visHandles.popupSelROISubType,'String'));
-                case 3 %all major ROIs except for the ETDRS grid
-                    this.clearResults();
-                    ROIIds = 3:8;
+            if(length(this.visHandles.popupSelROIType.String) == 1)
+                ROIIds = 1;
+            else
+                switch this.exportModeROI
+                    case 1 %current ROI
+                        ROIIds = 1;
+                    case 2 %all ETDRS grid ROIs
+                        this.visHandles.popupSelROIType.Value = 2; %switch to ETDRS grid
+                        this.setupGUI();
+                        this.clearResults();
+                        ROIIds = 1:length(this.visHandles.popupSelROISubType.String);
+                    case 3 %all major ROIs except for the ETDRS grid
+                        this.clearResults();
+                        if(this.visHandles.checkDisplayAllROIs.Value)
+                            [~,ROIIds] = unique(round(this.allROITypes./1000));
+                            ROIIds(ROIIds < 3) = [];
+                        else
+                            ROIIds = 3:length(this.visHandles.popupSelROIType.String);
+                        end
+                end
             end
             switch this.exportModeCh
                 case 1 %current channel
@@ -446,13 +463,11 @@ classdef StatsDescriptive < handle
                 chStr = this.visObj.fdt.getChStr(this.study,ds1{1});
                 coStr = this.visObj.fdt.getChObjStr(this.study,ds1{1},this.ch);
                 coStr = sort(coStr);
-                allROT = this.visObj.fdt.getResultROICoordinates(this.study,ds1{1},[]);
-                allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
             else
                 chStr = [];
                 coStr = 'param';
-                allROIStr = {ROICtrl.ROIType2ROIItem(0)};
             end
+            allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,this.allROITypes,'UniformOutput',false);
             if(isempty(chStr))
                 chStr = 'Ch 1';
             end
@@ -524,6 +539,24 @@ classdef StatsDescriptive < handle
         function makeStats(this)
             %collect stats info from FDTree
             [this.subjectStats, this.statsDesc, this.subjectDesc] = this.visObj.fdt.getStudyStatistics(this.study,this.condition,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag,true);
+            if(this.visHandles.checkDisplayAllROIs.Value)
+                allROT = this.allROITypes;
+                idx = find(floor(allROT/1000) - floor(this.ROIType/1000) == 0);
+                nSubs = size(this.subjectStats,1);
+                nROIs = length(idx);
+                if(~isempty(idx) && nROIs > 1)
+                    statsTmp = zeros(nSubs*nROIs,size(this.subjectStats,2));
+                    subDescTmp = cell(nSubs*nROIs,1);
+                    for i = 1:nROIs
+                        iVec = i:nROIs:nSubs*nROIs;
+                        ROIName = ROICtrl.ROIType2ROIItem(allROT(idx(i)));
+                        subDescTmp(iVec) = cellfun(@(x) sprintf('%s_%s',x,ROIName),this.subjectDesc,'uniform',false);
+                        statsTmp(iVec,:) = this.visObj.fdt.getStudyStatistics(this.study,this.condition,this.ch,this.dType,this.id,allROT(idx(i)),this.ROISubType,this.ROIVicinityFlag,true);
+                    end
+                    this.subjectStats = statsTmp;
+                    this.subjectDesc = subDescTmp;
+                end
+            end
             [this.statHist, this.statCenters] = this.makeHistogram(this.statPos);
             [this.normDistTests, this.normDistTestsLegend]= this.makeNormalDistributionTests(this.statPos);
         end
@@ -717,12 +750,15 @@ classdef StatsDescriptive < handle
             end
             if(get(this.visHandles.checkSNROI,'Value'))
                 rt = this.ROIType;
+                rtStr = ROICtrl.ROIType2ROIItem(rt);
+                if(this.visHandles.checkDisplayAllROIs.Value)
+                    rtStr = deblank(strtok(rtStr,'#'));
+                end
                 if(rt > 1000 && rt < 2000)
                     str = this.visHandles.popupSelROISubType.String;
-                    out = [out 'ETDRS ' str{this.ROISubType} '_'];
+                    out = [out rtStr str{this.ROISubType} '_'];
                 else
-                    str = this.visHandles.popupSelROIType.String;
-                    out = [out str{this.visHandles.popupSelROIType.Value} '_'];
+                    out = [out rtStr '_'];
                 end
             end
             if(get(this.visHandles.checkSNCh,'Value'))
@@ -760,6 +796,16 @@ classdef StatsDescriptive < handle
         function out = get.ROIVicinityFlag(this)
             out = get(this.visHandles.popupSelROIVicinity,'Value');
         end
+        function allROT = get.allROITypes(this)
+            ds1 = this.visObj.fdt.getSubjectsNames(this.study,this.condition);
+            if(~isempty(ds1))
+                allROT = this.visObj.fdt.getResultROICoordinates(this.study,ds1{1},[]);
+                allROT = [0;allROT(:,1,1)];                
+            else
+                allROT = 0;
+            end
+        end
+        
         
         function out = get.alpha(this)
             %get current alpha value

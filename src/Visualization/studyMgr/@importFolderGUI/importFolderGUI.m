@@ -36,6 +36,7 @@ classdef importFolderGUI < handle
         visHandles = [];
         currentFiles = [];
         currentPath = '';
+        measurementObj = [];
     end
     
     properties (Dependent = true)
@@ -214,12 +215,34 @@ classdef importFolderGUI < handle
                 mask = mask([mask{:,4}],:);
                 nSubjects = size(mask,1);
                 tStart = clock;
+                pMgr = this.FLIMXObj.paramMgr;
+                oldPPP = pMgr.preProcessParams;
+                newPPP = oldPPP;
+                newPPP.roiAdaptiveBinEnable = 0;
+                newPPP.roiBinning = 0;
+                pMgr.setParamSection('pre_processing',newPPP,false);
                 for i = 1:nSubjects
-                    if(mask{i,4})
-                        subject = this.FLIMXObj.fdt.getSubject4Import(this.currentStudy,mask{i,2});
-                        subject.preProcessParams.roiAdaptiveBinEnable = 0;
-                        subject.preProcessParams.roiBinning = 0;
-                        subject.importMeasurementFile(mask{i,1});
+                    if(mask{i,4})                        
+                        this.measurementObj = measurementReadRawData(pMgr);
+                        this.measurementObj.setSourceFile(mask{i,1}); 
+                        %read raw data
+                        for ch = 1:this.measurementObj.nrSpectralChannels
+                            this.measurementObj.getRawData(ch);
+                        end
+                        %get full roi
+                        ROIVec = [1 this.measurementObj.getRawXSz() 1 this.measurementObj.getRawYSz()];
+                        %ROIVec = importWizard.getAutoROI(this.measurementObj.getRawDataFlat(ch),this.measurementObj.roiStaticBinningFactor);
+                        %if(ROIVec(1) > 5 || ROIVec(3) > 5 || ROIVec(2) < this.measurementObj.rawXSz-5 || ROIVec(4) < this.measurementObj.rawYSz-5)
+                        this.measurementObj.setROICoord(ROIVec);
+                        x = this.measurementObj.rawXSz;
+                        if(x < 256)
+                            x = 150;
+                        end
+                        this.measurementObj.pixelResolution = 1000*8.8/x;
+                        %guess position of the eye
+                        this.measurementObj.guessEyePosition();
+                        subject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudy,mask{i,2});
+                        subject.importMeasurementObj(this.measurementObj);                        
                     end
                     [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(nSubjects-i)); %mean cputime for finished runs * cycles left
                     this.plotProgressbar(i/nSubjects,[],...
@@ -231,10 +254,11 @@ classdef importFolderGUI < handle
                     end
                     if(this.FLIMXObj.FLIMFitGUI.isOpenVisWnd())
                         this.FLIMXObj.FLIMFitGUI.checkVisWnd();
-                    end                    
+                    end
                     this.FLIMXObj.studyMgrGUI.checkVisWnd();
                 end
             end
+            pMgr.setParamSection('pre_processing',oldPPP,false);
             set(hObject,'String','OK');
             this.plotProgressbar(0,'','');
             this.closeCallback();

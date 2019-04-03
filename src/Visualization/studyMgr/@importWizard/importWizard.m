@@ -506,7 +506,7 @@ classdef importWizard < handle
                 set(this.visHandles.editSubjectName,'Visible','on');
             end
             set(this.visHandles.editFile,'String',this.myMeasurement.getSourceFile());
-            this.axesMgr.setReverseYDirFlag(this.FLIMXObj.paramMgr.getParamSection('general').reverseYDir);
+            this.axesMgr.setReverseYDirFlag(this.FLIMXObj.paramMgr.generalParams.reverseYDir);
         end
         
         function updateGUI(this)
@@ -595,6 +595,10 @@ classdef importWizard < handle
                         case 'Cancel'
                             return;
                     end
+                end
+                %read raw data
+                for ch = 1:this.measurementObj.nrSpectralChannels
+                    this.measurementObj.getRawData(ch);
                 end
                 subject.importMeasurementObj(this.measurementObj);
                 %this.measurementObj = [];

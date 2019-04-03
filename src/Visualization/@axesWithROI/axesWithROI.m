@@ -71,8 +71,12 @@ classdef axesWithROI < handle
         
         function clear(this)
             %clear all data
-            cla(this.myMainAxes);
-            cla(this.myCBAxes);
+            if(ishandle(this.myMainAxes))
+                cla(this.myMainAxes);
+            end
+            if(ishandle(this.myCBAxes))
+                cla(this.myCBAxes);
+            end
             %delete old ROI and current point lines
             if(ishandle(this.myROIRectangle))
                 delete(this.myROIRectangle);
@@ -173,7 +177,11 @@ classdef axesWithROI < handle
         %% drawing methods
         function drawMain(this,lb,ub)
             %draw main axes, delete ROI box and current point
-            cla(this.myMainAxes);
+            if(ishandle(this.myMainAxes))
+                cla(this.myMainAxes);
+            else
+                return
+            end
             if(isempty(this.myData))
                 return
             end
@@ -186,7 +194,7 @@ classdef axesWithROI < handle
 %                 cBLb = lb;
 %                 cBUb = ub;
             end
-            img = image2ColorMap(this.myData,this.myCM,lb,ub);
+            img = image2ColorMap(single(this.myData),this.myCM,single(lb),single(ub));
             image(img,'Parent',this.myMainAxes);
             [r, c] = size(this.myData);
             if(~isnan(r) && ~isnan(c) && size(this.myData,1) > 1 && size(this.myData,2) > 1)

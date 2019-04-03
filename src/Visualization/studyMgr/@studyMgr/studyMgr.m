@@ -761,6 +761,7 @@ classdef studyMgr < handle
             infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoAllColumnNames');
             opt.list = infoHeaders;
             opt.ops = {'-no op-','AND','OR','!AND','!OR','XOR','<','>','<=','>=','==','!='};
+            opLen = length(opt.ops);
             opt.name = infoHeaders{this.selectedInfoField(2)};
             if(isempty(ref))
                 opt.cond = false;
@@ -782,13 +783,13 @@ classdef studyMgr < handle
                     opt.colB = 1;
                 end
                 [~, loc] = ismember(ref.relA,opt.ops);
-                opt.relA = loc-6;
+                opt.relA = max(1,min(opLen-6,loc-6));
                 opt.valA = ref.valA;
                 [~, loc] = ismember(ref.relB,opt.ops);
-                opt.relB = loc-6;
+                opt.relB = max(1,min(opLen-6,loc-6));
                 opt.valB = ref.valB;
                 [~, loc] = ismember(ref.logOp,opt.ops);
-                opt.logOp = loc;
+                opt.logOp = max(1,min(opLen,loc));
             end
             
             %start GUI

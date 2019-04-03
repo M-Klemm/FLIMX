@@ -34,7 +34,9 @@ classdef batchJobMgrGUI < handle
     properties(GetAccess = public, SetAccess = private)
         FLIMXObj = []; %handle to FLIMX object
         visHandles = []; %structure to handles in GUI
-        mySelJobs = 1; %ids of selected jobs        
+        mySelJobs = 1; %ids of selected jobs
+        axesRawMgr = [];
+        axesROIMgr = [];
     end
     properties (Dependent = true)
         deleteFinishedJobs = [];
@@ -46,12 +48,12 @@ classdef batchJobMgrGUI < handle
             %constructor for batchJobMgrGUI
             this.FLIMXObj = flimX;
             this.batchJobMgr.setGUIHandle(this);
-        end 
+        end
         
         %% GUI & menu callbacks
         function menuExit_Callback(this,hObject,eventdata)
             %executes on figure close
-            %close batchJobMgr           
+            %close batchJobMgr
             if(~isempty(this.visHandles) && ishandle(this.visHandles.batchJobMgrFigure))
                 delete(this.visHandles.batchJobMgrFigure);
             end
@@ -63,11 +65,11 @@ classdef batchJobMgrGUI < handle
                 this.mySelJobs = eventdata.Indices(:,1);
                 this.drawImages();
             end
-        end        
+        end
         
         function addCurJob(this)
             %add (sdt-) file to job list
-            ch = get(this.visHandles.popupFileFolderChannels,'Value') - 1;            
+            ch = get(this.visHandles.popupFileFolderChannels,'Value') - 1;
             if(ch == 0)
                 %all channels
                 this.FLIMXObj.FLIMFitGUI.menuBatchAll_Callback();
@@ -75,7 +77,7 @@ classdef batchJobMgrGUI < handle
                 %specific channel
                 this.FLIMXObj.FLIMFitGUI.menuBatchCurrent_Callback([],true);
             end
-            this.updateGUI();        
+            this.updateGUI();
         end
         
         function GUI_buttonMove_Callback(this,hObject,eventdata)
@@ -106,7 +108,7 @@ classdef batchJobMgrGUI < handle
             jobs = this.batchJobMgr.getJobUID(this.mySelJobs);
             tStart = clock;
             allFlag = false;
-            for i = 1:length(jobs)                
+            for i = 1:length(jobs)
                 if(~isempty(jobs{i}))
                     if(~allFlag)
                         choice = questdlg(sprintf('Delete batch job ''%s''?',jobs{i}),...
@@ -140,8 +142,8 @@ classdef batchJobMgrGUI < handle
             this.batchJobMgr.deleteAllJobs();
             this.mySelJobs = 1;
             this.updateGUI();
-        end         
-               
+        end
+        
         function GUI_buttonLoadJob_Callback(this,hObject,eventdata)
             %load selected job(s)
             if(isempty(this.mySelJobs(1)))
@@ -184,7 +186,7 @@ classdef batchJobMgrGUI < handle
                 hObject.String = sprintf('<html><img src="file:/%s"/> Running</html>',FLIMX.getAnimationPath());
                 drawnow;
             end
-            this.batchJobMgr.runAllJobs(this.deleteFinishedJobs);                       
+            this.batchJobMgr.runAllJobs(this.deleteFinishedJobs);
             this.updateGUI();
             this.updateProgressbar(0,'');
             hObject.String = oldStr;
@@ -231,7 +233,7 @@ classdef batchJobMgrGUI < handle
             set(this.visHandles.buttonClose,'Callback',@this.menuExit_Callback);
             set(this.visHandles.buttonRunSelected,'Callback',@this.GUI_buttonRunSelected_Callback);
             set(this.visHandles.buttonRunAll,'Callback',@this.GUI_buttonRunAll_Callback);
-            set(this.visHandles.buttonStop,'Callback',@this.GUI_buttonStop_Callback);           
+            set(this.visHandles.buttonStop,'Callback',@this.GUI_buttonStop_Callback);
             %table
             set(this.visHandles.tableJobs,'CellSelectionCallback',@this.GUI_tableJobsSel_Callback);
             set(this.visHandles.buttonUp,'String',char(173),'Callback',@this.GUI_buttonMove_Callback);
@@ -240,7 +242,18 @@ classdef batchJobMgrGUI < handle
             set(this.visHandles.buttonBottom,'String',char(223),'Callback',@this.GUI_buttonMove_Callback);
             set(this.visHandles.buttonLoadJob,'Callback',@this.GUI_buttonLoadJob_Callback);
             set(this.visHandles.buttonRemove,'Callback',@this.GUI_buttonRemove_Callback);
-            set(this.visHandles.buttonRemoveAll,'Callback',@this.GUI_buttonRemoveAll_Callback);            
+            set(this.visHandles.buttonRemoveAll,'Callback',@this.GUI_buttonRemoveAll_Callback);
+            %axes
+            cm = this.FLIMXObj.FLIMFitGUI.dynVisParams.cmIntensity;
+            if(isempty(cm))
+                cm = gray(256);
+            end
+            this.axesRawMgr = axesWithROI(this.visHandles.axesRaw,this.visHandles.axesCbRaw,this.visHandles.textCbRawBottom,this.visHandles.textCbRawTop,[],cm);
+            this.axesRawMgr.setColorMapPercentiles(this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileLB,this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileUB);
+            this.axesRawMgr.setROILineColor('r');
+            this.axesROIMgr = axesWithROI(this.visHandles.axesROI,this.visHandles.axesCbROI,this.visHandles.textCbROIBottom,this.visHandles.textCbROITop,[],cm);
+            this.axesROIMgr.setColorMapPercentiles(this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileLB,this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileUB);
+            this.axesROIMgr.setROILineColor('r');
         end
         
         function checkVisWnd(this)
@@ -264,7 +277,7 @@ classdef batchJobMgrGUI < handle
             runningJobUID = this.batchJobMgr.getRunningJobUID();
             if(isempty(runningJobUID))
                 set(this.visHandles.tableCurrentJob,'Data',[]);
-            else                
+            else
                 set(this.visHandles.tableCurrentJob,'Data',info(strcmp(runningJobUID,info(:,1)),:));
             end
             %plots
@@ -286,42 +299,22 @@ classdef batchJobMgrGUI < handle
                 set(this.visHandles.textCbROIBottom,'String','');
                 set(this.visHandles.textCbRawTop,'String','');
                 set(this.visHandles.textCbRawBottom,'String','');
+                axis(this.visHandles.axesRaw,'off');
+                axis(this.visHandles.axesROI,'off');
             else
+                axis(this.visHandles.axesRaw,'on');
+                axis(this.visHandles.axesROI,'on');
+                this.axesRawMgr.setReverseYDirFlag(this.FLIMXObj.paramMgr.generalParams.reverseYDir);
+                this.axesROIMgr.setReverseYDirFlag(this.FLIMXObj.paramMgr.generalParams.reverseYDir);
                 %raw
-                lb = prctile(rawPic(:),this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileLB);
-                ub = prctile(rawPic(:),this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileUB);
-                img = image2ColorMap(rawPic,this.FLIMXObj.FLIMFitGUI.dynVisParams.cmIntensity,lb,ub);
-                image(img,'Parent',this.visHandles.axesRaw);
-                [r, c] = size(rawPic);
-                if(~isnan(r) && ~isnan(c) && size(rawPic,1) > 1 && size(rawPic,2) > 1)
-                    xlim(this.visHandles.axesRaw,[1 size(rawPic,2)]);
-                    ylim(this.visHandles.axesRaw,[1 size(rawPic,1)]);
-                end
-                set(this.visHandles.axesRaw,'YDir','normal');
-                set(this.visHandles.textCbRawTop,'String',max(rawPic(:)));
-                set(this.visHandles.textCbRawBottom,'String',min(rawPic(:)));
-                %roi-lines in raw
-                %top              
-                line('XData',[roi(1) roi(2)],'YData',[roi(4) roi(4)],'Color',[0.9 0.9 0.9],'LineWidth',2,'LineStyle','-','Parent',this.visHandles.axesRaw);                
-                %bottom               
-                line('XData',[roi(2) roi(1)],'YData',[roi(3) roi(3)],'Color',[0.9 0.9 0.9],'LineWidth',2,'LineStyle','-','Parent',this.visHandles.axesRaw);                
-                %left            
-                line('XData',[roi(1) roi(1)],'YData',[roi(3) roi(4)],'Color',[0.9 0.9 0.9],'LineWidth',2,'LineStyle','-','Parent',this.visHandles.axesRaw);                
-                %right
-                line('XData',[roi(2) roi(2)],'YData',[roi(4) roi(3)],'Color',[0.9 0.9 0.9],'LineWidth',2,'LineStyle','-','Parent',this.visHandles.axesRaw);
+                this.axesRawMgr.setColorMapPercentiles(this.FLIMXObj.paramMgr.generalParams.cmIntensityPercentileLB,this.FLIMXObj.paramMgr.generalParams.cmIntensityPercentileUB);
+                this.axesRawMgr.setMainData(rawPic);
+                this.axesRawMgr.drawROIBox(roi);
                 %roi
-                img = image2ColorMap(roiPic,this.FLIMXObj.FLIMFitGUI.dynVisParams.cmIntensity,lb,ub);
-                image(img,'Parent',this.visHandles.axesROI); 
-                [r, c] = size(roiPic);
-                if(~isnan(r) && ~isnan(c) && size(roiPic,1) > 1 && size(roiPic,2) > 1)
-                    xlim(this.visHandles.axesROI,[1 size(roiPic,1)]);
-                    ylim(this.visHandles.axesROI,[1 size(roiPic,2)]);
-                end
-                set(this.visHandles.axesROI,'YDir','normal');
-                set(this.visHandles.textCbROITop,'String',max(roiPic(:)));
-                set(this.visHandles.textCbROIBottom,'String',min(roiPic(:)));
+                this.axesROIMgr.setColorMapPercentiles(this.FLIMXObj.paramMgr.generalParams.cmIntensityPercentileLB,this.FLIMXObj.paramMgr.generalParams.cmIntensityPercentileUB);
+                this.axesROIMgr.setMainData(roiPic);
             end
-            this.makeColorbars();
+            %             this.makeColorbars();
         end
         
         function makeColorbars(this)
@@ -341,7 +334,7 @@ classdef batchJobMgrGUI < handle
         
         function out = get.deleteFinishedJobs(this)
             out = get(this.visHandles.checkDelFinishedJobs,'Value');
-        end 
+        end
         
         function out = get.batchJobMgr(this)
             out = this.FLIMXObj.batchJobMgr;
@@ -375,7 +368,7 @@ classdef batchJobMgrGUI < handle
             end
             drawnow;
         end
-            
+        
     end %methods
     
     methods(Static)

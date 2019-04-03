@@ -100,10 +100,12 @@ classdef resultFile < handle
                 end
             else
                 fn = this.getResultFileName(ch,'');
-                try
-                    delete(fn);
-                catch ME
-                    %todo
+                if(exist(fn,'file'))
+                    try
+                        delete(fn);
+                    catch ME
+                        %todo
+                    end
                 end
                 this.allocResults(ch,this.resultSize(1),this.resultSize(2));
                 this.checkMyFiles();
@@ -596,7 +598,7 @@ classdef resultFile < handle
             elseif(strcmp(pStr,'TauMean'))
                 %make mean of taus
                 %Tm= a1*T1+a2*T2+a3*T3/(a1+a2+a3)
-                amp = this.getPixelFLIMItem(ch,'Amplitude1');
+                amp = this.getInitFLIMItem(ch,'Amplitude1');
                 tmp = zeros(size(amp));
                 out = zeros(size(amp));
                 expMask = find(~this.basicParams.tciMask);
@@ -1025,7 +1027,9 @@ classdef resultFile < handle
             bp = apObj.basicParams;
             bp.errorMode = 1;
             bp.heightMode = 1;
-            xVec(end) = oset;
+            if(~isempty(xVec))
+                xVec(end) = oset;
+            end
             if(bp.hybridFit)
                 %switch off hybrid fitting for result display
                 %replace hybrid fit parameters with their corresponding results

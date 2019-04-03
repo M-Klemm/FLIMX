@@ -48,7 +48,7 @@ classdef FDTStudy < FDTreeNode
         function this = FDTStudy(parent,sDir,name)
             % Constructor for FDTStudy
             this = this@FDTreeNode(parent,name);
-            this.revision = 30;
+            this.revision = 31;
             this.myDir = sDir;
             this.myStudyInfoSet = studyIS(this);
             this.myConditionStatistics = LinkedList();
@@ -897,11 +897,9 @@ classdef FDTStudy < FDTreeNode
                 subjectID = this.myStudyInfoSet.idx2SubName(subjectID);
             end
             out = this.getChild(subjectID);
-%             if(~isempty(subject))
-%                 out = subject.getSubject4Approx();
-%             else
-%                 out = [];
-%             end
+            if(isempty(out))
+                out = this.addSubject(subjectID);
+            end
         end
         
         function out = getSubject4Import(this,subjectID)
@@ -1547,6 +1545,7 @@ classdef FDTStudy < FDTreeNode
             data = cell(this.nrChildren,5);
             lastUpdate = clock;
             tStart = clock;
+            this.updateStudyMgrProgress(0.01,'Scan subjects: 0%');
             for i = 1:this.nrChildren
                 subject = this.getChildAtPos(i);
                 if(~isempty(subject))

@@ -995,7 +995,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 xVec = this.getFullXVec(ch,xVec);
             end
             if(isempty(xVec))
-                varargout = cell(0,0);
+                varargout = cell(nargout,1);
                 return
             end
             %cache
