@@ -262,7 +262,7 @@ classdef fluoSubject < FDTreeNode
                                 else
                                     curScatterFile = [];
                                 end
-                                if(isempty(curScatterFile))
+                                if(isempty(curScatterFile) || isempty(curScatterFile.nonEmptyChannelList))
                                     ad.scatter = [];
                                     this.basicParams.scatterStudy = '';
                                 else
