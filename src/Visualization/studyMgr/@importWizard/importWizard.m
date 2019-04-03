@@ -506,7 +506,7 @@ classdef importWizard < handle
                 set(this.visHandles.editSubjectName,'Visible','on');
             end
             set(this.visHandles.editFile,'String',this.myMeasurement.getSourceFile());
-            this.axesMgr.setReverseYDirFlag(this.FLIMXObj.paramMgr.getParamSection('general').reverseYDir);
+            this.axesMgr.setReverseYDirFlag(this.FLIMXObj.paramMgr.generalParams.reverseYDir);
         end
         
         function updateGUI(this)
