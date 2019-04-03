@@ -1025,7 +1025,9 @@ classdef resultFile < handle
             bp = apObj.basicParams;
             bp.errorMode = 1;
             bp.heightMode = 1;
-            xVec(end) = oset;
+            if(~isempty(xVec))
+                xVec(end) = oset;
+            end
             if(bp.hybridFit)
                 %switch off hybrid fitting for result display
                 %replace hybrid fit parameters with their corresponding results

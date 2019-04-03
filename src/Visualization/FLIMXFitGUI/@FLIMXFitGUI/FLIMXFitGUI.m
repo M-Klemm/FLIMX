@@ -683,7 +683,9 @@ classdef FLIMXFitGUI < handle
                     addParam = 0;
                 end
                 tci = zeros(1,apObj.basicParams.nExp);
-                tci(logical(apObj.basicParams.tciMask)) = xVec(2*apObj.basicParams.nExp+1 : 2*apObj.basicParams.nExp+sum(apObj.basicParams.tciMask))';
+                if(~isempty(xVec))
+                    tci(logical(apObj.basicParams.tciMask)) = xVec(2*apObj.basicParams.nExp+1 : 2*apObj.basicParams.nExp+sum(apObj.basicParams.tciMask))';
+                end
                 %make info table and output its content
                 paramTable = cell(apObj.basicParams.nExp*+1+3+2,4+addParam);
                 row = 1;
@@ -701,6 +703,9 @@ classdef FLIMXFitGUI < handle
                     paramTable{row,5} = 'beta';
                 end
                 [amps, taus, ~, betas, scAmps, scShifts, scOset, hShift, ~] = apObj.getXVecComponents(xVec,false,apObj.currentChannel);
+                if(isempty(amps))
+                    return
+                end
                 if(apObj.basicParams.approximationTarget == 2 && ch == 4)
                     as = 100*sum(abs(amps(1:2:apObj.basicParams.nExp)));
                 else

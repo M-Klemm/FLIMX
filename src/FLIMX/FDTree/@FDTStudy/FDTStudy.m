@@ -1547,6 +1547,7 @@ classdef FDTStudy < FDTreeNode
             data = cell(this.nrChildren,5);
             lastUpdate = clock;
             tStart = clock;
+            this.updateStudyMgrProgress(0.01,'Scan subjects: 0%');
             for i = 1:this.nrChildren
                 subject = this.getChildAtPos(i);
                 if(~isempty(subject))
