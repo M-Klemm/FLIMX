@@ -640,23 +640,25 @@ classdef studyIS < handle
             if(~isempty(subVec))
                 roiStudy = this.resultROICoordinates{subVec(1)};
                 roiSubject = data.resultROICoordinates{1,1};
-                %check which ROIs are missing in the subject
-                d = setdiff(roiStudy(:,1,1),roiSubject(:,1,1));
-                for i = 1:length(d)
-                    [val,idx] = min(abs(roiSubject(:,1,1) - d(i)));
-                    if(val > 0)
-                        tmpNew = zeros(size(roiSubject,1)+val,size(roiSubject,2),size(roiSubject,3),'int16');
-                        tmpNew(1:idx,:,:) = roiSubject(1:idx,:,:);
-                        tmpNew(idx+val+1:end,:,:) = roiSubject(idx+1:end,:,:);
-                        tmpNew(idx+1:idx+val,1,1) = (roiSubject(idx,1,1)+1 : 1 : roiSubject(idx,1,1)+val)';
-                        roiSubject = tmpNew;
-                    end                    
-                end
-                data.resultROICoordinates{1,1} = roiSubject;
-                %check which ROIs are missing in the study
-                d = setdiff(roiSubject(:,1,1),roiStudy(:,1,1));
-                for i = 1:length(d)
-                    this.addResultROIType(d(i));
+                if(~isempty(roiStudy) && ~isempty(roiSubject))
+                    %check which ROIs are missing in the subject
+                    d = setdiff(roiStudy(:,1,1),roiSubject(:,1,1));
+                    for i = 1:length(d)
+                        [val,idx] = min(abs(roiSubject(:,1,1) - d(i)));
+                        if(val > 0)
+                            tmpNew = zeros(size(roiSubject,1)+val,size(roiSubject,2),size(roiSubject,3),'int16');
+                            tmpNew(1:idx,:,:) = roiSubject(1:idx,:,:);
+                            tmpNew(idx+val+1:end,:,:) = roiSubject(idx+1:end,:,:);
+                            tmpNew(idx+1:idx+val,1,1) = (roiSubject(idx,1,1)+1 : 1 : roiSubject(idx,1,1)+val)';
+                            roiSubject = tmpNew;
+                        end
+                    end
+                    data.resultROICoordinates{1,1} = roiSubject;
+                    %check which ROIs are missing in the study
+                    d = setdiff(roiSubject(:,1,1),roiStudy(:,1,1));
+                    for i = 1:length(d)
+                        this.addResultROIType(d(i));
+                    end
                 end
             end
             this.resultROICoordinates(subjectPos) = data.resultROICoordinates;
