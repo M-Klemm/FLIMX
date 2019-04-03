@@ -75,15 +75,15 @@ classdef FDTSubject < subject4Approx
         %% input methods
         function importMeasurementObj(this, obj)
             %import a measurement object to FDTree
-            ROIVec = obj.ROICoord; %save old ROIVec if there is one
-            if(~isempty(ROIVec))
-                obj.setROICoord(ROIVec);
-            end
+%             ROIVec = obj.ROICoord; %save old ROIVec if there is one
+%             if(~isempty(ROIVec))
+%                 obj.setROICoord(ROIVec);
+%             end
             if(~obj.fileInfoLoaded)
                 obj.getFileInfoStruct([]);
             end
             %guess position of the eye
-            obj.guessEyePosition();
+            %obj.guessEyePosition();
             if(isempty(obj.ROICoord))
                 %get full roi
                 ROIVec = [1 obj.getRawXSz() 1 obj.getRawYSz()];
@@ -91,6 +91,10 @@ classdef FDTSubject < subject4Approx
                 if(ROIVec(1) > 5 || ROIVec(3) > 5 || ROIVec(2) < obj.rawXSz-5 || ROIVec(4) < obj.rawYSz-5)
                     obj.setROICoord(ROIVec);
                 end
+            end
+            %read raw data
+            for ch = 1:obj.nrSpectralChannels
+                obj.getRawData(ch);
             end
             this.myMeasurement.importMeasurementObj(obj);
             %determine which channels changed

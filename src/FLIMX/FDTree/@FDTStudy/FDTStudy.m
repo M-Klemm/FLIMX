@@ -897,11 +897,9 @@ classdef FDTStudy < FDTreeNode
                 subjectID = this.myStudyInfoSet.idx2SubName(subjectID);
             end
             out = this.getChild(subjectID);
-%             if(~isempty(subject))
-%                 out = subject.getSubject4Approx();
-%             else
-%                 out = [];
-%             end
+            if(isempty(out))
+                out = this.addSubject(subjectID);
+            end
         end
         
         function out = getSubject4Import(this,subjectID)

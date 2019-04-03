@@ -1102,6 +1102,9 @@ classdef fluoSubject < FDTreeNode
                     for chTmp = 1:out.fileInfo(ch).nrSpectralChannels
                         %out.setInitializationData(chTmp,out.getNonConstantXVec(chTmp,this.getPixelFLIMItem(chTmp,'iVec',y,x)));
                         xVec = this.getPixelFLIMItem(chTmp,'iVec',y,x);
+                        if(isempty(xVec))
+                        xVec = zeros(size(this.volatilePixelParams.globalFitMask));
+                    end
                         %make sure taus have the right distance, exclude stretched exponentials
                         mask = find(~bp.stretchedExpMask)+bp.nExp;
                         for i = 1:length(mask)-1 %bp.nExp+1 : 2*bp.nExp-1
@@ -1128,6 +1131,9 @@ classdef fluoSubject < FDTreeNode
 %                     end
                     %out.setInitializationData(ch,out.getNonConstantXVec(ch,this.getPixelFLIMItem(ch,'iVec',y,x)));
                     xVec = this.getPixelFLIMItem(ch,'iVec',y,x);
+                    if(isempty(xVec))
+                        xVec = zeros(this.volatilePixelParams.nModelParamsPerCh,1);
+                    end
                     %make sure taus have the right distance, exclude stretched exponentials
                     mask = find(~bp.stretchedExpMask)+bp.nExp;
                     for i = 1:length(mask)-1 %bp.nExp+1 : 2*bp.nExp-1

@@ -596,6 +596,10 @@ classdef importWizard < handle
                             return;
                     end
                 end
+                %read raw data
+                for ch = 1:this.measurementObj.nrSpectralChannels
+                    this.measurementObj.getRawData(ch);
+                end
                 subject.importMeasurementObj(this.measurementObj);
                 %this.measurementObj = [];
                 this.FLIMXObj.FLIMFitGUI.setupGUI();

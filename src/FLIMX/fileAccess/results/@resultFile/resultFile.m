@@ -100,10 +100,12 @@ classdef resultFile < handle
                 end
             else
                 fn = this.getResultFileName(ch,'');
-                try
-                    delete(fn);
-                catch ME
-                    %todo
+                if(exist(fn,'file'))
+                    try
+                        delete(fn);
+                    catch ME
+                        %todo
+                    end
                 end
                 this.allocResults(ch,this.resultSize(1),this.resultSize(2));
                 this.checkMyFiles();
