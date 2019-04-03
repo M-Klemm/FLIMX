@@ -48,7 +48,7 @@ classdef FDTStudy < FDTreeNode
         function this = FDTStudy(parent,sDir,name)
             % Constructor for FDTStudy
             this = this@FDTreeNode(parent,name);
-            this.revision = 30;
+            this.revision = 31;
             this.myDir = sDir;
             this.myStudyInfoSet = studyIS(this);
             this.myConditionStatistics = LinkedList();

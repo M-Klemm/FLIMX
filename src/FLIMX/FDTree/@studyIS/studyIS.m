@@ -1504,7 +1504,11 @@ classdef studyIS < handle
                             %comparison value for A does not fit
                             colB = false(size(colB));
                         else
-                            eval(sprintf('colB = colB %s %f;',ref.relB,ref.valB));                            
+                            if(strcmpi(ref.relB,'xor'))
+                                eval(sprintf('colB = %s(colB,%f);',lower(ref.relB),ref.valB));
+                            else
+                                eval(sprintf('colB = colB %s %f;',ref.relB,ref.valB));
+                            end
                         end
                     else
                         if(~ischar(ref.valB))
@@ -1518,7 +1522,11 @@ classdef studyIS < handle
                             colA = ~strcmp(colB,ref.valB);
                         end
                     end
-                    eval(sprintf('colA = %s(colA %s colB);',neg,op));
+                    if(strcmpi(op,'xor'))
+                        eval(sprintf('colA = %s%s(colA,colB);',neg,lower(op)));
+                    else
+                        eval(sprintf('colA = %s(colA %s colB);',neg,op));
+                    end
                 end                
                 %update values in conditional column
                 this.subjectInfo(:,colN) = num2cell(colA);
@@ -2002,6 +2010,22 @@ classdef studyIS < handle
                         end
                     end
                     oldStudy = rmfield(oldStudy,'studyClusters');
+                end
+            end
+            
+            if(oldStudy.revision < 31)
+                %update conditional columns
+                if(isfield(oldStudy,'subjectInfoConditionDefinition'))
+                    for i = 1:size(oldStudy.subjectInfoConditionDefinition,1)
+                        tmp = oldStudy.subjectInfoConditionDefinition{i,1};
+                        if(isempty(tmp))
+                            continue
+                        end
+                        if(isfield(tmp,'logOp') && strcmp(tmp.logOp,'-'))
+                            tmp.logOp = '-no op-';
+                            oldStudy.subjectInfoConditionDefinition{i,1} = tmp;
+                        end
+                    end
                 end
             end
             
