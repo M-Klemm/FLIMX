@@ -1425,7 +1425,7 @@ classdef FDTStudy < FDTreeNode
                 subjectDesc(i) = {hg{i}.subjectName};
                 ROICoordinates = this.getResultROICoordinates(subjectDesc{i},ROIType);
                 if(strictFlag)
-                    if(~any(ROICoordinates))
+                    if(ROIType > 0 && ~any(ROICoordinates(:)))
                         stats(i,:) = NaN;
                     else
                         stats(i,:) = hg{i}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
