@@ -182,19 +182,12 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            subject = this.getChild(subjectID);
+            [subject, idx] = this.getChild(subjectID);
             if(~isempty(subject))
                 %set name in tree
                 subject.setSubjectName(newName);
                 %set name in study info set
-                idx = this.getChild(subjectID);
                 this.myStudyInfoSet.setSubjectName(newName,idx);
-                %rename folder (if one exists)
-                oldpath = fullfile(this.myDir,subjectID);
-                newpath = fullfile(this.myDir,newName);
-                if(exist(oldpath,'dir') ~= 0)
-                    movefile(oldpath,newpath);
-                end
                 this.renameChild(subjectID,newName);
                 this.myStudyInfoSet.sortSubjects();
                 %save because study info on disk was changed

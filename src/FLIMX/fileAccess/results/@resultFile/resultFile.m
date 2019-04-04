@@ -801,6 +801,9 @@ classdef resultFile < handle
         
         function exportMatFile(this,ch,fn)
             %save result channel to disk
+            if(length(this.dirtyFlags) <= ch || ~this.dirtyFlags(ch))
+                return
+            end
             result = this.makeExportStruct(ch);
             fn = this.getResultFileName(ch,fn);
             if(isempty(result))
