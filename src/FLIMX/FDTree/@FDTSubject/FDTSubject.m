@@ -853,7 +853,20 @@ classdef FDTSubject < subject4Approx
         
         function setSubjectName(this,val)
             %set subject name
-            this.name = val;
+            %save possible changes
+            this.myMeasurement.saveMatFile2Disk([]);
+            this.myResult.saveMatFile2Disk([]);
+            %rename working folder (if one exists)
+            oldpath = this.myDir;
+            idx = strfind(oldpath,this.name);
+            if(~isempty(idx) && idx(end) > 1)
+                newpath = [oldpath(1:idx(end)-1),val];
+                if(exist(oldpath,'dir') ~= 0)
+                    [status,msg,msgID] = movefile(oldpath,newpath);
+                end
+                this.name = val;
+                this.reset();
+            end
         end
         
         function setdType(this,dType,val)

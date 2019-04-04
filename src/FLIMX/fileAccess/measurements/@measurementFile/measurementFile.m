@@ -976,7 +976,6 @@ classdef measurementFile < handle
                 return
             end
             auxInfo.revision = this.FLIMXAboutInfo.measurement_revision;
-            %out.channel = ch;
             [~, name, ext] = fileparts(this.getSourceFile());
             auxInfo.sourceFile = [name ext];
             fluoFileInfo = this.getFileInfoStruct(ch);
