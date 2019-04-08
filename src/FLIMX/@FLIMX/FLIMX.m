@@ -366,7 +366,7 @@ classdef FLIMX < handle
                                 this.saveCurResultInFDT();
                         end
                     end
-                    this.curSubject = this.fdt.getSubject4Approx(study,subject);
+                    this.curSubject = this.fdt.getSubject4Approx(study,subject,false);
                     if(isempty(this.curSubject))
                         %we don't have that subject in FDTree -> create a dummy fluoFile object
                         this.curSubject = this.fdt.getSubject4Import(study,'example_subject');
@@ -478,7 +478,7 @@ classdef FLIMX < handle
             out.config_revision = 266;
             out.client_revision_major = 4;
             out.client_revision_minor = 5;
-            out.client_revision_fix = 14;
+            out.client_revision_fix = 16;
             out.core_revision = 369;
             out.results_revision = 256;
             out.measurement_revision = 205;

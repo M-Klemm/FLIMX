@@ -309,7 +309,7 @@ classdef FLIMXFitResultImport < handle
                 return
             end
             if(isempty(this.myCurrentSubject))
-                this.myCurrentSubject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudyName,this.currentSubjectName);
+                this.myCurrentSubject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudyName,this.currentSubjectName,false);
             end
             out = this.myCurrentSubject;
         end
@@ -914,7 +914,7 @@ classdef FLIMXFitResultImport < handle
                     return
             end
             %% do actual import
-            subObj = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudyName,this.currentSubjectName);
+            subObj = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudyName,this.currentSubjectName,true);
             %update position and scaling if needed
             pos = this.visHandles.popupPosition.String{this.visHandles.popupPosition.Value};
             res = str2double(this.visHandles.editResolution.String);

@@ -587,7 +587,7 @@ classdef importWizard < handle
                 end
             end
             if(this.isNewMeasurement)
-                subject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudy,this.currentSubject);
+                subject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudy,this.currentSubject,true);
                 if(~isempty(subject) && any(subject.myMeasurement.filesOnHDD))
                     button = questdlg(sprintf('Subject ''%s'' already exists in study ''%s''!\n\n\nDelete results and replace subject with current measurement?\n',this.currentSubject,this.currentStudy),...
                         'Overwrite subject?','Continue','Cancel','Cancel');

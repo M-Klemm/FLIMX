@@ -201,7 +201,7 @@ classdef simAnalysis < handle
             end
 %             this.curFluoFileObj = this.FLIMXObj.fdt.getMeasurementObj(this.curStudy,paraSetName,this.curChannel);%fluoResultFile(this.paramMgrObj);
 %             this.curResultObj = this.FLIMXObj.fdt.getResultObj(this.curStudy,paraSetName,this.curChannel);
-            this.myResSubject = this.FLIMXObj.fdt.getSubject4Approx(this.curStudy,paraSetName);
+            this.myResSubject = this.FLIMXObj.fdt.getSubject4Approx(this.curStudy,paraSetName,false);
 %             if(~isempty(this.curResultObj))
 %                 this.curResultObj.setIRFMgrHandle(this.FLIMXObj.irfMgr);
 %                 this.curResultObj.setFluoFileHandle(this.curFluoFileObj);                
