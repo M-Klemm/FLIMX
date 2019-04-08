@@ -881,7 +881,7 @@ classdef FDTStudy < FDTreeNode
             out = sum(idx) == 1;
         end
         
-        function out = getSubject4Approx(this,subjectID)
+        function out = getSubject4Approx(this,subjectID,createNewSubjectFlag)
             %get subject object which includes measurements and results
             if(~this.isLoaded)
                 this.load();
@@ -890,8 +890,10 @@ classdef FDTStudy < FDTreeNode
                 subjectID = this.myStudyInfoSet.idx2SubName(subjectID);
             end
             out = this.getChild(subjectID);
-            if(isempty(out))
+            if(isempty(out) && createNewSubjectFlag)
                 out = this.addSubject(subjectID);
+            elseif(isempty(out) && ~createNewSubjectFlag)
+                out = [];
             end
         end
         

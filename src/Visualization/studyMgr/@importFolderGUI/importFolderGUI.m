@@ -241,8 +241,8 @@ classdef importFolderGUI < handle
                         this.measurementObj.pixelResolution = 1000*8.8/x;
                         %guess position of the eye
                         this.measurementObj.guessEyePosition();
-                        subject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudy,mask{i,2});
-                        subject.importMeasurementObj(this.measurementObj);                        
+                        subject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudy,mask{i,2},true);
+                        subject.importMeasurementObj(this.measurementObj);
                     end
                     [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(nSubjects-i)); %mean cputime for finished runs * cycles left
                     this.plotProgressbar(i/nSubjects,[],...

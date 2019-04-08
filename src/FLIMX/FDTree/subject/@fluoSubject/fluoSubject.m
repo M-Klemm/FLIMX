@@ -267,7 +267,7 @@ classdef fluoSubject < FDTreeNode
                             else
                                 myStudy = this.myParent;
                                 if(~strcmp(myStudy.name,this.basicParams.scatterStudy))
-                                    curScatterFile = myStudy.myParent.getSubject4Approx(this.basicParams.scatterStudy,this.name());
+                                    curScatterFile = myStudy.myParent.getSubject4Approx(this.basicParams.scatterStudy,this.name(),false);
                                 else
                                     curScatterFile = [];
                                 end

@@ -771,13 +771,16 @@ classdef FDTree < FDTreeNode
             end
         end        
         
-        function out = getSubject4Approx(this,studyID,subjectID)
+        function out = getSubject4Approx(this,studyID,subjectID,createNewSubjectFlag)
             %get subject object for approximation which includes measurements and results
             study = this.getChild(studyID);
-            if(isempty(study))
+            if(isempty(study) && createNewSubjectFlag)
                 study = this.addStudy(studyID);
+            elseif(isempty(study) && ~createNewSubjectFlag)
+                out = [];
+                return
             end
-            out = study.getSubject4Approx(subjectID);
+            out = study.getSubject4Approx(subjectID,createNewSubjectFlag);
         end
         
         function out = getSubject4Import(this,studyID,subjectID)

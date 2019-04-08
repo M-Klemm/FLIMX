@@ -415,7 +415,7 @@ classdef studyMgr < handle
                 opt.mode = 1;
                 opt.ch = [];
                 opt.fdt = this.fdt;
-                subject = this.fdt.getSubject4Approx(this.curStudyName,subjects(i));
+                subject = this.fdt.getSubject4Approx(this.curStudyName,subjects(i),false);
                 fi = [];
                 if(~isempty(subject) && ~isempty(subject.nonEmptyChannelList))
                     fi = subject.getFileInfoStruct(subject.nonEmptyChannelList(1));
@@ -1119,7 +1119,7 @@ classdef studyMgr < handle
             %change subject file info (position, resolution)
             subNrs = this.selectedSubjects;
             for i=1:length(subNrs)
-                subject = this.fdt.getSubject4Approx(this.curStudyName,subNrs(i));
+                subject = this.fdt.getSubject4Approx(this.curStudyName,subNrs(i),false);
                 if(isempty(subject))
                     continue
                 end
