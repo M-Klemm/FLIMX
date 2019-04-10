@@ -37,11 +37,12 @@ classdef FDTStudy < FDTreeNode
         myStudyInfoSet = [];    %subject info in study
         myConditionStatistics = [];  %merged objects to save statistics
         IRFInfo = [];           %struct to save information on the used IRF
-        isDirty = false;        %flag is true if something of the study was changed
+        dirtyFlag = false;        %flag is true if something of the study was changed
         isLoaded = false;       %flag is true if study was loaded from disk
     end
     properties (Dependent = true)
         FLIMXParamMgrObj = [];
+        isDirty = false;        %flag is true if something of the study was changed
     end
     
     methods
@@ -90,12 +91,12 @@ classdef FDTStudy < FDTreeNode
                 %version problem
                 import = this.updateStudyVer(import);
             end            
-            dirty = this.isDirty; %loadStudyIS may reset dirty flag from revision update
+            dirty = this.dirtyFlag; %loadStudyIS may reset dirty flag from revision update
             this.name = import.name;
             this.myStudyInfoSet.loadStudyIS(import);            
             %this.checkSubjectFiles('');
-            this.setDirty(dirty || this.isDirty);
-            if(this.isDirty)
+            this.setDirty(dirty || this.dirtyFlag);
+            if(this.dirtyFlag)
                 %study version updated
                 this.save();
             end            
@@ -837,9 +838,16 @@ classdef FDTStudy < FDTreeNode
             export.revision = this.revision;
             save(fullfile(this.myDir,'studyData.mat'),'export');
             %remove unnecessary files
-            this.checkStudyFiles();
-            %this.checkSubjectFiles([]);
-            this.isDirty = false;
+            this.checkStudyFiles(); %this will set dirty flag to false
+            if(this.isDirty)
+                %there are changes in subjects -> save them
+                for i = 1:this.nrChildren
+                    subject = this.getChildAtPos(i);
+                    if(subject.isDirty)
+                        subject.saveMatFile2Disk([]);
+                    end
+                end
+            end
         end
         
         function out = getStatsParams(this)
@@ -1679,6 +1687,22 @@ classdef FDTStudy < FDTreeNode
             out = this.myParent.FLIMXParamMgrObj;
         end
         
+        function out = get.isDirty(this)
+            %return true if something in the study has changed
+            out = this.dirtyFlag;
+            if(~out)
+                %check if subjects have changes
+                tmp = this.getChildenDirtyFlags();
+                if(isempty(tmp))
+                    return
+                end
+                if(iscell(tmp))
+                    tmp = cell2mat(tmp);
+                    out = any(tmp(:));
+                end
+            end
+        end
+                
         %% compute functions and other methods                        
         function [cimg, lblx, lbly, cw] = makeConditionMVGroupObj(this,cName,chan,MVGroupID)
             %make merged MVGroups for a study condition
@@ -1767,7 +1791,7 @@ classdef FDTStudy < FDTreeNode
                     end
                 end
             end
-            this.isDirty = false;
+            this.dirtyFlag = false;
         end
         
         function checkSubjectFiles(this,subjectID)
@@ -1870,7 +1894,7 @@ classdef FDTStudy < FDTreeNode
         
         function setDirty(this,flag)
             %set dirty flag for this study
-            this.isDirty = logical(flag);
+            this.dirtyFlag = logical(flag);
         end
     end %methods
 end %classdef

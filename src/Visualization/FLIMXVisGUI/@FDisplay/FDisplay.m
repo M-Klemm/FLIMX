@@ -929,7 +929,12 @@ classdef FDisplay < handle
                         %finally plot
                         surf(hAx,current_img,colors,'LineStyle','none','EdgeColor','none','FaceLighting','phong','AlphaDataMapping','none','AlphaData',alphaData);%,'FaceAlpha','flat'
                         alim(hAx,[0 1]);
-                        caxis(hAx,[min(current_img(~isnan(current_img(:)) & ~isinf(current_img(:)))) max(current_img(~isnan(current_img(:)) & ~isinf(current_img(:))))]);
+                        cMM = [min(current_img(~isnan(current_img(:)) & ~isinf(current_img(:)))) max(current_img(~isnan(current_img(:)) & ~isinf(current_img(:))))];
+                        if(abs(cMM(1) - cMM(2)) < eps)
+                            %ensure a minimum dinstance
+                            cMM(2) = cMM(1)+1;
+                        end
+                        caxis(hAx,cMM);
                         set(hAx,'YDir',ydir);
                         %set view
                         if(~isempty(this.disp_view))

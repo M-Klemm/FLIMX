@@ -162,6 +162,7 @@ classdef subject4Approx < fluoSubject %& matlab.mixin.Copyable
                 this.init();
             end
             roa = this.ROICoordinates;
+            this.myResult.deleteChannel([]);
             this.myResult.allocResults(1:this.nrSpectralChannels,roa(4)-roa(3)+1,roa(2)-roa(1)+1);
             if(saveToDiskFlag)
                 this.saveMatFile2Disk([]);

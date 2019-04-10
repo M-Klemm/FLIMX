@@ -42,6 +42,7 @@ classdef measurementFile < handle
         ROIDataType = 'uint16';
         fileStub = 'measurement_';
         fileExt = '.mat';
+        myFiles = cell(0,0);
         filesOnHDD = false(1,0);
 
         fileInfoLoaded = false;
@@ -130,6 +131,24 @@ classdef measurementFile < handle
             out.roiMerged = this.roiMerged;
         end
         %% input methods
+        function checkMyFiles(this)
+            %check my folder for measurement files
+            if(isempty(this.getMyFolder()))
+                return
+            end
+            files = rdir(fullfile(this.getMyFolder(),'*.mat'));
+            for i = 1:length(files)
+                [~,fileName] = fileparts(files(i,1).name);
+                if(strncmpi(fileName,this.fileStub,12) && length(fileName) == 16)
+                    chIdx = str2double(fileName(15:16));
+                    if(~isempty(chIdx))
+                        this.filesOnHDD(1,chIdx) = true;
+                    end
+                end
+            end
+            this.myFiles = cell(1,length(this.filesOnHDD));
+        end
+        
         function importMeasurementObj(this,obj)
             %import a measurement object copying its content
             %copy all properties
@@ -989,12 +1008,13 @@ classdef measurementFile < handle
                 chList = this.nonEmptyChannelList;
                 for ch = 1:length(chList)
                     this.exportMatFile(chList(ch),'');
-                    this.filesOnHDD(1,chList(ch)) = true;
+                    %this.filesOnHDD(1,chList(ch)) = true;
                 end
             else
                 this.exportMatFile(ch,'');
-                this.filesOnHDD(1,ch) = true;
+                %this.filesOnHDD(1,ch) = true;                
             end
+            this.checkMyFiles();
         end
 
         function exportMatFile(this,ch,folder)

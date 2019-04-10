@@ -207,7 +207,11 @@ classdef FDTreeNode < handle
         
         function out = getIDsOfAllChildren(this)
             %return a string of all children names
-            out = this.myChildren.funOnAllElements(@(x) x.id);
+            try
+                out = this.myChildren.funOnAllElements(@(x) x.id);
+            catch
+                out = [];
+            end
         end
         
         function out = getMemorySize(this)
@@ -221,6 +225,15 @@ classdef FDTreeNode < handle
 %                 end
 %             end
             %fprintf(1, 'FDTree size (%s) %d bytes\n',this.name,out);
+        end
+        
+        function out = getChildenDirtyFlags(this)
+            %return dirty flags for each child
+            try
+                out = this.myChildren.funOnAllElements(@(x) x.isDirty);
+            catch
+                out = [];
+            end
         end
         
         %dependent properties
