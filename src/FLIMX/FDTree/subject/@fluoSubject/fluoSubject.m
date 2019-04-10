@@ -171,7 +171,7 @@ classdef fluoSubject < FDTreeNode
                 end
             elseif(nargin == 3 && strcmp(pStr,'batchJob'))
                 %we get everything from the batch job manager
-                this.myParamMgr.setParamSection('batchJob',params);
+                this.myParamMgr.setParamSection('batchJob',params,true);
                 this.updateAuxiliaryData([]);
             else
                 this.update();
@@ -182,10 +182,7 @@ classdef fluoSubject < FDTreeNode
                 
         function update(this)
             %pull current paramters from FLIMX and save them into local parameter manager
-%             if(~this.isInitialized)
-%                 this.init();
-%             end
-            this.myParamMgr.setParamSection('result',this.getParentParamMgr().getParamSection('result'));
+            this.myParamMgr.setParamSection('result',this.getParentParamMgr().getParamSection('result'),true);
             this.updateAuxiliaryData([]);
             this.clearCachedApproxObj();
         end
@@ -1185,7 +1182,7 @@ classdef fluoSubject < FDTreeNode
             if(~this.isInitialized)
                 this.init();
             end
-            this.myParamMgr.setParamSection('computation',val);
+            this.myParamMgr.setParamSection('computation',val,~this.initMode);
         end
                 
         function set.folderParams(this,val)
@@ -1193,7 +1190,7 @@ classdef fluoSubject < FDTreeNode
             if(~this.isInitialized)
                 this.init();
             end
-            this.myParamMgr.setParamSection('folders',val);
+            this.myParamMgr.setParamSection('folders',val,~this.initMode);
         end
         
         function out = get.preProcessParams(this)
@@ -1209,7 +1206,7 @@ classdef fluoSubject < FDTreeNode
             if(~this.isInitialized)
                 this.init();
             end
-            this.myParamMgr.setParamSection('pre_processing',val);
+            this.myParamMgr.setParamSection('pre_processing',val,~this.initMode);
             this.clearCachedApproxObj();
         end
         
@@ -1226,7 +1223,7 @@ classdef fluoSubject < FDTreeNode
             if(~this.isInitialized)
                 this.init();
             end
-            this.myParamMgr.setParamSection('basic_fit',val,this.initMode);
+            this.myParamMgr.setParamSection('basic_fit',val,~this.initMode);
             this.clearCachedApproxObj();
             %this.myParamMgr.makeVolatileParams();
         end
@@ -1244,7 +1241,7 @@ classdef fluoSubject < FDTreeNode
             if(~this.isInitialized)
                 this.init();
             end
-            this.myParamMgr.setParamSection('init_fit',val);
+            this.myParamMgr.setParamSection('init_fit',val,~this.initMode);
         end
         
         function out = get.pixelFitParams(this)
@@ -1260,7 +1257,7 @@ classdef fluoSubject < FDTreeNode
             if(~this.isInitialized)
                 this.init();
             end
-            this.myParamMgr.setParamSection('pixel_fit',val);            
+            this.myParamMgr.setParamSection('pixel_fit',val,~this.initMode);            
             this.clearCachedApproxObj();
         end
         
@@ -1277,7 +1274,7 @@ classdef fluoSubject < FDTreeNode
             if(~this.isInitialized)
                 this.init();
             end
-            this.myParamMgr.setParamSection('bounds',val);
+            this.myParamMgr.setParamSection('bounds',val,~this.initMode);
             this.clearCachedApproxObj();
         end
         
@@ -1294,7 +1291,7 @@ classdef fluoSubject < FDTreeNode
             if(~this.isInitialized)
                 this.init();
             end
-            this.myParamMgr.setParamSection('optimization',val);
+            this.myParamMgr.setParamSection('optimization',val,~this.initMode);
         end
         
         function out = get.volatilePixelParams(this)
@@ -1310,7 +1307,7 @@ classdef fluoSubject < FDTreeNode
             if(~this.isInitialized)
                 this.init();
             end
-            this.myParamMgr.setParamSection('volatilePixel',val);
+            this.myParamMgr.setParamSection('volatilePixel',val,~this.initMode);
         end
         
         function out = getVolatileChannelParams(this,ch)
