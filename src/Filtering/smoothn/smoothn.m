@@ -413,11 +413,11 @@ end
 
 %% Test for DCTN and IDCTN
 function test4DCTNandIDCTN
-    if ~exist('dctn','file')
+    if ~isfile('dctn')
         error('MATLAB:smoothn:MissingFunction',...
             ['DCTN and IDCTN are required. Download DCTN <a href="matlab:web(''',...
             'http://www.biomecardio.com/matlab/dctn.html'')">here</a>.'])
-    elseif ~exist('idctn','file')
+    elseif ~isfile('idctn')
         error('MATLAB:smoothn:MissingFunction',...
             ['DCTN and IDCTN are required. Download IDCTN <a href="matlab:web(''',...
             'http://www.biomecardio.com/matlab/idctn.html'')">here</a>.'])

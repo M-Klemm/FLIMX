@@ -793,7 +793,7 @@ classdef studyIS < handle
         
         function exportStudyInfo(this,file)
             %export study info (subject info table) to excel file
-            if(exist(file,'file') == 2)
+            if(isfile(file))
                 [~, desc] = xlsfinfo(file);
                 idx = find(strcmp('Subjectinfo',desc),1);
                 if(~isempty(idx))

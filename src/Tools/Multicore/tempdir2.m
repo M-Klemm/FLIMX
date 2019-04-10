@@ -19,7 +19,7 @@ if isempty(tempDir2Persistent)
   tempDir2 = fullfile(tempDir2, [getusername '@' gethostname], 'MATLAB');
 
   % if directory is not existing, try to create it
-  if ~exist(tempDir2, 'dir')
+  if ~isfolder(tempDir2)
       [status, message, ~] = mkdir(tempDir2);
       if(~status)
           error('multicore:tempDir2','Unable to create directory %s.\n%s',tempDir2,message);

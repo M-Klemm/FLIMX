@@ -444,7 +444,7 @@ classdef FLIMX < handle
                 cmNames = {'Autumn','Bone','Colorcube','Cool','Copper','Flag','Gray','Hot','Hsv','Inferno','Jet','Lines','Magma','Parula','Pink','Plasma','Prism','Spring','Summer','Viridis','White','Winter'};
                 cmPaths = strcat([FLIMX.getWorkingDir() filesep 'data' filesep 'colormap_'], cmNames', '.png');
                 for i = length(cmPaths):-1:1
-                    if(~exist(cmPaths{i},'file'))
+                    if(~isfile(cmPaths{i}))
                         %no color map icon found -> generate it
                         map = zeros(1,256,3);
                         eval(sprintf('map(1,:,:) = %s(256);',lower(cmNames{i})));
@@ -478,7 +478,7 @@ classdef FLIMX < handle
             out.config_revision = 266;
             out.client_revision_major = 4;
             out.client_revision_minor = 5;
-            out.client_revision_fix = 17;
+            out.client_revision_fix = 18;
             out.core_revision = 369;
             out.results_revision = 256;
             out.measurement_revision = 205;

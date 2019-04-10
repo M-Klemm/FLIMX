@@ -51,7 +51,7 @@ end
 searchPath = chompsep(searchPath);
 if strcmp(searchPath, '.')
  	searchPath = '';
-elseif ~exist(searchPath, 'dir')
+elseif ~isfolder(searchPath)
 	error('Directory %s not existing.', searchPath);
 end
 

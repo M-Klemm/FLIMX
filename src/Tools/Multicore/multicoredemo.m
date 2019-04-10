@@ -163,7 +163,7 @@ if runWithoutSlaves
   multicoreDir2 = fullfile(tempdir2, 'multicorefiles_temp');
   settingsTemp = settings;
   settingsTemp.multicoreDir = multicoreDir2;
-  if ~exist(multicoreDir2, 'dir')
+  if ~isfolder(multicoreDir2)
       [status, message, ~] = mkdir(multicoreDir2);
       if(~status)
           error('multicore:multicoredemo','Unable to create directory %s.\n%s',multicoreDir2,message);

@@ -100,7 +100,7 @@ classdef resultFile < handle
                 end
             else
                 fn = this.getResultFileName(ch,'');
-                if(exist(fn,'file'))
+                if(isfile(fn))
                     try
                         delete(fn);
                     catch ME
@@ -802,30 +802,31 @@ classdef resultFile < handle
             out.results.reflectionMask = this.myParent.getReflectionMask(ch);
         end        
         
-        function exportMatFile(this,ch,fn)
-            %save result channel to disk
-            if(length(this.dirtyFlags) <= ch || ~this.dirtyFlags(ch))
+        function exportMatFile(this,ch,folder)
+            %save result channel to disk into folder (if folder name is empty, use default folder)
+            if(length(this.dirtyFlags) < ch || ~this.dirtyFlags(ch))
                 return
             end
             result = this.makeExportStruct(ch);
-            fn = this.getResultFileName(ch,fn);
+            fn = this.getResultFileName(ch,folder);
             if(isempty(result))
                 %there is nothing to save
                 %delete an old result file there might be
-                if(existfile(fn))
+                if(isfile(fn))
                     delete(fn);
                     this.checkMyFiles();
                 end
                 return
-            end            
+            end
             [pathstr, ~, ~] = fileparts(fn);
-             if(~isfolder(pathstr))
-                 [status, message, ~] = mkdir(pathstr);
-                 if(~status)
-                     error('FLIMX:resultFile:exportMatFile','Could not create path for result file export: %s\n%s',pathstr,message);
-                 end
-             end
+            if(~isfolder(pathstr))
+                [status, message, ~] = mkdir(pathstr);
+                if(~status)
+                    error('FLIMX:resultFile:exportMatFile','Could not create path for result file export: %s\n%s',pathstr,message);
+                end
+            end
             save(fn,'result');
+            this.filesOnHDD(ch,1) = true;
             this.setDirty(ch,false);
         end
         
@@ -942,7 +943,7 @@ classdef resultFile < handle
         function rs = loadFromDisk(this,resFN)
             %load a FLIMX result struct rs (contains one channel) from disk
             rs = [];
-            if(~exist(resFN,'file'))
+            if(~isfile(resFN))
                 return
             end
             rs = load(resFN);
@@ -957,11 +958,9 @@ classdef resultFile < handle
                 chList = this.nonEmptyChannelList;
                 for ch = 1:length(chList)
                     this.exportMatFile(chList(ch),'');
-                    this.filesOnHDD(chList(ch),1) = true;
                 end
             else
                 this.exportMatFile(ch,'');
-                this.filesOnHDD(ch,1) = true;
             end            
         end
                 

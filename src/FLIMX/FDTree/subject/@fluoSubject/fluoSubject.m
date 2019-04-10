@@ -432,12 +432,6 @@ classdef fluoSubject < FDTreeNode
                 %set dirty flags to false?
                 return
             end
-            if(isempty(ch))
-                for ch = 1:this.nrSpectralChannels
-                    this.saveMatFile2Disk(ch);
-                end
-                return
-            end
             if(this.myMeasurement.isDirty)
                 this.myMeasurement.saveMatFile2Disk(ch);
                 if(~this.isInitialized)

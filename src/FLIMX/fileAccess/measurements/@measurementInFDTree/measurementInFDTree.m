@@ -97,7 +97,7 @@ classdef measurementInFDTree < measurementFile
             end
             %create matfile object
             fn = this.getMeasurementFileName(ch,[]);
-            if(~exist(fn,'file'))
+            if(~isfile(fn))
                 return
             end
             try

@@ -4,7 +4,7 @@ function [state,options,Aineq,bineq,Aeq,beq] = ...
 % Checks initial population with respect to linear constraints. Requires
 % optimization toolbox.
 
-if exist('linprog','file') ~= 2
+if ~isfile('linprog')
     msg = sprintf('Could not find a required function in Optimization ') ;
     msg = sprintf('%s Toolbox. Ignoring (non)linear constraints ',msg) ;
     msg = sprintf('%s for initial population distribution and',msg) ;
