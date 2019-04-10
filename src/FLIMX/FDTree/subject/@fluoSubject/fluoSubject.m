@@ -56,6 +56,7 @@ classdef fluoSubject < FDTreeNode
         
         isDirty = false;
         resultIsDirty = false;
+        measurementIsDirty = false;
         nonEmptyChannelList = [];
         nonEmptyMeasurementChannelList = [];
         nonEmptyResultChannelList = [];
@@ -430,18 +431,22 @@ classdef fluoSubject < FDTreeNode
                 %there is no path to write to -> nothing to do
                 %set dirty flags to false?
                 return
-            end            
+            end
             if(isempty(ch))
                 for ch = 1:this.nrSpectralChannels
                     this.saveMatFile2Disk(ch);
                 end
                 return
             end
-            this.myMeasurement.saveMatFile2Disk(ch);
-            if(~this.isInitialized)
-                this.init();
+            if(this.myMeasurement.isDirty)
+                this.myMeasurement.saveMatFile2Disk(ch);
+                if(~this.isInitialized)
+                    this.init();
+                end
             end
-            this.myResult.saveMatFile2Disk(ch);            
+            if(this.myResult.isDirty)
+                this.myResult.saveMatFile2Disk(ch);
+            end
         end
         
         function exportMatFile(this,ch,folder)
@@ -491,7 +496,7 @@ classdef fluoSubject < FDTreeNode
 %         end
         function out = get.isDirty(this)
             %return true if something has to be saved to hdd
-            out = this.resultIsDirty;
+            out = any(this.resultIsDirty(:)) || any(this.measurementIsDirty(:));
         end
         
 %         function out = get.nonEmptyResultChannelList(this)
@@ -714,6 +719,11 @@ classdef fluoSubject < FDTreeNode
         function out = getMyParamMgr(this)
             %return subjects parameter manager
             out = this.myParamMgr;
+        end
+        
+        function out = get.measurementIsDirty(this)
+            %return flag if measurement is dirty
+            out = this.myMeasurement.dirtyFlags;
         end
         
         function out = get.resultIsDirty(this)

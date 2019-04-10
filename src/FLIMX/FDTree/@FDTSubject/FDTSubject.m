@@ -292,27 +292,27 @@ classdef FDTSubject < subject4Approx
             this.myResult.addResultRow(ch,row,resultStruct);
         end
         
-        function clearROA(this)
-            %clears measurement data and results of current region of approximation
-            if(~this.isInitialized)
-                this.init();
-            end
-            this.myMeasurement.clearROIData();
-            this.clearROAResults(false);
-        end
-        
-        function clearROAResults(this,saveToDiskFlag)
-            %clear the results of current region of approximation
-            %this.myMeasurement.clearROAData();
-            if(~this.isInitialized)
-                this.init();
-            end
-            roa = this.ROICoordinates;
-            this.myResult.allocResults(1:this.nrSpectralChannels,roa(4)-roa(3)+1,roa(2)-roa(1)+1);
-            if(saveToDiskFlag)
-                this.saveMatFile2Disk([]);
-            end
-        end
+%         function clearROA(this)
+%             %clears measurement data and results of current region of approximation
+%             if(~this.isInitialized)
+%                 this.init();
+%             end
+%             this.myMeasurement.clearROIData();
+%             this.clearROAResults(false);
+%         end
+%         
+%         function clearROAResults(this,saveToDiskFlag)
+%             %clear the results of current region of approximation
+%             %this.myMeasurement.clearROAData();
+%             if(~this.isInitialized)
+%                 this.init();
+%             end
+%             roa = this.ROICoordinates;
+%             this.myResult.allocResults(1:this.nrSpectralChannels,roa(4)-roa(3)+1,roa(2)-roa(1)+1);
+%             if(saveToDiskFlag)
+%                 this.saveMatFile2Disk([]);
+%             end
+%         end
         
         %% output
         function out = getApproximationPixelIDs(this,ch)

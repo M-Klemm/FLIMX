@@ -32,8 +32,7 @@ classdef measurementInFDTree < measurementFile
     % @brief    A class to represent the measurementInFDTree class
     %
     properties(GetAccess = public, SetAccess = private)
-        myFolder = '';        
-        myFiles = cell(0,0);
+        myFolder = '';
         roiInfoLoaded = false;
         roiMergedMask = [];
         uid = 0;
@@ -78,24 +77,6 @@ classdef measurementInFDTree < measurementFile
         end
         
         %% input methods
-        function checkMyFiles(this)
-            %check my folder for measurement files
-            if(isempty(this.getMyFolder()))
-                return
-            end
-            files = rdir(fullfile(this.getMyFolder(),'*.mat'));
-            for i = 1:length(files)
-                [~,fileName] = fileparts(files(i,1).name);
-                if(strncmpi(fileName,this.fileStub,12) && length(fileName) == 16)
-                    chIdx = str2double(fileName(15:16));
-                    if(~isempty(chIdx))
-                        this.filesOnHDD(1,chIdx) = true;
-                    end
-                end
-            end
-            this.myFiles = cell(1,length(this.filesOnHDD));
-        end
-        
         function success = openChannel(this,ch)
             %load measurement data from mat file
             success = false;

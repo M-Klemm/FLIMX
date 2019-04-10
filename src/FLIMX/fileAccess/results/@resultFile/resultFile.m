@@ -138,6 +138,7 @@ classdef resultFile < handle
                     IRFMgr.addIRF(aux.IRF.name,ch,irf,false);%this.basicParams.curIRFID
                 end
                 success = true;
+                this.dirtyFlags(ch) = false;
             end
         end
         
@@ -243,29 +244,29 @@ classdef resultFile < handle
             end
             if(isscalar(ch))
                 new = this.makeResultStructs(this.initFitParams.gridSize,this.initFitParams.gridSize);
-                if(~isempty(this.results.init) && length(this.results.init) >= ch)
-                    old = this.results.init{ch,1};
-                    if(~isempty(old) && isfield(old,'Amplitude1') && size(old.Amplitude1,1) == this.initFitParams.gridSize)
-                        %there is an old result where some data might have to be preserved
-                        oldSn = fieldnames(old);
-                        newSn = fieldnames(new);
-                        sd = setdiff(oldSn,newSn);
-                        if(~isempty(sd))
-                            olsSnLen = cellfun(@length,oldSn);
-                            flag = false(length(oldSn),1);
-                            fieldsToRemove = {'Amplitude','AmplitudeGuess','Tau','TauGuess','RAUC','RAUCIS','tc','tcGuess','Beta','ScatterAmplitude','ScatterShift','ScatterOffset','shift','offset','scatter','Intensity'};
-                            for i = 1:length(fieldsToRemove)
-                                flag = flag | (strncmpi(oldSn,fieldsToRemove{i},length(fieldsToRemove{i})) & (olsSnLen == length(fieldsToRemove{i}) | olsSnLen == length(fieldsToRemove{i}) +1));
-                            end
-                            old = rmfield(old,oldSn(flag));
-                            sd = setdiff(oldSn(~flag),newSn);
-                            %copy old data
-                            for i = 1:length(sd)
-                                new.(sd{i}) = old.(sd{i});
-                            end
-                        end
-                    end
-                end
+%                 if(~isempty(this.results.init) && length(this.results.init) >= ch)
+%                     old = this.results.init{ch,1};
+%                     if(~isempty(old) && isfield(old,'Amplitude1') && size(old.Amplitude1,1) == this.initFitParams.gridSize)
+%                         %there is an old result where some data might have to be preserved
+%                         oldSn = fieldnames(old);
+%                         newSn = fieldnames(new);
+%                         sd = setdiff(oldSn,newSn);
+%                         if(~isempty(sd))
+%                             olsSnLen = cellfun(@length,oldSn);
+%                             flag = false(length(oldSn),1);
+%                             fieldsToRemove = {'Amplitude','AmplitudeGuess','Tau','TauGuess','RAUC','RAUCIS','tc','tcGuess','Beta','ScatterAmplitude','ScatterShift','ScatterOffset','shift','offset','scatter','Intensity'};
+%                             for i = 1:length(fieldsToRemove)
+%                                 flag = flag | (strncmpi(oldSn,fieldsToRemove{i},length(fieldsToRemove{i})) & (olsSnLen == length(fieldsToRemove{i}) | olsSnLen == length(fieldsToRemove{i}) +1));
+%                             end
+%                             old = rmfield(old,oldSn(flag));
+%                             sd = setdiff(oldSn(~flag),newSn);
+%                             %copy old data
+%                             for i = 1:length(sd)
+%                                 new.(sd{i}) = old.(sd{i});
+%                             end
+%                         end
+%                     end
+%                 end
                 this.results.init(ch,1) = {new};
                 this.initApproximated(ch,1) = false;
             else
@@ -283,29 +284,29 @@ classdef resultFile < handle
                 return
             elseif(isscalar(ch))
                 new = this.makeResultStructs(this.resultSize(1),this.resultSize(2));
-                if(~isempty(this.results.pixel) && length(this.results.pixel) >= ch)
-                    old = this.results.pixel{ch,1};
-                    if(~isempty(old) && isfield(old,'Amplitude1') && size(old.Amplitude1,1) == this.resultSize(1) && size(old.Amplitude1,2) == this.resultSize(2))
-                        %there is an old result where some data might have to be preserved
-                        oldSn = fieldnames(old);
-                        newSn = fieldnames(new);
-                        sd = setdiff(oldSn,newSn);
-                        if(~isempty(sd))
-                            olsSnLen = cellfun(@length,oldSn);
-                            flag = false(length(oldSn),1);
-                            fieldsToRemove = {'Amplitude','AmplitudeGuess','Tau','TauGuess','RAUC','RAUCIS','tc','tcGuess','Beta','ScatterAmplitude','ScatterShift','ScatterOffset','shift','offset','scatter','Intensity'};
-                            for i = 1:length(fieldsToRemove)
-                                flag = flag | (strncmpi(oldSn,fieldsToRemove{i},length(fieldsToRemove{i})) & (olsSnLen == length(fieldsToRemove{i}) | olsSnLen == length(fieldsToRemove{i}) +1));
-                            end
-                            old = rmfield(old,oldSn(flag));
-                            sd = setdiff(oldSn(~flag),newSn);
-                            %copy old data
-                            for i = 1:length(sd)
-                                new.(sd{i}) = old.(sd{i});
-                            end
-                        end
-                    end
-                end
+%                 if(~isempty(this.results.pixel) && length(this.results.pixel) >= ch)
+%                     old = this.results.pixel{ch,1};
+%                     if(~isempty(old) && isfield(old,'Amplitude1') && size(old.Amplitude1,1) == this.resultSize(1) && size(old.Amplitude1,2) == this.resultSize(2))
+%                         %there is an old result where some data might have to be preserved
+%                         oldSn = fieldnames(old);
+%                         newSn = fieldnames(new);
+%                         sd = setdiff(oldSn,newSn);
+%                         if(~isempty(sd))
+%                             olsSnLen = cellfun(@length,oldSn);
+%                             flag = false(length(oldSn),1);
+%                             fieldsToRemove = {'Amplitude','AmplitudeGuess','Tau','TauGuess','RAUC','RAUCIS','tc','tcGuess','Beta','ScatterAmplitude','ScatterShift','ScatterOffset','shift','offset','scatter','Intensity'};
+%                             for i = 1:length(fieldsToRemove)
+%                                 flag = flag | (strncmpi(oldSn,fieldsToRemove{i},length(fieldsToRemove{i})) & (olsSnLen == length(fieldsToRemove{i}) | olsSnLen == length(fieldsToRemove{i}) +1));
+%                             end
+%                             old = rmfield(old,oldSn(flag));
+%                             sd = setdiff(oldSn(~flag),newSn);
+%                             %copy old data
+%                             for i = 1:length(sd)
+%                                 new.(sd{i}) = old.(sd{i});
+%                             end
+%                         end
+%                     end
+%                 end
                 this.results.pixel(ch,1) = {new};
                 this.pixelApproximated(ch,1) = false;
             else
@@ -447,13 +448,15 @@ classdef resultFile < handle
                 %             elseif(~isempty(ch) && any(ch == this.nonEmptyChannelList))%length(this.results.pixel) >= ch && ~isempty(this.results.pixel{ch,1}))
                 %                 if(~any(ch == this.loadedChannelList))
                 %                     this.openChannel(ch);
-            elseif(~isempty(ch) && ismember(ch,this.nonEmptyChannelList))
+            elseif(~isInitResult && ~isempty(ch) && ismember(ch,this.nonEmptyChannelList))
                 if(~ismember(ch,find(this.loadedChannels)))
                     this.openChannel(ch);
                 end
                 if(length(this.results.pixel) >= ch && ~isempty(this.results.pixel{ch,1}))
                     out = fieldnames(this.results.pixel{ch,1});
                 end
+            elseif(~isInitResult && ~isempty(ch) && ~ismember(ch,this.nonEmptyChannelList) && length(this.results.pixel) >= ch)
+                out = fieldnames(this.results.pixel{ch,1});
             end
             if(~isempty(out))
 %                 if(strcmp(this.resultType,'ASCII'))
@@ -930,6 +933,7 @@ classdef resultFile < handle
                     chIdx = str2double(fileName(10:11));
                     if(~isempty(chIdx))
                         this.filesOnHDD(chIdx,1) = true;
+                        this.dirtyFlags(chIdx) = false;
                     end
                 end
             end            
