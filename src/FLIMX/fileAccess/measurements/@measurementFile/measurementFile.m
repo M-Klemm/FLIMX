@@ -1029,7 +1029,7 @@ classdef measurementFile < handle
             end
             %saveVars = {'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'};
             df = this.getDirtyFlags(ch,1:4);
-            if(all(df) || ~exist(fn,'file'))
+            if(all(df) || ~isfile(fn))
                 rawData = this.getRawData(ch,false);
                 rawDataFlat = this.getRawDataFlat(ch);
                 rawMaskData = this.getRawMaskData(ch);

@@ -714,7 +714,7 @@ classdef importWizard < handle
         function GUI_editFile_Callback(this,hObject, eventdata)
             %user enters file name manually
             fn = get(hObject,'String');
-            if(exist(fn,'file') && this.openFileByStr(fn))
+            if(isfile(fn) && this.openFileByStr(fn))
                 this.setupGUI();
                 this.updateGUI();
             end

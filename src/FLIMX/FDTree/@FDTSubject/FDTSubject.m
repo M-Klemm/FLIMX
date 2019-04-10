@@ -692,7 +692,7 @@ classdef FDTSubject < subject4Approx
             idx = strfind(oldpath,this.name);
             if(~isempty(idx) && idx(end) > 1)
                 newpath = [oldpath(1:idx(end)-1),val];
-                if(exist(oldpath,'dir') ~= 0)
+                if(isfolder(oldpath))
                     [status,msg,msgID] = movefile(oldpath,newpath);
                 end
                 this.name = val;

@@ -979,7 +979,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
 
         function checkMexFiles(this)
             %check if mex files are available
-            if(exist('shiftAndLinearOpt_mex','file'))
+            if(isfile('shiftAndLinearOpt_mex'))
                 [this.useMex, msg] = fluoPixelModel.testShiftLinOpt1024(true,false);
 %                 if(~isempty(msg))
 %                     warning('FLIMX:fluoPixelModel',msg);

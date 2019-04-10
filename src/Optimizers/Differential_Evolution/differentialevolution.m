@@ -574,7 +574,7 @@ else
     objFctName = 'test';
 end
 timeOverFileName = sprintf('%s_timeover_%s.mat', objFctName, gethostname);
-if exist('./data', 'dir')
+if isfolder('./data')
     timeOverFileName = ['data/' timeOverFileName];
 end
 info = 'Delete this file to stop parameter optimization.'; %#ok

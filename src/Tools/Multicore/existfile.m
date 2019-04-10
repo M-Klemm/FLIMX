@@ -36,4 +36,4 @@ function res = existfile(fileName)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % check input arguments
-res = exist(fileName, 'file') ~= 0;
+res = isfile(fileName);

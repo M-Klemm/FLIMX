@@ -173,7 +173,7 @@ classdef IRFMgr < handle
                 id = this.name2Id(id);
             end
             fn = fullfile(this.myDir,sprintf('IRF_%d_ch%d_%s.asc',timeChans,specChannel,this.IRFNames{id}));
-            if(~isempty(id) && exist(fn,'file'))
+            if(~isempty(id) && isfile(fn))
                 delete(fn);
             end
             this.loadIRFs();

@@ -29,7 +29,7 @@ end
 feedbackFileName = fullfile(tempdir2, sprintf('userfeedback_%s.mat', calledFile));
 
 % check if data was saved before
-if exist(feedbackFileName, 'file')
+if isfile(feedbackFileName)
   try
     load(feedbackFileName, 'nrOfCalls', 'firstCallTime', 'askedForFeedback');
   catch

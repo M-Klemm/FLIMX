@@ -270,7 +270,7 @@ classdef FDTree < FDTreeNode
                 return
             end
             studyDir = fullfile(this.myDir,newStudyName);
-            if(~exist(studyDir,'dir'))
+            if(isfolder(studyDir))
                 [status, message, ~] = mkdir(studyDir);
                 if(~status)
                     error('FLIMX:FDTree:importStudy','Could not create study folder: %s\n%s',studyDir,message);
@@ -285,7 +285,7 @@ classdef FDTree < FDTreeNode
             end
             %check studyData.mat
             sdFile = fullfile(studyDir,'studyData.mat');
-            if(exist(sdFile,'file'))
+            if(isfile(sdFile))
                 export = load(sdFile,'-mat');
                 export = export.export;
                 if(~strcmp(export.name,newStudyName))
@@ -552,7 +552,7 @@ classdef FDTree < FDTreeNode
                     %copy Data for FLIMXVisGUI
                     oldpath = fullfile(orgStudy.myDir,oldSubjectID);
                     newpath = fullfile(destStudy.myDir,newSubjectID);
-                    if(exist(oldpath,'dir') ~= 0)
+                    if(isfolder(oldpath))
                         copyfile(oldpath,newpath);
                     end
                     subjectObj.reset();

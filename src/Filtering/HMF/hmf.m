@@ -105,7 +105,7 @@ Cross = Cross(:);
 %% --- Hybrid median filtering
 
 % Note: NANMEDIAN is used if this function exists (Statistics Toolbox)
-existNaNmedian = exist('nanmedian','file');
+existNaNmedian = isfile('nanmedian');
 
 % --- the COLFILT function zero-pads! => replicate boundaries
 A = padarray(A,[(n-1)/2 (n-1)/2],'replicate');

@@ -183,7 +183,7 @@ classdef SDTIO < handle
                             fn_stub = 'FlimUnzipTemp';
                             for i = 1:100
                                 fn = fullfile(current_folder,sprintf('%s%d.zip',fn_stub,i));
-                                if(~exist(path,'file'))
+                                if(~isfile(path))
                                     break
                                 end
                             end

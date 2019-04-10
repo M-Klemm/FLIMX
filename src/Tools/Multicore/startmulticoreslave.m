@@ -41,7 +41,7 @@ persistent lastSessionDateStr
 if ~exist('multicoreDir', 'var') || isempty(multicoreDir)
     multicoreDir = fullfile(tempdir2, 'multicorefiles');
 end
-if ~exist(multicoreDir, 'dir')    
+if ~isfolder(multicoreDir)
     [status, message, ~] = mkdir(multicoreDir);
     if(~status)
         error('multicore:startmulticoreslave','Unable to create slave file directory %s.\n%s', multicoreDir,message);
@@ -298,7 +298,7 @@ while 1
             % remove working file
             mbdelete(workingFile, showWarnings); %% file access %%
             % Save result. Use file semaphore of the parameter file to reduce the overhead.
-        elseif(exist(multicoreDir, 'dir') && exist(workingFile, 'file')) %do nothing if multicore dir or working file have been removed
+        elseif(isfolder(multicoreDir) && existfile(workingFile)) %do nothing if multicore dir or working file have been removed
             sem = setfilesemaphore(parameterFileName);
             resultFileName = strrep(parameterFileName, 'parameters', 'result');
             try
