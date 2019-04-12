@@ -336,9 +336,9 @@ classdef fluoSubject < FDTreeNode
                 %we have not yet loaded a channel
                 this.myParamMgr.makeVolatileParams();
             end
-            for i = 1:length(chList)
-                this.myResult.allocResults(chList(i),this.getROIYSz(),this.getROIXSz());
-            end
+%             for i = 1:length(chList)
+%                 this.myResult.allocResults(chList(i),this.getROIYSz(),this.getROIXSz());
+%             end
         end
         
         function updatePixelResolution(this,val,target)

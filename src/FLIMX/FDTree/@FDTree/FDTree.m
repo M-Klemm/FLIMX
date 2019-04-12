@@ -89,7 +89,7 @@ classdef FDTree < FDTreeNode
                 t = now;  %slower
             end
             if(isempty(this.LRUTableObjs))
-                this.LRUTableObjs(1) = {obj};
+                this.LRUTableObjs(1,1) = {obj};
                 this.LRUTableInfo(1,1:3) = [obj.uid,t,obj.getCacheMemorySize()];
             else
                 id = obj.uid == this.LRUTableInfo(:,1);
@@ -99,10 +99,14 @@ classdef FDTree < FDTreeNode
                 else
                     %obj not found -> add obj to list
                     id = size(this.LRUTableObjs,1) + 1;
-                    this.LRUTableObjs(id) = {obj};
+                    this.LRUTableObjs(id,1) = {obj};
                     this.LRUTableInfo(id,1:3) = [obj.uid,t,obj.getCacheMemorySize()];
                 end
             end
+            %delete zero sized object from list
+            idx = this.LRUTableInfo(:,3) == 0;
+            this.LRUTableObjs(idx,:) = [];
+            this.LRUTableInfo(idx,:) = [];
             this.checkLRUCacheTableSize(this.myMaxMemoryCacheSize);
         end
         
@@ -117,11 +121,8 @@ classdef FDTree < FDTreeNode
                 %find oldest entry
                 [~, id] = min([this.LRUTableInfo(:,2)]);
                 obj = this.LRUTableObjs{id,1};
-                if(obj.isDirty)
-                    obj.saveMatFile2Disk([]);
-                end
                 obj.clearCacheMemory(); %free RAM
-                this.LRUTableObjs(id) = []; %remove obj from table
+                this.LRUTableObjs(id,:) = []; %remove obj from table
                 this.LRUTableInfo(id,:) = []; %remove objs info from table
                 if(size(this.LRUTableInfo,1) == 1)
                     %keep at least one entry (the just added obj)
