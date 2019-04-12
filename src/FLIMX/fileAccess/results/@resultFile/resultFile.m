@@ -107,7 +107,16 @@ classdef resultFile < handle
                         %todo
                     end
                 end
-                this.allocResults(ch,this.resultSize(1),this.resultSize(2));
+                this.results.init(ch,1) = cell(1,1);
+                this.results.pixel(ch,1) = cell(1,1);
+                this.loadedChannels(ch,1) = false;
+                this.initApproximated(ch,1) = false;
+                this.pixelApproximated(ch,1) = false;
+                if(~isempty(this.myParent))
+                    this.updateResultMemorySize();
+                    this.myParent.pingLRUCacheTable(this);
+                end
+                %this.allocResults(ch,this.resultSize(1),this.resultSize(2));
                 this.checkMyFiles();
                 this.setDirty(ch,false);
             end
@@ -123,21 +132,29 @@ classdef resultFile < handle
             %open result files of a specific channel and store
             success = false;
             if(~isMultipleCall())
-                rs = this.loadFromDisk(this.getResultFileName(ch,''));
-                if(isempty(rs))                    
-                    return
-                end
-                this.loadResult(rs);
-                %check if we have the IRF used for the result
-                IRFMgr = this.myParent.myIRFMgr;
-                aux = this.getAuxiliaryData(ch);
-                if(strcmp('FluoDecayFit',rs.resultType) && ~isempty(IRFMgr) && ~isempty(aux) && isempty(IRFMgr.getIRF(aux.fileInfo.nrTimeChannels,aux.IRF.name,aux.fileInfo.tacRange,ch)) )
-                    %we don't have this IRF yet -> add it to our IRF manager
-                    irf = linspace(0,aux.fileInfo.tacRange,length(aux.IRF.vector))';
-                    irf(:,2) = double(aux.IRF.vector);
-                    IRFMgr.addIRF(aux.IRF.name,ch,irf,false);%this.basicParams.curIRFID
-                end
-                success = true;
+                if(ismember(ch,this.nonEmptyChannelList) && ~ismember(ch,find(this.loadedChannels)))
+                    %load a result from disk                    
+                    rs = this.loadFromDisk(this.getResultFileName(ch,''));
+                    if(isempty(rs))
+                        return
+                    end
+                    this.loadResult(rs);
+                    %check if we have the IRF used for the result
+                    IRFMgr = this.myParent.myIRFMgr;
+                    aux = this.getAuxiliaryData(ch);
+                    if(strcmp('FluoDecayFit',rs.resultType) && ~isempty(IRFMgr) && ~isempty(aux) && isempty(IRFMgr.getIRF(aux.fileInfo.nrTimeChannels,aux.IRF.name,aux.fileInfo.tacRange,ch)) )
+                        %we don't have this IRF yet -> add it to our IRF manager
+                        irf = linspace(0,aux.fileInfo.tacRange,length(aux.IRF.vector))';
+                        irf(:,2) = double(aux.IRF.vector);
+                        IRFMgr.addIRF(aux.IRF.name,ch,irf,false);%this.basicParams.curIRFID
+                    end
+                    success = true;
+                elseif(~ismember(ch,this.nonEmptyChannelList) && ~ismember(ch,find(this.loadedChannels)))
+                    if(~isempty(this.myParent) && strcmp(this.resultType,'FluoDecayFit'))
+                        this.allocResults(ch,this.myParent.getROIYSz(),this.myParent.getROIXSz());
+                        success = true;
+                    end                    
+                end                
                 this.dirtyFlags(ch) = false;
             end
         end
@@ -206,6 +223,9 @@ classdef resultFile < handle
         
         function clearCacheMemory(this)
             %remove result data from RAM as this can be read from disk and recomputed
+            if(this.isDirty)
+                this.saveMatFile2Disk([]);
+            end
             this.results.init = cell(1,0);
             this.results.pixel = cell(1,0);
             this.resultMemorySize = 0;
@@ -218,7 +238,7 @@ classdef resultFile < handle
         function allocResults(this,chList,ROIYSz,ROIXSz)
             %clear old results, build new results structure
             this.resultSize = [ROIYSz,ROIXSz];
-            if(isvector(chList) && ~isscalar(chList))                
+            if(isvector(chList) && ~isscalar(chList))
                 this.allocInitResult(chList);
                 this.allocPixelResult(chList);
                 for i = 1:length(chList)
@@ -230,9 +250,7 @@ classdef resultFile < handle
                 this.loadedChannels(chList,1) = false;
             end
             this.resultType = 'FluoDecayFit';
-            myRS = this.results;
-            wRS = whos('myRS');
-            this.resultMemorySize = wRS.bytes;
+            this.updateResultMemorySize();
         end
         
         function allocInitResult(this,ch)
@@ -443,21 +461,36 @@ classdef resultFile < handle
         function out = getResultNames(this,ch,isInitResult)
             %get the names of the result structure
             out = cell(0,0);
-            if(isInitResult && ~isempty(ch) && length(this.results.init) >= ch)
-                out = fieldnames(this.results.init{ch,1});
-                %             elseif(~isempty(ch) && any(ch == this.nonEmptyChannelList))%length(this.results.pixel) >= ch && ~isempty(this.results.pixel{ch,1}))
-                %                 if(~any(ch == this.loadedChannelList))
-                %                     this.openChannel(ch);
-            elseif(~isInitResult && ~isempty(ch) && ismember(ch,this.nonEmptyChannelList))
-                if(~ismember(ch,find(this.loadedChannels)))
-                    this.openChannel(ch);
-                end
-                if(length(this.results.pixel) >= ch && ~isempty(this.results.pixel{ch,1}))
-                    out = fieldnames(this.results.pixel{ch,1});
-                end
-            elseif(~isInitResult && ~isempty(ch) && ~ismember(ch,this.nonEmptyChannelList) && length(this.results.pixel) >= ch)
-                out = fieldnames(this.results.pixel{ch,1});
+            if(isempty(ch) || isInitResult && strcmp(this.resultType,'ASCII'))
+                return
             end
+            if(isInitResult)
+                fieldName = 'init';
+            else
+                fieldName = 'pixel';
+            end
+            if(length(this.results.(fieldName)) < ch || isempty(this.results.(fieldName){ch,1}))
+                %load a result from disk or allocate
+                this.openChannel(ch);
+            end
+            if(length(this.results.(fieldName)) >= ch && ~isempty(this.results.(fieldName){ch,1}))
+                out = fieldnames(this.results.(fieldName){ch,1});
+            end
+%             if(isInitResult && ~isempty(ch) && length(this.results.init) >= ch)
+%                 out = fieldnames(this.results.init{ch,1});
+%                 %             elseif(~isempty(ch) && any(ch == this.nonEmptyChannelList))%length(this.results.pixel) >= ch && ~isempty(this.results.pixel{ch,1}))
+%                 %                 if(~any(ch == this.loadedChannelList))
+%                 %                     this.openChannel(ch);
+%             elseif(~isInitResult && ~isempty(ch) && ismember(ch,this.nonEmptyChannelList))
+%                 if(~ismember(ch,find(this.loadedChannels)))
+%                     this.openChannel(ch);
+%                 end
+%                 if(length(this.results.pixel) >= ch && ~isempty(this.results.pixel{ch,1}))
+%                     out = fieldnames(this.results.pixel{ch,1});
+%                 end
+%             elseif(~isInitResult && ~isempty(ch) && ~ismember(ch,this.nonEmptyChannelList) && length(this.results.pixel) >= ch)
+%                 out = fieldnames(this.results.pixel{ch,1});
+%             end
             if(~isempty(out))
 %                 if(strcmp(this.resultType,'ASCII'))
 %                     idx = strncmp(out,'Amplitude',9);
@@ -534,7 +567,8 @@ classdef resultFile < handle
              if(isempty(this.filesOnHDD))
                  out = unique([find(this.initApproximated);find(this.pixelApproximated);]);
              else
-                 out = find(this.filesOnHDD);
+                 out = unique([find(this.initApproximated);find(this.pixelApproximated);find(this.filesOnHDD)]);
+                 %out = find(this.filesOnHDD);
              end
                  
 %              if(isempty(this.initApproximated))
@@ -548,9 +582,9 @@ classdef resultFile < handle
         function out = getInitFLIMItem(this,ch,pStr)
             %return specific init result, e.g. tau 1
             out = [];
-            if((isempty(this.results.init) || length(this.results.init) < ch|| isempty(this.results.init{ch,1})) && ~any(this.nonEmptyChannelList == ch))
-                return
-            end
+%             if((isempty(this.results.init) || length(this.results.init) < ch|| isempty(this.results.init{ch,1})) && ~any(this.nonEmptyChannelList == ch))
+%                 return
+%             end
             if((isempty(this.results.init) || length(this.results.init) < ch|| isempty(this.results.init{ch,1})) && ~any(this.loadedChannelList == ch))
                 %what if channel is dirty?
                 this.openChannel(ch);
@@ -653,9 +687,9 @@ classdef resultFile < handle
         function out = getPixelFLIMItem(this,ch,pStr,y,x)
             %return specific pixel result, e.g. tau 1, optional pixel coordinates
             out = [];
-            if((isempty(this.results.pixel) || length(this.results.pixel) < ch || isempty(this.results.pixel{ch,1})) && ~any(this.nonEmptyChannelList == ch))
-                return
-            end
+%             if((isempty(this.results.pixel) || length(this.results.pixel) < ch || isempty(this.results.pixel{ch,1})) && ~any(this.nonEmptyChannelList == ch))
+%                 return
+%             end
             if(isempty(this.results.pixel) || length(this.results.pixel) < ch || isempty(this.results.pixel{ch,1}) || ~any(this.loadedChannelList == ch))
                 %what if channel is dirty?
                 this.openChannel(ch);
@@ -1162,6 +1196,15 @@ classdef resultFile < handle
                 this.openChannel(ch);
             end
             out = this.results.pixel{ch,1};
+        end
+        
+        function updateResultMemorySize(this)
+            %update the cached result size
+            myRSi = this.results.init;
+            myRSp = this.results.init;
+            wRSi = whos('myRSi');
+            wRSp = whos('myRSp');
+            this.resultMemorySize = wRSi.bytes + wRSp.bytes;
         end
     end
     

@@ -383,6 +383,9 @@ classdef measurementInFDTree < measurementFile
         
         function clearCacheMemory(this)
             %remove raw and roi data from RAM as this can be read from disk and recomputed
+            if(this.isDirty)
+                this.saveMatFile2Disk([]);
+            end
             this.rawFluoData = cell(0,0);
             this.roiFluoData = cell(0,0);
             %fprintf('cleared cache of %s measurement\n',this.myParent.name);
