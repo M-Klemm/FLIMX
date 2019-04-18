@@ -1652,16 +1652,12 @@ classdef FLIMXVisGUI < handle
             end
             if(contains(tag,'edit'))
                 this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.editCallback();
-                %this.objHandles.(sprintf('%sdo',thisSide)).updatePlots();
                 if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
                     this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                 end
             elseif(contains(tag,'check'))
                 this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.checkCallback(this.getROIDisplayMode(thisSide) > 1);
-                %if(isequal(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}, this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1}))
-                    this.objHandles.(sprintf('%sdo',thisSide)).updatePlots();
-                    this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
-                %end
+                this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
             elseif(contains(tag,'button'))
                 if(contains(tag,'in'))
                     this.objHandles.(sprintf('%sdo',thisSide)).zoomSuppXScale('in');
