@@ -1066,15 +1066,23 @@ end
             %         end
             functionHandles = functionHandleCell(parIndex);
             parameterFileName = strrep(parameterFileNameTemplate, 'XX', sprintf('%04d', f));
+            [tPath,tFN] = fileparts(parameterFileName);
+            parameterFileNameTmp = fullfile(tPath,[tFN '.tmp']);
             tic;
             if(isempty(p))
                 if debugMode, t1 = now; end
-                mySem = setfilesemaphore(parameterFileName);
+                %mySem = setfilesemaphore(parameterFileName);
                 if debugMode, setTime = setTime + now - t1; end
                 try
-                    save(parameterFileName, 'functionHandles', 'parameters', 'parametersHash'); %% file access %%
-                    if debugMode
-                        disp(sprintf('Parameter file nr %d generated.', f));
+                    save(parameterFileNameTmp, 'functionHandles', 'parameters', 'parametersHash'); %% file access %%
+                    [renameStatus,renameMsg,renameMsgID] = movefile(parameterFileNameTmp,parameterFileName); %% file access %%                    
+                    if(~renameStatus)
+                        disp(textwrap2(sprintf('Warning: Unable to save file %s.\n%s', parameterFileName,renameMsg)));
+                        displayerrorstruct;
+                        delete(parameterFileNameTmp);
+                    end
+                    if(debugMode && renameStatus)
+                        fprintf('Parameter file nr %d generated.\n', f);
                     end
                 catch ME
                     if showWarnings
@@ -1082,7 +1090,7 @@ end
                         displayerrorstruct;
                     end
                 end
-                removefilesemaphore(mySem);
+                %removefilesemaphore(mySem);
                 fInfo = dir(parameterFileName);
                 if(~isempty(fInfo))
                     fBps = fInfo.bytes ./ toc ./1024;
@@ -1144,9 +1152,16 @@ function out = savewrap(fileName,functionHandles,parameters,parametersHash)
 %wrapper for save function
 out.bytes = 0;
 out.message = '';
-sem = setfilesemaphore(fileName);
+%sem = setfilesemaphore(fileName);
+[tPath,tFN] = fileparts(fileName);
+fileNameTmp = fullfile(tPath,[tFN '.tmp']);
 try
-    save(fileName,'functionHandles','parameters','parametersHash');
+    save(fileNameTmp,'functionHandles','parameters','parametersHash');
+    [renameStatus,renameMsg,renameMsgID] = movefile(fileNameTmp,fileName);
+    if(~renameStatus)
+        out.message = sprintf('Warning: Unable to save file %s.\n%s', fileName,renameMsg);
+        delete(parameterFileNameTmp);
+    end
     fInfo = dir(fileName);
     if(~isempty(fInfo))
         out.bytes = fInfo.bytes;
@@ -1155,7 +1170,7 @@ try
 catch ME
     out.message = ME.message;
 end
-removefilesemaphore(sem);
+%removefilesemaphore(sem);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
