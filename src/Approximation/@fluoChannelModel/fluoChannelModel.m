@@ -433,7 +433,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             if(isempty(t) || size(t,1) ~= this.tLen || size(t,2) < bp.nExp*nVecs)
                 t = repmat(this.time(:,1),1,bp.nExp*nVecs);
             end
-            if(isempty(exponentialsLong) || size(exponentialsLong,1) ~= size(t,1) || size(exponentialsLong,3) < nVecs || size(exponentialsLong,2) ~= bp.nExp || size(expModels,2) ~= bp.nExp+vpp.nScatter)
+            if(isempty(exponentialsLong) || size(exponentialsLong,1) ~= size(t,1) || size(exponentialsLong,3) < nVecs || size(exponentialsLong,2) ~= bp.nExp || size(expModels,2) ~= bp.nExp+vpp.nScatter+1)
                 exponentialsLong = ones(size(t,1),bp.nExp,nVecs);
                 expModels = ones(nTimeChNoID,bp.nExp+vpp.nScatter+1,nVecs);
             end
