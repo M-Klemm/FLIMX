@@ -107,37 +107,53 @@ while 1
         if debugMode
             % get parameter file number for debug messages
             fileNr = str2double(regexptokens(parameterFileName,'parameters_\d+_(\d+)\.mat'));
-            disp(sprintf('****** Slave is checking file nr %d *******\n\r', fileNr));
+            fprintf('****** Slave is checking file nr %d *******\n\r\n', fileNr);
         end
         
         % load and delete last parameter file
-        sem = setfilesemaphore(parameterFileName);
-        loadSuccessful = true;
+        %sem = setfilesemaphore(parameterFileName);
+        % try to rename parameter file
+        parameterFileNameTmp = strrep(parameterFileName, '.mat', sprintf('.%s_%d',gethostname(),(round(rand*10^10))));
+        loadSuccessful = false;
         parameters = [];
         parametersHash = 0;
         if existfile(parameterFileName)
             % try to load the parameters
             lastwarn('');
             lasterror('reset');
+            workingFile = strrep(parameterFileName, 'parameters', 'working');
             try
-                load(parameterFileName, 'functionHandles', 'parameters', 'parametersHash'); %% file access %%
-                if(any(parametersHash) && ~isempty(hashEngine))
-                    %we do have a parameter hash -> compute the hash to check if parameters are ok
-                    hashEngine.reset();
-                    hashEngine.update(getByteStreamFromArray(parameters));
-                    myParamHash = typecast(hashEngine.digest, 'uint8');
-                    if(length(myParamHash(:)) ~= length(parametersHash(:)) || ~all(myParamHash(:) == parametersHash(:)))
-                        loadSuccessful = false;
-                        fprintf('Warning: Parameter file %s was ignored because hash value did not match.\n', parameterFileName);
+                %rename file to reserve it for this worker
+                moveStatus = movefile(parameterFileName,parameterFileNameTmp);
+                if(moveStatus)
+                    % renaming was successful -> no other slave can get this file                    
+                    % Generate a temporary file which shows when the slave started working.
+                    % Using this file, the master can decide if the job timed out.
+                    % Still using the semaphore of the parameter file above.                    
+                    generateemptyfile(workingFile);
+                    if debugMode
+                        fprintf('Working file nr %d generated.\n', fileNr);
+                    end        
+                    load(parameterFileNameTmp,'-mat', 'functionHandles', 'parameters', 'parametersHash'); %% file access %%
+                    loadSuccessful = true;
+                    if(any(parametersHash) && ~isempty(hashEngine))
+                        %we do have a parameter hash -> compute the hash to check if parameters are ok
+                        hashEngine.reset();
+                        hashEngine.update(getByteStreamFromArray(parameters));
+                        myParamHash = typecast(hashEngine.digest, 'uint8');
+                        if(length(myParamHash(:)) ~= length(parametersHash(:)) || ~all(myParamHash(:) == parametersHash(:)))
+                            fprintf('Warning: Parameter file %s was ignored because hash value did not match.\n', parameterFileName);
+                            loadSuccessful = false;
+                        end
                     end
                 end
             catch
-                loadSuccessful = false;
+                %loadSuccessful = false;
                 if showWarnings
-                    disp(sprintf('Warning: Unable to load parameter file %s.\n\r', parameterFileName));
+                    fprintf('Warning: Unable to load parameter file %s.\n\r\n', parameterFileName);
                     lastMsg = lastwarn;
                     if ~isempty(lastMsg)
-                        disp(sprintf('Warning message issued when trying to load:\n%s\n\r', lastMsg));
+                        fprintf('Warning message issued when trying to load:\n%s\n\r\n', lastMsg);
                     end
                     displayerrorstruct;
                 end
@@ -153,28 +169,28 @@ while 1
                             'functionHandles', 'parameters', parameterFileName)));
                     end
                 elseif(~iscell(parameters) || isempty(parameters{1}) || numel(parameters{1,1}{1,1}) < 1 || ~isa(parameters{1,1}{1,1}{1,1},'fluoPixelModel'))
-                    %file load seemed successfull, yet something went wrong
+                    %file load seemed successful, yet something went wrong
                     %->wait and try again
                     pause(0.5);
                     try
-                        load(parameterFileName, 'functionHandles', 'parameters', 'parametersHash'); %% file access %%
+                        load(parameterFileNameTmp,'-mat', 'functionHandles', 'parameters', 'parametersHash'); %% file access %%
+                        loadSuccessful = true;
                         if(any(parametersHash) && ~isempty(hashEngine))
                             %we do have a parameter hash -> compute the hash to check if parameters are ok
                             hashEngine.reset();
                             hashEngine.update(getByteStreamFromArray(parameters));
                             myParamHash = typecast(hashEngine.digest, 'uint8');
                             if(length(myParamHash(:)) ~= length(parametersHash(:)) || ~all(myParamHash(:) == parametersHash(:)))
+                                fprintf('Warning: Parameter file %s was ignored because hash value did not match.\n', parameterFileName);                            
                                 loadSuccessful = false;
-                                fprintf('Warning: Parameter file %s was ignored because hash value did not match.\n', parameterFileName);
                             end
                         end
                     catch
-                        loadSuccessful = false;
                         if showWarnings
-                            disp(sprintf('Warning: Unable to load parameter file %s.\n\r', parameterFileName));
+                            fprintf('Warning: Unable to load parameter file %s.\n\r\n', parameterFileName);
                             lastMsg = lastwarn;
                             if ~isempty(lastMsg)
-                                disp(sprintf('Warning message issued when trying to load:\n%s\n\r', lastMsg));
+                                fprintf('Warning message issued when trying to load:\n%s\n\r\n', lastMsg);
                             end
                             displayerrorstruct;
                         end
@@ -187,28 +203,29 @@ while 1
             
             if debugMode
                 if loadSuccessful
-                    disp(sprintf('Successfully loaded parameter file nr %d.', fileNr));
+                    fprintf('Successfully loaded parameter file nr %d.\n', fileNr);
                 else
-                    disp(sprintf('Problems loading parameter file nr %d.', fileNr));
+                    fprintf('Problems loading parameter file nr %d.\n', fileNr);
                 end
             end
             % remove semaphore and continue if loading was not successful
             if ~loadSuccessful
-                removefilesemaphore(sem);
+                %removefilesemaphore(sem);
+                mbdelete(workingFile, showWarnings); %% file access %%
                 pause(0.5+0.5*rand);
                 continue
             end
             % remove parameter file
-            deleteSuccessful = mbdelete(parameterFileName, showWarnings); %% file access %%
+            deleteSuccessful = mbdelete(parameterFileNameTmp, showWarnings); %% file access %%
             if ~deleteSuccessful
                 % If deletion is not successful it can happen that other slaves or
                 % the master also use these parameters. To avoid this, ignore the
                 % loaded parameters
                 %loadSuccessful = false;
                 if debugMode
-                    disp(sprintf('Problems deleting parameter file nr %d. It will be ignored', fileNr));
+                    fprintf('Problems deleting parameter file nr %d. It will be ignored\n', fileNr);
                 end
-                removefilesemaphore(sem);
+                %removefilesemaphore(sem);
                 pause(0.5+0.5*rand);
                 continue
             end
@@ -219,7 +236,7 @@ while 1
                     fName = func2str(char(functionHandles{k}));
                     functionHandles{k} = str2func(fName);
                     if(~isa(functionHandles{k}, 'function_handle'))
-                        disp(sprintf('Function handle for %s not found! Aborting...',fName));
+                        fprintf('Function handle for %s not found! Aborting...\n',fName);
                         return
                     end
                 elseif(ischar(functionHandles{k}))
@@ -227,7 +244,7 @@ while 1
                     fName = functionHandles{k};
                     functionHandles{k} = str2func(functionHandles{k});
                     if(~isa(functionHandles{k}, 'function_handle'))
-                        disp(sprintf('Function handle for %s not found! Aborting...',fName));
+                        fprintf('Function handle for %s not found! Aborting...\n',fName);
                         return
                     end
                 end
@@ -239,32 +256,23 @@ while 1
             end
         end
         
-        % Generate a temporary file which shows when the slave started working.
-        % Using this file, the master can decide if the job timed out.
-        % Still using the semaphore of the parameter file above.
-        workingFile = strrep(parameterFileName, 'parameters', 'working');
-        generateemptyfile(workingFile);
-        if debugMode
-            disp(sprintf('Working file nr %d generated.', fileNr));
-        end
-        
         % remove semaphore file
-        removefilesemaphore(sem);
+        %removefilesemaphore(sem);
         
         % show progress info
         if firstRun
-            disp(sprintf('First function evaluation (%s)\n\r', datestr(clock, 'mmm dd, HH:MM')));
+            fprintf('First function evaluation (%s)\n\r\n', datestr(clock, 'mmm dd, HH:MM'));
             firstRun = false;
         elseif etime(clock, lastEvalEndClock) > 60
-            disp(sprintf('First function evaluation after %s (%s)\n\r', ...
-                formattime(etime(clock, lastEvalEndClock)), datestr(clock, 'mmm dd, HH:MM')));
+            fprintf('First function evaluation after %s (%s)\n\r\n', ...
+                formattime(etime(clock, lastEvalEndClock)), datestr(clock, 'mmm dd, HH:MM'));
         end
         
         %%%%%%%%%%%%%%%%%%%%%
         % evaluate function %
         %%%%%%%%%%%%%%%%%%%%%
         if debugMode
-            disp(sprintf('Slave evaluates job nr %d.', fileNr));
+            fprintf('Slave evaluates job nr %d.\n', fileNr);
             t0 = mbtime;
         end
         
@@ -290,7 +298,7 @@ while 1
             end
         end
         if debugMode
-            disp(sprintf('Slave finished job nr %d in %.2f seconds.', fileNr, mbtime - t0));
+            fprintf('Slave finished job nr %d in %.2f seconds.\n', fileNr, mbtime - t0);
         end
         if(all(cellfun('isempty',result)))
             fprintf('%s produced an empty result (nr %d; file %s). Result was not saved.',gethostname(),fileNr,parameterFileName);
@@ -299,16 +307,22 @@ while 1
             mbdelete(workingFile, showWarnings); %% file access %%
             % Save result. Use file semaphore of the parameter file to reduce the overhead.
         elseif(isfolder(multicoreDir) && existfile(workingFile)) %do nothing if multicore dir or working file have been removed
-            sem = setfilesemaphore(parameterFileName);
+            %sem = setfilesemaphore(parameterFileName);
             resultFileName = strrep(parameterFileName, 'parameters', 'result');
+            [tPath,tFN] = fileparts(resultFileName);
+            resultFileNameTmp = fullfile(tPath,[tFN '.tmp']);
             try
-                save(resultFileName, 'result'); %% file access %%
+                save(resultFileNameTmp, 'result'); %% file access %%
+                [renameStatus,renameMsg,renameMsgID] = movefile(resultFileNameTmp,resultFileName); %% file access %%
+                if(~renameStatus)
+                    disp(textwrap2(sprintf('Warning: Unable to rename file %s.\n%s', resultFileName,renameMsg)));
+                end
                 if debugMode
-                    disp(sprintf('Result file nr %d generated.', fileNr));
+                    fprintf('Result file nr %d generated.\n', fileNr);
                 end
             catch
                 if showWarnings
-                    disp(sprintf('Warning: Unable to save file %s.', resultFileName));
+                    fprintf('Warning: Unable to save file %s.\n', resultFileName);
                     displayerrorstruct;
                 end
             end
@@ -316,17 +330,17 @@ while 1
             % remove working file
             mbdelete(workingFile, showWarnings); %% file access %%
             if debugMode
-                disp(sprintf('Working file nr %d deleted.', fileNr));
+                fprintf('Working file nr %d deleted.\n', fileNr);
             end
             
             % remove parameter file (might have been re-generated again by master)
             mbdelete(parameterFileName, showWarnings); %% file access %%
             if debugMode
-                disp(sprintf('Parameter file nr %d deleted.', fileNr));
+                fprintf('Parameter file nr %d deleted.\n', fileNr);
             end
             
             % remove semaphore
-            removefilesemaphore(sem);
+            %removefilesemaphore(sem);
         end
         % save time
         lastEvalEndClock = clock;
@@ -344,8 +358,8 @@ while 1
                 % round to minutes
                 timeSinceLastEvaluation = 60 * round(timeSinceLastEvaluation / 60);
             end
-            disp(sprintf('Warning: No slave files found during last %s (%s).\n\r', ...
-                formattime(timeSinceLastEvaluation), datestr(clock, 'mmm dd, HH:MM')));
+            fprintf('Warning: No slave files found during last %s (%s).\n\r\n', ...
+                formattime(timeSinceLastEvaluation), datestr(clock, 'mmm dd, HH:MM'));
             lastWarnClock = clock;
             if firstRun
                 curWarnTime = startWarnTime;
@@ -386,11 +400,11 @@ function timeString = formattime(time, mode)
 %   FORMATTIME (without input arguments) shows examples.
 
 if nargin == 0
-    disp(sprintf('\nExamples for strings returned by function %s.m:', mfilename));
+    fprintf('\nExamples for strings returned by function %s.m:\n', mfilename);
     time = [0 1e-4 0.1 1 1.1 2 60 61 62 120 121 122 3600 3660 3720 7200 7260 7320 ...
         3600*24 3600*25 3600*26 3600*48 3600*49 3600*50];
     for k=1:length(time)
-        disp(sprintf('time = %6g, timeString = ''%s''', time(k), formattime(time(k))));
+        fprintf('time = %6g, timeString = ''%s''\n', time(k), formattime(time(k)));
     end
     if nargout > 0
         timeString = '';
