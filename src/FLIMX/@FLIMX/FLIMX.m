@@ -441,17 +441,23 @@ classdef FLIMX < handle
             %get names and path to images of color maps
             persistent cmNames cmPaths
             if(isempty(cmPaths))
-                cmNames = {'Autumn','Bone','Colorcube','Cool','Copper','Flag','Gray','Hot','Hsv','Inferno','Jet','Lines','Magma','Parula','Pink','Plasma','Prism','Spring','Summer','Viridis','White','Winter'};
+                cmNames = {'Autumn','Bone','Colorcube','Cool','Copper','Cividis','Flag','Gray','Hot','Hsv','Inferno','Jet','Lines','Magma','Parula','Pink','Plasma','Prism','Spring','Summer','Twilight','TwilightShifted','Viridis','White','Winter'};
                 cmPaths = strcat([FLIMX.getWorkingDir() filesep 'data' filesep 'colormap_'], cmNames', '.png');
                 for i = length(cmPaths):-1:1
                     if(~isfile(cmPaths{i}))
                         %no color map icon found -> generate it
                         map = zeros(1,256,3);
-                        eval(sprintf('map(1,:,:) = %s(256);',lower(cmNames{i})));
-                        if(any(map(:)))
-                            map = repmat(map,7,1,1);
-                            imwrite(map,cmPaths{i});
-                        else
+                        try
+                            eval(sprintf('map(1,:,:) = %s(256);',lower(cmNames{i})));
+                            if(any(map(:)))
+                                map = repmat(map,7,1,1);
+                                imwrite(map,cmPaths{i});
+                            else
+                                %color map generation did not work -> remove it from list
+                                cmNames = cmNames(1:i-1);
+                                cmPaths = cmPaths(1:i-1);
+                            end
+                        catch
                             %color map generation did not work -> remove it from list
                             cmNames = cmNames(1:i-1);
                             cmPaths = cmPaths(1:i-1);
@@ -477,8 +483,8 @@ classdef FLIMX < handle
             %set current revisions HERE!
             out.config_revision = 266;
             out.client_revision_major = 4;
-            out.client_revision_minor = 6;
-            out.client_revision_fix = 1;
+            out.client_revision_minor = 7;
+            out.client_revision_fix = 0;
             out.core_revision = 374;
             out.results_revision = 256;
             out.measurement_revision = 205;
@@ -1029,6 +1035,24 @@ classdef FLIMX < handle
                 'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)';
                 'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE';
                 'POSSIBILITY OF SUCH DAMAGE.';
+
+                newline;
+                'This software uses the color maps ''Cividis'', ''Twilight'' and ''TwilightShifted'' from https://github.com/opencv, which is covered by the following license:';
+                'Copyright (C) 2000-2019, Intel Corporation, all rights reserved.';
+                'Copyright (C) 2009-2011, Willow Garage Inc., all rights reserved.';
+                'Copyright (C) 2009-2016, NVIDIA Corporation, all rights reserved.';
+                'Copyright (C) 2010-2013, Advanced Micro Devices, Inc., all rights reserved.';
+                'Copyright (C) 2015-2016, OpenCV Foundation, all rights reserved.';
+                'Copyright (C) 2015-2016, Itseez Inc., all rights reserved.';
+                'Third party copyrights are property of their respective owners.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:';
+                char(13);
+                '* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.';
+                '* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.';
+                '* Neither the names of the copyright holders nor the names of the contributors may be used to endorse or promote products derived from this software without specific prior written permission.';
+                char(13);
+                'This software is provided by the copyright holders and contributors �as is� and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall copyright holders or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.';
 
                 };
         end
