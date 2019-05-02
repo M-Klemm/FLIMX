@@ -112,7 +112,7 @@ classdef FLIMXFitResultImport < handle
                     study = 'Default';
                 end
             end
-            studies = this.FLIMXObj.fdt.getStudyNames();
+            studies = this.FLIMXObj.fdt.getAllStudyNames();
             idx = find(strcmp(study,studies));
             if(~isempty(studies))
                 set(this.visHandles.editStudyName,'String',study);
@@ -126,11 +126,11 @@ classdef FLIMXFitResultImport < handle
                 subject = this.FLIMXObj.fdt.getSubjectName(study,subNr);
             end
             %try to find subject in study
-            if(any(strcmp(subject,this.FLIMXObj.fdt.getSubjectsNames(study,FDTree.defaultConditionName()))))
+            if(any(strcmpi(subject,this.FLIMXObj.fdt.getAllSubjectNames(study,FDTree.defaultConditionName()))))
                 %this is not a new file
                 set(this.visHandles.radioExistingSubject,'Value',1);
-                subjects = this.FLIMXObj.fdt.getSubjectsNames(study,FDTree.defaultConditionName());
-                idx = find(strcmp(subject,subjects));
+                subjects = this.FLIMXObj.fdt.getAllSubjectNames(study,FDTree.defaultConditionName());
+                idx = find(strcmpi(subject,subjects));
                 if(~isempty(idx))
                     set(this.visHandles.popupSubjectSel,'String',subjects,'Value',idx);
                 end
@@ -143,7 +143,7 @@ classdef FLIMXFitResultImport < handle
         function setupGUI(this)
             %setup GUI controls
             %study selection
-            set(this.visHandles.popupStudySel,'String',this.FLIMXObj.fdt.getStudyNames());
+            set(this.visHandles.popupStudySel,'String',this.FLIMXObj.fdt.getAllStudyNames());
             if(get(this.visHandles.radioExistingStudy,'Value'))
                 set(this.visHandles.popupStudySel,'Visible','on');
                 set(this.visHandles.editStudyName,'Visible','off');
@@ -156,7 +156,7 @@ classdef FLIMXFitResultImport < handle
                 end
             end
             %subject selection
-            str = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudyName,FDTree.defaultConditionName());
+            str = this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudyName,FDTree.defaultConditionName());
             if(isempty(str))
                 set(this.visHandles.radioExistingSubject,'Value',0,'Enable','off');
                 set(this.visHandles.radioNewSubject,'Value',1);

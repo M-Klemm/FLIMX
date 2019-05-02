@@ -90,6 +90,15 @@ classdef resultFile < handle
             end
         end
         
+        function delete(this)
+            %destructor
+            if(~isempty(this.myParent))
+                %remove me from FDTree memory cache
+                this.resultMemorySize = 0;
+                this.myParent.pingLRUCacheTable(this);
+            end
+        end
+        
         function deleteChannel(this,ch)
             %delete channel from memory and disk
             if(isempty(ch))
@@ -942,9 +951,9 @@ classdef resultFile < handle
             results = orderfields(results);
         end
         
-        function out = getMyFolder(this)
+        function out = getWorkingDirectory(this)
             %return current working folder
-            out = this.myParent.getMyFolder();
+            out = this.myParent.getWorkingDirectory();
         end
         
         function out = getCacheMemorySize(this)
@@ -958,10 +967,10 @@ classdef resultFile < handle
         function checkMyFiles(this)
             %check in my folder for result files
             this.filesOnHDD = false(1,0);
-            if(isempty(this.getMyFolder()))
+            if(isempty(this.getWorkingDirectory()))
                 return
             end
-            files = rdir(fullfile(this.getMyFolder(),['*' this.fileExt]));
+            files = rdir(fullfile(this.getWorkingDirectory(),['*' this.fileExt]));
             for i = 1:length(files)
                 [~,fileName] = fileparts(files(i,1).name);                
                 if(strncmpi(fileName,this.fileStub,7) && length(fileName) == 11)
@@ -1163,7 +1172,7 @@ classdef resultFile < handle
         function out = getResultFileName(this,ch,folder)
             %returns path and filename for channel ch
             if(isempty(folder))
-                out = fullfile(this.getMyFolder(),sprintf('%sch%02d%s',this.fileStub,ch,this.fileExt));
+                out = fullfile(this.getWorkingDirectory(),sprintf('%sch%02d%s',this.fileStub,ch,this.fileExt));
             else
                 out = fullfile(folder,sprintf('%sch%02d%s',this.fileStub,ch,this.fileExt));
             end

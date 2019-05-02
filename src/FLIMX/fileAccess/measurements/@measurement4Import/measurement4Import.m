@@ -43,7 +43,7 @@ classdef measurement4Import < measurementInFDTree & measurementReadRawData
         function this = measurement4Import(hSubject)
             %constructor
             this = this@measurementReadRawData(@hSubject.myParamMgr);
-            this = this@measurementInFDTree(@hSubject.myParamMgr,@hSubject.getMyFolder);
+            this = this@measurementInFDTree(@hSubject.myParamMgr,@hSubject.getWorkingDirectory);
             this.dirtyFlags = true(size(this.dirtyFlags));
         end
         %% input methods

@@ -128,12 +128,12 @@ classdef subjectParamMgr < paramMgr
             basicParams = this.data.basic_fit;
             %             if(basicParams.scatterEnable && ~isempty(this.FLIMXObj) && ~isempty(this.FLIMXObj.curResultObj))
             %                 %check if have the study
-            %                 if(~any(strcmp(basicParams.scatterStudy,this.FLIMXObj.fdtObj.getStudyNames())) || (~isempty(this.myFluoFile) && strcmp(basicParams.scatterStudy,this.myFluoFile.studyName)))
+            %                 if(~any(strcmp(basicParams.scatterStudy,this.FLIMXObj.fdtObj.getAllStudyNames())) || (~isempty(this.myFluoFile) && strcmp(basicParams.scatterStudy,this.myFluoFile.studyName)))
             %                     %we don't have that scatter study or study of fluoFile is scatter study
             %                     basicParams.scatterStudy = '';
             %                 else
             %                     %we have that scatter study -> check if we have the subject
-            %                     if(~any(strcmp(this.myFluoFile.datasetName,this.FLIMXObj.fdtObj.getSubjectsNames(basicParams.scatterStudy,'-'))))
+            %                     if(~any(strcmp(this.myFluoFile.datasetName,this.FLIMXObj.fdtObj.getAllSubjectNames(basicParams.scatterStudy,'-'))))
             %                         %we don't have that scatter subject
             %                         basicParams.scatterStudy = '';
             %                     end

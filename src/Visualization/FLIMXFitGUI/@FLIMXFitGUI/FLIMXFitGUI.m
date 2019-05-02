@@ -155,7 +155,7 @@ classdef FLIMXFitGUI < handle
                 return
             end
             %update study controls
-            studies = this.FLIMXObj.fdt.getStudyNames();
+            studies = this.FLIMXObj.fdt.getAllStudyNames();
             curStudyIdx = find(strcmp(this.currentStudy,studies),1);
             if(~strcmp(this.currentStudy,this.FLIMXObj.curSubject.getStudyName()) || isempty(curStudyIdx) || curStudyIdx ~= get(this.visHandles.popupStudy,'Value'))
                 studyPos = find(strcmp(this.FLIMXObj.curSubject.getStudyName(),studies),1);
@@ -178,12 +178,12 @@ classdef FLIMXFitGUI < handle
             end
             %try to find oldPStr in new pstr
             idx = find(strcmp(oldVStr,conditions),1);
-            if(isempty(idx) || isempty(this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,conditions{idx})))
+            if(isempty(idx) || isempty(this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,conditions{idx})))
                 idx = 1;%choose FDTree.defaultConditionName() condition
             end
             set(this.visHandles.popupCondition,'String',conditions,'Value',idx);
             %update subject controls
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentCondition);
+            subjects = this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,this.currentCondition);
             curSubjectIdx = find(strcmp(this.currentSubject,subjects),1);
             %set(this.visHandles.popupSubject,'String',subjects,'Value',min(get(this.visHandles.popupSubject,'Value'),length(subjects)));
             if(~strcmp(this.currentSubject,this.FLIMXObj.curSubject.getDatasetName()) || isempty(curSubjectIdx) || curSubjectIdx ~= get(this.visHandles.popupSubject,'Value'))
@@ -1018,7 +1018,7 @@ classdef FLIMXFitGUI < handle
                 set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/></html>',FLIMX.getAnimationPath()));
                 drawnow;
             end
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName());
+            subjects = this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,FDTree.defaultConditionName());
             if(~isempty(subjects) && iscell(subjects))
                 cs = subjects{min(get(this.visHandles.popupSubject,'Value'),length(subjects))};
                 set(this.visHandles.popupCondition,'Value',1);
@@ -1043,7 +1043,7 @@ classdef FLIMXFitGUI < handle
 
         function GUI_popupCondition_Callback(this,hObject,eventdata)
             %callback to change the current condition
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentCondition);
+            subjects = this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,this.currentCondition);
             if(~isempty(subjects) && iscell(subjects))
                 idx = find(strcmp(subjects,this.currentSubject), 1);
                 if(~isempty(idx))
@@ -1782,7 +1782,7 @@ classdef FLIMXFitGUI < handle
                 this.volatilePixelParams,...
                 this.FLIMXObj.curSubject.getVolatileChannelParams(0),...
                 this.FLIMXObj.paramMgr.getParamSection('bounds'),...
-                str,mask,this.FLIMXObj.fdt.getStudyNames(),...
+                str,mask,this.FLIMXObj.fdt.getAllStudyNames(),...
                 this.currentChannel,'On');
             if(~isempty(new))
                 if(new.isDirty(1) == 1)
@@ -2046,7 +2046,7 @@ classdef FLIMXFitGUI < handle
 
         function menuBatchStudy_Callback(this,hObject,eventdata)
             %add study with current settings to batchjob manager
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,this.currentCondition);
+            subjects = this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,this.currentCondition);
             tStart = clock;
             for i = 1:length(subjects)
                 this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentCondition,subjects{i});

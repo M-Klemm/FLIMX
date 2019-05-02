@@ -323,7 +323,7 @@ classdef importWizard < handle
             %set name of current subject
             valOrg = val;
             i = 1;
-            while(any(strcmp(val,this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName()))))
+            while(any(strcmpi(val,this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,FDTree.defaultConditionName()))))
                 val = sprintf('%s%02d',valOrg,i);
                 i=i+1;
             end
@@ -417,7 +417,7 @@ classdef importWizard < handle
                     study = 'Default';
                 end
             end
-            studies = this.FLIMXObj.fdt.getStudyNames();
+            studies = this.FLIMXObj.fdt.getAllStudyNames();
             idx = find(strcmp(study,studies));
             if(~isempty(studies))
                 set(this.visHandles.editStudyName,'String',study);
@@ -430,12 +430,12 @@ classdef importWizard < handle
                 subject = this.FLIMXObj.curSubject.getDatasetName();
             end
             %try to find subject in study
-            if(any(strcmp(subject,this.FLIMXObj.fdt.getSubjectsNames(study,FDTree.defaultConditionName()))))
+            if(any(strcmpi(subject,this.FLIMXObj.fdt.getAllSubjectNames(study,FDTree.defaultConditionName()))))
                 %this is not a new file, we repick e.g. the ROI
                 set(this.visHandles.radioExistingSubject,'Value',1);
                 set(this.visHandles.editSubjectName,'String',this.FLIMXObj.curSubject.getDatasetName());
-                subjects = this.FLIMXObj.fdt.getSubjectsNames(study,FDTree.defaultConditionName());
-                idx = find(strcmp(subject,subjects));
+                subjects = this.FLIMXObj.fdt.getAllSubjectNames(study,FDTree.defaultConditionName());
+                idx = find(strcmpi(subject,subjects));
                 if(~isempty(idx))
                     set(this.visHandles.popupSubjectSel,'String',subjects,'Value',idx);
                 end
@@ -471,7 +471,7 @@ classdef importWizard < handle
                 set(this.visHandles.popupPosition,'Value',2);
             end
             %study selection
-            set(this.visHandles.popupStudySel,'String',this.FLIMXObj.fdt.getStudyNames());
+            set(this.visHandles.popupStudySel,'String',this.FLIMXObj.fdt.getAllStudyNames());
             if(get(this.visHandles.radioExistingStudy,'Value'))
                 set(this.visHandles.popupStudySel,'Visible','on');
                 set(this.visHandles.editStudyName,'Visible','off');
@@ -484,7 +484,7 @@ classdef importWizard < handle
                 end
             end
             %subject selection
-            str = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName());
+            str = this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,FDTree.defaultConditionName());
             if(isempty(str))
                 set(this.visHandles.radioExistingSubject,'Value',0,'Enable','off');
                 set(this.visHandles.radioNewSubject,'Value',1);
@@ -739,7 +739,7 @@ classdef importWizard < handle
             newOrg = get(hObject,'String');
             i = 1;
             new = newOrg;
-            while(any(strcmp(new,this.FLIMXObj.fdt.getStudyNames())))
+            while(any(strcmpi(new,this.FLIMXObj.fdt.getAllStudyNames())))
                 new = sprintf('%s%d',newOrg,i);
                 i=i+1;
             end

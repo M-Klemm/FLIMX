@@ -162,7 +162,7 @@ classdef FLIMXVisGUI < handle
                 return
             end
             side =  ['l' 'r'];
-            studies = this.fdt.getStudyNames();
+            studies = this.fdt.getAllStudyNames();
             try
                 this.dynParams.cm = eval(sprintf('%s(256)',lower(this.generalParams.cmType)));
             catch
@@ -219,7 +219,7 @@ classdef FLIMXVisGUI < handle
                     continue
                 end
                 %update subject selection popups
-                dStr = this.fdt.getSubjectsNames(curStudy,curCondition);
+                dStr = this.fdt.getAllSubjectNames(curStudy,curCondition);
                 if(~isempty(dStr))
                     set(this.visHandles.(sprintf('dataset_%s_pop',s)),'String',dStr,'Value',min(get(this.visHandles.(sprintf('dataset_%s_pop',s)),'Value'),nrSubs));
                 else

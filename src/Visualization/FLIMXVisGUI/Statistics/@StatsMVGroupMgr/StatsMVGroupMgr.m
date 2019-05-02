@@ -71,7 +71,7 @@ classdef StatsMVGroupMgr < handle
             set(this.visHandles.buttonSelectView,'Callback',@this.addConditionCallback);
             set(this.visHandles.buttonDeselectView,'Callback',@this.removeConditionCallback);
             %popups
-            set(this.visHandles.popupStudies,'Callback',@this.GUI_popupStudiesCallback,'String', this.visObj.fdt.getStudyNames(),'Value',1);
+            set(this.visHandles.popupStudies,'Callback',@this.GUI_popupStudiesCallback,'String', this.visObj.fdt.getAllStudyNames(),'Value',1);
             set(this.visHandles.popupMVGroups,'Callback',@this.GUI_popupMVGroupsCallback);
             %listbox            
             set(this.visHandles.listboxSelectedX,'Callback',@this.selectAxisCallback);
@@ -103,7 +103,7 @@ classdef StatsMVGroupMgr < handle
         function updateCtrls(this)
             %updates controls to current values
             %pick first subject and first channel if current subject is empty (e.g. not loaded from disk)
-            curSubName = this.visObj.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName());
+            curSubName = this.visObj.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName());
             if(isempty(curSubName) && iscell(curSubName))
                 curSubName = '';
             else
@@ -256,7 +256,7 @@ classdef StatsMVGroupMgr < handle
             set(this.visHandles.tableStudyViews,'Enable','On');
             selectedConditions = this.visObj.fdt.getGlobalMVGroupTargets(this.curMVGroupName);
             set(this.visHandles.tableSelectedViews,'Data',selectedConditions,'Enable','On');
-            studyStr = this.visObj.fdt.getStudyNames();
+            studyStr = this.visObj.fdt.getAllStudyNames();
             tableData = cell(0,2);
             if(~isempty(selectedConditions))
                 %show name of global MVGroup
@@ -330,7 +330,7 @@ classdef StatsMVGroupMgr < handle
             studyStr = get(hObject,'String');
             this.curStudyName = studyStr{get(hObject,'Value')};
             %ROI
-            ds1 = this.visObj.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName);
+            ds1 = this.visObj.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName);
             if(~isempty(ds1))
                 allROT = this.visObj.fdt.getResultROICoordinates(this.curStudyName,ds1{1},[]);
                 allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
@@ -346,7 +346,7 @@ classdef StatsMVGroupMgr < handle
             cMVs = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
             cMVs.ROI = this.getROIInfo();
             %update MVGroups in all studies
-            studies = this.visObj.fdt.getStudyNames();
+            studies = this.visObj.fdt.getAllStudyNames();
             for i=1:length(studies)
                 if(ismember(this.curMVGroupName,this.visObj.fdt.getMVGroupNames(studies{i},0)))
                     this.visObj.fdt.setStudyMVGroupTargets(studies{i},this.curMVGroupName,cMVs);
@@ -389,7 +389,7 @@ classdef StatsMVGroupMgr < handle
                 cMVs.y(end+1) = selStr;
             end
             %update MVGroups in all studies
-            studies = this.visObj.fdt.getStudyNames();
+            studies = this.visObj.fdt.getAllStudyNames();
             for i=1:length(studies)
                 if(ismember(this.curMVGroupName,this.visObj.fdt.getMVGroupNames(studies{i},0)))
                     this.visObj.fdt.setStudyMVGroupTargets(studies{i},this.curMVGroupName,cMVs);
@@ -416,7 +416,7 @@ classdef StatsMVGroupMgr < handle
                 cMVs.y = cMVs.y(~idx);
             end
             %update MVGroups in all studies
-            studies = this.visObj.fdt.getStudyNames();
+            studies = this.visObj.fdt.getAllStudyNames();
             for i=1:length(studies)
                 if(ismember(this.curMVGroupName,this.visObj.fdt.getMVGroupNames(studies{i},0)))
                     this.visObj.fdt.setStudyMVGroupTargets(studies{i},this.curMVGroupName,cMVs);

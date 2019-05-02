@@ -255,7 +255,7 @@ classdef studyMgr < handle
                 this.visHandles.tableStudyData.RowName = cell(0,0);
             end
             set(this.visHandles.tableFileData,'Data',subjectFilesData); %'ColumnName',this.fdt.getDataFromStudyInfo(this.curStudyName,'filesHeaders'),
-            sStr = this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName());
+            sStr = this.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName());
             if(isempty(sStr))
                 set(this.visHandles.popupSubjectSelection,'String','no subjects found');
             else
@@ -276,7 +276,7 @@ classdef studyMgr < handle
             if(~this.isOpenVisWnd())
                 return
             end
-            studies = this.fdt.getStudyNames();
+            studies = this.fdt.getAllStudyNames();
             nr = find(strcmp(sName,studies),1);
             if(~isempty(nr))
                 set(this.visHandles.popupStudySelection,'String',studies,'Value',nr);
@@ -293,19 +293,13 @@ classdef studyMgr < handle
                 %do not rename Default study
                 errordlg('Renaming study "Default" is not possible!','Error renaming study');
                 return
-            end
-            
+            end            
             sn = this.newStudyName();   %input dialog for study name
             if(isempty(sn))
                 return
             end
             %change name
-            this.fdt.setStudyName(oldStudyName,sn);
-            %change directory
-            oldfn = fullfile(this.myDir,oldStudyName);
-            fn = fullfile(this.myDir,sn);
-            movefile(oldfn,fn);
-            this.fdt.saveStudy(sn);
+            this.fdt.setStudyName(oldStudyName,sn);            
         end
         
         function out = newStudyName(this)
@@ -327,7 +321,7 @@ classdef studyMgr < handle
                     continue
                 end
                 %check if study name is available
-                if(any(strcmp(sn,this.fdt.getStudyNames())))
+                if(any(strcmpi(sn,this.fdt.getAllStudyNames())))
                     choice = questdlg(sprintf('The Study "%s" is already existent! Please choose another name.',sn),...
                         'Error creating Study','Choose new Name','Cancel','Choose new Name');                    
                     % Handle response
@@ -440,7 +434,7 @@ classdef studyMgr < handle
         function menuExit_Callback(this,hObject,eventdata)
             %executes on figure close
             %close StudyManager
-            studies = this.fdt.getStudyNames();
+            studies = this.fdt.getAllStudyNames();
             askUser = true;            
             for i = 1:length(studies)
                 if(~isempty(studies{i}) && any(this.fdt.checkStudyDirtyFlag(studies{i})))
@@ -546,7 +540,7 @@ classdef studyMgr < handle
         
         function menuExportStudy_Callback(this,hObject,eventdata)
             %get all studies in FDtree
-            studiesFLIM = this.fdt.getStudyNames();
+            studiesFLIM = this.fdt.getAllStudyNames();
             studiesFile = cell(0,0);            
             %open export dialog to export studies
             list = GUI_studyExportImport(studiesFLIM,studiesFile);            
@@ -589,7 +583,7 @@ classdef studyMgr < handle
             [studyNames,idx] = unique(studyNames);
             userNames = userNames(idx);
             %get all studies in FDTree
-            studiesFLIMX = this.fdt.getStudyNames();
+            studiesFLIMX = this.fdt.getAllStudyNames();
             tStart = clock;
             for i = 1:length(studyNames)
                 %check study names
@@ -636,7 +630,7 @@ classdef studyMgr < handle
                 drawnow;
             end
             oldSub = '';
-            subs = this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName());
+            subs = this.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName());
             if(strcmp(this.FLIMXObj.curSubject.myParent.name,this.curStudyName) && any(strcmp(this.FLIMXObj.curSubject.name,subs)))
                 %a subject of the study we want to rename is currently loaded in FLIMX
                 %toDo: load dummy subject?! load other study?!
@@ -657,7 +651,7 @@ classdef studyMgr < handle
         
         function menuImportMeasurementSingle_Callback(this,hObject,eventdata)
             %import measurement file
-            if(isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())) || isempty(this.selectedSubjects))
+            if(isempty(this.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName())) || isempty(this.selectedSubjects))
                 %no subjects in current study
                 return
             end
@@ -677,7 +671,7 @@ classdef studyMgr < handle
         
         function menuImportResultSelSub_Callback(this,hObject,eventdata)
             %import ASCII results for selected subject(s)
-            if(isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())))
+            if(isempty(this.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName())))
                 %no subjects in current study
                 return
             end            
@@ -687,11 +681,11 @@ classdef studyMgr < handle
         
         function menuImportResultAll_Callback(this,hObject,eventdata)
             %import ASCII results for all subjects
-            if(isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())))
+            if(isempty(this.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName())))
                 %no subjects in current study
                 return
             end            
-            subjects = this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName());
+            subjects = this.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName());
             for i=1:length(subjects)
                 subidx(i) = this.fdt.getSubjectNr(this.curStudyName,subjects{i});
             end            
@@ -972,7 +966,7 @@ classdef studyMgr < handle
             end
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
-            subs = this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName());
+            subs = this.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName());
             if(strcmp(this.FLIMXObj.curSubject.myParent.name,this.curStudyName) && strcmp(this.FLIMXObj.curSubject.name,subName))
                 if(~isempty(subs))
                     this.FLIMXObj.setCurrentSubject(this.curStudyName,FDTree.defaultConditionName(),subs{1});
@@ -1152,7 +1146,7 @@ classdef studyMgr < handle
         function newName = getUniqueSubjectName(this,study,oldSubjetName)
             %have the user enter a new name for subject which is not already in the study
             newName = '';
-            if(~any(strcmp(study,this.fdt.getStudyNames())))
+            if(~any(strcmpi(study,this.fdt.getAllStudyNames())))
                 %we don't have that study
                 return
             end
@@ -1170,7 +1164,9 @@ classdef studyMgr < handle
                 if(isempty(newName))
                     continue
                 end
-                if(~isempty(this.fdt.getSubjectNr(study,newName)))
+                %check if study name is available
+                if(any(strcmpi(newName,this.fdt.getAllSubjectNames(study,FDTree.defaultConditionName()))))
+                %if(~isempty(this.fdt.getSubjectNr(study,newName)))
                     choice = questdlg(sprintf('The description "%s" is already a name for a subject in study ''%s''!',...
                         newName,study),'Subject Name Error','Choose new Name','Cancel','Choose new Name');
                     % Handle response
@@ -1312,7 +1308,7 @@ classdef studyMgr < handle
         function menuImportStudyInfo_Callback(this,hObject,eventdata)
             %import subject info from excel file
             mode = 1;
-            %if(~isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())))
+            %if(~isempty(this.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName())))
             si = cellfun(@isempty,this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoData'));
             if(~all(si(:)))
                 choice = questdlg(sprintf('Either delete all current subject information for all subjects in study ''%s'' or update existing subject information and add new subjects?',this.curStudyName),'Importing Subject Information from Excel Data','Update and Add New','Delete Old Info','Abort','Update and Add New');
@@ -1339,7 +1335,7 @@ classdef studyMgr < handle
         
         function menuExportStudyInfo_Callback(this,hObject,eventdata)
             %save Subjects and corresponding study data to Excel file
-            if(isempty(this.fdt.getSubjectsNames(this.curStudyName,FDTree.defaultConditionName())))
+            if(isempty(this.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName())))
                 return
             end
             
@@ -1411,7 +1407,7 @@ classdef studyMgr < handle
             %get FDTree working directory
             persistent theDir
             if(isempty(theDir))
-                theDir = this.fdt.getRootDirectory();
+                theDir = this.fdt.getWorkingDirectory();
             end
             out = theDir;
         end
@@ -1459,7 +1455,7 @@ classdef studyMgr < handle
                 
         function str = get.allStudiesStr(this)
             %return a cell aray of all studies
-            str = this.fdt.getStudyNames();
+            str = this.fdt.getAllStudyNames();
         end
         
     end %methods

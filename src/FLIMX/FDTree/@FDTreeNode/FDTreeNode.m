@@ -199,10 +199,9 @@ classdef FDTreeNode < handle
         function out = getNamesOfAllChildren(this)
             %return a string of all children names
             out = this.myChildren.funOnAllElements(@(x) x.name);
-%             out = cell(this.myChildren.queueLen,1);
-%             for i=1:this.myChildren.queueLen
-%                 out(i,1) = {this.myChildren.getDataByPos(i).name};
-%             end
+            %make sure no name is empty
+            % idx = cellfun('isempty',out);
+            % out = out(~idx);
         end
         
         function out = getIDsOfAllChildren(this)

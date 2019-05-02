@@ -40,7 +40,7 @@ classdef measurement4Sim < measurementInFDTree
     methods
         function this = measurement4Sim(hSubject,fi)
             %constructor
-            this = this@measurementInFDTree(hSubject.myParamMgr,@hSubject.getMyFolder);
+            this = this@measurementInFDTree(hSubject.myParamMgr,@hSubject.getWorkingDirectory);
             this.setFileInfoStruct(fi);
             this.setDirtyFlags([],1:4,true);
         end

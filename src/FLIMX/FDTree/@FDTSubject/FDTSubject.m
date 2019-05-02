@@ -1,4 +1,4 @@
-classdef FDTSubject < subject4Approx
+classdef FDTSubject < fluoSubject
     %=============================================================================================================
     %
     % @file     FDTSubject.m
@@ -32,7 +32,7 @@ classdef FDTSubject < subject4Approx
     % @brief    A class to subject in the FDTree
     %
     properties(SetAccess = protected, GetAccess = public)
-        myDir = '';             %subjects's working directory
+        %myDir = '';             %subjects's working directory
     end
     properties (Dependent = true)
         FLIMXParamMgrObj = [];
@@ -41,22 +41,20 @@ classdef FDTSubject < subject4Approx
     end
 
     methods
-        function this = FDTSubject(parent,sDir,name)
+        function this = FDTSubject(parent,name)
             % Constructor for FDTSubject
-            this = this@subject4Approx(parent,name);
-            this.myDir = sDir;
+            this = this@fluoSubject(parent,name);
+            %this.myDir = sDir;
             this.reset();
         end
 
-        function updateFileStatus(this)
-            %update file status if there is a subject object
-%             if(~isempty(this.myFluoSubjectObj))
-%                 %this.myFluoSubjectObj.
-%             end
-        end
+%         function updateFileStatus(this)
+%             %update file status
+%         end
 
         function reset(this)
             %reset measurement and result objects
+            this.removeResultChannelFromMemory([]);
             this.initMode = true;
             this.myMeasurement = measurement4Approx(this);
             this.myMeasurement.setProgressCallback(@this.updateProgress);
@@ -73,6 +71,8 @@ classdef FDTSubject < subject4Approx
         end
 
         %% input methods
+
+
         function importMeasurementObj(this, obj)
             %import a measurement object to FDTree
 %             ROIVec = obj.ROICoord; %save old ROIVec if there is one
@@ -292,27 +292,28 @@ classdef FDTSubject < subject4Approx
             this.myResult.addResultRow(ch,row,resultStruct);
         end
 
-%         function clearROA(this)
-%             %clears measurement data and results of current region of approximation
-%             if(~this.isInitialized)
-%                 this.init();
-%             end
-%             this.myMeasurement.clearROIData();
-%             this.clearROAResults(false);
-%         end
-%
-%         function clearROAResults(this,saveToDiskFlag)
-%             %clear the results of current region of approximation
-%             %this.myMeasurement.clearROAData();
-%             if(~this.isInitialized)
-%                 this.init();
-%             end
-%             roa = this.ROICoordinates;
-%             this.myResult.allocResults(1:this.nrSpectralChannels,roa(4)-roa(3)+1,roa(2)-roa(1)+1);
-%             if(saveToDiskFlag)
-%                 this.saveMatFile2Disk([]);
-%             end
-%         end
+        function clearROA(this)
+            %clears measurement data and results of current region of approximation
+            if(~this.isInitialized)
+                this.init();
+            end
+            this.myMeasurement.clearROIData();
+            this.clearROAResults(false);
+        end
+
+        function clearROAResults(this,saveToDiskFlag)
+            %clear the results of current region of approximation
+            %this.myMeasurement.clearROAData();
+            if(~this.isInitialized)
+                this.init();
+            end
+            roa = this.ROICoordinates;
+            this.myResult.deleteChannel([]);
+            this.myResult.allocResults(1:this.nrSpectralChannels,roa(4)-roa(3)+1,roa(2)-roa(1)+1);
+            if(saveToDiskFlag)
+                this.saveMatFile2Disk([]);
+            end
+        end
 
         %% output
         function out = getApproximationPixelIDs(this,ch)
@@ -688,12 +689,15 @@ classdef FDTSubject < subject4Approx
             this.myMeasurement.saveMatFile2Disk([]);
             this.myResult.saveMatFile2Disk([]);
             %rename working folder (if one exists)
-            oldpath = this.myDir;
+            oldpath = this.getWorkingDirectory();
             idx = strfind(oldpath,this.name);
             if(~isempty(idx) && idx(end) > 1)
                 newpath = [oldpath(1:idx(end)-1),val];
                 if(isfolder(oldpath))
-                    [status,msg,msgID] = movefile(oldpath,newpath);
+                    try
+                        [status,msg,msgID] = movefile(oldpath,newpath);
+                    catch ME
+                    end
                 end
                 this.name = val;
                 this.reset();

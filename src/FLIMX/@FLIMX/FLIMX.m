@@ -105,7 +105,7 @@ classdef FLIMX < handle
             end
             %load a subject
             this.updateSplashScreenProgressLong(0.5,'Load first subject...');
-            subs = this.fdt.getSubjectsNames('Default',FDTree.defaultConditionName());
+            subs = this.fdt.getAllSubjectNames('Default',FDTree.defaultConditionName());
             if(isempty(subs))
                 %todo: generate a dummy subject with simulated data
                 this.setCurrentSubject('Default',FDTree.defaultConditionName(),'');
@@ -181,7 +181,7 @@ classdef FLIMX < handle
             warning('on','MATLAB:rankDeficientMatrix');
             if(forceFlag || (~this.FLIMFitGUI.isOpenVisWnd() && ~this.FLIMVisGUI.isOpenVisWnd()))
                 %do some cleanup
-                studies = this.fdt.getStudyNames();
+                studies = this.fdt.getAllStudyNames();
                 askUser = true;
                 for i = 1:length(studies)
                     if(~isempty(studies{i}) && any(this.fdt.checkStudyDirtyFlag(studies{i})))
@@ -347,7 +347,7 @@ classdef FLIMX < handle
         function success = setCurrentSubject(this,study,condition,subject)
             %set the current subject
             success = true;
-            studyPos = find(strcmp(study,this.fdt.getStudyNames()),1);
+            studyPos = find(strcmp(study,this.fdt.getAllStudyNames()),1);
             if(isempty(studyPos))
                 this.curSubject = this.fdt.getSubject4Import(study,'example_subject');
                 success = false;
@@ -356,7 +356,7 @@ classdef FLIMX < handle
             if(isempty(subject))
                 this.curSubject = this.fdt.getSubject4Import(study,'example_subject');
             else
-                subjectPos = find(strcmp(subject,this.fdt.getSubjectsNames(study,condition)),1);
+                subjectPos = find(strcmp(subject,this.fdt.getAllSubjectNames(study,condition)),1);
                 if(~isempty(subjectPos) && isempty(this.curSubject) || (~strcmp(this.curSubject.getStudyName(),study) || ~strcmp(this.curSubject.getDatasetName(),subject)))
                     %save old result
                     if(~isempty(this.curSubject) && any(this.curSubject.resultIsDirty))
@@ -484,7 +484,7 @@ classdef FLIMX < handle
             out.config_revision = 266;
             out.client_revision_major = 4;
             out.client_revision_minor = 8;
-            out.client_revision_fix = 0;
+            out.client_revision_fix = 1;
             out.core_revision = 374;
             out.results_revision = 256;
             out.measurement_revision = 205;

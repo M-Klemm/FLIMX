@@ -77,7 +77,7 @@ classdef importFolderGUI < handle
         function setupGUI(this)
             %setup GUI controls
             %study selection
-            set(this.visHandles.popupStudySel,'String',this.FLIMXObj.fdt.getStudyNames());
+            set(this.visHandles.popupStudySel,'String',this.FLIMXObj.fdt.getAllStudyNames());
             if(get(this.visHandles.radioExistingStudy,'Value'))
                 set(this.visHandles.popupStudySel,'Visible','on');
                 set(this.visHandles.editStudyName,'Visible','off');
@@ -115,7 +115,7 @@ classdef importFolderGUI < handle
                     end
                 end
             end
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName());
+            subjects = this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,FDTree.defaultConditionName());
             for i = 1:size(out,1)
                 %check if we have this name in the list already
                 if(i > 1 && any(strcmp(out{i,2},out(1:i-1,2))))
@@ -186,7 +186,7 @@ classdef importFolderGUI < handle
             newOrg = get(hObject,'String');
             i = 1;
             new = newOrg;
-            while(any(strcmp(new,this.FLIMXObj.fdt.getStudyNames())))
+            while(any(strcmpi(new,this.FLIMXObj.fdt.getAllStudyNames())))
                 new = sprintf('%s%d',newOrg,i);
                 i=i+1;
             end
@@ -272,7 +272,7 @@ classdef importFolderGUI < handle
             data = get(hObject,'Data');
             newName = importFolderGUI.getNewSubjectName(eventdata.NewData,data(setdiff(1:size(data,1),eventdata.Indices(1,1)),2));            
             %we got a unique name for the current list
-            if(any(strcmp(newName,this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName()))))
+            if(any(strcmpi(newName,this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,FDTree.defaultConditionName()))))
                 data{eventdata.Indices(1,1),3} = true;
                 data{eventdata.Indices(1,1),4} = false;
             else
@@ -388,7 +388,7 @@ classdef importFolderGUI < handle
             %table
             set(this.visHandles.tableSubjects,'CellEditCallback',@this.GUI_tableSubjects_Callback);
             %set initial study
-            studies = this.FLIMXObj.fdt.getStudyNames();
+            studies = this.FLIMXObj.fdt.getAllStudyNames();
             curStudy = this.FLIMXObj.FLIMFitGUI.currentStudy;
             idx = find(strcmp(curStudy,studies));
             if(~isempty(studies))

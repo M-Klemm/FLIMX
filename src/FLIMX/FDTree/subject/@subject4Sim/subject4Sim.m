@@ -139,7 +139,7 @@ classdef subject4Sim < fluoSubject
                 
         %% output methods
         
-        function out = getMyFolder(this)
+        function out = getWorkingDirectory(this)
             %return subjects working folder
             out = '';
         end
