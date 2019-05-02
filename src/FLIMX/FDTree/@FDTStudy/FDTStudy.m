@@ -31,8 +31,7 @@ classdef FDTStudy < FDTreeNode
     %
     % @brief    A class to represent a study (contains subjectDataSets)
     %
-    properties(SetAccess = protected,GetAccess = public)
-        myDir = '';             %study's working directory
+    properties(SetAccess = protected,GetAccess = public)        
         revision = [];          %revision of the study code/dataformat
         myStudyInfoSet = [];    %subject info in study
         myConditionStatistics = [];  %merged objects to save statistics
@@ -41,16 +40,24 @@ classdef FDTStudy < FDTreeNode
         isLoaded = false;       %flag is true if study was loaded from disk
     end
     properties (Dependent = true)
+        myDir = '';             %study's working directory
         FLIMXParamMgrObj = [];
         isDirty = false;        %flag is true if something of the study was changed
     end
     
     methods
-        function this = FDTStudy(parent,sDir,name)
+        function this = FDTStudy(parent,name)
             % Constructor for FDTStudy
             this = this@FDTreeNode(parent,name);
             this.revision = 31;
-            this.myDir = sDir;
+            %check my directory
+            sDir = this.myDir;
+            if(~isfolder(sDir))
+                [status, message, ~] = mkdir(sDir);
+                if(~status)
+                    error('FLIMX:FDTStudy','Could not create study working folder: %s\n%s',sDir,message);
+                end
+            end
             this.myStudyInfoSet = studyIS(this);
             this.myConditionStatistics = LinkedList();
         end
@@ -172,7 +179,7 @@ classdef FDTStudy < FDTreeNode
                         error('FLIMX:FDTree:addSubject','Could not create subject folder: %s\n%s',sDir,message);
                     end
                 end
-                subject = FDTSubject(this,sDir,subjectName);
+                subject = FDTSubject(this,subjectName);
                 this.addChildByName(subject,subjectName);
                 this.myStudyInfoSet.addSubject(subjectName);                
             end
@@ -211,7 +218,7 @@ classdef FDTStudy < FDTreeNode
                 this.load();
             end
             %set name of local MVGroup objects
-            subStr = this.getSubjectsNames(FDTree.defaultConditionName());
+            subStr = this.getAllSubjectNames(FDTree.defaultConditionName());
             for i=1:length(subStr)
                 subject = this.getChild(subStr{i});
                 if(~isempty(subject))
@@ -294,9 +301,29 @@ classdef FDTStudy < FDTreeNode
         end
         
         function setName(this,name)
-            %set new name for study
-            this.name = name;
+            %set new name for study            
+            oldFolder = this.myDir;
+            %save all changes in subjects and study info
+            this.save();
+            this.name = name;            
+            %change directory            
+            newFolder = this.myDir;            
+            try
+                [status,msg,msgID] = movefile(oldFolder,newFolder);
+                if(~status)
+                    
+                end
+            catch ME
+                
+            end
+            %clear all cached subject data in study
+            for i = 1:this.nrChildren
+                subject = this.getChildAtPos(i);
+                subject.reset();
+            end
             this.setDirty(true);
+            %save new name
+            this.save();
         end
         
         function setStudyDir(this,sDir)
@@ -471,7 +498,7 @@ classdef FDTStudy < FDTreeNode
             %make sure we have only strings as subjects
             idx = cellfun(@ischar,xlsSubs);
             xlsSubs = xlsSubs(idx);
-            newSubs = setdiff(xlsSubs,this.getSubjectsNames(FDTree.defaultConditionName()));            
+            newSubs = setdiff(xlsSubs,this.getAllSubjectNames(FDTree.defaultConditionName()));            
             %add new subjects
             for i=1:length(newSubs)
                 this.addSubject(newSubs{i});
@@ -529,7 +556,7 @@ classdef FDTStudy < FDTreeNode
         
         function unloadAllChannels(this)
             %remove all channels in all subjects from memory
-            subStr = this.getSubjectsNames(FDTree.defaultConditionName());
+            subStr = this.getAllSubjectNames(FDTree.defaultConditionName());
             for i=1:length(subStr)
                 subject = this.getChild(subStr{i});
                 chs = subject.getNrChannels();
@@ -710,7 +737,7 @@ classdef FDTStudy < FDTreeNode
                 this.load();
             end
             %delete local MVGroup objects
-            subStr = this.getSubjectsNames(FDTree.defaultConditionName());
+            subStr = this.getAllSubjectNames(FDTree.defaultConditionName());
             for i=1:length(subStr)
                 subject = this.getChild(subStr{i});
                 if(~isempty(subject))
@@ -767,7 +794,7 @@ classdef FDTStudy < FDTreeNode
             if(strncmp('MVGroup',dType,7))
                 %ROI of MVGroup was changed
                 for i = 1:this.myConditionStatistics.queueLen
-                    subStr = this.getSubjectsNames(this.myConditionStatistics.getDataByPos(i).name);
+                    subStr = this.getAllSubjectNames(this.myConditionStatistics.getDataByPos(i).name);
                     if(ismember(subjectID,subStr))
                         %condition contains subject
                         this.myConditionStatistics.getDataByPos(i).clearAllRIs(sprintf('Condition%s',dType));
@@ -794,7 +821,7 @@ classdef FDTStudy < FDTreeNode
                         subject.clearAllRIs(MVGroupStr{i})
                         %clear condition MVGroups
                         for j = 1:this.myConditionStatistics.queueLen
-                            subStr = this.getSubjectsNames(this.myConditionStatistics.getDataByPos(j).name);
+                            subStr = this.getAllSubjectNames(this.myConditionStatistics.getDataByPos(j).name);
                             if(ismember(subjectID,subStr))
                                 %condition contains subject
                                 this.myConditionStatistics.getDataByPos(j).clearAllRIs(sprintf('Condition%s',MVGroupStr{i}));
@@ -1038,7 +1065,7 @@ classdef FDTStudy < FDTreeNode
                 end
             else
                 %get only objects of the selected condition cName
-                subjectNames = this.getSubjectsNames(cName);
+                subjectNames = this.getAllSubjectNames(cName);
                 for i=1:length(subjectNames)
                     %try to get data
                     fData = this.getFDataObj(subjectNames{i},chan,dType,id,sType);
@@ -1069,7 +1096,7 @@ classdef FDTStudy < FDTreeNode
                 %distinguish between merged statistics and condition MVGroups
                 if(strncmp(dType,'ConditionMVGroup',16))
                     %add condition object
-                    condition = FDTSubject(this,[],cName);
+                    condition = FDTSubject(this,cName);
                     this.myConditionStatistics.insertEnd(condition,cName);
                     %make condition MVGroup
                     MVGroupID = dType(10:end);
@@ -1196,20 +1223,14 @@ classdef FDTStudy < FDTreeNode
             end
         end
         
-        function dStr = getSubjectsNames(this,cName)
+        function dStr = getAllSubjectNames(this,cName)
             %get a string of all subjects in the study
             if(~this.isLoaded)
                 this.load();
             end
             dStr = this.getNamesOfAllChildren();%cell(0,0);
-%             for i=1:this.nrChildren
-%                 dStr(i,1) = {this.mySubjects.getDataByPos(i).getSubjectName};
-%             end
             if(strcmp(cName,FDTree.defaultConditionName()))
                 %no condition selected, show all subjects
-%                 %make sure no suject name is empty
-%                 idx = cellfun('isempty',dStr);
-%                 dStr = dStr(~idx);
                 return
             end
             %show only subjects which fullfil the conditional column
@@ -1217,9 +1238,6 @@ classdef FDTStudy < FDTreeNode
             subjectInfo = this.myStudyInfoSet.getSubjectInfo([]);
             col = cell2mat(subjectInfo(:,idx));
             dStr = dStr(col);
-%             %make sure no suject name is empty
-%             idx = cellfun('isempty',dStr);
-%             dStr = dStr(~idx);
         end
         
         function [str, chNrs] = getChStr(this,subjectID)
@@ -1702,8 +1720,18 @@ classdef FDTStudy < FDTreeNode
                 end
             end
         end
-                
-        %% compute functions and other methods                        
+        
+        function out = get.myDir(this)
+            %return this studies working directory
+            out = fullfile(this.myParent.getWorkingDirectory(),this.name);
+        end
+        
+        function out = getWorkingDirectory(this)
+            %return this studies working directory
+            out = this.myDir;
+        end
+        
+        %% compute functions and other methods
         function [cimg, lblx, lbly, cw] = makeConditionMVGroupObj(this,cName,chan,MVGroupID)
             %make merged MVGroups for a study condition
             if(~this.isLoaded)
@@ -1753,7 +1781,7 @@ classdef FDTStudy < FDTreeNode
             condition = this.getConditionObj(cName);
             if(isempty(condition))
                 %add condition to list
-                condition = FDTSubject(this,[],cName);
+                condition = FDTSubject(this,cName);
                 this.myConditionStatistics.insertEnd(condition,cName);
             end
             condition.addObjMergeID(id,chan,dType,1,ciMerged);

@@ -68,7 +68,7 @@ classdef FDTree < FDTreeNode
                 delete(this.myFileLock);
                 error('FLIMX:FDTree:fileLock','Could not establish file lock for database');
             end
-            this.myConditionsMerged = FDTSubject(this,'','GlobalMergedSubjects');
+            this.myConditionsMerged = FDTSubject(this,'GlobalMergedSubjects');
             this.myGlobalMVGroupTargets = LinkedList();
             try
                 this.setShortProgressCallback(@parent.updateSplashScreenProgressShort);
@@ -186,7 +186,11 @@ classdef FDTree < FDTreeNode
             [study, studyID] = this.getChild(studyID);
             if(~isempty(study) && ~strcmp(study.name,'Default'))
                 %don't remove default study
-                [status, message, messageid] = rmdir(study.myDir,'s');
+                try
+                    [status, message, messageid] = rmdir(study.myDir,'s');
+                catch ME
+                    
+                end
                 %todo: error handling
                 this.deleteChildByPos(studyID);
                 this.removeObjMerged();
@@ -196,7 +200,7 @@ classdef FDTree < FDTreeNode
         function removeObjMerged(this)
             %remove merged FData objects
             this.myConditionsMerged = [];
-            this.myConditionsMerged = FDTSubject(this,'','GlobalMergedSubjects');
+            this.myConditionsMerged = FDTSubject(this,'GlobalMergedSubjects');
         end
         
         function updateShortProgress(this,prog,text)
@@ -238,16 +242,8 @@ classdef FDTree < FDTreeNode
             if(~isempty(study))
                 %study alread in tree
                 return
-            end
-            %make folder for study
-            sDir = fullfile(this.myDir,name);
-            if(~isfolder(sDir))
-                [status, message, ~] = mkdir(sDir);
-                if(~status)
-                    error('FLIMX:FDTree:addStudy','Could not create study folder: %s\n%s',sDir,message);
-                end
-            end
-            this.addChildByName(FDTStudy(this,sDir,name),name);
+            end            
+            this.addChildByName(FDTStudy(this,name),name);
             %try to load the study data
             study = this.getChild(name);
             if(isempty(study))
@@ -266,7 +262,7 @@ classdef FDTree < FDTreeNode
         function importStudy(this,newStudyName,fn)
             %import study from export file(s)
             %check if we have this study already
-            if(any(strcmp(this.getStudyNames,newStudyName)))
+            if(any(strcmpi(this.getAllStudyNames,newStudyName)))
                 %ask user
                 return
             end
@@ -478,8 +474,6 @@ classdef FDTree < FDTreeNode
             study = this.getChild(studyID);
             if(~isempty(study))
                 study.setName(newStudyName);
-                newPath = fullfile(this.myDir,newStudyName);
-                study.setStudyDir(newPath);
             end
             this.renameChild(studyID,newStudyName);
         end
@@ -607,7 +601,7 @@ classdef FDTree < FDTreeNode
         
         function unloadAllChannels(this)
             %remove all channels in all subjects in all studies from memory
-            studyNames = this.getStudyNames();
+            studyNames = this.getAllStudyNames();
             tStart = now;
             lastUpdate = tStart;
             oneSec = 1/24/60/60;
@@ -757,7 +751,7 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function out = getRootDirectory(this)
+        function out = getWorkingDirectory(this)
             % get root directory of FDTree
             out = this.myDir;
         end
@@ -875,7 +869,7 @@ classdef FDTree < FDTreeNode
             out = this.getNrOfChildren();
         end
         
-        function out = getStudyNames(this)
+        function out = getAllStudyNames(this)
             % get string of all studies
             out = this.getNamesOfAllChildren();
         end
@@ -976,11 +970,11 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function dStr = getSubjectsNames(this,studyID,cName)
+        function dStr = getAllSubjectNames(this,studyID,cName)
             %get a string of all subjects
             study = this.getChild(studyID);
             if(~isempty(study))
-                dStr = study.getSubjectsNames(cName);
+                dStr = study.getAllSubjectNames(cName);
             else
                 dStr = [];
             end

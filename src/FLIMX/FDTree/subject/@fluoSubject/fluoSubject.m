@@ -424,7 +424,7 @@ classdef fluoSubject < FDTreeNode
         
         function saveMatFile2Disk(this,ch)
             %save measurements and results to disk, if ch is empty, save all channels
-            if(isempty(this.getMyFolder()))
+            if(isempty(this.getWorkingDirectory()))
                 %there is no path to write to -> nothing to do
                 %set dirty flags to false?
                 return
@@ -698,12 +698,12 @@ classdef fluoSubject < FDTreeNode
             [initData,binLevels,masks,nrPixels] = this.myMeasurement.getInitData(ch,target);
         end 
         
-        function out = getMyFolder(this)
+        function out = getWorkingDirectory(this)
             %return subjects working folder
             if(isempty(this.myParent))
                 out = '';                
             else
-                out = fullfile(this.myParent.myDir,this.name);
+                out = fullfile(this.myParent.getWorkingDirectory(),this.name);
             end
         end
         

@@ -293,7 +293,7 @@ classdef simFLIM < handle
 %                     end
 %             end            
             %check if we have subjects already in FDTree
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(this.currentStudy,FDTree.defaultConditionName());
+            subjects = this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,FDTree.defaultConditionName());
             if(any(strcmp(paraSetName,subjects)))
                 %synthetic data (subject) already in study
                 choice = questdlg(sprintf('Study "%s" already contains a subject called "%s". Do you want to overwrite?',this.currentStudy,paraSetName),...
@@ -606,7 +606,7 @@ classdef simFLIM < handle
             if(~this.isOpenVisWnd())
                 return
             end
-            studies = this.FLIMXObj.fdt.getStudyNames();
+            studies = this.FLIMXObj.fdt.getAllStudyNames();
             set(this.visHandles.popupStudy,'String',studies,'Value',min(get(this.visHandles.popupStudy,'Value'),length(studies)));
             [names, chStr] = this.FLIMXObj.sDDMgr.getAllSDDNames();
             set(this.visHandles.tableParameterSets,'Data',[names chStr]);
@@ -1796,10 +1796,10 @@ classdef simFLIM < handle
         
         function GUI_buttonNewStudy_Callback(this, hObject, eventdata)
             %add a new study to fdtree
-            oldStudies = this.FLIMXObj.fdt.getStudyNames();
+            oldStudies = this.FLIMXObj.fdt.getAllStudyNames();
             %we use study manager for this
             this.FLIMXObj.studyMgrGUI.menuNewStudy_Callback();
-            newStudies = this.FLIMXObj.fdt.getStudyNames();
+            newStudies = this.FLIMXObj.fdt.getAllStudyNames();
             [~,idxNew] = setdiff(newStudies,oldStudies);
             if(~isempty(idxNew))
                 set(this.visHandles.popupStudy,'String',newStudies,'Value',idxNew);

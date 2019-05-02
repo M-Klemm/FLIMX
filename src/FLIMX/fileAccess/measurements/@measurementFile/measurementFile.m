@@ -133,10 +133,10 @@ classdef measurementFile < handle
         %% input methods
         function checkMyFiles(this)
             %check my folder for measurement files
-            if(isempty(this.getMyFolder()))
+            if(isempty(this.getWorkingDirectory()))
                 return
             end
-            files = rdir(fullfile(this.getMyFolder(),'*.mat'));
+            files = rdir(fullfile(this.getWorkingDirectory(),'*.mat'));
             for i = 1:length(files)
                 [~,fileName] = fileparts(files(i,1).name);
                 if(strncmpi(fileName,this.fileStub,12) && length(fileName) == 16)
@@ -1081,7 +1081,7 @@ classdef measurementFile < handle
             this.setDirtyFlags(ch,1:4,false);
         end
         
-        function out = getMyFolder(this)
+        function out = getWorkingDirectory(this)
             %returns working folder
             %supposed to be overloaded by children
             out = cd;
@@ -1361,7 +1361,7 @@ classdef measurementFile < handle
         function out = getMeasurementFileName(this,ch,folder)
             %returns path and filename for channel ch
             if(isempty(folder))
-                out = fullfile(this.getMyFolder(),sprintf('%sch%02d%s',this.fileStub,ch,this.fileExt));
+                out = fullfile(this.getWorkingDirectory(),sprintf('%sch%02d%s',this.fileStub,ch,this.fileExt));
             else
                 out = fullfile(folder,sprintf('%sch%02d%s',this.fileStub,ch,this.fileExt));
             end

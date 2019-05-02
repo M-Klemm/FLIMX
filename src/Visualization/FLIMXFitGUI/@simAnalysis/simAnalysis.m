@@ -180,7 +180,7 @@ classdef simAnalysis < handle
             arrayStr = '';
             arrayID = 0;
             aStr = this.FLIMXObj.sDDMgr.getAllArrayParamSetNames(ch);            
-            subjects = this.FLIMXObj.fdt.getSubjectsNames(study,FDTree.defaultConditionName());
+            subjects = this.FLIMXObj.fdt.getAllSubjectNames(study,FDTree.defaultConditionName());
             if(isempty(aStr) || isempty(subjects))
                 return
             end
@@ -647,7 +647,7 @@ classdef simAnalysis < handle
             end            
             %update popup menus for parameter sets, parameter set arrays and array subsets
             %make sure arrays of current parameter set are shown
-            studies = this.FLIMXObj.fdt.getStudyNames();
+            studies = this.FLIMXObj.fdt.getAllStudyNames();
             set(this.visHandles.popupStudy,'String',studies,'Value',min(get(this.visHandles.popupStudy,'Value'),length(studies)));
             aStr = this.FLIMXObj.sDDMgr.getAllArrayParamSetNames(this.curChannel);
             aStr(end+1) = {'-'};
@@ -1721,7 +1721,7 @@ classdef simAnalysis < handle
             end
             this.setCurArraySet(aStr{1});
             %get studies to export
-            studies = this.FLIMXObj.fdt.getStudyNames();
+            studies = this.FLIMXObj.fdt.getAllStudyNames();
             [studySelection, ok] = listdlg('PromptString','Select parameter arrays to export:','ListString',studies,'ListSize',[300 300]);
             if(ok == 0 || isempty(studySelection))
                 return

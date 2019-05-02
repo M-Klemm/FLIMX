@@ -10,7 +10,7 @@ classdef measurementInSubject < measurementInFDTree
     methods
         function this = measurementInSubject(hSubject)
             %constructor
-            this = this@measurementInFDTree(hSubject.myParamMgr,@hSubject.getMyFolder);
+            this = this@measurementInFDTree(hSubject.myParamMgr,@hSubject.getWorkingDirectory);
             this.mySubject = hSubject;
         end
         %% input methods        
@@ -119,9 +119,9 @@ classdef measurementInSubject < measurementInFDTree
 %             end
 %         end
         
-%         function out = getMyFolder(this)
+%         function out = getWorkingDirectory(this)
 %             %get my working folder
-%             out = this.mySubject.getMyFolder();
+%             out = this.mySubject.getWorkingDirectory();
 %         end
         
         %% compute methods

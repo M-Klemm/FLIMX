@@ -395,7 +395,7 @@ classdef StatsDescriptive < handle
                                 exportExcel(fn,data,{'Test','p','Significance'},'',[this.statType '-' this.currentSheetName],'');
                             end
                             if(this.exportSubjectRawData)
-                                subjects = this.visObj.fdt.getSubjectsNames(this.study,this.condition);
+                                subjects = this.visObj.fdt.getAllSubjectNames(this.study,this.condition);
                                 for s = 1:length(subjects)
                                     fdt = this.visObj.fdt.getFDataObj(this.study,subjects{s},this.ch,this.dType,this.id,1);
                                     rc = fdt.getROICoordinates(this.ROIType);
@@ -452,13 +452,13 @@ classdef StatsDescriptive < handle
             end
             this.clearResults();
             %update studies and conditions
-            sStr = this.visObj.fdt.getStudyNames();
+            sStr = this.visObj.fdt.getAllStudyNames();
             set(this.visHandles.popupSelStudy,'String',sStr,'Value',min(length(sStr),get(this.visHandles.popupSelStudy,'Value')));
             %get conditions for the selected studies
             cStr = this.visObj.fdt.getStudyConditionsStr(this.study);
             set(this.visHandles.popupSelCondition,'String',cStr,'Value',min(length(cStr),get(this.visHandles.popupSelCondition,'Value')));
             %update channels and parameters
-            ds1 = this.visObj.fdt.getSubjectsNames(this.study,this.condition);
+            ds1 = this.visObj.fdt.getAllSubjectNames(this.study,this.condition);
             if(~isempty(ds1))
                 chStr = this.visObj.fdt.getChStr(this.study,ds1{1});
                 coStr = this.visObj.fdt.getChObjStr(this.study,ds1{1},this.ch);
@@ -797,7 +797,7 @@ classdef StatsDescriptive < handle
             out = get(this.visHandles.popupSelROIVicinity,'Value');
         end
         function allROT = get.allROITypes(this)
-            ds1 = this.visObj.fdt.getSubjectsNames(this.study,this.condition);
+            ds1 = this.visObj.fdt.getAllSubjectNames(this.study,this.condition);
             if(~isempty(ds1))
                 allROT = this.visObj.fdt.getResultROICoordinates(this.study,ds1{1},[]);
                 allROT = [0;allROT(:,1,1)];                

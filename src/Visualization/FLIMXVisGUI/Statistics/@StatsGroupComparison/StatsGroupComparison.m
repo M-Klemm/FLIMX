@@ -406,7 +406,7 @@ classdef StatsGroupComparison < handle
             end
             this.clearResults();
             %update studies and conditions
-            sStr = this.visObj.fdt.getStudyNames();
+            sStr = this.visObj.fdt.getAllStudyNames();
             set(this.visHandles.popupSelStudy1,'String',sStr,'Value',min(length(sStr),get(this.visHandles.popupSelStudy1,'Value')));
             set(this.visHandles.popupSelStudy2,'String',sStr,'Value',min(length(sStr),get(this.visHandles.popupSelStudy2,'Value')));
             %get conditions for the selected studies
@@ -418,7 +418,7 @@ classdef StatsGroupComparison < handle
             dStr{2} = [this.study2 '_' this.condition2];
             set(this.visHandles.popupDispStudy,'String',dStr,'Value',min(length(dStr),get(this.visHandles.popupDispStudy,'Value')));
             %update channels and parameters
-            ds1 = this.visObj.fdt.getSubjectsNames(this.study1,this.condition1);
+            ds1 = this.visObj.fdt.getAllSubjectNames(this.study1,this.condition1);
             if(~isempty(ds1))
                 ch1 = this.visObj.fdt.getChStr(this.study1,ds1{1});
                 coStr = this.visObj.fdt.getChObjStr(this.study1,ds1{1},this.ch);
@@ -429,7 +429,7 @@ classdef StatsGroupComparison < handle
                 coStr = 'param';
                 allROIStr = {ROICtrl.ROIType2ROIItem(0)};
             end
-            ds2 = this.visObj.fdt.getSubjectsNames(this.study2,this.condition2);
+            ds2 = this.visObj.fdt.getAllSubjectNames(this.study2,this.condition2);
             if(~isempty(ds2))
                 ch2 = this.visObj.fdt.getChStr(this.study2,ds2{1});
                 coStr = intersect(coStr,this.visObj.fdt.getChObjStr(this.study2,ds2{1},this.ch));

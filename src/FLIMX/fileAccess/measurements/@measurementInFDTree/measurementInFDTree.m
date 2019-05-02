@@ -52,7 +52,17 @@ classdef measurementInFDTree < measurementFile
                 this.uid = now;  %slower
             end
             this.checkMyFiles();            
-        end       
+        end
+        
+        function delete(this)
+            %destructor
+            if(~isempty(this.myParent))
+                %remove me from FDTree memory cache
+                this.rawFluoData = [];
+                this.roiFluoData = [];
+                this.myParent.pingLRUCacheTable(this);
+            end
+        end
         
 %         function flag = eq(obj1,obj2)
 %             %compare two result objects
@@ -295,7 +305,7 @@ classdef measurementInFDTree < measurementFile
             end
         end
         
-        function out = getMyFolder(this)
+        function out = getWorkingDirectory(this)
             %return current working folder
             if(ischar(this.myFolder))
                 out = this.myFolder;
