@@ -64,7 +64,7 @@ classdef FDTStudy < FDTreeNode
         
         function  pingLRUCacheTable(this,obj)
             %ping LRU table for object obj
-            if(~isempty(this.myParent))
+            if(~isempty(this.myParent) && this.myParent.isvalid)
                 this.myParent.pingLRUCacheTable(obj);
             end
         end
@@ -303,27 +303,49 @@ classdef FDTStudy < FDTreeNode
         function setName(this,name)
             %set new name for study            
             oldFolder = this.myDir;
+            oldName = this.name;
             %save all changes in subjects and study info
             this.save();
             this.name = name;            
             %change directory            
-            newFolder = this.myDir;            
+            newFolder = this.myDir;
+            lastUpdate = clock;
+            tStart = clock;
+            this.updateStudyMgrProgress(0.01,'Renaming study...');
             try
                 [status,msg,msgID] = movefile(oldFolder,newFolder);
                 if(~status)
-                    
+                    %renaming the folder failed -> return
+                    %todo: issue error / warning
+                    this.name = oldName;
+                    this.updateStudyMgrProgress(1,sprintf('Renaming study failed: %s',msg));
+                    pause(1);
+                    this.updateStudyMgrProgress(0,'');
+                    return
                 end
             catch ME
-                
-            end
+                %renaming the folder failed -> return
+                %todo: issue error / warning
+                this.name = oldName;
+                this.updateStudyMgrProgress(1,sprintf('Renaming study failed: %s',ME.msgtext));
+                pause(1);
+                this.updateStudyMgrProgress(0,'');
+                return
+            end            
             %clear all cached subject data in study
             for i = 1:this.nrChildren
                 subject = this.getChildAtPos(i);
                 subject.reset();
+                if(etime(clock, lastUpdate) > 0.5)
+                    [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(this.nrChildren-i)); %mean cputime for finished runs * cycles left
+                    this.updateStudyMgrProgress(i/this.nrChildren,sprintf('Renaming study: %0.1f%% - Time left: %dmin %.0fsec',100*i/this.nrChildren,minutes+hours*60,secs));
+                    lastUpdate = clock;
+                end
             end
             this.setDirty(true);
             %save new name
             this.save();
+            this.updateStudyMgrProgress(0,'');
         end
         
         function setStudyDir(this,sDir)

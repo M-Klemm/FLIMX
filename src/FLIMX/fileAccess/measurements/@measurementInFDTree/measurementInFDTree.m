@@ -56,7 +56,7 @@ classdef measurementInFDTree < measurementFile
         
         function delete(this)
             %destructor
-            if(~isempty(this.myParent))
+            if(~isempty(this.myParent) && this.myParent.isvalid)
                 %remove me from FDTree memory cache
                 this.rawFluoData = [];
                 this.roiFluoData = [];

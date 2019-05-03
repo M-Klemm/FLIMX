@@ -1177,9 +1177,9 @@ classdef measurementFile < handle
                         this.setDirtyFlags(channel,4,true);
                     else
                         %static binning
-                        if(computationParams.useGPU && this.useGPU4StaticBin && binFactor > 2)
+                        if(computationParams.useGPU && this.useGPU4StaticBin && binFactor > 0)
                             out = gather(getStaticBinROI(gpuArray(raw),roi,binFactor));
-                        elseif(this.useMex4StaticBin && isa(raw,'uint16') && binFactor > 4)
+                        elseif(this.useMex4StaticBin && isa(raw,'uint16') && binFactor > 0)
                             out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));
                         else
                             try
