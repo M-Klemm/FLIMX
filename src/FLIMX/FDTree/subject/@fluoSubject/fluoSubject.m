@@ -95,7 +95,7 @@ classdef fluoSubject < FDTreeNode
         
         function  pingLRUCacheTable(this,obj)
             %ping LRU table for object obj
-            if(~isempty(this.myParent))
+            if(~isempty(this.myParent) && this.myParent.isvalid)
                 this.myParent.pingLRUCacheTable(obj);
             end
         end

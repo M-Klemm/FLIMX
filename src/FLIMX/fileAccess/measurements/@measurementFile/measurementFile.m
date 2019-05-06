@@ -963,12 +963,7 @@ classdef measurementFile < handle
                 %call startpos gui
                 studyName = '';
                 subjectName = '';
-                if(isa(this,'measurementInSubject'))
-                    subjectName = this.mySubject.name;
-                    if(~isempty(this.mySubject.myParent))
-                        studyName = this.mySubject.myParent.name;
-                    end
-                elseif(isa(this,'measurement4Approx'))
+                if(isa(this,'measurement4Approx'))
                     subjectName = this.myParent.name;
                     if(~isempty(this.myParent.myParent))
                         studyName = this.myParent.myParent.name;
@@ -1178,9 +1173,9 @@ classdef measurementFile < handle
                         this.setDirtyFlags(channel,4,true);
                     else
                         %static binning
-                        if(computationParams.useGPU && this.useGPU4StaticBin && binFactor > 2)
+                        if(computationParams.useGPU && this.useGPU4StaticBin && binFactor > 0)
                             out = gather(getStaticBinROI(gpuArray(raw),roi,binFactor));
-                        elseif(this.useMex4StaticBin && isa(raw,'uint16') && binFactor > 4)
+                        elseif(this.useMex4StaticBin && isa(raw,'uint16') && binFactor > 0)
                             out = getStaticBinROI_mex(raw,uint16(roi),uint16(binFactor));
                         else
                             try

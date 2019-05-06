@@ -118,21 +118,21 @@ classdef FDTChunk < FDTreeNode
             end
         end
         
-        function clearAllCIs(this)
+        function clearAllCIs(this,~)
             %clear all current images
             for i = 1:this.nrChildren
                 this.getChildAtPos(i).clearCachedImage();
             end
         end
         
-        function clearAllFIs(this)
-            %clear filtered raw images of datatype dType in all subjectss
+        function clearAllFIs(this,~)
+            %clear filtered raw images in all subjects
             for i = 1:this.nrChildren
                 this.getChildAtPos(i).clearFilteredImage();
             end
         end 
         
-        function clearAllRIs(this)
+        function clearAllRIs(this,~)
             %clear raw images of datatype dType in all subjectss
             for i = 1:this.nrChildren
                 this.getChildAtPos(i).clearRawImage();

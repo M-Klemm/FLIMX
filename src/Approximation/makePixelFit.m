@@ -82,7 +82,7 @@ if(aboutInfo.core_revision ~= myAboutInfo.core_revision)
     return
 end
 %compatible core
-if(nrPixels > 1 && apObjs{1}.computationParams.useMatlabDistComp > 0 && apObjs{1}.basicParams.optimizerInitStrategy ~= 3)
+if(nrPixels > 1 && (isdeployed() || apObjs{1}.computationParams.useMatlabDistComp > 0) && apObjs{1}.basicParams.optimizerInitStrategy ~= 3)
     %run pixels in parallel
     parfor i = 1:nrPixels
         tmp(i,:) = runOpt(apObjs(i),optimizationParams);

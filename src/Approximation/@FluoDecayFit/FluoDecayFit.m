@@ -615,8 +615,6 @@ classdef FluoDecayFit < handle
                 %mcSettings.maxEvalTimeSingle = this.optimizationParams.options_de.maxiter*this.optimizationParams.options_de.NP*this.volatilePixelParams.nModelParamsPerCh*0.5;
                 mcSettings.useWaitbar        = 1;
                 mcSettings.computeJobHash    = this.computationParams.mcComputeJobHash;
-                %                 if(this.computationParams.useDistComp == 2 || this.computationParams.useMatlabDistComp)
-                %use parfor or run on LSF (and use parfor anyway)
                 if(totalPixels <= 5*this.computationParams.mcTargetPixelPerWU) %at least 5 WUs
                     atOncePixel = 8; %max(1,floor(totalPixel/4)); %make 4 workunits
                     %                 elseif(totalPixel > 32 && totalPixel <= 64)
@@ -629,7 +627,6 @@ classdef FluoDecayFit < handle
                 parameterCell = cell(1,iter);
                 idxCell = cell(1,iter);
                 iter = 0;
-                %sub = copy(this.FLIMXObj.curSubject);
                 for i = 1:atOncePixel:totalPixels
                     iter = iter+1;
                     subPool = pixelPool(i:min(totalPixels,i+atOncePixel-1));
@@ -651,10 +648,7 @@ classdef FluoDecayFit < handle
                 mcSettings.postProcessParams = postProcessParams;
                 mcSettings.postProcessHandle = @this.mcPostProcess;
                 %distribute work
-                if(this.computationParams.useDistComp == 1) %multicore
-                    resultCell = startmulticoremaster(@makePixelFit, parameterCell, mcSettings);
-                else %LSF                    
-                end
+                resultCell = startmulticoremaster(@makePixelFit, parameterCell, mcSettings);
                 if(isempty(resultCell) || length(resultCell) ~= iter || isempty(resultCell{1}) || ischar(resultCell{1}))
                     %something went wrong
                     %todo: error message, cleanup
