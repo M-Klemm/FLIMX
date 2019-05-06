@@ -962,12 +962,7 @@ classdef measurementFile < handle
                 %call startpos gui
                 studyName = '';
                 subjectName = '';
-                if(isa(this,'measurementInSubject'))
-                    subjectName = this.mySubject.name;
-                    if(~isempty(this.mySubject.myParent))
-                        studyName = this.mySubject.myParent.name;
-                    end
-                elseif(isa(this,'measurement4Approx'))
+                if(isa(this,'measurement4Approx'))
                     subjectName = this.myParent.name;
                     if(~isempty(this.myParent.myParent))
                         studyName = this.myParent.myParent.name;

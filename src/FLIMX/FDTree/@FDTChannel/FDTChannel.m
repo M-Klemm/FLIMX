@@ -158,10 +158,7 @@ classdef FDTChannel < FDTreeNode
             %clear current immages of datatype dType in all subjects
             if(isempty(dType))
                 %clear all
-                clearAllCIs@FDTreeNode(this,dType);
-%                 for i = 1:this.nrChildren
-%                     this.getChildAtPos(i).clearAllCIs();
-%                 end
+                clearAllCIs@FDTreeNode(this);
             elseif(iscell(dType))
                 for i = 1:length(dType)
                     this.clearAllCIs(dType{i})
@@ -180,10 +177,7 @@ classdef FDTChannel < FDTreeNode
             %clear filtered raw immages of datatype dType in all subjects
             if(isempty(dType))
                 %clear all
-                clearAllFIs@FDTreeNode(this,dType);
-%                 for i = 1:this.nrChildren
-%                     this.getChildAtPos(i).clearAllFIs();
-%                 end
+                clearAllFIs@FDTreeNode(this);
             elseif(iscell(dType))
                 for i = 1:length(dType)
                     this.clearAllFIs(dType{i})
@@ -202,10 +196,7 @@ classdef FDTChannel < FDTreeNode
             %clear raw images of datatype dType in all subjects
             if(isempty(dType))
                 %clear all
-                clearAllRIs@FDTreeNode(this,dType);
-%                 for i = 1:this.nrChildren
-%                     this.getChildAtPos(i).clearAllRIs();
-%                 end
+                clearAllRIs@FDTreeNode(this);
             elseif(iscell(dType))
                 for i = 1:length(dType)
                     this.clearAllRIs(dType{i})

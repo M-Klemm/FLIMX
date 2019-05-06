@@ -725,26 +725,6 @@ classdef FDTSubject < fluoSubject
             end
         end
         
-%         function clearAllCIs(this,dType)
-%             %clear current immages of datatype dType in all subjects
-%             for i = 1:this.nrChildren
-%                 this.getChildAtPos(i).clearAllCIs(dType);
-%             end
-%         end
-%         
-%         function clearAllFIs(this,dType)
-%             %clear filtered raw immages of datatype dType in all subjects
-%             for i = 1:this.nrChildren
-%                 this.getChildAtPos(i).clearAllFIs(dType);
-%             end
-%         end
-%         
-%         function clearAllRIs(this,dType)
-%             %clear raw images of datatype dType in all subjects
-%             for i = 1:this.nrChildren
-%                 this.getChildAtPos(i).clearAllRIs(dType);
-%             end
-%         end
         %% output functions
         function h = getFDataObj(this,ch,dType,id,sType)
             %get FData object
