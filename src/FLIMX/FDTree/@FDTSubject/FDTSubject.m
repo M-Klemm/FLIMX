@@ -324,51 +324,51 @@ classdef FDTSubject < fluoSubject
             out = find(this.getROIDataFlat(ch,false) >= this.basicParams.photonThreshold);
         end
 
-        function [parameterCell, idx] = getApproxParamCell(this,ch,pixelPool,fitDim,initFit,optimizationParams,aboutInfo)
-            %put all data needed for approximation in a cell array (corresponds to makePixelFit interface)
-            if(~this.isInitialized)
-                this.init();
-            end
-            if(initFit)
-                %initialization fit
-                if(any(pixelPool > this.initFitParams.gridSize^2))
-                    parameterCell = [];
-                    idx = [];
-                    return
-                end
-                apObjs = this.getInitApproxObjs(ch);
-                apObjs = apObjs(pixelPool);
-                idx = zeros(length(pixelPool),2);
-                [idx(:,1), idx(:,2)] = ind2sub([this.initFitParams.gridSize this.initFitParams.gridSize],pixelPool);
-                %nPixel = this.initFitParams.gridSize^2;
-            else
-                %ROIData = this.FLIMXObj.curSubject.getROIData(ch,[],[],[]);
-                y = this.getROIYSz();
-                x = this.getROIXSz();
-                if(length(pixelPool) < 1) %we are at the end of the file
-                    parameterCell = [];
-                    idx = [];
-                    return
-                end
-                nPixel = length(pixelPool);
-                %% get pixel indices and data
-                idx = zeros(nPixel,2);
-                parameterCell = cell(1,3);
-                apObjs = cell(nPixel,1);
-                if(fitDim == 2) %x
-                    [idx(:,2), idx(:,1)] = ind2sub([x y],pixelPool);
-                else %y
-                    [idx(:,1), idx(:,2)] = ind2sub([y x],pixelPool);
-                end
-                for i = 1:nPixel %loop over roi pixel
-                    apObjs{i} = getApproxObj(this,ch,idx(i,1),idx(i,2));
-                end
-            end
-            %% assemble cell
-            parameterCell(1) = {apObjs};
-            parameterCell(2) = {optimizationParams};
-            parameterCell(3) = {aboutInfo};
-        end
+%         function [parameterCell, idx] = getApproxParamCell(this,ch,pixelPool,fitDim,initFit,optimizationParams,aboutInfo)
+%             %put all data needed for approximation in a cell array (corresponds to makePixelFit interface)
+%             if(~this.isInitialized)
+%                 this.init();
+%             end
+%             if(initFit)
+%                 %initialization fit
+%                 if(any(pixelPool > this.initFitParams.gridSize^2))
+%                     parameterCell = [];
+%                     idx = [];
+%                     return
+%                 end
+%                 apObjs = this.getInitApproxObjs(ch);
+%                 apObjs = apObjs(pixelPool);
+%                 idx = zeros(length(pixelPool),2);
+%                 [idx(:,1), idx(:,2)] = ind2sub([this.initFitParams.gridSize this.initFitParams.gridSize],pixelPool);
+%                 %nPixel = this.initFitParams.gridSize^2;
+%             else
+%                 %ROIData = this.FLIMXObj.curSubject.getROIData(ch,[],[],[]);
+%                 y = this.getROIYSz();
+%                 x = this.getROIXSz();
+%                 if(length(pixelPool) < 1) %we are at the end of the file
+%                     parameterCell = [];
+%                     idx = [];
+%                     return
+%                 end
+%                 nPixel = length(pixelPool);
+%                 %% get pixel indices and data
+%                 idx = zeros(nPixel,2);
+%                 parameterCell = cell(1,3);
+%                 apObjs = cell(nPixel,1);
+% %                 if(fitDim == 2) %x
+% %                     [idx(:,2), idx(:,1)] = ind2sub([x y],pixelPool);
+% %                 else %y
+%                     [idx(:,1), idx(:,2)] = ind2sub([y x],pixelPool);
+% %                 end
+%                 for i = 1:nPixel %loop over roi pixel
+%                     apObjs{i} = getApproxObj(this,ch,idx(i,1),idx(i,2));
+%                 end
+%             end
+%             %% assemble cell
+%             parameterCell(1) = {apObjs};
+%             parameterCell(2) = {optimizationParams};
+%             parameterCell(3) = {aboutInfo};
+%         end
 
         function makeMeasurementROIData(this,channel,binFactor)
             %force building roi from raw data in measurement

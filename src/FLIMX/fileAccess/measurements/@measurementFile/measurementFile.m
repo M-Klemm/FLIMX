@@ -696,7 +696,7 @@ classdef measurementFile < handle
                 end
             else
                 %we've got spatial resolution
-                if(~isempty(y) && ~isempty(x) && (length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel})) && (~this.roiAdaptiveBinEnable || ~(length(this.roiBinLevels) < channel || isempty(this.roiBinLevels{channel}))))
+                if(~isempty(y) && isscalar(y) && ~isempty(x) && isscalar(x) && (length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel})) && (~this.roiAdaptiveBinEnable || ~(length(this.roiBinLevels) < channel || isempty(this.roiBinLevels{channel}))))
                     %single pixel is requested => we do binning for pixel (y,x) on the fly
                     if(~this.roiAdaptiveBinEnable)
                         %static binning
@@ -753,7 +753,13 @@ classdef measurementFile < handle
                         out = this.roiFluoData{channel};
                     end
                     if(~isempty(y) && ~isempty(x))
-                        out = squeeze(out(y,x,:));
+                        if(isscalar(y) && isscalar(x))
+                            out = squeeze(out(y,x,:));
+                        else
+                            idx = sub2ind(size(out),y,x);
+                            out = reshape(out,[],size(out,3));
+                            out = out(idx,:)';
+                        end
                     end
                 end
             end

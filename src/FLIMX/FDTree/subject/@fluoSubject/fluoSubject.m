@@ -911,7 +911,7 @@ classdef fluoSubject < FDTreeNode
                 [r, c] = ind2sub([params.pixelFit.gridSize params.pixelFit.gridSize],i);
                 tmp = fluoPixelModel(allIRFs,fileInfo,params,ch);
                 assert(r <= size(data,1) && c <= size(data,2),'FLIMX:fluoSubject:getInitApproxObjs','Expected init data to be at least %dx%d - got %dx%dx%dx%d.',r,c,size(data,1),size(data,2),size(data,3),size(data,4));
-                tmp.setMeasurementData(squeeze(data(r,c,:,:)));
+                tmp.setMeasurementData(ch,squeeze(data(r,c,:,:))); %todo: global fit data set
                 if(~isempty(scatterData))
                     tmp.setScatterData(scatterData);
                 end
@@ -1048,6 +1048,21 @@ classdef fluoSubject < FDTreeNode
                 this.init();
             end
             out = this.getApproxObjCopy(ch);
+            %load measurement data into the object
+            if(any(out.volatilePixelParams.globalFitMask))
+                %data = zeros(out.fileInfo(ch).nrTimeChannels,out.fileInfo(ch).nrSpectralChannels,this.myMeasurement.getROIInfo(ch).ROIDataType);
+                for chTmp = 1:out.fileInfo(ch).nrSpectralChannels
+                    data = this.myMeasurement.getROIData(chTmp,y,x);
+                    if(~isempty(data))
+                        out.setMeasurementData(chTmp,data);
+                    end
+                end
+            else
+                data = this.myMeasurement.getROIData(ch,y,x);
+                if(~isempty(data))
+                    out.setMeasurementData(ch,data);
+                end
+            end
             %fix certain paramters to initialization values
             bp = out.basicParams;
             if(~isempty(bp.fix2InitTargets))                
@@ -1061,11 +1076,14 @@ classdef fluoSubject < FDTreeNode
                 else
                     bp.(sprintf('constMaskSaveValCh%d',ch)) = double(bp.(sprintf('constMaskSaveValCh%d',ch)));
                     vcp = out.getVolatileChannelParams(ch);
+                    vcp = repmat(vcp,1,length(y));
                     vcp = this.updateFixedTargets(ch,y,x,bp,vcp,out.volatilePixelParams.modelParamsString);
                     out.setVolatileChannelParams(ch,vcp);
                     %bp.(sprintf('constMaskSaveStrCh%d',ch)) = sStr;
                     %out.basicParams = bp;
                 end
+            else
+                out.setVolatileChannelParams(ch,repmat(out.getVolatileChannelParams(ch),1,length(y)));
             end
             if(bp.approximationTarget == 2 && bp.anisotropyR0Method == 2 && ch < 3)
                 idx = find(strcmp(bp.(sprintf('constMaskSaveStrCh%d',ch)),'Tau 2'),1);
@@ -1083,20 +1101,7 @@ classdef fluoSubject < FDTreeNode
                         end
                     end
                 end
-            end
-            %get data
-            if(any(out.volatilePixelParams.globalFitMask))
-                data = zeros(out.fileInfo(ch).nrTimeChannels,out.fileInfo(ch).nrSpectralChannels,this.myMeasurement.getROIInfo(ch).ROIDataType);
-                for chTmp = 1:out.fileInfo(ch).nrSpectralChannels
-                    data(:,chTmp) = this.myMeasurement.getROIData(chTmp,y,x);
-                end
-            else
-                data = this.myMeasurement.getROIData(ch,y,x);
-            end            
-            %load measurement data into the object
-            if(~isempty(data))
-                out.setMeasurementData(data);
-            end            
+            end                               
             %load neighbors
             if(out.basicParams.neighborFit)
                 if(any(out.volatilePixelParams.globalFitMask))
@@ -1113,8 +1118,8 @@ classdef fluoSubject < FDTreeNode
                         %out.setInitializationData(chTmp,out.getNonConstantXVec(chTmp,this.getPixelFLIMItem(chTmp,'iVec',y,x)));
                         xVec = this.getPixelFLIMItem(chTmp,'iVec',y,x);
                         if(isempty(xVec))
-                        xVec = zeros(size(this.volatilePixelParams.globalFitMask));
-                    end
+                            xVec = zeros(size(this.volatilePixelParams.globalFitMask));
+                        end
                         %make sure taus have the right distance, exclude stretched exponentials
                         mask = find(~bp.stretchedExpMask)+bp.nExp;
                         for i = 1:length(mask)-1 %bp.nExp+1 : 2*bp.nExp-1
@@ -1149,20 +1154,27 @@ classdef fluoSubject < FDTreeNode
                     for i = 1:length(mask)-1 %bp.nExp+1 : 2*bp.nExp-1
                         %idxIgnored(xVecCheck(mask(i),:).*bp.lifetimeGap > xVecCheck(mask(i+1),:)) = true;
                         d = xVec(mask(i+1),:) - xVec(mask(i),:).*bp.lifetimeGap;
-                        if(d < 0)
-                            xVec(mask(i+1),:) = xVec(mask(i+1),:) - d + eps;
+                        idx = d < 0;
+                        if(any(idx))
+                            xVec(mask(i+1),idx) = xVec(mask(i+1),idx) - d(idx) + eps;
                         end
                     end
                     %ensure tci ordering
                     for i = 2*bp.nExp+1 : 2*bp.nExp+sum(bp.tciMask ~= 0)-1
                         %idxIgnored(xVecCheck(i,:) > xVecCheck(i+1,:)) = true;
                         d = xVec(i+1,:) - xVec(i,:);
-                        if(d < 0)
-                            xVec(i+1,:) = xVec(i+1,:) - d + eps;
+                        idx = d < 0;
+                        if(any(idx))
+                            xVec(i+1,idx) = xVec(i+1,idx) - d(idx) + eps;
                         end
                     end
                     if(~isempty(xVec))
-                        out.setInitializationData(ch,out.getNonConstantXVec(ch,xVec));
+                        if(length(y) > 1)
+                            xVec = out.getNonConstantXVec(ch,xVec);
+                            out.setInitializationData(ch,reshape(xVec,[size(xVec,1),1,size(xVec,2)]));
+                        else
+                            out.setInitializationData(ch,out.getNonConstantXVec(ch,xVec));
+                        end
                     end
                 end
             end
@@ -1410,6 +1422,9 @@ classdef fluoSubject < FDTreeNode
         
         function vcp = updateFixedTargets(this,ch,y,x,bp,vcp,modelParamsString)
             %update fixed parameters to their current values
+            if(length(vcp) ~= length(y) || length(y) ~= length(x))
+                error('FLIMX:fluoSubject:updateFixedTargets','Length of vcp (%d), y (%d), and x (%d) does not match.',length(vcp), length(y), length(x));                
+            end
             for i = 1:length(bp.fix2InitTargets)
                 sStr = bp.(sprintf('constMaskSaveStrCh%d',ch));
                 idx = find(strcmp(bp.fix2InitTargets{i},sStr),1);
@@ -1430,9 +1445,13 @@ classdef fluoSubject < FDTreeNode
                 end
                 %update constant vector
                 idx = find(strcmp(bp.fix2InitTargets{i},modelParamsString),1);
-                if(~isempty(idx) && vcp.cMask(idx))
-                    tmp = cumsum(abs(vcp.cMask));
-                    vcp.cVec(tmp(idx)) = val;
+                for j = 1:length(y)
+                    vcpTmp = vcp(j);
+                    if(~isempty(idx) && vcpTmp.cMask(idx))
+                        tmp = cumsum(abs(vcpTmp.cMask));
+                        vcpTmp.cVec(tmp(idx)) = val(j);
+                    end
+                    vcp(j) = vcpTmp;
                 end
             end
         end

@@ -1136,8 +1136,8 @@ classdef simAnalysis < handle
                             model = [];
                             exponentials = [];
                         else
-                            exponentials = apObj.getExponentials(this.curChannel,xVec);
-                            model = apObj.getModel(this.curChannel,xVec);
+                            exponentials = apObj.getExponentials(this.curChannel,xVec,1);
+                            model = apObj.getModel(this.curChannel,xVec,1);
                             model(model < 1e-1) = 1e-1;
                         end
                         allData(:,end+1) = apObj.getMeasurementData(this.curChannel);
@@ -1211,8 +1211,8 @@ classdef simAnalysis < handle
                     if(sum(xVec(:)) == 0)
                         model = [];
                     else
-                        exponentials = apObj.getExponentials(this.curChannel,xVec);
-                        model = apObj.getModel(this.curChannel,xVec);
+                        exponentials = apObj.getExponentials(this.curChannel,xVec,1);
+                        model = apObj.getModel(this.curChannel,xVec,1);
                         model(model < 1e-1) = 1e-1;
                     end
                     %get exponentials

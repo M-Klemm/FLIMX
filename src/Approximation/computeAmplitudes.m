@@ -51,7 +51,11 @@ else
     error('FLIMX:computeAmplitudes','Invalid model or measurement data')
 end
 nData = size(measData,2);
-ao = zeros(1,nParams,nVecs,'like',expModels);
+if(fitOsetFlag)
+    ao = zeros(1,nParams,nVecs,'like',expModels);
+else
+    ao = zeros(1,nParams-1,nVecs,'like',expModels);
+end
 if(~isempty(measData) && nParams > 0)
     %data = measData(dataNonZeroMask);    
     %tmp = ones(nTimePoints,nParams,'like',expModels);
@@ -65,39 +69,64 @@ if(isempty(linLB))
     linUB = inf(nParams,1,'like',expModels);
 end
 if(fitOsetFlag)
-    expModels(:,end,:) = ones(size(expModels,1),nVecs);
-else
-    ao(1,end,:) = ones(1,nVecs).*oset;
+    expModels(:,end,:) = ones(size(expModels,1),nVecs,'like',expModels);
+% else
+%     ao(1,end,:) = ones(1,nVecs,'like',expModels).*oset;
 end
 %determine amplitudes
-for j = 1:nVecs
-    if(singleModelFlag)
-        idxExpModel = 1;
-        idxData = j;
+if(isa(expModels,'gpuArray'))
+%     gpuFlag = true;
+    nVecs = gpuArray(nVecs);
+    nParams = gpuArray(nParams);
+    nData = gpuArray(nData);
+else
+%     gpuFlag = false;
+end
+if(singleModelFlag)
+    if(fitOsetFlag)
+        dA = decomposition(expModels);
+        ao(1,:,:) = dA\measData;
+        idx = find(any(ao(1,:,:) < 0,2));
+        for j = 1:length(idx)
+            ao(1,:,idx(j)) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idx(j)),:),(measData(dataNonZeroMask(:,idx(j)),idx(j)))),linLB(:,1),linUB(:,1));
+        end
     else
+        measData = measData - oset;
+        dA = decomposition(expModels(:,1:nParams-1));
+        ao(1,:,:) = dA\measData;
+        idx = find(any(ao(1,:,:) < 0,2));
+        for j = 1:length(idx)
+            ao(1,:,idx(j)) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idx(j)),1:nParams-1),(measData(dataNonZeroMask(:,idx(j)),idx(j)))),linLB(1:nParams-1,1),linUB(1:nParams-1,1));
+        end
+    end
+    
+else
+    for j = 1:nVecs
+        %     if(singleModelFlag)
+        %         idxExpModel = ones(1,1,'like',expModels);
+        %         idxData = j;
+        %     else
         idxExpModel = j;
         idxData = min(j,nData);
-    end
-    if(fitOsetFlag)
-        %determine amplitudes and offset
-%         tmp(:,1:nParams-1) = expModels(:,:,idxExpModel);
-%         tmp(:,end) = ones(nTimePoints,1,'like',expModels);
-        %ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),idxExpModel),measData(dataNonZeroMask(:,idxData),idxData)),linLB,linUB);
-        ao(1,:,j) = checkBounds(expModels(dataNonZeroMask(:,idxData),:,idxData)\measData(dataNonZeroMask(:,idxData),idxData),linLB,linUB);
-    else 
-        %determine amplitudes only, offset is already set
-        %ao(1,1:nParams-1,j) = checkBounds(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel)\(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel)),linLB(1:nParams-1,:),linUB(1:nParams-1,:));
-        ao(1,1:nParams-1,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel),(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel))),linLB(1:nParams-1,:),linUB(1:nParams-1,:));
-        %tmp = zeros(nParams,1,'like',expModels);
-        %tmp(1:nParams-1,1) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel),(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel))),linLB(1:nParams-1,:),linUB(1:nParams-1,:));
-        %tmp(end,1) = oset(idxExpModel);
-        %ao(1,:,j) = tmp;
+        %     end
+        if(fitOsetFlag)
+            %determine amplitudes and offset
+            %ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),idxExpModel),measData(dataNonZeroMask(:,idxData),idxData)),linLB,linUB);
+            ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),:,idxData),measData(dataNonZeroMask(:,idxData),idxData)),linLB,linUB);
+        else
+            %determine amplitudes only, offset is already set
+            %ao(1,1:nParams-1,j) = checkBounds(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel)\(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel)),linLB(1:nParams-1,:),linUB(1:nParams-1,:));
+            ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel),(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel))),linLB(1:nParams-1,idxData),linUB(1:nParams-1,idxData));
+        end
     end
 end
-ampsOut = double(squeeze(ao(1,1:end-1,:))); %double(squeeze(ao(1,1:bp.nExp,:)));
+if(~fitOsetFlag)
+    ao(1,end+1,:) = ones(1,nVecs,'like',expModels).*oset;
+end
+ampsOut = squeeze(ao(1,1:end-1,:)); %double(squeeze(ao(1,1:bp.nExp,:)));
 if(nVecs == 1)
     ampsOut = ampsOut(:);
 end
-osetOut = double(squeeze(ao(1,end,:))');
+osetOut = squeeze(ao(1,end,:))';
 end
 

@@ -31,17 +31,35 @@ function x = checkBounds(x,lb,ub)
 %
 % @brief    A function to make sure x (size = nParams x nPop) is between lower (lb) and upper (ub) bound
 %#codegen
-NP = size(x,2);
-if(NP > 1)
-    lbM = repmat(lb(:),1,NP);
-    ubM = repmat(ub(:),1,NP);
-    idx = x < lbM;
-    x(idx) = lbM(idx);
-    idx = x > ubM;
-    x(idx) = ubM(idx);
-else
-    idx = x < lb;
-    x(idx) = lb(idx);
-    idx = x > ub;
-    x(idx) = ub(idx);
-end
+idx = x < lb;
+x(idx) = lb(idx);
+idx = x > ub;
+x(idx) = ub(idx);
+
+% [~,NP,nPixels] = size(x);
+% if(isa(x,'gpuArray'))
+%     NP = gpuArray(NP);
+%     nPixels = gpuArray(nPixels);
+% end
+% for i = 1:NP
+%     for p = 1:nPixels
+%         idx = x(:,i,p) < lb(:,p);
+%         x(idx,i,p) = lb(idx,p);
+%         idx = x(:,i,p) > ub(:,p);
+%         x(idx,i,p) = ub(idx,p);
+%     end
+% end
+
+% if(NP > 1)
+%     lbM = repmat(lb(:),[1,NP,1]);
+%     ubM = repmat(ub(:),1,NP);
+%     idx = x < lbM;
+%     x(idx) = lbM(idx);
+%     idx = x > ubM;
+%     x(idx) = ubM(idx);
+% else
+%     idx = x < lb;
+%     x(idx) = lb(idx);
+%     idx = x > ub;
+%     x(idx) = ub(idx);
+% end

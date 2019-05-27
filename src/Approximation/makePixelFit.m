@@ -81,30 +81,31 @@ if(aboutInfo.core_revision ~= myAboutInfo.core_revision)
         myAboutInfo.core_revision/100,aboutInfo.core_revision/100,verb);
     return
 end
-%compatible core
-if(nrPixels > 1 && (isdeployed() || apObjs{1}.computationParams.useMatlabDistComp > 0) && apObjs{1}.basicParams.optimizerInitStrategy ~= 3)
-    %run pixels in parallel
-    parfor i = 1:nrPixels
-        tmp(i,:) = runOpt(apObjs(i),optimizationParams);
-        %fprintf('iter %d finished\n',i);
-    end
-else
-    %no parallelization
+%this is a compatible core
+% if(nrPixels > 1 && (isdeployed() || apObjs{1}.computationParams.useMatlabDistComp > 0) && apObjs{1}.basicParams.optimizerInitStrategy ~= 3) %&& ~apObjs{i}.computationParams.useGPU 
+%     %run pixels in parallel
+%     parfor i = 1:nrPixels
+%         tmp(i,:) = runOpt(apObjs{i},optimizationParams);
+%         %fprintf('iter %d finished\n',i);
+%     end
+% else
+%     %no parallelization
     for i = 1:nrPixels
-        tmp(i,:) = runOpt(apObjs(i),optimizationParams);
+        tmp(i,:) = runOpt(apObjs{i},optimizationParams);
     end
-end
+% end
 if(isempty(tmp))    
     return
 end
 %rebuild results structure
-for i = 1:nrPixels
+result = tmp(1,:);
+fn = fieldnames(tmp(1,1));
+fn = fn(~strcmpi(fn,'ROI_merge_result'));
+%fn = fn(~strcmpi(fn,'Message'));
+for i = 2:nrPixels
     for ch = 1:length(apObjs{1}.nonEmptyChannelList)
-        fn = fieldnames(tmp(i,ch));
-        fn = fn(~strcmpi(fn,'ROI_merge_result'));
-        %fn = fn(~strcmpi(fn,'Message'));
         for j = 1:length(fn)
-            result(ch).(fn{j})(i,:) = tmp(i,ch).(fn{j});
+            result(ch).(fn{j}) = [result(ch).(fn{j}) tmp(i,ch).(fn{j})];
         end
     end
 end

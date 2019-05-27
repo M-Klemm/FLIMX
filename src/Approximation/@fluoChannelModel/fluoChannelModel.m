@@ -49,10 +49,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         neighborMaxPosCorrectRez = []; %reziproke of maximum position corrected neighbors
         chi_weights = []; %weights for chi2 computation with neighbors
         irfFFT = []; %fft transform of irf
-        irfFFTGPU = []; %irf on GPU (for GPU computation)
-                
-        linLB = []; %lower bounds for linear optimized parameters
-        linUB = []; %upper bounds for linear optimized parameters        
+        irfFFTGPU = []; %irf on GPU (for GPU computation)        
     end
         
     properties (Dependent = true)
@@ -87,7 +84,11 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             [val, this.iMaxPos] = max(irf(:));
             this.iMaxVal = double(val);
             this.dataStorage.irf.raw = irf;
+            this.dataStorage.linLB = []; %lower bounds for linear optimized parameters
+            this.dataStorage.linUB = []; %upper bounds for linear optimized parameters
             this.dataStorage.measurement.raw = []; %vector of datapoints
+            this.dataStorage.measurement.nPixel = 0;
+            this.dataStorage.measurement.pixelIDs = [];
             this.dataStorage.measurement.rez = []; %reziproke of datapoints
             this.dataStorage.measurement.nonZeroMask = []; %data non-zero indices
             this.dataStorage.measurement.nonZeroMaskTail = []; %data non-zero indices max to end
@@ -224,17 +225,20 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             out = this.irfFFT;
         end
         
-        function out = getMeasurementData(this)
+        function out = getMeasurementData(this,pixelIDs)
             %get measurement data
-            out = single(this.dataStorage.measurement.raw);
+            if(any(pixelIDs > size(this.dataStorage.measurement.raw,2)))
+                error('FLIMX:flueChannelModel:getMeasurementData','Requested pixelIDs (%d) larger than available data (%d).',max(pixelIDs(:)),size(this.dataStorage.measurement.raw,2));
+            end            
+            out = single(this.dataStorage.measurement.raw(:,pixelIDs));
         end
         
-        function out = getMeasurementDataRez(this)
+        function out = getMeasurementDataRez(this,pixelIDs)
             %get reziproke of data
             if(isempty(this.dataStorage.measurement.rez))
-                this.dataStorage.measurement.rez = 1./this.getMeasurementData();
+                this.dataStorage.measurement.rez = 1./single(this.dataStorage.measurement.raw);
             end
-            out = this.dataStorage.measurement.rez;
+            out = this.dataStorage.measurement.rez(:,pixelIDs);
         end
         
         function out = getChiWeightData(this)
@@ -255,20 +259,20 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             out = this.dataStorage.chiWeights.rez;
         end
         
-        function out = getDataNonZeroMask(this)
+        function out = getDataNonZeroMask(this,pixelIDs)
             %return mask where measurement data is not zero
             if(isempty(this.dataStorage.measurement.nonZeroMask))
                 this.compMeasurementZeroMask()
             end
-            out = this.dataStorage.measurement.nonZeroMask;
+            out = this.dataStorage.measurement.nonZeroMask(:,pixelIDs);
         end
         
-        function out = getDataNonZeroMaskTail(this)
+        function out = getDataNonZeroMaskTail(this,pixelIDs)
             %return mask where measurement data is not zero
             if(isempty(this.dataStorage.measurement.nonZeroMaskTail))
                 this.compMeasurementZeroMask()
             end
-            out = this.dataStorage.measurement.nonZeroMaskTail;
+            out = this.dataStorage.measurement.nonZeroMaskTail(:,pixelIDs);
         end
         
         function out = getNeighborData(this)
@@ -321,31 +325,51 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             out = this.dataStorage.scatter.normalized;
         end
         
-        function out = getInitializationData(this)
-            %set initialization data for nonlinear optimization
-            out = this.dataStorage.initialization;
-            if(isempty(out))
-                out = zeros(this.volatileChannelParams.nApproxParamsPerCh,1);
+        function out = getInitializationData(this,pixelIDs)
+            %set initialization data for nonlinear optimization            
+            if(isempty(this.dataStorage.initialization))
+                out = zeros(this.volatileChannelParams(1).nApproxParamsPerCh,1,length(pixelIDs));
+            else
+%                 if(size(this.dataStorage.initialization,3) > this.dataStorage.measurement.nPixel)
+%                     npi = repmat(1:this.dataStorage.measurement.nPixel,1,size(this.dataStorage.initialization,3)./this.dataStorage.measurement.nPixel);
+%                     pixelIDs = ismember(npi,pixelIDs);
+%                 end
+                out = this.dataStorage.initialization(:,:,pixelIDs);
             end
         end
         
         function out = getLinearBounds(this)
             %return linear bounds used for approximation
-            out = [this.linLB this.linUB];
+            out = [this.dataStorage.linLB this.dataStorage.linUB];
+        end
+        
+        function out = getLinLB(this,pixelIDs)
+            %return lower linear bounds used for approximation
+            out = this.dataStorage.linLB(:,pixelIDs);
+        end
+        
+        function out = getLinUB(this,pixelIDs)
+            %return upper linear bounds used for approximation
+            out = this.dataStorage.linUB(:,pixelIDs);
+        end
+        
+        function out = getPixelIDs(this)
+            %return IDs of stored pixels
+            out = this.dataStorage.measurement.pixelIDs;
         end
         
         function setLinearBounds(this,linBounds)
             %set linear bounds
-            nrLinParam = sum(this.volatileChannelParams.cMask < 0);
-            if(~isempty(linBounds) && numel(linBounds.lb) == nrLinParam)
-                this.linLB = single(linBounds.lb(:));
+            nrLinParam = sum(this.volatileChannelParams(1).cMask < 0);
+            if(~isempty(linBounds) && size(linBounds,2) == this.dataStorage.measurement.nPixel && numel(linBounds(1).lb) == nrLinParam)
+                this.dataStorage.linLB = single([linBounds(:).lb]);
             else
-                this.linLB =  single(-inf(nrLinParam,1));
+                this.dataStorage.linLB =  single(-inf(nrLinParam,this.dataStorage.measurement.nPixel));
             end
-            if(~isempty(linBounds) && numel(linBounds.ub) == nrLinParam)
-                this.linUB =  single(linBounds.ub(:));
+            if(~isempty(linBounds) && size(linBounds,2) == this.dataStorage.measurement.nPixel && numel(linBounds(1).ub) == nrLinParam)
+                this.dataStorage.linUB = single([linBounds(:).ub]);
             else
-                this.linUB =  single(inf(nrLinParam,1));
+                this.dataStorage.linUB =  single(inf(nrLinParam,this.dataStorage.measurement.nPixel));
             end
         end
         
@@ -354,16 +378,18 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             fi = this.fileInfo;
             this.myStartPos = fi.StartPosition;
             if(fi.EndPosition <= fi.StartPosition)
-                fi.EndPosition = length(pixelData);
+                fi.EndPosition = size(pixelData,1);
             end
             this.myEndPos = fi.EndPosition;
+            this.dataStorage.measurement.nPixel = size(pixelData,2);
+            this.dataStorage.measurement.pixelIDs = uint16(1:this.dataStorage.measurement.nPixel);
             this.dataStorage.measurement.raw = pixelData;
             this.dataStorage.measurement.nonZeroMask = [];
             this.dataStorage.measurement.nonZeroMaskTail = [];
             this.dataStorage.measurement.maxPos = [];
             this.dataStorage.measurement.maxVal = [];
             this.dataStorage.measurement.FWHMPos = [];
-            this.dLen = length(pixelData);
+            this.dLen = size(pixelData,1);
             this.chi_weights = ones(1,size(pixelData,2));
 %             if(~isempty(neighborData))
 %                 this.chi_weights(1,2:end) = double(fitParams.neighbor_weight/(size(neighborData,1)));                
@@ -416,54 +442,119 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         
         function setInitializationData(this,data)
             %set initialization data for nonlinear optimization (optional)
-            this.dataStorage.initialization = data;
+%             if(~isempty(data) && rem(size(data,3),this.dataStorage.measurement.nPixel) == 0)
+            if(~isempty(data) && size(data,3) == this.dataStorage.measurement.nPixel)
+                this.dataStorage.initialization = data;
+            end
         end
         
-        function [model, ampsOut, scAmpsOut, osetOut, expModelOut] = compModel2(this,x)
+        function [model, ampsOut, scAmpsOut, osetOut, expModelOut] = compModel2(this,x,pixelIDs)
             % compute model for parameters x
-            persistent t exponentialsLong expModels
-            scAmpsOut = [];
-            [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = getXVecComponents(this.myParent,x,true,this.myChannelNr);
+            persistent expModelsLong expModelsShort t gt gexpModelsLong gexpModelsShort
+            %             scAmpsOut = [];
+            [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = getXVecComponents(this.myParent,x,true,this.myChannelNr,pixelIDs);
             bp = this.basicParams;
             bp.incompleteDecayFactor = 2;
             incompleteDecayFactor = max(1,bp.incompleteDecayFactor*bp.incompleteDecay);
             vpp = this.volatilePixelParams;
             nTimeCh = this.tLen;
             nTimeChNoID = nTimeCh / incompleteDecayFactor;
-            if(isempty(t) || size(t,1) ~= this.tLen || size(t,2) < bp.nExp*nVecs)
-                t = repmat(this.time(:,1),1,bp.nExp*nVecs);
-            end
-            if(isempty(exponentialsLong) || size(exponentialsLong,1) ~= size(t,1) || size(exponentialsLong,3) < nVecs || size(exponentialsLong,2) ~= bp.nExp || size(expModels,2) ~= bp.nExp+vpp.nScatter+1)
-                exponentialsLong = ones(size(t,1),bp.nExp,nVecs);
-                expModels = ones(nTimeChNoID,bp.nExp+vpp.nScatter+1,nVecs);
-            end
-            vcp = this.volatileChannelParams;            
-            if(bp.reconvoluteWithIRF)
-                irffft = this.getIRFFFT(nTimeCh);
-            else
-                irffft = [];
-            end
+            vcp = this.volatileChannelParams(1); %assume all pixels are identical
             if(~isempty(this.dataStorage.scatter.raw))
                 scVec = repmat(this.getScatterData(),[1,1,nVecs]);
             else
-                scVec = zeros(nTimeChNoID,vpp.nScatter-bp.scatterIRF,nVecs);
-            end
-            expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = computeExponentials(uint16(bp.nExp),uint16(incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
-                logical(bp.stretchedExpMask),t,int32(this.iMaxPos),irffft,scVec, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, tciHShiftFine,false,exponentialsLong(1:nTimeCh,1:bp.nExp,1:nVecs),expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs));            
-            if(~any(vcp.cMask < 0))
-                ao(1,:,:) = [amps; scAmps; oset];
-                ampsOut = double(squeeze(ao(1,1:bp.nExp,:)));
-                osetOut = double(squeeze(ao(1,end,:)));
-            else
-                [ao,ampsOut,osetOut] = computeAmplitudes(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),this.getMeasurementData(),this.getDataNonZeroMask(),oset,vcp.cMask(end)<0,this.linLB,this.linUB);
-                if(vpp.nScatter > 0)
-                    scAmpsOut = ampsOut(bp.nExp+1:end,:);
-                    ampsOut(bp.nExp+1:end,:) = [];
+                scVec = zeros(nTimeChNoID,vpp.nScatter-bp.scatterIRF,nVecs,'like',x);
+            end 
+            if(isa(x,'gpuArray'))
+                %useGPUFlag = true;
+                xClass = classUnderlying(x);
+                if(isempty(gt))
+                    gt = repmat(gpuArray(cast(this.time(:,1),xClass)),1,bp.nExp*nVecs);
+                elseif(size(gt,1) ~= this.tLen || size(gt,2) < bp.nExp*nVecs || ~strcmp(xClass,classUnderlying(gt)))
+                    gt = repmat(gpuArray(cast(this.time(:,1),xClass)),1,bp.nExp*nVecs);
                 end
+                if(isempty(gexpModelsLong) || size(gexpModelsLong,1) ~= size(t,1) || size(gexpModelsLong,3) < nVecs || size(gexpModelsLong,2) ~= bp.nExp || size(gexpModelsShort,2) ~= bp.nExp+vpp.nScatter+1)
+                    gexpModelsLong = ones(nTimeCh,bp.nExp,nVecs,xClass,'gpuArray');
+                    gexpModelsShort = ones(nTimeChNoID,bp.nExp+vpp.nScatter+1,nVecs,xClass,'gpuArray');
+                end
+                %classFlag = strcmp(xClass,classUnderlying(gt));
+                if(bp.reconvoluteWithIRF)
+                    irffft = gpuArray(cast(this.getIRFFFT(nTimeCh),xClass));
+                else
+                    irffft = [];
+                end
+                [model, ampsOut, scAmpsOut, osetOut, expModelOut] = computeModels(uint16(bp.nExp),uint16(incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
+                    logical(bp.stretchedExpMask),gt(:,1:bp.nExp*nVecs),int32(this.iMaxPos),irffft,scVec, amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, tciHShiftFine,...
+                    oset,any(vcp.cMask(1:bp.nExp)<0),vcp.cMask(end)<0,this.getMeasurementData(pixelIDs),this.getDataNonZeroMask(pixelIDs),this.getLinLB(pixelIDs),this.getLinUB(pixelIDs),...
+                    false,gexpModelsLong(:,1:bp.nExp,1:nVecs),gexpModelsShort(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs));
+            else
+                %useGPUFlag = false;
+                xClass = class(x);
+                classFlag = strcmp(xClass,class(t));
+                if(isempty(t) || size(t,1) ~= this.tLen || size(t,2) < bp.nExp*nVecs || ~classFlag)
+                    if(classFlag)
+                        t = repmat(this.time(:,1),1,bp.nExp*nVecs);
+                    else
+                        t = repmat(cast(this.time(:,1),'like',x),1,bp.nExp*nVecs);
+                    end
+                end
+                if(isempty(expModelsLong) || size(expModelsLong,1) ~= size(t,1) || size(expModelsLong,3) < nVecs || size(expModelsLong,2) ~= bp.nExp || size(expModelsShort,2) ~= bp.nExp+vpp.nScatter+1)
+                    expModelsLong = ones(nTimeCh,bp.nExp,nVecs,'like',x);
+                    expModelsShort = ones(nTimeChNoID,bp.nExp+vpp.nScatter+1,nVecs,'like',x);
+                end
+                if(bp.reconvoluteWithIRF)
+                    irffft = this.getIRFFFT(nTimeCh);
+                    if(~strcmp(xClass,class(irffft)))
+                        cast(irffft,xClass);
+                    end
+                else
+                    irffft = [];
+                end
+                [model, ampsOut, scAmpsOut, osetOut, expModelOut] = computeModels(uint16(bp.nExp),uint16(incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
+                    logical(bp.stretchedExpMask),t(:,1:bp.nExp*nVecs),int32(this.iMaxPos),irffft,scVec, amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, tciHShiftFine,...
+                    oset,any(vcp.cMask(1:bp.nExp)<0),vcp.cMask(end)<0,this.getMeasurementData(pixelIDs),this.getDataNonZeroMask(pixelIDs),this.getLinLB(pixelIDs),this.getLinUB(pixelIDs),...
+                    false,expModelsLong(:,1:bp.nExp,1:nVecs),expModelsShort(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs));
             end
-            expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = bsxfun(@times,expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),ao);
-            model = squeeze(sum(expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),2));
-            expModelOut = expModels(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs);
+                        
+%             tic
+%             for i = 1:100
+%             [model, ampsOut, scAmpsOut, osetOut, expModelOut] = computeModels_mex(uint16(bp.nExp),uint16(incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
+%                 logical(bp.stretchedExpMask),t(:,1:bp.nExp*nVecs),int32(this.iMaxPos),single(irffft),scVec, amps, taus, single(tcis), single(betas), scAmps, single(scShifts), single(scHShiftsFine), scOset, hShift, tciHShiftFine,...
+%                 oset,any(vcp.cMask(1:bp.nExp)<0),vcp.cMask(end)<0,this.getMeasurementData(pixelIDs),this.getDataNonZeroMask(pixelIDs),this.getLinLB(pixelIDs),this.getLinUB(pixelIDs),...
+%                 false,expModelsLong(:,1:bp.nExp,1:nVecs),expModelsShort(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs));
+%             end
+%             toc
+
+%             
+%             gMeasurement = gpuArray(this.getMeasurementData(pixelIDs));
+%             gDataNonZeroMask = gpuArray(this.getDataNonZeroMask(pixelIDs));  
+%             gLinLB = gpuArray(this.getLinLB(pixelIDs));
+%             gLinUB = gpuArray(this.getLinUB(pixelIDs));
+%             
+%             [gmodel, gampsOut, gscAmpsOut, gosetOut, gexpModelOut] = computeModels(gpuArray(uint16(bp.nExp)),gpuArray(uint16(incompleteDecayFactor)),logical(bp.scatterEnable),logical(bp.scatterIRF),...
+%                 gpuArray(logical(bp.stretchedExpMask)),t(:,1:bp.nExp*nVecs),int32(this.iMaxPos),irffft,scVec, amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, tciHShiftFine,...
+%                 oset,any(vcp.cMask(1:bp.nExp)<0),vcp.cMask(end)<0,gMeasurement,gDataNonZeroMask,gLinLB,gLinUB,...
+%                 false,expModelsLong(:,1:bp.nExp,1:nVecs),expModelsShort(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs));
+%                 model = gather(gmodel); ampsOut = gather(gampsOut); scAmpsOut = gather(gscAmpsOut); osetOut = gather(gosetOut); expModelOut = gather(gexpModelOut);
+%                         
+
+%             tic
+%             expModelsShort(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = computeExponentials(uint16(bp.nExp),uint16(incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
+%                 logical(bp.stretchedExpMask),t(:,1:bp.nExp*nVecs),int32(this.iMaxPos),irffft,scVec, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, tciHShiftFine,false,expModelsLong(:,1:bp.nExp,1:nVecs),expModelsShort(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs));            
+%             if(~any(vcp.cMask < 0))
+%                 ao(1,:,:) = [amps; scAmps; oset];
+%                 ampsOut = double(squeeze(ao(1,1:bp.nExp,:)));
+%                 osetOut = double(squeeze(ao(1,end,:)));
+%             else
+%                 [ao,ampsOut,osetOut] = computeAmplitudes(expModelsShort(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),this.getMeasurementData(pixelIDs),this.getDataNonZeroMask(pixelIDs),oset,vcp.cMask(end)<0,this.getLinLB(pixelIDs),this.getLinUB(pixelIDs));
+%                 if(vpp.nScatter > 0)
+%                     scAmpsOut = ampsOut(bp.nExp+1:end,:);
+%                     ampsOut(bp.nExp+1:end,:) = [];
+%                 end
+%             end
+%             expModelsShort(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs) = bsxfun(@times,expModelsShort(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),ao);
+%             model = squeeze(sum(expModelsShort(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs),2));
+%             expModelOut = expModelsShort(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs);
         end
                 
         function [model, ampsOut, scAmpsOut, osetOut, exponentialsOut] = compModel(this,x)
@@ -476,7 +567,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             %                 x=double(x);
             %             end
             persistent t tSingle exponentialsLong exponentialsShort exponentialsOffset
-            [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = getXVecComponents(this.myParent,x,true,this.myChannelNr);
+            [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = getXVecComponents(this.myParent,x,true,this.myChannelNr,1);
             bp = this.basicParams;
             nTimeCh = this.tLen;
             if(bp.incompleteDecay)
@@ -613,25 +704,24 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             end
         end %compModelTci
         
-        function chiVec = compFigureOfMerit2(this,model,tailFlag,figureOfMerit,chiWeightingMode,fomModifier)
-           
-            if(nargin < 6)
+        function chiVec = compFigureOfMerit2(this,model,tailFlag,pixelIDs,figureOfMerit,chiWeightingMode,fomModifier)
+           %compute the figure of merit (goodness of fit)
+            if(nargin < 7)
                 fomModifier = this.basicParams.figureOfMeritModifier;
             end
-            if(nargin < 5)
+            if(nargin < 6)
                 chiWeightingMode = this.basicParams.chiWeightingMode;
             end
-            if(nargin < 4)
+            if(nargin < 5)
                 figureOfMerit = this.basicParams.figureOfMerit;
             end
             if(tailFlag)
-                dnzMask = this.getDataNonZeroMaskTail();
+                dnzMask = this.getDataNonZeroMaskTail(pixelIDs);
             else
-                dnzMask = this.getDataNonZeroMask();
+                dnzMask = this.getDataNonZeroMask(pixelIDs);
             end
-            chiVec = computeFigureOfMerit(model,this.getMeasurementData(),dnzMask,this.volatileChannelParams.nApproxParamsPerCh,...
-                this.basicParams,figureOfMerit,chiWeightingMode,fomModifier);
-            
+            chiVec = computeFigureOfMerit(model,this.getMeasurementData(pixelIDs),dnzMask,this.volatileChannelParams(1).nApproxParamsPerCh,...
+                this.basicParams,figureOfMerit,chiWeightingMode,fomModifier);            
         end
         
         function chiVec = compFigureOfMerit(this,model,tailFlag,figureOfMerit,chiWeightingMode,fomModifier)
@@ -852,7 +942,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             dSmooth(isnan(dSmooth)) = 0;
             dSmooth = fastsmooth(dSmooth,5,2,0);
             dSmooth = flipud(fastsmooth(flipud(dSmooth),5,2,0));
-            [dMaxValTmp, dMaxPosTmp] = max(dSmooth(min(this.dLen,max(1,this.myStartPos)):min(floor(this.dLen/2),this.myEndPos),1));
+            [dMaxValTmp, dMaxPosTmp] = max(dSmooth(min(this.dLen,max(1,this.myStartPos)):min(floor(this.dLen/2),this.myEndPos),:));
             %look for maximum in real data around the max of the smoothed data
             dMaxPosTmp = dMaxPosTmp + this.myStartPos-1;
             %[maxVal, dMaxPosTmp2] = max(this.dataStorage.measurement.raw(min(this.dLen,max(1,dMaxPosTmp-5)):min(this.dLen,dMaxPosTmp+5),1));
@@ -861,17 +951,21 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             this.dataStorage.measurement.maxVal = double(dMaxValTmp);
             if(this.basicParams.fitModel ~=1)
                 this.myStartPos = max(1,this.dataStorage.measurement.maxPos-this.basicParams.tailFitPreMaxSteps-1);
+            else
+                this.myStartPos = repmat(this.myStartPos,[1,this.dataStorage.measurement.nPixel]);
             end            
-            this.dataStorage.measurement.FWHMPos = find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos),dMaxValTmp*0.6),1,'last');
             ids = (5:10:85)./100;
-            this.dataStorage.measurement.risingIDs = zeros(size(ids));
-            minVal = min(this.dataStorage.measurement.raw(this.dRealStartPos:this.dataStorage.measurement.maxPos));
-            dataRange = dMaxValTmp-minVal;
-            for i = 1:length(ids)
-                if(ids(i) > 0.5)
-                    this.dataStorage.measurement.risingIDs(i) = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos) >= double(minVal)+double(dataRange)*ids(i),1,'first');
-                else
-                    this.dataStorage.measurement.risingIDs(i) = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos) <= double(minVal)+double(dataRange)*ids(i),1,'last');
+            this.dataStorage.measurement.risingIDs = zeros(this.dataStorage.measurement.nPixel,size(ids,1));
+            for p = 1:this.dataStorage.measurement.nPixel
+                this.dataStorage.measurement.FWHMPos(p) = find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p),dMaxValTmp(p)*0.6),1,'last');
+                minVal = min(this.dataStorage.measurement.raw(this.dRealStartPos:this.dataStorage.measurement.maxPos,p));
+                dataRange = dMaxValTmp(p) - minVal;
+                for i = 1:length(ids)                    
+                    if(ids(i) > 0.5)
+                        this.dataStorage.measurement.risingIDs(p,i) = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p) >= double(minVal)+double(dataRange)*ids(i),1,'first');
+                    else
+                        this.dataStorage.measurement.risingIDs(p,i) = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p) <= double(minVal)+double(dataRange)*ids(i),1,'last');
+                    end
                 end
             end
         end
@@ -881,14 +975,19 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             fi = this.fileInfo;
             if(~isempty(this.dataStorage.measurement.raw))
                 this.dataStorage.measurement.nonZeroMask = this.dataStorage.measurement.raw ~= 0;
-                this.dataStorage.measurement.nonZeroMask(1:this.myStartPos-1,:) = false;
+                maxPos = this.dMaxPos; %this will compute myStartPos -> fix this
+                for i = 1:length(this.myStartPos)
+                    this.dataStorage.measurement.nonZeroMask(1:this.myStartPos(i)-1,:) = false;
+                end
                 this.dataStorage.measurement.nonZeroMask(this.myEndPos+1:end,:) = false;
                 if(isempty(fi.reflectionMask))
                     fi.reflectionMask = true(size(this.dataStorage.measurement.nonZeroMask));
                 end
                 this.dataStorage.measurement.nonZeroMask = this.dataStorage.measurement.nonZeroMask & fi.reflectionMask;
                 this.dataStorage.measurement.nonZeroMaskTail = this.dataStorage.measurement.nonZeroMask;
-                this.dataStorage.measurement.nonZeroMaskTail(1:max(1,this.dMaxPos-this.basicParams.tailFitPreMaxSteps-1),:) = false;
+                for i = 1:length(this.dMaxPos)
+                    this.dataStorage.measurement.nonZeroMaskTail(1:max(1,maxPos(i)-this.basicParams.tailFitPreMaxSteps-1),:) = false;
+                end
             else
                 this.dataStorage.measurement.nonZeroMask = false;
                 this.dataStorage.measurement.nonZeroMaskTail = false;
@@ -899,21 +998,26 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         function compOffsetGuess(this)
             %make an educated guess for the current offset
             if(~isempty(this.dataStorage.measurement.raw))
-                this.dataStorage.measurement.realStartPos = find(this.dataStorage.measurement.raw > 0 & ~isnan(this.dataStorage.measurement.raw),1);
-                this.dataStorage.measurement.slopeStartPos = fluoPixelModel.getStartPos(this.dataStorage.measurement.raw);
-                oGuess = this.dataStorage.measurement.raw(this.dataStorage.measurement.realStartPos:max(this.dataStorage.measurement.realStartPos+1,this.dataStorage.measurement.slopeStartPos));
-                oGuess = oGuess(~isnan(oGuess));
-                % if(length(oGuess) < 10)
-                %     %we have too few datapoints for a reliable estimate, try to get more
-                %     oGuess = data(min(offsetStartPos,SlopeStartPosition):SlopeStartPosition);
-                % end
-                oGuess = mean(oGuess(oGuess ~= 0));
-                if(isempty(oGuess))
-                    oGuess = 0;
-                end
-                %scale magnitude if needed
-                if(this.basicParams.heightMode == 2)
-                    oGuess = oGuess/this.dMaxVal;
+                oGuess = zeros(1,this.dataStorage.measurement.nPixel);
+                this.dataStorage.measurement.realStartPos = oGuess;
+                this.dataStorage.measurement.slopeStartPos = oGuess;
+                for p = 1:this.dataStorage.measurement.nPixel
+                    this.dataStorage.measurement.realStartPos(p) = find(this.dataStorage.measurement.raw(:,p) > 0 & ~isnan(this.dataStorage.measurement.raw(:,p)),1);
+                    this.dataStorage.measurement.slopeStartPos(p) = fluoPixelModel.getStartPos(this.dataStorage.measurement.raw(:,p));
+                    oGuessTmp = this.dataStorage.measurement.raw(this.dataStorage.measurement.realStartPos(p):max(this.dataStorage.measurement.realStartPos(p)+1,this.dataStorage.measurement.slopeStartPos(p)));
+                    oGuessTmp = oGuessTmp(~isnan(oGuessTmp));
+                    % if(length(oGuess) < 10)
+                    %     %we have too few datapoints for a reliable estimate, try to get more
+                    %     oGuess = data(min(offsetStartPos,SlopeStartPosition):SlopeStartPosition);
+                    % end
+                    oGuess(p) = mean(oGuessTmp(oGuessTmp ~= 0));
+                    if(isempty(oGuessTmp))
+                        oGuess = 0;
+                    end
+                    %scale magnitude if needed
+                    if(this.basicParams.heightMode == 2)
+                        oGuess = oGuess/this.dMaxVal(p);
+                    end
                 end
                 this.dataStorage.measurement.offsetGuess = oGuess;
             else

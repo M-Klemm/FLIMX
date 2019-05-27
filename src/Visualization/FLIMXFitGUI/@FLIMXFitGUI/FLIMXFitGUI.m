@@ -702,7 +702,7 @@ classdef FLIMXFitGUI < handle
                 if(any(apObj.basicParams.stretchedExpMask))
                     paramTable{row,5} = 'beta';
                 end
-                [amps, taus, ~, betas, scAmps, scShifts, scOset, hShift, ~] = apObj.getXVecComponents(xVec,false,apObj.currentChannel);
+                [amps, taus, ~, betas, scAmps, scShifts, scOset, hShift, ~] = apObj.getXVecComponents(xVec,false,apObj.currentChannel,1);
                 if(isempty(amps))
                     return
                 end
@@ -789,7 +789,7 @@ classdef FLIMXFitGUI < handle
             if(sum(xVec(:)) == 0)
                 model = [];
             else
-                model = apObj.getModel(ch,xVec);
+                model = apObj.getModel(ch,xVec,1);
                 model = model(1:min(length(model),length(data)));
                 model(model < dMin) = dMin;
             end
@@ -900,7 +900,7 @@ classdef FLIMXFitGUI < handle
             ylabel(hAxRes,'Norm. Error');
             xlabel(hAxRes,'Time (ns)');
             grid(hAxRes,'on');
-            data = apObj.getMeasurementData(ch);
+            data = apObj.getMeasurementData(ch,1);
             xAxis = this.FLIMXObj.curSubject.timeVector(1:length(data));
             if(sum(x_vec(:)) == 0)
                 cla(this.visHandles.axesRes);
@@ -915,7 +915,7 @@ classdef FLIMXFitGUI < handle
                 return
             end
             %% prepare #2
-            model = apObj.getModel(ch,x_vec);
+            model = apObj.getModel(ch,x_vec,1);
             e_vec = zeros(length(data),1);
             data(isnan(data)) = 0;
             if(apObj.basicParams.approximationTarget == 2 && ch == 4)
@@ -923,7 +923,7 @@ classdef FLIMXFitGUI < handle
             else
                 e_vec(1:apObj.getFileInfoStruct(ch).nrTimeChannels) = ((data(1:apObj.getFileInfoStruct(ch).nrTimeChannels))-(model(1:apObj.getFileInfoStruct(ch).nrTimeChannels)))./sqrt(abs(data(1:apObj.getFileInfoStruct(ch).nrTimeChannels))); % Weighting in lsqnonlin is 1/std; in Poisson statistics: 1/sqrt(counts)
             end
-            nz_idx =  apObj.getDataNonZeroMask(ch);
+            nz_idx =  apObj.getDataNonZeroMask(ch,1);
             ds = find(nz_idx,1,'first');
             de = find(nz_idx,1,'last');
             [StartPosition, EndPosition] = apObj.getStartEndPos(ch);
@@ -2318,9 +2318,9 @@ classdef FLIMXFitGUI < handle
                 %compute exponentials
                 hmOld = apObj.basicParams.heightMode;
                 apObj.basicParams.heightMode = 1;
-                exponentials = apObj.getExponentials(apObj.currentChannel,x_vec);
+                exponentials = apObj.getExponentials(apObj.currentChannel,x_vec,1);
                 %scale exponentials relative to the data maximum
-                dMax = max(apObj.getMeasurementData(apObj.currentChannel));
+                dMax = max(apObj.getMeasurementData(apObj.currentChannel,1));
                 expMax = max(exponentials(:,1:apObj.basicParams.nExp),[],1);
                 apObj.basicParams.heightMode = hmOld;
                 exponentials(:,1:apObj.basicParams.nExp) = exponentials(:,1:apObj.basicParams.nExp)./expMax.*(expMax ./ sum(expMax(:)).*dMax);

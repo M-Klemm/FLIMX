@@ -797,7 +797,13 @@ classdef resultFile < handle
             end
             %optional: select only one pixel
             if(nargin == 5 && ~isempty(out))
-                out = squeeze(out(max(1,min(size(out,1),y)),max(1,min(size(out,2),x)),:));
+                if(isscalar(y) && isscalar(x))
+                    out = squeeze(out(max(1,min(size(out,1),y)),max(1,min(size(out,2),x)),:));
+                else
+                    idx = sub2ind(size(out),y,x);
+                    out = reshape(out,[],size(out,3));
+                    out = out(idx,:)';
+                end
             end
             if(~isempty(this.myParent))
                 this.myParent.pingLRUCacheTable(this);
@@ -1455,11 +1461,11 @@ classdef resultFile < handle
                         xMat(:,:,end-1) = [];
                         xMatNew = zeros(size(xMat,1),size(xMat,2),apObj.volatilePixelParams.nModelParamsPerCh);
                         for i = 1:size(xMat,1)
-                            [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents(squeeze(xMat(i,:,:))',false,result.channel);
+                            [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents(squeeze(xMat(i,:,:))',false,result.channel,1);
                             hShift = hShift .* fileInfo.timeChannelWidth;
                             tcis = -tcis;
                             scShifts = -scShifts;
-                            xMatNew(i,:,:) = apObj.getFullXVec(result.channel,amps,taus,tcis,betas,scAmps,scShifts,scOset,hShift,oset)';
+                            xMatNew(i,:,:) = apObj.getFullXVec(result.channel,1,amps,taus,tcis,betas,scAmps,scShifts,scOset,hShift,oset)';
                         end
                         result.results.(branch).x_vec = xMatNew;
                         %iVec
@@ -1468,11 +1474,11 @@ classdef resultFile < handle
                             iMat(:,:,end-1) = [];
                             iMatNew = zeros(size(iMat,1),size(iMat,2),apObj.volatilePixelParams.nModelParamsPerCh);
                             for i = 1:size(iMat,1)
-                                [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents(squeeze(iMat(i,:,:))',false,result.channel);
+                                [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents(squeeze(iMat(i,:,:))',false,result.channel,1);
                                 hShift = hShift .* fileInfo.timeChannelWidth;
                                 tcis = -tcis;
                                 scShifts = -scShifts;
-                                iMatNew(i,:,:) = apObj.getFullXVec(result.channel,amps,taus,tcis,betas,scAmps,scShifts,scOset,hShift,oset)';
+                                iMatNew(i,:,:) = apObj.getFullXVec(result.channel,1,amps,taus,tcis,betas,scAmps,scShifts,scOset,hShift,oset)';
                             end
                             result.results.(branch).iVec = iMatNew;
                         end
@@ -1599,6 +1605,10 @@ classdef resultFile < handle
                     result.parameters.basic_fit.errorMode = 1;
                 end
             end
+%             if(result.about.results_revision < 256)
+%                 if(isfield(result.parameters,'basic_fit'))
+%                 end
+%             end
             %set current version
             result.about.results_revision = aboutInfo.results_revision;
         end

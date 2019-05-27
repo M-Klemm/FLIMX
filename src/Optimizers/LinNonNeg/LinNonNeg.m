@@ -31,7 +31,7 @@ function x = LinNonNeg(C,d,tol) %,resnorm,resid,exitflag,output,lambda]
 %
 % @brief    A function to implement a non-negative linear optimizer based on MATLAB's lsqnonneg
 %
-tol = 10*eps*norm(C,1)*length(C);
+tol = 10*eps(C(1,1))*sum(C(:),'native')*numel(C);
 n = size(C,2);
 % Initialize vector of n zeros and Infs (to be used later)
 nZeros = zeros(n,1,'like',C);
@@ -41,15 +41,19 @@ wz = nZeros;
 P = false(n,1,'like',logical(d));
 % Initialize set of active columns to all and the initial point to zeros
 Z = true(n,1,'like',P);
-x = nZeros;
-
+%x = nZeros;
+%guess initial solution
+x = C\d;
+if(any(x < 0))
+    x = nZeros;
+end
 resid = d - C*x;
 w = C'*resid;
 
 % Set up iteration criterion
-outeriter = 0;
-iter = 0;
-itmax = 3*n;
+outeriter = zeros(1,1,'uint8');
+iter = zeros(1,1,'uint8');
+itmax = uint8(3*n); %ones(1,1,'like',C);
 %             exitflag = 1;
 
 % Outer loop to put variables into set to hold positive coefficients
