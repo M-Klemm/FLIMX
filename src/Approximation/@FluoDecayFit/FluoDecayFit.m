@@ -439,21 +439,21 @@ classdef FluoDecayFit < handle
             if(initFit)
                 y = this.initFitParams.gridSize;
                 x = y;
-                fitDim = 3;
+%                 fitDim = 3;
             else
                 y = this.FLIMXObj.curSubject.getROIYSz();
                 x = this.FLIMXObj.curSubject.getROIXSz();
-                if(this.pixelFitParams.fitDimension == 1) %auto
-                    %decide which dimension is better suited for multicore
-                    if(y < x) % create as many work units as possible
-                        fitDim = 2;
-                    else
-                        fitDim = 3;
-                    end
-                else %2-x, 3-y
-                    %user defined with dimension to use
-                    fitDim = this.pixelFitParams.fitDimension;
-                end
+%                 if(this.pixelFitParams.fitDimension == 1) %auto
+%                     %decide which dimension is better suited for multicore
+%                     if(y < x) % create as many work units as possible
+%                         fitDim = 2;
+%                     else
+%                         fitDim = 3;
+%                     end
+%                 else %2-x, 3-y
+%                     %user defined with dimension to use
+%                     fitDim = this.pixelFitParams.fitDimension;
+%                 end
             end
             tStart = clock;
             this.updateProgressShort(0.001,'0.0% - Time left: n/a');
@@ -613,30 +613,32 @@ classdef FluoDecayFit < handle
                 %mcSettings.maxEvalTimeSingle = this.optimizationParams.options_de.maxiter*this.optimizationParams.options_de.NP*this.volatilePixelParams.nModelParamsPerCh*0.5;
                 mcSettings.useWaitbar        = 1;
                 mcSettings.computeJobHash    = this.computationParams.mcComputeJobHash;
+                pixelPerCore = 32;
                 if(totalPixels <= 5*this.computationParams.mcTargetPixelPerWU) %at least 5 WUs
-                    pixelPerCore = 8; %max(1,floor(totalPixel/4)); %make 4 workunits
+                    pixelPerWU = 8*pixelPerCore; %max(1,floor(totalPixel/4)); %make 4 workunits
                     %                 elseif(totalPixel > 32 && totalPixel <= 64)
                     %                     atOncePixel = max(1,floor(totalPixel/8)); %make 8 workunits
                 else % > 4*24 = 96 pixel, = 24/48/96/... pixel/wu -> >= 8 wu
-                    pixelPerCore = this.computationParams.mcTargetPixelPerWU*ceil(max(1,round(totalPixels/this.computationParams.mcTargetNrWUs))/this.computationParams.mcTargetPixelPerWU);                    
+                    %pixelPerCore = this.computationParams.mcTargetPixelPerWU*ceil(max(1,round(totalPixels/this.computationParams.mcTargetNrWUs))/this.computationParams.mcTargetPixelPerWU);                    
+                    pixelPerWU = this.computationParams.mcTargetPixelPerWU * pixelPerCore;
                 end                
-                mcSettings.maxEvalTimeSingle = pixelPerCore*2/8; %= guess 2s per pixel, running on 8 cores in parallel; todo
-                iter = ceil(totalPixels/pixelPerCore);
+                mcSettings.maxEvalTimeSingle = pixelPerWU*2/8; %= guess 2s per pixel, running on 8 cores in parallel; todo
+                iter = ceil(totalPixels/pixelPerWU);
                 parameterCell = cell(1,iter);
                 idxCell = cell(1,iter);
                 iter = 0;
-                for i = 1:pixelPerCore:totalPixels
+                for i = 1:pixelPerWU:totalPixels
                     iter = iter+1;
-                    subPool = pixelPool(i:min(totalPixels,i+pixelPerCore-1));
+                    subPool = pixelPool(i:min(totalPixels,i+pixelPerWU-1));
                     nPixel = length(subPool);
                     parameterCell{iter} = {@this.getApproxParamCell,ch,subPool,pixelPerCore,initFit};
                     %parameterCell{iter} = {@sub.getApproxParamCell,ch,subPool,fitDim,initFit,this.optimizationParams,this.aboutInfo};
                     idx = zeros(nPixel,2);
-                    if(fitDim == 2) %x
-                        [idx(:,2), idx(:,1)] = ind2sub([x y],subPool);
-                    else %y
+%                     if(fitDim == 2) %x
+%                         [idx(:,2), idx(:,1)] = ind2sub([x y],subPool);
+%                     else %y
                         [idx(:,1), idx(:,2)] = ind2sub([y x],subPool);
-                    end
+%                     end
                     idxCell(iter) = {idx};
                 end
                 postProcessParams.idxCell = idxCell;

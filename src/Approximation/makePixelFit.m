@@ -65,10 +65,10 @@ if(isdeployed())
         end
     end
 end
-for i = 1:nrPixels
-%     apObjs{i}.checkGPU;
-    apObjs{i}.checkMexFiles();
-end
+% for i = 1:nrPixels
+% %     apObjs{i}.checkGPU;
+%     apObjs{i}.checkMexFiles();
+% end
 if(aboutInfo.core_revision ~= myAboutInfo.core_revision)
     warning('FluoDecayFit:mcOpt:coreVersionMismatch', 'Revision of this core (%01.2f) does not match the core revision of calling client (%01.2f)! Skipping computation...',...
         myAboutInfo.core_revision,aboutInfo.core_revision);
@@ -82,18 +82,18 @@ if(aboutInfo.core_revision ~= myAboutInfo.core_revision)
     return
 end
 %this is a compatible core
-% if(nrPixels > 1 && (isdeployed() || apObjs{1}.computationParams.useMatlabDistComp > 0) && apObjs{1}.basicParams.optimizerInitStrategy ~= 3) %&& ~apObjs{i}.computationParams.useGPU 
-%     %run pixels in parallel
-%     parfor i = 1:nrPixels
-%         tmp(i,:) = runOpt(apObjs{i},optimizationParams);
-%         %fprintf('iter %d finished\n',i);
-%     end
-% else
-%     %no parallelization
+if(nrPixels > 1 && (isdeployed() || apObjs{1}.computationParams.useMatlabDistComp > 0) && apObjs{1}.basicParams.optimizerInitStrategy ~= 3) %&& ~apObjs{i}.computationParams.useGPU 
+    %run pixels in parallel
+    parfor i = 1:nrPixels
+        tmp(i,:) = runOpt(apObjs{i},optimizationParams);
+        %fprintf('iter %d finished\n',i);
+    end
+else
+    %no parallelization
     for i = 1:nrPixels
         tmp(i,:) = runOpt(apObjs{i},optimizationParams);
     end
-% end
+end
 if(isempty(tmp))    
     return
 end

@@ -389,6 +389,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             this.dataStorage.measurement.maxPos = [];
             this.dataStorage.measurement.maxVal = [];
             this.dataStorage.measurement.FWHMPos = [];
+            this.dataStorage.measurement.realStartPos = [];
             this.dLen = size(pixelData,1);
             this.chi_weights = ones(1,size(pixelData,2));
 %             if(~isempty(neighborData))

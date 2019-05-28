@@ -132,6 +132,8 @@ if(~isempty(pixelIDs))
             end
             %get parameters for current optimizer
             optParams = getOptParams(optimizer,apObj.volatilePixelParams,optimizationParams,nonLinBounds);
+%             %some pixels may have been removed due to low amount of photons -> remove those pixels from optParams
+%             optParams = optParams(pixelIDs);
             if(~any(iVec))
                 iVec = [optParams.init];
                 iVec = reshape(iVec,[size(iVec,1),1,size(iVec,2)]);

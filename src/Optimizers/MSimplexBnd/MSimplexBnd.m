@@ -65,16 +65,12 @@ tStart = 0;%clock;
 userbreak = false;
 
 lb = cast([options.lb],'like',x);
-try
-    lbShrink = reshape(repmat(lb,[nSeeds*(nParams+1),1,1]),[nParams,nPixels*nSeeds,nParams+1]);
-catch ME
-    a=0;
-end
+lbShrink = reshape(repmat(lb,[nSeeds*(nParams+1),1,1]),[nParams,size(lb,2)*nSeeds,nParams+1]);
 ub = cast([options.ub],'like',x);
-ubShrink = reshape(repmat(ub,[nSeeds*(nParams+1),1,1]),[nParams,nPixels*nSeeds,nParams+1]);
+ubShrink = reshape(repmat(ub,[nSeeds*(nParams+1),1,1]),[nParams,size(ub,2)*nSeeds,nParams+1]);
 si = cast([options.simplexInit],'like',x);
 quant = cast([options.quantization],'like',x);
-quantShrink = reshape(repmat(quant,[nSeeds*(nParams+1),1,1]),[nParams,nPixels*nSeeds,nParams+1]);
+quantShrink = reshape(repmat(quant,[nSeeds*(nParams+1),1,1]),[nParams,size(quant,2)*nSeeds,nParams+1]);
 tolf = repmat(max([options.TolFun],10*eps(x(1))),[1,nSeeds]);
 tol = repmat(cast([options.tol],'like',x),[1,nSeeds]);
 maxfun = repmat(cast([options.MaxFunEvals],'uint16'),[1,nSeeds]);
@@ -110,7 +106,7 @@ end
 
 % Set up a simplex near the initial guess.
 for s = 1:nSeeds
-    x(:,s,:) = checkBounds(checkQuantization(squeeze(x(:,s,:)),quant,lb),lb,ub);
+    x(:,s,:) = checkBounds(checkQuantization(squeeze(x(:,s,:)),quant(:,pixelIDs),lb(:,pixelIDs)),lb(:,pixelIDs),ub(:,pixelIDs));
 end
 iterCount = ones(1,nPixels,'uint16');
 fcnEvalCount = zeros(1,nPixels,'uint16');
