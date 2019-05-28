@@ -525,6 +525,7 @@ classdef paramMgr < handle
             def.flimvis_gui.ROILinestyle            =	'-';
             def.flimvis_gui.ROILinewidth            =	2;            
             def.flimvis_gui.ROI_fill_enable         =   1;
+            def.flimvis_gui.ROIDrawAllOfType        =   0;
             def.flimvis_gui.fontsize            	=	10;
             def.flimvis_gui.grid                	=	1;
             def.flimvis_gui.light               	=	'none';
@@ -539,7 +540,7 @@ classdef paramMgr < handle
             def.flimvis_gui.ETDRS_subfield_values   =   'none';
             def.flimvis_gui.ETDRS_subfield_bg_enable=   1;
             def.flimvis_gui.ETDRS_subfield_bg_color =   [0.3 0.3 0.3 0.33];
-                        
+                                    
             def.statistics.amp1_lb        	=	[1 1];
             def.statistics.amp1_lim       	=	[0 0];
             def.statistics.amp1_ub        	=	[1000 1000];

@@ -250,14 +250,11 @@ classdef resultFile < handle
             if(isvector(chList) && ~isscalar(chList))
                 this.allocInitResult(chList);
                 this.allocPixelResult(chList);
-                for i = 1:length(chList)
-                    this.loadedChannels(chList(i),1) = false;
-                end
             elseif(isscalar(chList))
                 this.allocInitResult(chList);
-                this.allocPixelResult(chList);
-                this.loadedChannels(chList,1) = false;
+                this.allocPixelResult(chList);                
             end
+            this.loadedChannels(chList,1) = false;
             this.resultType = 'FluoDecayFit';
             this.updateResultMemorySize();
         end

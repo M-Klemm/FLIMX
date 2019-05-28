@@ -982,7 +982,7 @@ classdef studyIS < handle
                     end
                 end
                 out = double(cell2mat(this.resultROICoordinates(subName)));
-                if(~isempty(ROIType) && isscalar(ROIType) && ROIType > 1000)
+                if(~isempty(out) && ~isempty(ROIType) && isscalar(ROIType) && ROIType > 1000)
                     idx = find(abs(out(:,1,1) - ROIType) < eps,1,'first');
                     if(~isempty(idx))
                         out = squeeze(out(idx,:,:))';

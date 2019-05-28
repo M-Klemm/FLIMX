@@ -32,6 +32,7 @@ classdef measurementInFDTree < measurementFile
     % @brief    A class to represent the measurementInFDTree class
     %
     properties(GetAccess = public, SetAccess = private)
+        myParent = [];
         myFolder = '';
         roiInfoLoaded = false;
         roiMergedMask = [];
@@ -42,9 +43,10 @@ classdef measurementInFDTree < measurementFile
     end
     
     methods
-        function this = measurementInFDTree(hPM,myFolder)
+        function this = measurementInFDTree(hPM,myFolder,hParent)
             %constructor
             this = this@measurementFile(hPM);
+            this.myParent = hParent;
             this.myFolder = myFolder;
             try
                 this.uid = datenummx(clock);  %fast

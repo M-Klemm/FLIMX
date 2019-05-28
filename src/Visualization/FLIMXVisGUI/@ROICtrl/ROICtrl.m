@@ -460,10 +460,9 @@ classdef ROICtrl < handle
             else
                 allROT = hfd.getROICoordinates([]);
                 if(isempty(allROT))
-                    allROIStr = {ROICtrl.ROIType2ROIItem(0)};
-                else
-                    allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
+                    allROT = ROICtrl.getDefaultROIStruct();
                 end
+                allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
             end
             set(this.roi_type_popup,'String',allROIStr,'Value',min(this.roi_type_popup.Value,length(allROIStr)));
             rt = this.ROIType;
@@ -809,26 +808,34 @@ classdef ROICtrl < handle
             end
         end
         
-        function [str,ROITypeCoarse,ROITypeFine] = ROIType2ROIItem(ROIType)
+        function [str,ROIMajor,ROIMinor] = ROIType2ROIItem(ROIType)
             %convert numeric ROIType to ROIItem (for ROI popup) 
-            ROITypeCoarse = floor(ROIType / 1000);
-            ROITypeFine = ROIType - ROITypeCoarse*1000;
-            switch ROITypeCoarse
+            [ROIMajor, ROIMinor] = ROICtrl.decodeROIType(ROIType);
+            switch ROIMajor
                 case 1
 %                     if(ROITypeFine == 1)
 %                         str = 'ETDRS Grid';
 %                     else
-                        str = sprintf('ETDRS Grid #%d',ROITypeFine);
+                        str = sprintf('ETDRS Grid #%d',ROIMinor);
 %                     end
                 case 2
-                    str = sprintf('Rectangle #%d',ROITypeFine);
+                    str = sprintf('Rectangle #%d',ROIMinor);
                 case 3
-                    str = sprintf('Circle #%d',ROITypeFine);
+                    str = sprintf('Circle #%d',ROIMinor);
                 case 4
-                    str = sprintf('Polygon #%d',ROITypeFine);
+                    str = sprintf('Polygon #%d',ROIMinor);
                 otherwise
                     str = '-none-';
             end
+        end
+        
+        function [ROIMajor, ROIMinor] = decodeROIType(ROIType)
+            %decode ROIType into major ROI type (1-4) and its running number
+            ROIMajor = floor(ROIType / 1000);
+            ROIMinor = ROIType - ROIMajor*1000;
+            idx = ROIMinor == 0 & ROIMajor > 0;
+            ROIMajor(idx) = [];
+            ROIMinor(idx) = [];
         end
         
         function flag = mouseInsideROI(cp,ROIType,ROICoord)

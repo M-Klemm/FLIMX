@@ -32,7 +32,6 @@ classdef measurement4Approx < measurementInFDTree
     % @brief    A class to represent the measurement4Approx class
     %
     properties(GetAccess = public, SetAccess = private)
-        myParent = [];
     end
     
     properties (Dependent = true)
@@ -42,8 +41,7 @@ classdef measurement4Approx < measurementInFDTree
     methods
         function this = measurement4Approx(hSubject)
             %constructor            
-            this = this@measurementInFDTree(@hSubject.getMyParamMgr,@hSubject.getWorkingDirectory);
-            this.myParent = hSubject;
+            this = this@measurementInFDTree(@hSubject.getMyParamMgr,@hSubject.getWorkingDirectory,hSubject);            
         end
         
 %         function out = get.initMode(this)

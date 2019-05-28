@@ -306,6 +306,7 @@ classdef FDisplay < handle
             try
                 delete(this.h_ROIArea);
             end
+            [~, ROIMinor] = ROICtrl.decodeROIType(ROIType);
             if(this.staticVisParams.ROI_fill_enable && (this.ROIVicinity ~= 1 || ROIType > 1000 && ROIType < 2000 && this.ROIVicinity == 1))
                 %draw ETDRS grid segments or inverted / vicinity ROI areas
                 gc = this.staticVisParams.ROIColor;
@@ -321,26 +322,26 @@ classdef FDisplay < handle
                     mask(:,:,3) = mask(:,:,3) .* gc(3);
                     mask(:,:,4) = mask(:,:,4) .* this.staticVisParams.ETDRS_subfield_bg_color(end);
                     hold(this.h_m_ax,'on');
-                    this.h_ROIArea = image(this.h_m_ax,mask(:,:,1:3),'AlphaData',mask(:,:,4));
+                    this.h_ROIArea(ROIMinor) = image(this.h_m_ax,mask(:,:,1:3),'AlphaData',mask(:,:,4));
                     hold(this.h_m_ax,'off');
                 end
-            end            
+            end
             %draw ROI lines
             if(ROIType > 1000 && ROIType < 2000)
-                this.drawETDRSGrid(cp,drawTextFlag);
+                this.drawETDRSGrid(cp,drawTextFlag,ROIMinor);
             elseif(ROIType > 2000 && ROIType < 3000)
                 if(isempty(op))
                     return
                 end
-                this.drawRectangle(cp,op-cp,drawTextFlag);
+                this.drawRectangle(cp,op-cp,drawTextFlag,ROIMinor);
             elseif(ROIType > 3000 && ROIType < 4000)
                 if(isempty(op))
                     return
                 end
                 radius = sqrt(sum((op-cp).^2));
-                this.drawCircle(op,radius,drawTextFlag);
+                this.drawCircle(op,radius,drawTextFlag,ROIMinor);
             elseif(ROIType > 4000 && ROIType < 5000)
-                this.drawPolygon([op,cp],drawTextFlag);
+                this.drawPolygon([op,cp],drawTextFlag,ROIMinor);
             else
                 try
                     delete(this.h_Rectangle);
@@ -365,7 +366,7 @@ classdef FDisplay < handle
             end
         end
         
-        function drawRectangle(this,cp,widths,drawTextFlag)
+        function drawRectangle(this,cp,widths,drawTextFlag,ROINumber)
             %draw rectangle into 2D plot
             if(isempty(widths))
                 return
@@ -376,23 +377,27 @@ classdef FDisplay < handle
             idx = widths < 0;
             cp(idx) = cp(idx) + widths(idx);
             widths = abs(widths);
-            isHG = ishghandle(this.h_Rectangle);
-            if(~isempty(isHG) && isHG)
-                set(this.h_Rectangle,'Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls);
+            if(length(this.h_Rectangle) >= ROINumber)
+                isHG = ishghandle(this.h_Rectangle(ROINumber));
             else
-                try
-                    delete(this.h_Rectangle);
-                end
+                isHG = false;
+            end
+            if(~isempty(isHG) && isHG)
+                set(this.h_Rectangle(ROINumber),'Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls);
+            else
+%                 try
+%                     delete(this.h_Rectangle(ROINumber));
+%                 end
                 if(this.staticVisParams.ROI_fill_enable && this.ROIVicinity == 1)
                     fc = [gc this.staticVisParams.ETDRS_subfield_bg_color(end)];
-                    this.h_Rectangle = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
+                    this.h_Rectangle(ROINumber) = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
                 else
-                    this.h_Rectangle = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    this.h_Rectangle(ROINumber) = rectangle('Position',[cp(2),cp(1),widths(2),widths(1)],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                 end
             end
         end
         
-        function drawCircle(this,cp,radius,drawTextFlag)
+        function drawCircle(this,cp,radius,drawTextFlag,ROINumber)
             %draw rectangle into 2D plot
             if(isempty(radius))
                 return
@@ -400,50 +405,66 @@ classdef FDisplay < handle
             gc = this.staticVisParams.ROIColor;
             lw = this.staticVisParams.ROILinewidth;
             ls = this.staticVisParams.ROILinestyle;
-            isHG = ishghandle(this.h_Circle);
-            if(~isempty(isHG) && isHG)
-                set(this.h_Circle,'Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'LineWidth',lw,'LineStyle',ls);
+            if(length(this.h_Circle) >= ROINumber)
+                isHG = ishghandle(this.h_Circle(ROINumber));
             else
-                try
-                    delete(this.h_Circle);
-                end
+                isHG = false;
+            end            
+            if(~isempty(isHG) && isHG)
+                set(this.h_Circle(ROINumber),'Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'LineWidth',lw,'LineStyle',ls);
+            else
+%                 try
+%                     delete(this.h_Circle(ROINumber));
+%                 end
                 if(this.staticVisParams.ROI_fill_enable  && this.ROIVicinity == 1)
                     fc = [gc this.staticVisParams.ETDRS_subfield_bg_color(end)];
-                    this.h_Circle = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
+                    this.h_Circle(ROINumber) = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc,'FaceColor',fc);
                 else
-                    this.h_Circle = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    this.h_Circle(ROINumber) = rectangle('Position',[cp(2)-radius,cp(1)-radius,2*radius,2*radius],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                 end
             end
         end
         
-        function drawPolygon(this,points,drawTextFlag)
+        function drawPolygon(this,points,drawTextFlag,ROINumber)
             %draw polygon into 2D plot
             gc = this.staticVisParams.ROIColor;
             lw = this.staticVisParams.ROILinewidth;
             ls = this.staticVisParams.ROILinestyle;
-            isHG = ishghandle(this.h_Polygon);
-            if(~isempty(isHG) && isHG)
-                set(this.h_Polygon,'Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls);
+            if(length(this.h_Polygon) >= ROINumber)
+                isHG = ishghandle(this.h_Polygon(ROINumber));
             else
-                try
-                    delete(this.h_Polygon);
-                end
+                isHG = false;
+            end            
+            if(~isempty(isHG) && isHG)
+                set(this.h_Polygon(ROINumber),'Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls);
+            else
+%                 try
+%                     delete(this.h_Polygon(ROINumber));
+%                 end
                 if(this.staticVisParams.ROI_fill_enable && this.ROIVicinity == 1)
-                    this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls,'EdgeColor',gc,'FaceColor',gc,'FaceAlpha',this.staticVisParams.ETDRS_subfield_bg_color(end),'Parent',this.h_m_ax);
+                    this.h_Polygon(ROINumber) = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls,'EdgeColor',gc,'FaceColor',gc,'FaceAlpha',this.staticVisParams.ETDRS_subfield_bg_color(end),'Parent',this.h_m_ax);
                 else
-                    this.h_Polygon = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls,'EdgeColor',gc,'FaceAlpha',0,'Parent',this.h_m_ax);
+                    this.h_Polygon(ROINumber) = patch('Faces',1:size(points,2),'Vertices',flipud(points)','LineWidth',lw,'LineStyle',ls,'EdgeColor',gc,'FaceAlpha',0,'Parent',this.h_m_ax);
                 end
             end
         end
         
-        function drawETDRSGrid(this,cp,drawTextFlag)
+        function drawETDRSGrid(this,cp,drawTextFlag,ROINumber)
             %draw ETDRS grid into 2D plot
             if isMultipleCall();  return;  end
-            idxG = ishghandle(this.h_ETDRSGrid);
-            idxT = ishghandle(this.h_ETDRSGridText);
+            if(size(this.h_ETDRSGrid,2) >= ROINumber)
+                idxG = ishghandle(this.h_ETDRSGrid(:,ROINumber));
+            else
+                idxG = [];
+            end
+            if(size(this.h_ETDRSGridText,2) >= ROINumber)
+                idxT = ishghandle(this.h_ETDRSGridText(:,ROINumber));
+            else
+                idxT = [];
+            end
             if(isempty(cp))
-                delete(this.h_ETDRSGrid(idxG));
-                delete(this.h_ETDRSGridText(idxT));
+                delete(this.h_ETDRSGrid(idxG,ROINumber));
+                delete(this.h_ETDRSGridText(idxT,ROINumber));
                 return
             end
             res = this.pixelResolution;
@@ -456,20 +477,20 @@ classdef FDisplay < handle
                 lw = this.staticVisParams.ROILinewidth;
                 ls = this.staticVisParams.ROILinestyle;
                 fs = this.staticVisParams.fontsize;
-                if(~isempty(idxG) && all(idxG(:)) && ~this.staticVisParams.ROI_fill_enable)
+                if(~isempty(idxG) && all(idxG(:)) && size(this.h_ETDRSGrid,2) >= ROINumber)% && ~this.staticVisParams.ROI_fill_enable)
                     %circles
-                    set(this.h_ETDRSGrid(1),'Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'LineWidth',lw,'LineStyle',ls);
-                    set(this.h_ETDRSGrid(2),'Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'LineWidth',lw,'LineStyle',ls);
-                    set(this.h_ETDRSGrid(3),'Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(1,ROINumber),'Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(2,ROINumber),'Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(3,ROINumber),'Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'LineWidth',lw,'LineStyle',ls);
                     %lines
-                    set(this.h_ETDRSGrid(4),'XData',[cp(2)+cos(pi/4)*d1/2  cp(2)+cos(pi/4)*d3/2],'YData',[cp(1)+sin(pi/4)*d1/2 cp(1)+sin(pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
-                    set(this.h_ETDRSGrid(5),'XData',[cp(2)+cos(3*pi/4)*d1/2  cp(2)+cos(3*pi/4)*d3/2],'YData',[cp(1)+sin(3*pi/4)*d1/2 cp(1)+sin(3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
-                    set(this.h_ETDRSGrid(6),'XData',[cp(2)+cos(-pi/4)*d1/2  cp(2)+cos(-pi/4)*d3/2],'YData',[cp(1)+sin(-pi/4)*d1/2 cp(1)+sin(-pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
-                    set(this.h_ETDRSGrid(7),'XData',[cp(2)+cos(-3*pi/4)*d1/2  cp(2)+cos(-3*pi/4)*d3/2],'YData',[cp(1)+sin(-3*pi/4)*d1/2 cp(1)+sin(-3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(4,ROINumber),'XData',[cp(2)+cos(pi/4)*d1/2  cp(2)+cos(pi/4)*d3/2],'YData',[cp(1)+sin(pi/4)*d1/2 cp(1)+sin(pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(5,ROINumber),'XData',[cp(2)+cos(3*pi/4)*d1/2  cp(2)+cos(3*pi/4)*d3/2],'YData',[cp(1)+sin(3*pi/4)*d1/2 cp(1)+sin(3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(6,ROINumber),'XData',[cp(2)+cos(-pi/4)*d1/2  cp(2)+cos(-pi/4)*d3/2],'YData',[cp(1)+sin(-pi/4)*d1/2 cp(1)+sin(-pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(7,ROINumber),'XData',[cp(2)+cos(-3*pi/4)*d1/2  cp(2)+cos(-3*pi/4)*d3/2],'YData',[cp(1)+sin(-3*pi/4)*d1/2 cp(1)+sin(-3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
                 else
-                    try
-                        delete(this.h_ETDRSGrid(idxG));
-                    end
+%                     try
+%                         delete(this.h_ETDRSGrid(idxG,ROINumber));
+%                     end
                     h = zeros(7,1);
                     h(1) = rectangle('Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                     h(2) = rectangle('Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
@@ -479,11 +500,11 @@ classdef FDisplay < handle
                     h(5) = line('XData',[cp(2)+cos(3*pi/4)*d1/2  cp(2)+cos(3*pi/4)*d3/2],'YData',[cp(1)+sin(3*pi/4)*d1/2 cp(1)+sin(3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);
                     h(6) = line('XData',[cp(2)+cos(-pi/4)*d1/2  cp(2)+cos(-pi/4)*d3/2],'YData',[cp(1)+sin(-pi/4)*d1/2 cp(1)+sin(-pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);
                     h(7) = line('XData',[cp(2)+cos(-3*pi/4)*d1/2  cp(2)+cos(-3*pi/4)*d3/2],'YData',[cp(1)+sin(-3*pi/4)*d1/2 cp(1)+sin(-3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'Color',gc);
-                    this.h_ETDRSGrid = h;
+                    this.h_ETDRSGrid(:,ROINumber) = h;
                 end
                 %text in subfields
                 if(~drawTextFlag)
-                    delete(this.h_ETDRSGridText(idxT));
+                    delete(this.h_ETDRSGridText(idxT,ROINumber));
                     return
                 end
                 [hfd, ~] = this.gethfd();
@@ -507,18 +528,18 @@ classdef FDisplay < handle
                 if(strcmp(this.measurementPosition,'OD'))
                     txt = txt([1,2,5,4,3,6,9,8,7],1); %re-order nasal and temporal fields
                 end
-                if(~isempty(idxT) && all(idxT(:)))
-                    set(this.h_ETDRSGridText(1),'Position',[cp(2),cp(1)],'String',txt{1});
-                    set(this.h_ETDRSGridText(2),'Position',[cp(2),cp(1)+d1/2+(d2-d1)/4,cp(1)],'String',txt{2});
-                    set(this.h_ETDRSGridText(3),'Position',[cp(2)-(d1/2+(d2-d1)/4),cp(1)],'String',txt{3});
-                    set(this.h_ETDRSGridText(4),'Position',[cp(2),cp(1)-d1/2-(d2-d1)/4,cp(1)],'String',txt{4});
-                    set(this.h_ETDRSGridText(5),'Position',[cp(2)+(d1/2+(d2-d1)/4),cp(1)],'String',txt{5});
-                    set(this.h_ETDRSGridText(6),'Position',[cp(2),cp(1)+d2/2+(d3-d2)/4,cp(1)],'String',txt{6});
-                    set(this.h_ETDRSGridText(9),'Position',[cp(2)-(d2/2+(d3-d2)/4),cp(1)],'String',txt{7});
-                    set(this.h_ETDRSGridText(7),'Position',[cp(2),cp(1)-d2/2-(d3-d2)/4,cp(1)],'String',txt{8});
-                    set(this.h_ETDRSGridText(8),'Position',[cp(2)+(d2/2+(d3-d2)/4),cp(1)],'String',txt{9});
+                if(~isempty(idxT) && all(idxT(:)) && size(this.h_ETDRSGrid,2) >= ROINumber)
+                    set(this.h_ETDRSGridText(1,ROINumber),'Position',[cp(2),cp(1)],'String',txt{1});
+                    set(this.h_ETDRSGridText(2,ROINumber),'Position',[cp(2),cp(1)+d1/2+(d2-d1)/4,cp(1)],'String',txt{2});
+                    set(this.h_ETDRSGridText(3,ROINumber),'Position',[cp(2)-(d1/2+(d2-d1)/4),cp(1)],'String',txt{3});
+                    set(this.h_ETDRSGridText(4,ROINumber),'Position',[cp(2),cp(1)-d1/2-(d2-d1)/4,cp(1)],'String',txt{4});
+                    set(this.h_ETDRSGridText(5,ROINumber),'Position',[cp(2)+(d1/2+(d2-d1)/4),cp(1)],'String',txt{5});
+                    set(this.h_ETDRSGridText(6,ROINumber),'Position',[cp(2),cp(1)+d2/2+(d3-d2)/4,cp(1)],'String',txt{6});
+                    set(this.h_ETDRSGridText(9,ROINumber),'Position',[cp(2)-(d2/2+(d3-d2)/4),cp(1)],'String',txt{7});
+                    set(this.h_ETDRSGridText(7,ROINumber),'Position',[cp(2),cp(1)-d2/2-(d3-d2)/4,cp(1)],'String',txt{8});
+                    set(this.h_ETDRSGridText(8,ROINumber),'Position',[cp(2)+(d2/2+(d3-d2)/4),cp(1)],'String',txt{9});
                 else
-                    delete(this.h_ETDRSGridText(idxT));
+%                     delete(this.h_ETDRSGridText(idxT,ROINumber));
                     h = zeros(9,1);
                     h(1) = text(cp(2),cp(1),txt{1},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     h(2) = text(cp(2),cp(1)+d1/2+(d2-d1)/4,txt{2},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
@@ -529,7 +550,7 @@ classdef FDisplay < handle
                     h(7) = text(cp(2)-(d2/2+(d3-d2)/4),cp(1),txt{7},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     h(8) = text(cp(2),cp(1)-d2/2-(d3-d2)/4,txt{8},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     h(9) = text(cp(2)+(d2/2+(d3-d2)/4),cp(1),txt{9},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
-                    this.h_ETDRSGridText = h;
+                    this.h_ETDRSGridText(:,ROINumber) = h;
                 end
             end
         end
@@ -603,6 +624,7 @@ classdef FDisplay < handle
             %tic;                                    
             this.UpdateMinMaxLbl();
             this.myColorScaleObj.updateGUI([]);
+            this.clearROIs();
             this.makeMainPlot();            
             this.makeSuppPlot();
             this.makeZoom(); 
@@ -643,6 +665,22 @@ classdef FDisplay < handle
                     this.current_img_lbl_max = max(this.current_img_lbl_max,single(hfd{i}.getCImaxLbl(rc,rt,rs,ri)));
                 end
             end
+        end
+        
+        function clearROIs(this)
+            %delete ROI handles
+            isHG = ishghandle(this.h_ROIArea);
+            delete(this.h_ROIArea(isHG));
+            isHG = ishghandle(this.h_ETDRSGrid);
+            delete(this.h_ETDRSGrid(isHG));
+            isHG = ishghandle(this.h_ETDRSGridText);            
+            delete(this.h_ETDRSGridText(isHG));            
+            isHG = ishghandle(this.h_Rectangle);
+            delete(this.h_Rectangle(isHG));
+            isHG = ishghandle(this.h_Circle);
+            delete(this.h_Circle(isHG));
+            isHG = ishghandle(this.h_Polygon);
+            delete(this.h_Polygon(isHG));            
         end
         
         function makeMainPlot(this)
@@ -800,9 +838,20 @@ classdef FDisplay < handle
                         if(dispDim == 1)
                             %check roi
                             if(rt > 1000)
-                                ROICoord = this.ROICoordinates;
-                                if(~isempty(ROICoord))
-                                    this.drawROI(rt,ROICoord(:,1),ROICoord(:,2:end),true);
+                                if(sVisParam.ROIDrawAllOfType)
+                                    allROI = hfd{i}.getROICoordinates([]);
+                                    if(~isempty(allROI))
+                                        idx = find(ROICtrl.decodeROIType(rt) == ROICtrl.decodeROIType(allROI(:,1,1)));                                        
+                                        for j = 1:length(idx)
+                                            ROICoord = hfd{i}.getROICoordinates(allROI(idx(j),1,1));
+                                            this.drawROI(allROI(idx(j),1,1),ROICoord(:,1),ROICoord(:,2:end),true);
+                                        end
+                                    end
+                                else
+                                    ROICoord = this.ROICoordinates;
+                                    if(~isempty(ROICoord))
+                                        this.drawROI(rt,ROICoord(:,1),ROICoord(:,2:end),true);
+                                    end
                                 end
                             end
                         end

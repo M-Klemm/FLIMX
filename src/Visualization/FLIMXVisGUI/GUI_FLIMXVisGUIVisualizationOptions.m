@@ -35,7 +35,7 @@ function varargout = GUI_FLIMXVisGUIVisualizationOptions(varargin)
 % vargin - structure with preferences and defaults
 %output: same as input, but altered according to user input
 
-% Last Modified by GUIDE v2.5 16-Aug-2017 18:29:58
+% Last Modified by GUIDE v2.5 28-May-2019 15:29:13
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -384,6 +384,14 @@ rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
+% --- Executes on button press in checkROIDrawAllOfType.
+function checkROIDrawAllOfType_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+rdh.flimvis.ROIDrawAllOfType = get(hObject,'Value');
+rdh.isDirty(1) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+updateGUI(handles,rdh);
+
 % --- Executes on button press in checkGrid3D.
 function checkGrid3D_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
@@ -614,7 +622,6 @@ if(length(cs) == 3)
 end
 updateGUI(handles,rdh);
 
-
 % --- Executes on button press in buttonSuppLinecolor.
 function buttonSuppLinecolor_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
@@ -752,3 +759,6 @@ function editLowerBoundColormapIntensity_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+
