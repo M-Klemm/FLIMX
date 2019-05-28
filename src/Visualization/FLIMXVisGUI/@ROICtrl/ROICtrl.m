@@ -460,10 +460,9 @@ classdef ROICtrl < handle
             else
                 allROT = hfd.getROICoordinates([]);
                 if(isempty(allROT))
-                    allROIStr = {ROICtrl.ROIType2ROIItem(0)};
-                else
-                    allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
+                    allROT = ROICtrl.getDefaultROIStruct();
                 end
+                allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
             end
             set(this.roi_type_popup,'String',allROIStr,'Value',min(this.roi_type_popup.Value,length(allROIStr)));
             rt = this.ROIType;
