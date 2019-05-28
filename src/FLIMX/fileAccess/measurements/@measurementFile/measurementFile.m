@@ -1008,7 +1008,9 @@ classdef measurementFile < handle
                 this.exportMatFile(ch,'');
                 %this.filesOnHDD(1,ch) = true;                
             end
-            this.checkMyFiles();
+            if(length(this.filesOnHDD) < ch || ~this.filesOnHDD(ch))
+                this.checkMyFiles();
+            end
         end
         
         function exportMatFile(this,ch,folder)
