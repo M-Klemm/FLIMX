@@ -490,7 +490,7 @@ classdef FLIMX < handle
             out.config_revision = 267;
             out.client_revision_major = 4;
             out.client_revision_minor = 9;
-            out.client_revision_fix = 2;
+            out.client_revision_fix = 3;
             out.core_revision = 401;
             out.results_revision = 256;
             out.measurement_revision = 205;

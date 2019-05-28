@@ -280,7 +280,7 @@ classdef axesWithROI < handle
             end
             %update text field
             if(ishandle(this.myCPLbl))
-                if(~isempty(this.myData) && all(size(this.myData) <= coord))
+                if(~isempty(this.myData) && all(coord <= size(this.myData)))
                     this.myCPLbl.String = FLIMXFitGUI.num4disp(this.myData(coord(1),coord(2)));
                 else
                     this.myCPLbl.String = '';
