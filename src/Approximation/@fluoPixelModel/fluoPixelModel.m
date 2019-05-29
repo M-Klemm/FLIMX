@@ -34,7 +34,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
     properties(GetAccess = public, SetAccess = protected)
         currentChannel = 0;
         myChannels = cell(0,0);
-        %useGPU = false; %flag to use Matlab GPU processing features
+        useGPU = false; %flag to use Matlab GPU processing features
         useMex = false; %flag to use optimized mex file for linear optimizer
     end
     properties(GetAccess = protected, SetAccess  = protected)
@@ -447,7 +447,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %compute model and get chi2
             nPixels = uint16(length(pixelIDs));
             nModels = uint16(size(xVec,2));
-            if(this.computationParams.useGPU && nPixels >= 64)
+            if(this.computationParams.useGPU && this.useGPU && nPixels >= 64)
                 xVec = gpuArray(single(xVec));
             else
                 xVec = single(xVec);
@@ -731,9 +731,9 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     %TODO: check that initial values are within bounds!
                 end
                 %make bounds
+                vcp = this.getVolatileChannelParams(chList(chIdx));
                 for p = 1:nPixels
-                    allBounds(chIdx,p).bounds_tci.ub = min(allBounds(chIdx,p).bounds_tci.ub,(rs(chIdx).MaximumPosition(p) - rs(chIdx).StartPosition(p)-1)*this.getFileInfoStruct(chList(chIdx)).timeChannelWidth);
-                    vcp = this.getVolatileChannelParams(chList(chIdx));
+                    allBounds(chIdx,p).bounds_tci.ub = min(allBounds(chIdx,p).bounds_tci.ub,(rs(chIdx).MaximumPosition(p) - rs(chIdx).StartPosition(p)-1)*this.getFileInfoStruct(chList(chIdx)).timeChannelWidth);                    
                     [nonLinBoundsCh(chIdx,p), tmp] = fluoPixelModel.getBoundsPerChannel(rs(chIdx).MaximumPhotons(p),rs(chIdx).OffsetGuess(p),this.basicParams,this.volatilePixelParams.nScatter,vcp(1).cMask,allBounds(chIdx,p));
                     if(~isempty(tmp))
                         linBounds(chIdx,p) = tmp;
@@ -792,13 +792,14 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             end
             %make optimizer init vector
             vcp = this.getVolatileChannelParams(chList(1));
-            if(isempty(vcp) || numel(nonLinBounds(1).init) == 0) %isempty(iArray)
+            if(isempty(vcp) || vcp(1).nApproxParamsPerCh == 0) %isempty(iArray)
                 iVec = [];
                 return
             end
-            iArray = zeros(numel(nonLinBounds(1).init),length(chList),nPixels);
-            lbArray = zeros(numel(nonLinBounds(1).init),length(chList),nPixels);
-            ubArray = zeros(numel(nonLinBounds(1).init),length(chList),nPixels);
+            vcp = vcp(1);
+            iArray = zeros(vcp.nApproxParamsPerCh,length(chList),nPixels);
+            lbArray = zeros(vcp.nApproxParamsPerCh,length(chList),nPixels);
+            ubArray = zeros(vcp.nApproxParamsPerCh,length(chList),nPixels);
             igfArray = zeros(length(vcp(1).cMask),length(chList),nPixels);
             igfArray(:,:,:) = this.getFullXVec(this.currentChannel,pixelIDs,this.divideGlobalFitXVec([nonLinBounds(:).initGuessFactor],true));
             for p = 1:nPixels
@@ -807,7 +808,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 ubArray(:,:,p) = this.divideGlobalFitXVec([nonLinBounds(:,p).ub],true);
             end
             for chIdx = 1:length(chList)
-                [amps, ~, ~, ~, scAmps, scShifts, scOset, ~, oset] = this.getXVecComponents(squeeze(iArray(:,chIdx,:)),true,chList(chIdx),pixelIDs);
+                [amps, ~, ~, ~, scAmps, scShifts, scOset, ~, oset] = this.getXVecComponents(reshape(iArray(:,chIdx,:),[vcp.nApproxParamsPerCh,nPixels]),true,chList(chIdx),pixelIDs);
                 switch this.basicParams.nExp
                     case 1
                         taus = rs(chIdx).TauMeanGuess.*igfArray(this.basicParams.nExp+1,chIdx,1);
@@ -855,8 +856,8 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                         betas = ones(nSE,nPixels)*0.5;
                 end
                 %         %amps,offset,hShift
-                [ampsLB, tausLB, tcisLB, betasLB, scAmpsLB, scShiftsLB, scOsetLB, hShiftLB, osetLB] = this.getXVecComponents(squeeze(lbArray(:,chIdx,:)),true,chList(chIdx),pixelIDs);
-                [ampsUB, tausUB, tcisUB, betasUB, scAmpsUB, scShiftsUB, scOsetUB, hShiftUB, osetUB] = this.getXVecComponents(squeeze(ubArray(:,chIdx,:)),true,chList(chIdx),pixelIDs);
+                [ampsLB, tausLB, tcisLB, betasLB, scAmpsLB, scShiftsLB, scOsetLB, hShiftLB, osetLB] = this.getXVecComponents(reshape(lbArray(:,chIdx,:),[vcp.nApproxParamsPerCh,nPixels]),true,chList(chIdx),pixelIDs);
+                [ampsUB, tausUB, tcisUB, betasUB, scAmpsUB, scShiftsUB, scOsetUB, hShiftUB, osetUB] = this.getXVecComponents(reshape(ubArray(:,chIdx,:),[vcp.nApproxParamsPerCh,nPixels]),true,chList(chIdx),pixelIDs); %squeeze(ubArray(:,chIdx,:))
                 hShift = rs(chIdx).hShiftGuess;
                 %if(hShift < 0)
                 hShiftUB = hShift + 10.*this.getFileInfoStruct(chList(chIdx)).timeChannelWidth;%-2*tciGuess; %hShift;

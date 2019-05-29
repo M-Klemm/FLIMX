@@ -622,11 +622,14 @@ classdef FluoDecayFit < handle
                     %pixelPerCore = this.computationParams.mcTargetPixelPerWU*ceil(max(1,round(totalPixels/this.computationParams.mcTargetNrWUs))/this.computationParams.mcTargetPixelPerWU);                    
                     pixelPerWU = this.computationParams.mcTargetPixelPerWU * pixelPerCore;
                 end                
-                mcSettings.maxEvalTimeSingle = pixelPerWU*2/8; %= guess 2s per pixel, running on 8 cores in parallel; todo
+                mcSettings.maxEvalTimeSingle = pixelPerWU*3/8; %= guess 3s per pixel, running on 8 cores in parallel; todo
                 iter = ceil(totalPixels/pixelPerWU);
                 parameterCell = cell(1,iter);
                 idxCell = cell(1,iter);
                 iter = 0;
+                this.FLIMXObj.curSubject.clearCachedApproxObj();
+                oldGPUFlag = this.FLIMXObj.curSubject.computationParams.useGPU;
+                this.FLIMXObj.curSubject.computationParams.useGPU = 0;
                 for i = 1:pixelPerWU:totalPixels
                     iter = iter+1;
                     subPool = pixelPool(i:min(totalPixels,i+pixelPerWU-1));
@@ -649,6 +652,8 @@ classdef FluoDecayFit < handle
                 mcSettings.postProcessHandle = @this.mcPostProcess;
                 %distribute work
                 resultCell = startmulticoremaster(@makePixelFit, parameterCell, mcSettings);
+                this.FLIMXObj.curSubject.clearCachedApproxObj();
+                this.FLIMXObj.curSubject.computationParams.useGPU = oldGPUFlag;
                 if(isempty(resultCell) || length(resultCell) ~= iter || isempty(resultCell{1}) || ischar(resultCell{1}))
                     %something went wrong
                     %todo: error message, cleanup
@@ -878,6 +883,11 @@ classdef FluoDecayFit < handle
         function params = get.computationParams(this)
             %get pre processing parameters
             params = this.FLIMXObj.paramMgr.getParamSection('computation');
+        end
+        
+        function set.computationParams(this,val)
+            %get pre processing parameters
+            this.FLIMXObj.paramMgr.computationParams = val;
         end
         
         function params = get.cleanupFitParams(this)

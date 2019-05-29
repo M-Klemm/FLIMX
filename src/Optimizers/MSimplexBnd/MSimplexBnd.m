@@ -106,7 +106,7 @@ end
 
 % Set up a simplex near the initial guess.
 for s = 1:nSeeds
-    x(:,s,:) = checkBounds(checkQuantization(squeeze(x(:,s,:)),quant(:,pixelIDs),lb(:,pixelIDs)),lb(:,pixelIDs),ub(:,pixelIDs));
+    x(:,s,:) = checkBounds(checkQuantization(reshape(x(:,s,:),[nParams,nPixels]),quant(:,pixelIDs),lb(:,pixelIDs)),lb(:,pixelIDs),ub(:,pixelIDs));
 end
 iterCount = ones(1,nPixels,'uint16');
 fcnEvalCount = zeros(1,nPixels,'uint16');
