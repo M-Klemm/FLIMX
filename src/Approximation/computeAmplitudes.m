@@ -112,7 +112,7 @@ else
         if(fitOsetFlag)
             %determine amplitudes and offset
             %ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),idxExpModel),measData(dataNonZeroMask(:,idxData),idxData)),linLB,linUB);
-            ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),:,idxData),measData(dataNonZeroMask(:,idxData),idxData)),linLB,linUB);
+            ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),:,idxData),measData(dataNonZeroMask(:,idxData),idxData)),linLB(1:nParams,idxData),linUB(1:nParams,idxData));
         else
             %determine amplitudes only, offset is already set
             %ao(1,1:nParams-1,j) = checkBounds(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel)\(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel)),linLB(1:nParams-1,:),linUB(1:nParams-1,:));
