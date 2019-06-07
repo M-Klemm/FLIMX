@@ -333,6 +333,9 @@ classdef StatsMVGroupMgr < handle
             ds1 = this.visObj.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName);
             if(~isempty(ds1))
                 allROT = this.visObj.fdt.getResultROICoordinates(this.curStudyName,ds1{1},[]);
+                if(isempty(allROT))
+                    allROT = ROICtrl.getDefaultROIStruct();
+                end
                 allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
             else
                 allROIStr = {ROICtrl.ROIType2ROIItem(0)};

@@ -800,6 +800,9 @@ classdef StatsDescriptive < handle
             ds1 = this.visObj.fdt.getAllSubjectNames(this.study,this.condition);
             if(~isempty(ds1))
                 allROT = this.visObj.fdt.getResultROICoordinates(this.study,ds1{1},[]);
+                if(isempty(allROT))
+                    allROT = ROICtrl.getDefaultROIStruct();
+                end
                 allROT = [0;allROT(:,1,1)];                
             else
                 allROT = 0;
