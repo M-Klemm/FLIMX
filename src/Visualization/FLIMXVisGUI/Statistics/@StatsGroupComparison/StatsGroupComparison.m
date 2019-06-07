@@ -423,6 +423,9 @@ classdef StatsGroupComparison < handle
                 ch1 = this.visObj.fdt.getChStr(this.study1,ds1{1});
                 coStr = this.visObj.fdt.getChObjStr(this.study1,ds1{1},this.ch);
                 allROT = this.visObj.fdt.getResultROICoordinates(this.study1,ds1{1},[]);
+                if(isempty(allROT))
+                    allROT = ROICtrl.getDefaultROIStruct();
+                end
                 allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
             else
                 ch1 = [];
