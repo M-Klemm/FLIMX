@@ -273,7 +273,7 @@ if(~isempty(pixelIDs))
             xVec = apObj.getFullXVec(chList(ch),pixelIDs,amps,taus,tcis,betas,scAmps,scShifts,scOset,hShift,oset);
             %xVec(end) = xVec(end) ./ result(ch).MaximumPhotons(1,1);
             % check if all amps are > 0 and values are not at borders
-            if(all(all([amps; oset] > eps) & all((apObj.getNonConstantXVec(chList(ch),xVec) - lbCh(pixelIDs)) > eps) & all((ubCh(pixelIDs) - apObj.getNonConstantXVec(chList(ch),xVec)) > eps)))
+            if(vcp(1).nApproxParamsPerCh > 0 && all(all([amps; oset] > eps) & all((apObj.getNonConstantXVec(chList(ch),xVec) - lbCh(pixelIDs)) > eps) & all((ubCh(pixelIDs) - apObj.getNonConstantXVec(chList(ch),xVec)) > eps)))
                 resultIsValidCnt = 0;
                 %                     if(apObj.basicParams.optimizerInitStrategy == 3)
                 %                         %save current solution for next pixel

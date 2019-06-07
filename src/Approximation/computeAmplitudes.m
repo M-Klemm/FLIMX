@@ -69,7 +69,11 @@ if(isempty(linLB))
     linUB = inf(nParams,1,'like',expModels);
 end
 if(fitOsetFlag)
-    expModels(:,end,:) = ones(size(expModels,1),nVecs,'like',expModels);
+    if(singleModelFlag)
+        expModels(:,end) = ones(size(expModels,1),1,'like',expModels);
+    else
+        expModels(:,end,:) = ones(size(expModels,1),nVecs,'like',expModels);
+    end
 % else
 %     ao(1,end,:) = ones(1,nVecs,'like',expModels).*oset;
 end

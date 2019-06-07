@@ -486,6 +486,10 @@ classdef FluoDecayFit < handle
                     expModels = [];
                     oset = [];
                     multiModelsFlag = this.FLIMXObj.curSubject.initFitParams.gridSize == 1;
+                    fitOffsetFlag = false;
+                    if(vcp.cMask(end) < 0)
+                        fitOffsetFlag = true;
+                    end
                     if(~multiModelsFlag)
                         tauOut = zeros(dataYSz,dataXSz,nParams,'single');
                         for i = 1:nParams
@@ -505,6 +509,7 @@ classdef FluoDecayFit < handle
                     else
                         %set amplitudes to fixed value (1)
                         vcp.cMask(1:nParams) = 1;
+                        vcp.cMask(end) = 1;
                         vcp.cVec(1:nParams) = 1;
                         [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents([],true,ch,1);
                         shiftOut = ones(1,dataYSz*dataXSz).* hShift;
@@ -557,12 +562,12 @@ classdef FluoDecayFit < handle
                             myT = repmat(t(:,1),1,double(nExp)*nVecsTmp);                            
                             expMTmp = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,...
                                 myT,apObj.myChannels{ch}.iMaxPos,irffft,[],taus, tcis, betas, scAmps, scShifts, [], scOset, hShift, tciHShiftFine,false);
-                            [ao,aTmp,oTmp] = computeAmplitudes(expMTmp,md,dnzm,offset,vcp.cMask(end)<0,zeros([size(expMTmp,2),size(taus,2)],'like',expMTmp),inf([size(expMTmp,2),size(taus,2)],'like',expMTmp));
+                            [ao,aTmp,oTmp] = computeAmplitudes(expMTmp,md,dnzm,offset,fitOffsetFlag,zeros([size(expMTmp,2),size(taus,2)],'like',expMTmp),inf([size(expMTmp,2),size(taus,2)],'like',expMTmp));
                             expMTmp(:,:,1:nVecsTmp) = expMTmp(:,:,1:nVecsTmp).*ao;                            
                             mTmp = squeeze(sum(expMTmp(:,:,1:nVecsTmp),2));
                         else
                             %same model for all pixels
-                            [~,aTmp,oTmp] = computeAmplitudes(expModels,md,dnzm,oset,false,zeros([size(expModels,2),1],'like',expModels),inf([size(expModels,2),1],'like',expModels));
+                            [~,aTmp,oTmp] = computeAmplitudes(expModels,md,dnzm,oset,fitOffsetFlag,zeros([size(expModels,2),1],'like',expModels),inf([size(expModels,2),1],'like',expModels));
                             mTmp = expModels * [aTmp; oTmp];
                             %expMTmp = bsxfun(@times,expModels,ao);
                             %mTmp = squeeze(sum(expMTmp(:,:,1:nVecsTmp),2));
