@@ -31,7 +31,7 @@ function [cw, lim, lb, ub] = getHistParams(statsParams,ch,dType,dID)
 %
 % @brief    A function to extract histogram parameters from a structure for use in FLIMXVis
 %
-if(contains(dType,'MVGroup'))
+if(isempty(dType) || contains(dType,'MVGroup'))
     cw = channelSel(statsParams.c_classwidth,ch);
     lim = channelSel(statsParams.c_lim,ch);
     lb = channelSel(statsParams.c_lb,ch);

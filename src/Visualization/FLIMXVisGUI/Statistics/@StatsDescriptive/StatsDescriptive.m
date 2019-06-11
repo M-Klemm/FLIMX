@@ -487,7 +487,7 @@ classdef StatsDescriptive < handle
             set(this.visHandles.popupSelROIVicinity,'Visible',flag);
             %params
             oldPStr = get(this.visHandles.popupSelFLIMParam,'String');
-            if(iscell(oldPStr))
+            if(iscell(oldPStr) && length(oldPStr) > 1)
                 oldPStr = oldPStr(min(length(oldPStr),get(this.visHandles.popupSelFLIMParam,'Value')));
             end
             %try to find oldPStr in new pstr
@@ -639,7 +639,7 @@ classdef StatsDescriptive < handle
         function dType = get.dType(this) 
             dType = [];
             out = get(this.visHandles.popupSelFLIMParam,'String');
-            if(~ischar(out))
+            if(~ischar(out) && ~isempty(out))
                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelFLIMParam,'Value')});
                 dType = dType{1};
             end
