@@ -561,8 +561,8 @@ classdef FDTree < FDTreeNode
             destStudy = this.getChild(destinationStudy);            
             if(~isempty(destStudy) && ~isempty(orgStudy))
                 %check if subjects exist in studies 
-                orgSubject = orgStudy.getSubject(subjectID);
-                destSubject = destStudy.getSubject(subjectID);
+                orgSubject = orgStudy.getChild(subjectID);
+                destSubject = destStudy.getChild(subjectID);
                 if(~isempty(orgSubject) && ~isempty(destSubject))
                     %get all ROI coordinates from source
                     ROICoord = orgStudy.getResultROICoordinates(subjectID,[]);
