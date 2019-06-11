@@ -308,7 +308,7 @@ classdef studyIS < handle
             end
             tmp = this.resultROICoordinates{subIdx};
             if(isempty(ROICoord))
-                ROICoord = zeros(3,2,'uint16');
+                ROICoord = zeros(2,3,'uint16');
             elseif(size(ROICoord,1) == 2 && size(ROICoord,2) == 1)
                 ROICoord(:,2:3) = zeros(2,2,'like',ROICoord);
             end
