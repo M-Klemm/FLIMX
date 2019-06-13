@@ -732,13 +732,13 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 end
                 %make bounds
                 vcp = this.getVolatileChannelParams(chList(chIdx));
+                nonLinBoundsCh = struct('init',NaN,'lb',NaN,'deQuantization',NaN,'simplexInit',NaN,'tol',NaN,'ub',NaN,'quantization',NaN,'initGuessFactor',NaN);
+                linBounds = struct('init',NaN,'lb',NaN,'deQuantization',NaN,'simplexInit',NaN,'tol',NaN,'ub',NaN,'quantization',NaN,'initGuessFactor',NaN);
                 for p = 1:nPixels
                     allBounds(chIdx,p).bounds_tci.ub = min(allBounds(chIdx,p).bounds_tci.ub,(rs(chIdx).MaximumPosition(p) - rs(chIdx).StartPosition(p)-1)*this.getFileInfoStruct(chList(chIdx)).timeChannelWidth);                    
                     [nonLinBoundsCh(chIdx,p), tmp] = fluoPixelModel.getBoundsPerChannel(rs(chIdx).MaximumPhotons(p),rs(chIdx).OffsetGuess(p),this.basicParams,this.volatilePixelParams.nScatter,vcp(1).cMask,allBounds(chIdx,p));
                     if(~isempty(tmp))
                         linBounds(chIdx,p) = tmp;
-                    else
-%                         linBounds = [];
                     end
                 end
 %                 if(globalIVec && any(allInitVec(:,1)))
@@ -771,7 +771,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
 %                         nonLinBoundsCh(chIdx).ub = this.getNonConstantXVec(chList(chIdx),ampsUB,tausUB,tcisUB,betasUB,scAmpsUB,scShiftsUB,scOsetUB,hShiftUB,osetUB);
 %                     end
 %                 end
-                if(~isempty(linBounds))
+                if(~all(~isnan(struct2array(linBounds)),'all'))
                     this.myChannels{chList(chIdx)}.setLinearBounds(linBounds(chIdx,:));
                 else
                     this.myChannels{chList(chIdx)}.setLinearBounds([]);
