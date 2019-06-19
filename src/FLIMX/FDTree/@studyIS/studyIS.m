@@ -1583,8 +1583,8 @@ classdef studyIS < handle
                     %valid subject name
                     name = id;
                 end
-            elseif(isnumeric(id))
-                if(id <= this.nrSubjects)
+            elseif(isnumeric(id) && ~isempty(id))
+                if(id <= this.nrSubjects && id > 0)
                     name = this.subjectNames{id};
                 end
             end
