@@ -1051,7 +1051,8 @@ classdef fluoSubject < FDTreeNode
             %load measurement data into the object
             if(any(out.volatilePixelParams.globalFitMask))
                 %data = zeros(out.fileInfo(ch).nrTimeChannels,out.fileInfo(ch).nrSpectralChannels,this.myMeasurement.getROIInfo(ch).ROIDataType);
-                for chTmp = 1:out.fileInfo(ch).nrSpectralChannels
+                fi = out.getFileInfoStruct(ch);
+                for chTmp = 1:fi.nrSpectralChannels
                     data = this.myMeasurement.getROIData(chTmp,y,x);
                     if(~isempty(data))
                         out.setMeasurementData(chTmp,data);

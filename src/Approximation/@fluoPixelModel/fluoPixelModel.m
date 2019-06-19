@@ -1403,8 +1403,18 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %check if exponential at tcIdx lies between slopeStartPos and the other exponentials, if not remove them from models, compute a chi2 and save it in index idx
             %find position of rising edge at half maximum
             idxNum = find(~idx);
-            idxRemain = true(1,size(exponentials,3));
-            for m = 1:size(exponentials,3)
+            [~,~,nPixels] = size(exponentials);
+            if(nPixels ~= length(lowerBound) || nPixels ~= length(upperBound))
+                if(length(lowerBound) == 1 && length(upperBound) == 1)
+                    %1 pixel, multiple models
+                    lowerBound = repmat(lowerBound,nPixels,1);
+                    upperBound = repmat(upperBound,nPixels,1);
+                else
+                    error('FLIMX:fluoPixelModel:timeShiftCheck','Number of models (%d) does not match number of lower bound (%d) and/or upper bounds (%d).',nPixels,length(lowerBound),length(upperBound));
+                end
+            end
+            idxRemain = true(1,nPixels);
+            for m = 1:nPixels
                 exponentials(:,:,m) = exponentials(:,:,m)-exponentials(lowerBound(m),:,m);%min(exponentials,[],1));
             end
             [expMax,expMaxPos] = max(exponentials);
