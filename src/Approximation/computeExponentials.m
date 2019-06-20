@@ -49,7 +49,7 @@ taus = 1./taus;
 %     t = repmat(this.time(:,1),1,nVecs);
 %     tSingle = single(t(:,1));
 % end
-if((nScatter-sum(scatterEnable && scatterIRF)) > 0)
+if((nScatter))%-sum(scatterEnable && scatterIRF)) > 0)
     %shiftAndLinearOpt function will move all components by hShift -> compensate scatter shifts here
     scShifts = bsxfun(@minus,scShifts,hShift);
 end
@@ -90,10 +90,12 @@ scHShiftsFine = reshape(scHShiftsFine,nVecs*nScatter,1);
 % end
 
 %% prepare scatter
-%             for i = 1:vpp.nScatter
-%                 scVec(:,i,:) = bsxfun(@plus,squeeze(scVec(:,i,:)),scOset(i,:));
-% %                 scVec(:,i,:) = circShiftArray(bsxfun(@times, squeeze(scVec(:,i,:)),scAmps(i,:)).*this.dMaxVal,scShifts(i,:));
-%             end
+if(any(scOset))
+            for i = 1:vpp.nScatter
+                scatterData(:,i,:) = bsxfun(@plus,squeeze(scatterData(:,i,:)),scOset(i,:));
+%                 scVec(:,i,:) = circShiftArray(bsxfun(@times, squeeze(scVec(:,i,:)),scAmps(i,:)).*this.dMaxVal,scShifts(i,:));
+            end
+end
 %                 this.myStartPos = max(this.fileInfo.StartPosition + min(scShifts(:)), this.fileInfo.StartPosition);
 %                 this.myEndPos = min([this.fileInfo.EndPosition + min(scShifts(:)), this.fileInfo.EndPosition, nTimeCh]);
 %% make exponentials
@@ -117,11 +119,12 @@ end
 % for i = find(~stretchedExpMask)
 %     exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@times, t(:,1:nVecs), taus(i,:)));
 % end
-if(scatterEnable && scatterIRF)
-    nExp = nExp+1;
-    exponentialsLong(:,nExp,1:nVecs) = zeros(nTimeCh,1,nVecs);
-    exponentialsLong(1,nExp,1:nVecs) = 1;
-end
+% if(scatterEnable && scatterIRF)
+%     %irf as scatter data
+%     nExp = nExp+1;
+%     exponentialsLong(:,nExp,1:nVecs) = zeros(nTimeCh,1,nVecs);
+%     exponentialsLong(1,nExp,1:nVecs) = 1;
+% end
 %% reconvolute
 if(~isempty(irfFFT))
     %determine reconv model length
@@ -172,14 +175,19 @@ exponentialsLong(1:nTimeChOut,:) = vectorInterp(exponentialsLong(1:nTimeChOut,:)
 %% assemble output
 exponentialsOut(:,idxExponentialsOut) = exponentialsLong(1:nTimeChOut,idxExponentialsLong);
 %% add shifted scatter
-if((nScatter-sum(scatterEnable && scatterIRF)) > 0)
-    for j = 1:nVecs
-        for k = 1:nScatter
-            exponentialsOut(:,j*(nExp+k)) = circshift(scatterData(:,k,j),scShifts((j-1)*nScatter+k));
-        end
-    end
+%if((nScatter-sum(scatterEnable && scatterIRF)) > 0)
+if(nScatter == 1)
+    exponentialsOut(:,idxScatterOut) = circShiftArrayNoLUT(squeeze(scatterData),scShifts);
     %shift with higher time resolution (interpolate)
     exponentialsOut(:,idxScatterOut) = vectorInterp(exponentialsOut(:,idxScatterOut),scHShiftsFine);
+elseif(nScatter >= 2)
+    for j = 1:nVecs
+        for k = 1:nScatter
+            exponentialsOut(:,j*(nExp+k+1)-1) = circshift(scatterData(:,k,j),scShifts((j-1)*nScatter+k));
+            %shift with higher time resolution (interpolate)
+            exponentialsOut(:,j*(nExp+k+1)-1) = vectorInterp(exponentialsOut(:,j*(nExp+k+1)-1),scHShiftsFine((j-1)*nScatter+k));
+        end
+    end
 end
 %% remove not a numbers
 exponentialsOut(isnan(exponentialsOut)) = 0;

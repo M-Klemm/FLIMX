@@ -323,6 +323,10 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 this.dataStorage.scatter.normalized = data;
             end
             out = this.dataStorage.scatter.normalized;
+            if(this.basicParams.scatterIRF)
+                %add IRF as scatter data
+                out = [out, this.getIRF()];
+            end
         end
         
         function out = getInitializationData(this,pixelIDs)
@@ -460,12 +464,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             vpp = this.volatilePixelParams;
             nTimeCh = this.tLen;
             nTimeChNoID = nTimeCh / incompleteDecayFactor;
-            vcp = this.volatileChannelParams(1); %assume all pixels are identical
-            if(~isempty(this.dataStorage.scatter.raw))
-                scVec = repmat(this.getScatterData(),[1,1,nVecs]);
-            else
-                scVec = zeros(nTimeChNoID,vpp.nScatter-bp.scatterIRF,nVecs,'like',x);
-            end 
+            vcp = this.volatileChannelParams(1); %assume all pixels are identical            
             if(isa(x,'gpuArray'))
                 %useGPUFlag = true;
                 xClass = classUnderlying(x);
@@ -483,6 +482,11 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                     irffft = gpuArray(cast(this.getIRFFFT(nTimeCh),xClass));
                 else
                     irffft = [];
+                end
+                if(~isempty(this.dataStorage.scatter.raw))
+                    scVec = repmat(gpuArray(cast(this.getScatterData(),xClass)),[1,1,nVecs]);
+                else
+                    scVec = zeros(nTimeChNoID,vpp.nScatter,nVecs,'like',x); %vpp.nScatter-bp.scatterIRF
                 end
                 [model, ampsOut, scAmpsOut, osetOut, expModelOut] = computeModels(uint16(bp.nExp),uint16(incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
                     logical(bp.stretchedExpMask),gt(:,1:bp.nExp*nVecs),int32(this.iMaxPos),irffft,scVec, amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, tciHShiftFine,...
@@ -510,6 +514,11 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                     end
                 else
                     irffft = [];
+                end
+                if(~isempty(this.dataStorage.scatter.raw))
+                    scVec = repmat(cast(this.getScatterData(),xClass),[1,1,nVecs]);
+                else
+                    scVec = zeros(nTimeChNoID,vpp.nScatter,nVecs,'like',x); %vpp.nScatter-bp.scatterIRF
                 end
                 [model, ampsOut, scAmpsOut, osetOut, expModelOut] = computeModels(uint16(bp.nExp),uint16(incompleteDecayFactor),logical(bp.scatterEnable),logical(bp.scatterIRF),...
                     logical(bp.stretchedExpMask),t(:,1:bp.nExp*nVecs),int32(this.iMaxPos),irffft,scVec, amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, tciHShiftFine,...
