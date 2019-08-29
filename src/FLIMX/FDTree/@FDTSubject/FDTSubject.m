@@ -35,9 +35,7 @@ classdef FDTSubject < fluoSubject
         %myDir = '';             %subjects's working directory
     end
     properties (Dependent = true)
-        FLIMXParamMgrObj = [];  
-        XSz = [];
-        YSz = [];
+        FLIMXParamMgrObj = [];
     end
     
     methods
@@ -929,51 +927,7 @@ classdef FDTSubject < fluoSubject
             %get handle to parameter manager object
             out = this.myParent.FLIMXParamMgrObj;
         end
-        
-        function out = get.XSz(this)
-            %return width of results
-            if(~(isempty(this.myResult.nonEmptyChannelList)))
-                %get it from a result first
-                out = this.myResult.resultSize;
-                if(length(out) == 2)
-                    out = out(2);
-                else
-                    out = [];
-                end
-            elseif(~(isempty(this.myMeasurement.nonEmptyChannelList)))
-                %there is no result, get ROA size from measurement
-                out = this.myMeasurement.getROIXSz();                
-            else
-                %subject is empty
-                out = [];
-            end
-            if(~out)
-                out = [];
-            end
-        end
-        
-        function out = get.YSz(this)
-            %return height of results
-            if(~(isempty(this.myResult.nonEmptyChannelList)))
-                %get it from a result first
-                out = this.myResult.resultSize;
-                if(length(out) == 2)
-                    out = out(1);
-                else
-                    out = [];
-                end
-            elseif(~(isempty(this.myMeasurement.nonEmptyChannelList)))
-                %there is no result, get ROA size from measurement
-                out = this.myMeasurement.getROIYSz();                
-            else
-                %subject is empty
-                out = [];
-            end
-            if(~out)
-                out = [];
-            end
-        end
-        
+                
         %% compute functions        
         function makeArithmeticImage(this,aiName,aiParams)
             %compute arithmetic images (all if aiName is empty)

@@ -47,6 +47,8 @@ classdef fluoSubject < FDTreeNode
     properties (Dependent = true)
         myIRFMgr = [];
         
+        XSz = [];
+        YSz = [];
         tacRange = 0;
         nrTimeChannels = 0;
         timeChannelWidth = 0;
@@ -720,6 +722,51 @@ classdef fluoSubject < FDTreeNode
         function out = get.resultIsDirty(this)
             %return flag if result is dirty
             out = this.myResult.dirtyFlags;
+        end
+        
+        
+        function out = get.XSz(this)
+            %return width of results
+            if(~(isempty(this.myResult.nonEmptyChannelList)))
+                %get it from a result first
+                out = this.myResult.resultSize;
+                if(length(out) == 2)
+                    out = out(2);
+                else
+                    out = [];
+                end
+            elseif(~(isempty(this.myMeasurement.nonEmptyChannelList)))
+                %there is no result, get ROA size from measurement
+                out = this.myMeasurement.getROIXSz();                
+            else
+                %subject is empty
+                out = [];
+            end
+            if(~out)
+                out = [];
+            end
+        end
+        
+        function out = get.YSz(this)
+            %return height of results
+            if(~(isempty(this.myResult.nonEmptyChannelList)))
+                %get it from a result first
+                out = this.myResult.resultSize;
+                if(length(out) == 2)
+                    out = out(1);
+                else
+                    out = [];
+                end
+            elseif(~(isempty(this.myMeasurement.nonEmptyChannelList)))
+                %there is no result, get ROA size from measurement
+                out = this.myMeasurement.getROIYSz();                
+            else
+                %subject is empty
+                out = [];
+            end
+            if(~out)
+                out = [];
+            end
         end
         
         function out = getResultType(this)

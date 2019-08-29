@@ -40,18 +40,17 @@ classdef measurement4Sim < measurementInFDTree
     methods
         function this = measurement4Sim(hSubject,fi)
             %constructor
-            this = this@measurementInFDTree(hSubject.myParamMgr,@hSubject.getWorkingDirectory,hSubject);
+            this = this@measurementInFDTree(@hSubject.myParamMgr,@hSubject.getWorkingDirectory,hSubject);
             this.setFileInfoStruct(fi);
             this.setDirtyFlags([],1:4,true);
         end
         
         %% input methods
-        function loadRawData(this,channel,data)
-            %set raw data for channel
+        function setSyntheticData(this,channel,data)
+            %set synthetic data for channel
             this.setRawData(channel,data);
             this.clearROIData();
         end
-        
         function out = getNonEmptyChannelList(this)
             %return list of channel with measurement data
             out = find(~cellfun('isempty',this.rawFluoData));
@@ -62,5 +61,9 @@ classdef measurement4Sim < measurementInFDTree
             fileInfo = getFileInfoStruct@measurementFile(this,ch);
         end
         
-    end
+    end %methods
+    
+    methods  (Access = protected)
+        
+    end % (Access = protected)
 end

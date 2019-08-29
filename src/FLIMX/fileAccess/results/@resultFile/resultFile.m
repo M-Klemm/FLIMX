@@ -302,7 +302,7 @@ classdef resultFile < handle
         
         function allocPixelResult(this,ch)
             %clear old pixel results, build new pixel results structure
-            if(isempty(ch))
+            if(isempty(ch) || isempty(this.resultSize))
                 this.results.pixel = cell(0,0);
                 this.pixelApproximated = false;
                 return
