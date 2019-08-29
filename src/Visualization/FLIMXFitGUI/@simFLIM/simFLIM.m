@@ -82,6 +82,7 @@ classdef simFLIM < handle
             out.updatebasicParams(sdc);            
             out.preProcessParams.roiBinning = 0;
             out.preProcessParams.roiAdaptiveBinEnable = 0;
+            out.myMeasurement.setROIDataType('single');
         end
         
         %%dependent properties
