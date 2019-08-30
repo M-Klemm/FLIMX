@@ -416,8 +416,8 @@ classdef ROICtrl < handle
             else
                 %polygon
                 %add only unique pixels
-                idx = sum(ROICoord - coord,1);
-                if(all(idx))
+                idx = all(~bsxfun(@minus,ROICoord,coord),1);
+                if(~any(idx))
                     ROICoord(:,end+1) = coord;
                 end
             end
