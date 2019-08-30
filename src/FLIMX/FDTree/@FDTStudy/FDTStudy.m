@@ -1208,7 +1208,9 @@ classdef FDTStudy < FDTreeNode
         function [measurementChs, resultChs, position, resolution] = getSubjectFilesStatus(this,subjectID)
             %returns which channels are available for a subject in a study            
             subject = this.getChild(subjectID);
-            if(~isempty(subject))
+            if(isempty(subject))
+                measurementChs = []; resultChs = []; position = []; resolution = [];
+            else
                 %measurements
                 measurementChs = subject.nonEmptyMeasurementChannelList;
                 %results

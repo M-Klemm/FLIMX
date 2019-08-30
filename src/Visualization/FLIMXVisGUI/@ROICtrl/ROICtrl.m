@@ -302,14 +302,14 @@ classdef ROICtrl < handle
             data = get(this.roi_table,'Data');
             rt = this.ROIType;
             if(~isempty(data) && rt > 4000 && rt < 5000)
-                [~,~,ROITypeFine] = ROICtrl.ROIType2ROIItem(this.ROIType);
-                choice = questdlg(sprintf('Delete last node (y=%d, x=%d) of Polygon #%d ROI in subject %s?',data{1,end},data{2,end},ROITypeFine,this.myHFD.subjectName),'Clear last Polygon ROI node?','Yes','No','No');
-                switch choice
-                    case 'Yes'
+%                 [~,~,ROITypeFine] = ROICtrl.ROIType2ROIItem(this.ROIType);
+%                 choice = questdlg(sprintf('Delete last node (y=%d, x=%d) of Polygon #%d ROI in subject %s?',data{1,end},data{2,end},ROITypeFine,this.myHFD.subjectName),'Clear last Polygon ROI node?','Yes','No','No');
+%                 switch choice
+%                     case 'Yes'
                         data(:,end) = [];
                         set(this.roi_table,'Data',data);
                         this.save();
-                end
+%                 end
             end
         end
         

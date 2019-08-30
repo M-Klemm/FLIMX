@@ -47,6 +47,8 @@ classdef fluoSubject < FDTreeNode
     properties (Dependent = true)
         myIRFMgr = [];
         
+        XSz = [];
+        YSz = [];
         tacRange = 0;
         nrTimeChannels = 0;
         timeChannelWidth = 0;
@@ -198,6 +200,9 @@ classdef fluoSubject < FDTreeNode
         
         function updateAuxiliaryData(this,chList)
             %update auxiliaryData in my result from measurement, clears results
+            if(isMultipleCall)
+                return
+            end
 %             if(~this.isInitialized)
 %                 this.init();
 %             end
@@ -215,15 +220,15 @@ classdef fluoSubject < FDTreeNode
                     chList = 1:this.nrSpectralChannels;
                 end
                 if(isvector(chList) && ~isscalar(chList))
-                    for ch = chList                        
+                    for ch = chList
                         %because of updating the parameters, the nr of
                         %spectral channels could have changed (switching
                         %between lifetime and anisotropy)
                         if(ch > this.nrSpectralChannels)
                             this.myResult.setAuxiliaryData(ch,[]);
                         else
-                            this.updateAuxiliaryData(ch);                            
-                        end                        
+                            this.updateAuxiliaryData(ch);
+                        end
                     end
                     if(updateAllChs && chList(end) < this.nrSpectralChannels)
                         %we switched to anisotropy -> make auxdata for channels 3 and 4
@@ -313,8 +318,8 @@ classdef fluoSubject < FDTreeNode
                                         end
                                         curScatterFile.updateSubjectChannel(chList,'result'); %update measurement as well?
                                         curScatterFile.myParent.save();
-                                    end                                        
-                                    offset = curScatterFile.getInitFLIMItem(chList,'Offset');                                        
+                                    end
+                                    offset = curScatterFile.getInitFLIMItem(chList,'Offset');
                                     tmp = curScatterFile.getROIMerged(chList);
                                     if(max(tmp(:)) >= 2^16 && strcmp(ad.measurementROIInfo.ROIDataType,'uint16'))
                                         ad.scatter = zeros(ad.fileInfo.nrTimeChannels,this.volatilePixelParams.nScatter-this.basicParams.scatterIRF,'uint32');
@@ -731,6 +736,51 @@ classdef fluoSubject < FDTreeNode
             out = this.myResult.dirtyFlags;
         end
         
+        
+        function out = get.XSz(this)
+            %return width of results
+            if(~(isempty(this.myResult.nonEmptyChannelList)))
+                %get it from a result first
+                out = this.myResult.resultSize;
+                if(length(out) == 2)
+                    out = out(2);
+                else
+                    out = [];
+                end
+            elseif(~(isempty(this.myMeasurement.nonEmptyChannelList)))
+                %there is no result, get ROA size from measurement
+                out = this.myMeasurement.getROIXSz();                
+            else
+                %subject is empty
+                out = [];
+            end
+            if(~out)
+                out = [];
+            end
+        end
+        
+        function out = get.YSz(this)
+            %return height of results
+            if(~(isempty(this.myResult.nonEmptyChannelList)))
+                %get it from a result first
+                out = this.myResult.resultSize;
+                if(length(out) == 2)
+                    out = out(1);
+                else
+                    out = [];
+                end
+            elseif(~(isempty(this.myMeasurement.nonEmptyChannelList)))
+                %there is no result, get ROA size from measurement
+                out = this.myMeasurement.getROIYSz();                
+            else
+                %subject is empty
+                out = [];
+            end
+            if(~out)
+                out = [];
+            end
+        end
+        
         function out = getResultType(this)
             %get the result type ('ASCII' or 'FluoDecayFit')
             if(~this.isInitialized)
@@ -1022,6 +1072,10 @@ classdef fluoSubject < FDTreeNode
                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx) = 0;
                 end
                 ad = this.myResult.getAuxiliaryData(ch);
+                if(isempty(ad))
+                    this.updateAuxiliaryData(ch)
+                    ad = this.myResult.getAuxiliaryData(ch);
+                end
                 fileInfo(ch) = ad.fileInfo;
                 if(strcmp(this.myResult.resultType,'ASCII'))
                     ad.IRF.vector = this.myIRFMgr.getCurIRF(ch);

@@ -74,7 +74,7 @@ classdef subject4Sim < fluoSubject
                 clear data
                 data(1,1,:) = tmp;
             end
-            this.myMeasurement.loadRawData(channel,data);
+            this.myMeasurement.setSyntheticData(channel,data);
         end
         
         function setStudy(this,study)

@@ -322,8 +322,10 @@ classdef measurementInFDTree < measurementFile
             %return current parameter manager
             if(ischar(this.myParamMgr))
                 out = this.myParamMgr;
-            else
+            elseif(isa(this.myParamMgr,'function_handle'))                
                 out = feval(this.myParamMgr);
+            else
+                out = [];
             end
         end
         
@@ -551,5 +553,5 @@ classdef measurementInFDTree < measurementFile
                 hMatFile.auxInfo = auxInfo;
             end
         end    
-    end
+    end % (Access = protected)
 end %classdef

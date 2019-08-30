@@ -82,6 +82,7 @@ classdef simFLIM < handle
             out.updatebasicParams(sdc);            
             out.preProcessParams.roiBinning = 0;
             out.preProcessParams.roiAdaptiveBinEnable = 0;
+            out.myMeasurement.setROIDataType('single');
         end
         
         %%dependent properties
@@ -337,8 +338,18 @@ classdef simFLIM < handle
 %                 end
             end
             %add to fdtree
-            this.mySimSubject.setStudy(this.currentStudy);
-            this.mySimSubject.setSubjectName(paraSetName);
+            subject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudy,paraSetName,true);
+                if(~isempty(subject) && any(subject.myMeasurement.filesOnHDD))
+                    button = questdlg(sprintf('Subject ''%s'' already exists in study ''%s''!\n\n\nDelete results and replace subject with current measurement?\n',paraSetName,this.currentStudy),...
+                        'Overwrite subject?','Continue','Cancel','Cancel');
+                    switch button
+                        case 'Cancel'
+                            return;
+                    end
+                end
+                subject.importMeasurementObj(this.mySimSubject.myMeasurement);
+%             this.mySimSubject.setStudy(this.currentStudy);
+%             this.mySimSubject.setSubjectName(paraSetName);
 %             this.FLIMXObj.fdt.removeSubjectResult(this.currentStudy,paraSetName
             this.FLIMXObj.fdt.importSubject(this.mySimSubject);
             if(strcmp(this.currentStudy,this.FLIMXObj.FLIMFitGUI.currentStudy) && any(strcmp(paraSetName,this.FLIMXObj.FLIMFitGUI.currentSubject)) && any(this.FLIMXObj.curSubject.isDirty))
