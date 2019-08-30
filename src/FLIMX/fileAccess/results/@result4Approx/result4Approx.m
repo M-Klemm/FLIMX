@@ -152,20 +152,20 @@ classdef result4Approx < resultFile
             fn = fn(~strcmpi(fn,'reflectionMask'));
             fn = fn(~strcmpi(fn,'cVec'));
             fn = fn(~strcmpi(fn,'cMask'));
-            idx = strcmpi(fn,'x_vec');
+            idx = strcmpi(fn,'xVec');
             if(any(idx(:)))
                 fn = fn(~idx);
                 lenThis = size(tmp.x_vec,2);
                 nPThis = size(tmp.x_vec,3);
-                lenIn = size(resultStruct.x_vec,1);
-                nPIn = size(resultStruct.x_vec,2);
+                lenIn = size(resultStruct.xVec,2);
+                nPIn = size(resultStruct.xVec,1);
                 if(lenThis == lenIn && nPThis == nPIn)
-                    tmp.x_vec(row,newIdx,:) = resultStruct.x_vec(newIdx,:);
+                    tmp.x_vec(row,newIdx,:) = resultStruct.xVec(:,newIdx);
                 else
                     %something went wrong - save what we can even though it is wrong
 %                     lenMin = min(lenThis,lenIn);
 %                     nPMin = min(nPThis,nPIn);
-%                     tmp.x_vec(row,1:lenMin,1:nPMin) = resultStruct.x_vec(1:lenMin,1:nPMin);
+%                     tmp.x_vec(row,1:lenMin,1:nPMin) = resultStruct.xVec(1:nPMin,1:lenMin);
                     warning('FluoDecayFit:addResultColumn','Length of Columns did not match: expected %d, got %d!',lenThis,lenIn);
                 end
             end
@@ -177,8 +177,8 @@ classdef result4Approx < resultFile
                 lenIn = size(resultStruct.iVec,1);
                 nPIn = size(resultStruct.iVec,2);
                 if(lenThis == lenIn && nPThis == nPIn)
-                    tmpIdx = newIdx(any(resultStruct.iVec(newIdx,:)));
-                    tmp.iVec(row,tmpIdx,:) = resultStruct.iVec(tmpIdx,:);
+                    tmpIdx = newIdx(any(resultStruct.iVec(:,newIdx)));
+                    tmp.iVec(row,tmpIdx,:) = resultStruct.iVec(:,tmpIdx);
                 else
                     %something went wrong - save what we can even though it is wrong
 %                     lenMin = min(lenThis,lenIn);
@@ -241,20 +241,20 @@ classdef result4Approx < resultFile
             fn = fn(~strcmpi(fn,'cVec'));
             fn = fn(~strcmpi(fn,'cMask'));
             tmp = this.getPixelResult(ch);
-            idx = strcmpi(fn,'x_vec');
+            idx = strcmpi(fn,'xVec');
             if(any(idx(:)))
                 fn = fn(~idx);
                 lenThis = size(tmp.x_vec,1);
                 nPThis = size(tmp.x_vec,3);
-                lenIn = size(resultStruct.x_vec,1);
-                nPIn = size(resultStruct.x_vec,3);
+                lenIn = size(resultStruct.xVec,2);
+                nPIn = size(resultStruct.xVec,1);
                 if(lenThis == lenIn && nPThis == nPIn)
-                    tmp.x_vec(newIdx,col,:) = resultStruct.x_vec(newIdx,:);
+                    tmp.x_vec(newIdx,col,:) = resultStruct.xVec(:,newIdx);
                 else
                     %something went wrong - save what we can even though it is wrong
                     %                         lenMin = min(lenThis,lenIn);
                     %                         nPMin = min(nPThis,nPIn);
-                    %                         tmp.x_vec(1:lenMin,col,1:nPMin) = resultStruct.x_vec(1:lenMin,1:nPMin);
+                    %                         tmp.x_vec(1:lenMin,col,1:nPMin) = resultStruct.xVec(1:nPMin,1:lenMin);
                     warning('FluoDecayFit:addResultColumn','Length of Columns did not match: expected %d, got %d!',lenThis,lenIn);
                 end
             end
@@ -266,8 +266,8 @@ classdef result4Approx < resultFile
                 lenIn = size(resultStruct.iVec,1);
                 nPIn = size(resultStruct.iVec,3);
                 if(lenThis == lenIn && nPThis == nPIn)
-                    tmpIdx = newIdx(any(resultStruct.iVec(newIdx,:)));
-                    tmp.iVec(tmpIdx,col,:) = resultStruct.iVec(tmpIdx,:);
+                    tmpIdx = newIdx(any(resultStruct.iVec(:,newIdx)));
+                    tmp.iVec(tmpIdx,col,:) = resultStruct.iVec(:,tmpIdx);
                 else
                     %something went wrong - save what we can even though it is wrong
                     %                         lenMin = min(lenThis,lenIn);
@@ -317,10 +317,10 @@ classdef result4Approx < resultFile
                 tmp = this.results.pixel{ch,1};
             end
             %add only new results
-            newIdx = 1:size(indices,1);
+            newIdx = 1:size(indices,1)';
             if(any(strcmpi(fn,'chi2')))
                 ri = sub2ind(this.resultSize,indices(:,1),indices(:,2));
-                newIdx(tmp.chi2(ri) > 0 & tmp.chi2(ri) < resultStruct.chi2) = [];
+                newIdx(tmp.chi2(ri) > 0 & tmp.chi2(ri) < resultStruct.chi2(:)) = [];
 %                 for i = size(indices,1) : -1 : 1
 %                     if(tmp.chi2(indices(i,1),indices(i,2)) > 0 && tmp.chi2(indices(i,1),indices(i,2)) < resultStruct.chi2(i,1))
 %                         newIdx(i) = [];
@@ -337,15 +337,15 @@ classdef result4Approx < resultFile
             fn = fn(~strcmpi(fn,'cMask'));
             cleanUpResult = logical(sum(tmp.x_vec(:)));
             %special treatment for xVec
-            idx = strcmpi(fn,'x_vec');
+            idx = strcmpi(fn,'xVec');
             if(any(idx(:)))
                 fn = fn(~idx);
                 nPThis = size(tmp.x_vec,3);
-                nPIn = size(resultStruct.x_vec,2);
+                nPIn = size(resultStruct.xVec,1);
                 if(nPThis == nPIn)
                     %todo: check if indices are out of bounds...
                     for i = 1:length(newIdx)
-                        tmp.x_vec(indices(newIdx(i),1),indices(newIdx(i),2),:) = resultStruct.x_vec(newIdx(i),:);
+                        tmp.x_vec(indices(newIdx(i),1),indices(newIdx(i),2),:) = resultStruct.xVec(:,newIdx(i));
                     end
                 else
                     %something went wrong - save what we can even though it is wrong
@@ -357,12 +357,12 @@ classdef result4Approx < resultFile
             if(any(idx(:)))
                 fn = fn(~idx);
                 nPThis = size(tmp.iVec,3);
-                nPIn = size(resultStruct.iVec,2);
+                nPIn = size(resultStruct.iVec,1);
                 if(nPThis == nPIn)
                     %todo: check if indices are out of bounds...
                     for i = 1:length(newIdx)
-                        if(any(resultStruct.iVec(newIdx(i),:)))
-                            tmp.iVec(indices(newIdx(i),1),indices(newIdx(i),2),:) = resultStruct.iVec(newIdx(i),:);
+                        if(any(resultStruct.iVec(:,newIdx(i))))
+                            tmp.iVec(indices(newIdx(i),1),indices(newIdx(i),2),:) = resultStruct.iVec(:,newIdx(i));
                         end
                     end
                 else
@@ -376,14 +376,18 @@ classdef result4Approx < resultFile
                 targets = {'FunctionEvaluations','Iterations','Time'};
                 for i = 1:length(targets)
                     item = strcmpi(fn,targets{i});                    
-                    tmp.(fn{item})(idx) = tmp.(fn{item})(idx) + resultStruct.(fn{item})(newIdx);
+                    tmp.(fn{item})(idx) = tmp.(fn{item})(idx) + resultStruct.(fn{item})(newIdx)';
                     fn = fn(~item);
                 end
             end
             %copy remaining results
             for l = 1:length(fn)
                 %todo: check if indices are out of bounds...
-                tmp.(fn{l})(idx) = resultStruct.(fn{l})(newIdx);
+                try
+                    tmp.(fn{l})(idx) = resultStruct.(fn{l})(newIdx);
+                catch ME
+                    a=0;
+                end
             end
             this.results.pixel{ch,1} = tmp;
             this.pixelApproximated(ch) = true;
@@ -418,10 +422,10 @@ classdef result4Approx < resultFile
             fn = fn(~strcmpi(fn,'reflectionMask'));
             fn = fn(~strcmpi(fn,'cVec'));
             fn = fn(~strcmpi(fn,'cMask'));
-            idx = strcmpi(fn,'x_vec');
+            idx = strcmpi(fn,'xVec');
             if(any(idx(:)))
                 fn = fn(~idx);
-                tmp.x_vec(row,col,:) = resultStruct.x_vec;
+                tmp.x_vec(row,col,:) = resultStruct.xVec;
             end
             idx = strcmpi(fn,'iVec');
             if(any(idx(:)))
@@ -614,15 +618,15 @@ classdef result4Approx < resultFile
             fn = fn(~strcmpi(fn,'reflectionMask'));
             fn = fn(~strcmpi(fn,'cVec'));
             fn = fn(~strcmpi(fn,'cMask'));
-            idx = strcmpi(fn,'x_vec');
+            idx = strcmpi(fn,'xVec');
             if(any(idx(:)))
                 fn = fn(~idx);
                 nPThis = size(tmp.x_vec,3);
-                nPIn = size(resultStruct.x_vec,2);
+                nPIn = size(resultStruct.xVec,1);
                 if(nPThis == nPIn)
                     %todo: check if indices are out of bounds...
                     for i = 1:length(newIdx)
-                        tmp.x_vec(indices(newIdx(i),1),indices(newIdx(i),2),:) = resultStruct.x_vec(newIdx(i),:);
+                        tmp.x_vec(indices(newIdx(i),1),indices(newIdx(i),2),:) = resultStruct.xVec(:,newIdx(i));
                     end
                 else
                     %something went wrong - save what we can even though it is wrong
@@ -633,11 +637,11 @@ classdef result4Approx < resultFile
             if(any(idx(:)))
                 fn = fn(~idx);
                 nPThis = size(tmp.iVec,3);
-                nPIn = size(resultStruct.iVec,2);
+                nPIn = size(resultStruct.iVec,1);
                 if(nPThis == nPIn)
                     %todo: check if indices are out of bounds...
                     for i = 1:length(newIdx)
-                        tmp.iVec(indices(newIdx(i),1),indices(newIdx(i),2),:) = resultStruct.iVec(newIdx(i),:);
+                        tmp.iVec(indices(newIdx(i),1),indices(newIdx(i),2),:) = resultStruct.iVec(:,newIdx(i));
                     end
                 else
                     %something went wrong - save what we can even though it is wrong

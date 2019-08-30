@@ -1,7 +1,7 @@
-function result = runOpt(apObjs,optimizationParams)
+function result = runOpt(apObj,optimizationParams)
 %=============================================================================================================
 %
-% @file     runOPt.m
+% @file     runOpt.m
 % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
 % @version  1.0
 % @date     July, 2015
@@ -34,21 +34,30 @@ function result = runOpt(apObjs,optimizationParams)
 hostname = gethostname();
 prevXVec = [];
 t_start = clock;
-apObj = apObjs{1};
 chList = apObj.nonEmptyChannelList;
+pixelIDs = apObj.getPixelIDs(apObj.currentChannel);
+totalNrPIDs = length(pixelIDs);
 nrChannels = length(chList);%nrChannels = nr global fit channels!
 %preprocess data
-[result, nonLinBounds] = apObj.makeDataPreProcessing([]);
-if(any([result.TotalPhotons] < apObj.basicParams.photonThreshold) && apObj.basicParams.approximationTarget == 1) %too few photons
+[result, nonLinBounds] = apObj.makeDataPreProcessing([],pixelIDs);
+if(apObj.basicParams.approximationTarget == 1)
+    %remove pixels with too few photons
+    idx = [result(:).TotalPhotons] < apObj.basicParams.photonThreshold;
     msg = 'Not enough Photons for Approximation!';
-else %enough photons
+    for ch = 1:nrChannels
+        result(ch).Message(1,pixelIDs(idx)) = repmat({msg},[1,sum(idx)]);
+    end
+    pixelIDs(idx) = [];
+end
+if(~isempty(pixelIDs))
     %restrict tci & hShift to >= starting point
     for ch = 1:nrChannels
-        if(apObj.getVolatileChannelParams(chList(ch)).cMask(end) && apObj.basicParams.nonLinOffsetFit == 3)
+        vcp = apObj.getVolatileChannelParams(chList(ch));
+        if(vcp(1).cMask(end) && apObj.basicParams.nonLinOffsetFit == 3)
             %set offset to offsetGuess
-            cp = apObj.getVolatileChannelParams(ch);
-            cp.cVec(end) = result(ch).OffsetGuess(1,1);
-            apObj.setVolatileChannelParams(chList(ch),cp);
+            %todo: fix for multiple vcp
+            vcp.cVec(end) = result(ch).OffsetGuess;
+            apObj.setVolatileChannelParams(chList(ch),vcp);
         end
 %         if(apObj.basicParams.fitModel ~= 1)
 %             %set model maximum position to data maximum position
@@ -60,8 +69,8 @@ else %enough photons
 %             end
 %             apObj.setVolatileChannelParams(chList(ch),cp);
 %         end
-        result(ch).Iterations(1,1) = 0;
-        result(ch).FunctionEvaluations(1,1) = 0;
+        result(ch).Iterations(:) = 0;
+        result(ch).FunctionEvaluations(:) = 0;
     end
     resultIsValidCnt = 1;
     if(length(apObj.pixelFitParams.optimizer) > 1 || ~any(apObj.pixelFitParams.optimizer == [2 3 5]))
@@ -73,11 +82,11 @@ else %enough photons
         for optimizer = apObj.pixelFitParams.optimizer
             %check if we have at least one non-linear parameter
             vcp = apObj.getVolatileChannelParams(chList(ch));
-            if(vcp.nApproxParamsPerCh == 0) %todo: check global fit
+            if(vcp(1).nApproxParamsPerCh == 0) %todo: check global fit
                 %no non-linear parameter -> nothing to do here
                 resultIsValidCnt = 0;
-                result.Iterations(1,1) = 1;
-                result.FunctionEvaluations(1,1) = 1;
+                result.Iterations = 1;
+                result.FunctionEvaluations = 1;
                 xVec = double.empty(0,nrChannels);
                 break
             end            
@@ -95,65 +104,51 @@ else %enough photons
                     for ch = 1:nrChannels
                         tmp = [tmp,apObj.getInitializationData(ch)];
                     end
-                    tmp = apObj.getFullXVec(apObj.currentChannel,tmp);
+                    tmp = apObj.getFullXVec(apObj.currentChannel,pixelIDs,tmp);
                     tmp(apObj.volatilePixelParams.globalFitMask,1) = mean(tmp(apObj.volatilePixelParams.globalFitMask,:),2);
                     iVec = apObj.joinGlobalFitXVec(apObj.getNonConstantXVec(apObj.currentChannel,tmp),true);
                 else
-                    iVec = apObj.getInitializationData(apObj.currentChannel);
+                    iVec = apObj.getInitializationData(apObj.currentChannel,pixelIDs);
                 end
             end
             %prepare fitted weighting
             if(apObj.basicParams.chiWeightingMode == 3)
-                cw = ones(apObj.fileInfo(apObj.currentChannel).nrTimeChannels,length(apObj.nonEmptyChannelList));
+                cw = ones(apObj.getFileInfoStruct(apObj.currentChannel).nrTimeChannels,length(apObj.nonEmptyChannelList),length(pixelIDs));
                 if(apObj.basicParams.optimizerInitStrategy == 2 && optimIter == 1 && sum(iVec(:)) ~= 0)
                     %use initialization as weights for chi computation
                     if(~isempty(apObj.currentChannel))
                         idx = apObj.nonEmptyChannelList == apObj.currentChannel;
-                        cw(:,idx) = apObj.getModel(apObj.currentChannel,iVec(:,1));
+                        cw(:,idx,:) = apObj.getModel(apObj.currentChannel,iVec(:,1,:),pixelIDs);
                     end
                     apObj.setChiWeightData(cw);
                 elseif(~isempty(prevXVec))
                     %use result from previous optimization as weights for chi computation                    
                     if(~isempty(apObj.currentChannel))
                         idx = apObj.nonEmptyChannelList == apObj.currentChannel;
-                        cw(:,idx) = apObj.getModel(apObj.currentChannel,prevXVec);
+                        cw(:,idx,:) = apObj.getModel(apObj.currentChannel,prevXVec,pixelIDs);
                     end
                     apObj.setChiWeightData(cw);
                 end
             end
             %get parameters for current optimizer
             optParams = getOptParams(optimizer,apObj.volatilePixelParams,optimizationParams,nonLinBounds);
-            %                 %apply constraint for pixel jitter
-            %                 for ch = chList
-            %                     if(apObj.pixelFitParams.pixelJitter ~= 0 && (nrPixels > 1 && 1 > 1) && ~isempty(result(ch).xVec(1-1,:)) && sum(result(ch).xVec(1-1,:)) > 0) % || (nrPixels == 1 && 1 == 1))
-            %                         prevPx = apObj.getNonConstantXVec(chList(ch),result(ch).xVec(1-1,:));
-            %                         idx = true(length(prevPx),1);
-            %                         idx(end-1) = false; %not for hShift
-            %                         if(apObj.basicParams.heightMode == 2)%only in fixed heigt mode
-            %                             idx(end-2) = false; %not for vShift
-            %                         end
-            %                         optParams.lb(idx) = prevPx(idx) - abs(prevPx(idx)) .* apObj.pixelFitParams.pixelJitter/100;
-            %                         optParams.ub(idx) = prevPx(idx) + abs(prevPx(idx)) .* apObj.pixelFitParams.pixelJitter/100;
-            %                         idx = find(optParams.quantization);
-            %                         for j = 1:length(idx)
-            %                             optParams.lb(idx(j)) = floor(round(prevPx(idx(j))/optParams.quantization(idx(j))) .* 1-apObj.pixelFitParams.pixelJitter/100)*optParams.quantization(idx(j));
-            %                             optParams.ub(idx(j)) = ceil(round(prevPx(idx(j))/optParams.quantization(idx(j))) .* 1+apObj.pixelFitParams.pixelJitter/100)*optParams.quantization(idx(j));
-            %                         end
-            %                     end
-            %                 end
+%             %some pixels may have been removed due to low amount of photons -> remove those pixels from optParams
+%             optParams = optParams(pixelIDs);
             if(~any(iVec))
-                iVec = optParams.init;
+                iVec = [optParams.init];
+                iVec = reshape(iVec,[size(iVec,1),1,size(iVec,2)]);
             end
+            iVec = single(iVec);
             %% select optimizer
             switch optimizer
                 case 0 %% brute force
                     %removed 10.03.2009 
                     [c, offset, A, tau, dc, dtau, irs, zz, t, chi] = Fluofit(apObj.getIRF(ch), double(apObj.getMeasurementData(ch)), apObj.fileInfo.tacRange, apObj.fileInfo.timeChannelWidth, iVec(1:3,1)', false);
                 case 1 %% DE
-                    optParams.paramDefCell{4} = iVec(:,1);
-                    [xVec, ~, ~, iter, feval] = differentialevolution(optParams, optParams.paramDefCell, @apObj.costFcn, [], [], optParams.emailParams, optParams.title);
+                    optParams(1).paramDefCell{4} = iVec(:,1);
+                    [xVec, ~, ~, iter, feval] = differentialevolution(optParams(1), optParams(1).paramDefCell, @apObj.costFcn, [], [], pixelIDs(1), optParams(1).title);
                 case 2 %% MSimplexBnd
-                    [xVec,~,~,output] = MSimplexBnd(@apObj.costFcn, iVec, optParams);
+                    [xVec,~,~,output] = MSimplexBnd(@apObj.costFcn, iVec, optParams, pixelIDs);
                     iter = output.iterations;
                     feval = output.funcCount;
                 case 3 %% fminsearchbnd
@@ -177,7 +172,7 @@ else %enough photons
 %                     %xVec = nlsqbnd(@apObj.costFcn,mean([iVec(:) prevXVec(:)],2),optParams.lb(:),optParams.ub(:));
 %                     iter = 1;
 %                     feval = iter; %todo
-                    fun = @(x)apObj.getModel(1,x);
+                    fun = @(x)apObj.getModel(1,x,pixelIDs);
                     options = optimoptions('lsqnonlin');
                     options.Algorithm = 'Levenberg-Marquardt';
                     options.Display = 'off';
@@ -205,24 +200,24 @@ else %enough photons
             prevXVec = xVec;
             if(any(apObj.volatilePixelParams.globalFitMask))
                 for ch = chList
-                    %                         result(ch).x_vec(1,:) = apObj.getFullXVec(ch,xArray(:,ch));
-                    result(ch).Iterations(1,1) = result(ch).Iterations(1,1)+iter;
-                    result(ch).FunctionEvaluations(1,1) = result(ch).FunctionEvaluations(1,1)+feval;
+                    %                         result(ch).xVec(1,:) = apObj.getFullXVec(ch,xArray(:,ch));
+                    result(ch).Iterations(pixelIDs) = result(ch).Iterations(pixelIDs) + double(iter);
+                    result(ch).FunctionEvaluations(pixelIDs) = result(ch).FunctionEvaluations(pixelIDs) + double(feval);
                 end
             else
-                %                     result.x_vec(1,:) = apObj.getFullXVec(apObj.currentChannel,xVec);
-                result.Iterations(1,1) = result.Iterations(1,1)+iter;
-                result.FunctionEvaluations(1,1) = result.FunctionEvaluations(1,1)+feval;
+                %                     result.xVec(1,:) = apObj.getFullXVec(apObj.currentChannel,xVec);
+                result.Iterations(pixelIDs) = result.Iterations(pixelIDs) + double(iter);
+                result.FunctionEvaluations(pixelIDs) = result.FunctionEvaluations(pixelIDs) + double(feval);
             end
             optimIter = optimIter+1;
         end %for optimizer
         dt = etime(clock,t_start);
         %% assemble result-structure
-        lbCh = apObj.divideGlobalFitXVec(nonLinBounds.lb,true);
-        ubCh = apObj.divideGlobalFitXVec(nonLinBounds.ub,true);
+        lbCh = apObj.divideGlobalFitXVec([nonLinBounds(:).lb],true);
+        ubCh = apObj.divideGlobalFitXVec([nonLinBounds(:).ub],true);
         xArray = apObj.divideGlobalFitXVec(xVec,true);
         for ch = 1:nrChannels
-            result(ch).Time(1,1) = dt;
+            result(ch).Time(pixelIDs) = dt ./ sum(result(ch).FunctionEvaluations(pixelIDs)) .* result(ch).FunctionEvaluations(pixelIDs);
             %                 result(ch).TotalPhotons(1,1) = sum(data(result(ch).StartPosition:result(ch).EndPosition));
             %% recompute chi² results
             gfOld = apObj.volatilePixelParams.globalFitMask;
@@ -233,27 +228,33 @@ else %enough photons
             apObj.basicParams.neighborFit = 0;
             apObj.setCurrentChannel(chList(ch));
             %apObj.makeDataPreProcessing(allInitVec); %we have to run pre-processing again to set the linear bounds
-            [result(ch).chi2(1,1), ampsH, ampsScH, osetH, result(ch).chi2Tail(1,1)] = apObj.costFcn(xArray(:,ch));
-            qs = apObj.getExponentials(chList(ch),xArray(:,ch));
+            [result(ch).chi2(pixelIDs), ampsH, ampsScH, osetH, result(ch).chi2Tail(pixelIDs)] = apObj.costFcn(xArray,pixelIDs);
+            qs = apObj.getExponentials(chList(ch),xArray,pixelIDs);
             %compute percentage
-            qses = trapz(qs(:,1:end-1-apObj.volatilePixelParams.nScatter),1); %remove offset and scatter components and integrate over each component
-            qses = 100*qses./sum(qses(:));
+            rauc = squeeze(trapz(qs(:,1:end-1-apObj.volatilePixelParams.nScatter,:),1)); %remove offset and scatter components and integrate over each component
+            if(size(rauc,1) == 1)
+                rauc = rauc(:);
+            end
+            rauc = 100*rauc./sum(rauc,1);
             %excluding scatter
-            for n = 1:length(qses)
-                result(ch).(sprintf('RAUC%d',n)) = qses(n);
+            for n = 1:size(rauc,1)
+                result(ch).(sprintf('RAUC%d',n))(pixelIDs) = rauc(n,:);
             end
             %including scatter
             if(apObj.volatilePixelParams.nScatter > 0)
-                qsis = trapz(qs(:,1:end-1),1); %remove offset and integrate over each component
-                qsis = 100*qsis./sum(qsis(:));
-                for n = 1:length(qsis)
-                    result(ch).(sprintf('RAUCIS%d',n)) = qsis(n);
+                rauc = squeeze(trapz(qs(:,1:end-1,:),1)); %remove offset and integrate over each component
+                if(size(rauc,1) == 1)
+                    rauc = rauc(:);
+                end
+                rauc = 100*rauc./sum(rauc,1);
+                for n = 1:size(rauc,1)
+                    result(ch).(sprintf('RAUCIS%d',n))(pixelIDs) = rauc(n,:);
                 end
             end
             apObj.volatilePixelParams.globalFitMask = gfOld;
             apObj.basicParams = bpOld;
             %% normalize xVec
-            [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents(xArray(:,ch),true,chList(ch));
+            [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents(xArray,true,chList(ch),pixelIDs);
             if(apObj.basicParams.hybridFit)
                 amps = ampsH;%./sum(ampsH(:,ch));
                 oset = osetH;
@@ -269,10 +270,10 @@ else %enough photons
 %                     scAmps = scAmps./as.*result(ch).MaximumPhotons(1,1);
 %                     oset = oset./as.*result(ch).MaximumPhotons(1,1);
 %             end
-            xVec = apObj.getFullXVec(chList(ch),amps,taus,tcis,betas,scAmps,scShifts,scOset,hShift,oset);
+            xVec = apObj.getFullXVec(chList(ch),pixelIDs,amps,taus,tcis,betas,scAmps,scShifts,scOset,hShift,oset);
             %xVec(end) = xVec(end) ./ result(ch).MaximumPhotons(1,1);
             % check if all amps are > 0 and values are not at borders
-            if(all([amps; oset] > eps) && all((apObj.getNonConstantXVec(chList(ch),xVec) - lbCh(:,ch)) > eps) && all((ubCh(:,ch) - apObj.getNonConstantXVec(chList(ch),xVec)) > eps))
+            if(vcp(1).nApproxParamsPerCh > 0 && all(all([amps; oset] > eps) & all((apObj.getNonConstantXVec(chList(ch),xVec) - lbCh(pixelIDs)) > eps) & all((ubCh(pixelIDs) - apObj.getNonConstantXVec(chList(ch),xVec)) > eps)))
                 resultIsValidCnt = 0;
                 %                     if(apObj.basicParams.optimizerInitStrategy == 3)
                 %                         %save current solution for next pixel
@@ -285,7 +286,11 @@ else %enough photons
                 resultIsValidCnt = resultIsValidCnt -1;
             end
             %% write back xVec
-            result(ch).x_vec(1,:) = xVec;
+%             if(length(pixelIDs) > 1)
+                result(ch).xVec(:,pixelIDs) = xVec;
+%             else
+%                 result(ch).xVec(1,:) = xVec;
+%             end
         end %for
     end %while(resultIsValid)
     %% save message
@@ -294,7 +299,7 @@ end %if 'enough photons'
 %% make (redundant) result for easier access
 for ch = 1:nrChannels
     %rebuild (combined) xVec and slice into parts
-    [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents(result(ch).x_vec(1,:)',false,chList(ch));
+    [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents(result(ch).xVec(:,pixelIDs),false,chList(ch),pixelIDs);
     %         if(apObj.basicParams.hybridFit)
     %             amps = ampsH(:,ch);
     %             oset = osetH(ch);
@@ -304,12 +309,12 @@ for ch = 1:nrChannels
     %             amps = amps .* result(ch).MaximumPhotons(1,1);
     %         end
     %save offset, vShift and hShift
-    result(ch).Offset(1,1) = oset;
-    result(ch).hShift(1,1) = hShift;
+    result(ch).Offset(pixelIDs) = oset;
+    result(ch).hShift(pixelIDs) = hShift;
     %save amps in photons counts
     for l = 1 : apObj.basicParams.nExp
-        result(ch).(sprintf('Amplitude%d',l))(1,1) = amps(l);
-        result(ch).(sprintf('Tau%d',l))(1,1) = taus(l);
+        result(ch).(sprintf('Amplitude%d',l))(pixelIDs) = amps(l,:);
+        result(ch).(sprintf('Tau%d',l))(pixelIDs) = taus(l,:);
     end
     %make 'corrected tc1' (difference between global (merged) max and local max postions)
     %         if(params.basicParams.compMaxCorrTci)
@@ -317,10 +322,10 @@ for ch = 1:nrChannels
     %         end
     if(any(apObj.basicParams.tciMask))
         tci_ids = find(apObj.basicParams.tciMask);
-        for l = 1:length(tcis)
+        for l = 1:length(tci_ids)
             %cur_tci = params.basicParams.nExp - allFitParams.n_tci + l;
             tci_str = sprintf('tc%d',tci_ids(l));
-            result(ch).(tci_str)(1,1) = tcis(l);
+            result(ch).(tci_str)(pixelIDs) = tcis(l,:);
             %                 if(params.basicParams.compMaxCorrTci)
             %                     tcic_str = sprintf('tc%d_corrected',tci_ids(l));
             %                     result(ch).(tcic_str)(1,1) = tcis(l) + result(ch).tc1_corrected(1,1);
@@ -330,23 +335,23 @@ for ch = 1:nrChannels
     %stretched exponentials
     if(any(apObj.basicParams.stretchedExpMask))
         se_ids = find(apObj.basicParams.stretchedExpMask);
-        for l = 1:length(betas)
+        for l = 1:length(se_ids)
             %cur_tci = params.basicParams.nExp - allFitParams.n_tci + l;
             se_str = sprintf('Beta%d',se_ids(l));
-            result(ch).(se_str)(1,1) = betas(l);
+            result(ch).(se_str)(pixelIDs) = betas(l,:);
         end
     end
     %scatter light
     %scAmps = scAmps .* result(ch).MaximumPhotons(1,1);
     for l = 1 : apObj.volatilePixelParams.nScatter
-        result(ch).(sprintf('ScatterAmplitude%d',l))(1,1) = scAmps(l);
-        result(ch).(sprintf('ScatterShift%d',l))(1,1) = scShifts(l);
-        result(ch).(sprintf('ScatterOffset%d',l))(1,1) = scOset(l).*result(ch).MaximumPhotons(1,1);
-    end    
+        result(ch).(sprintf('ScatterAmplitude%d',l))(pixelIDs) = scAmps(l,:);
+        result(ch).(sprintf('ScatterShift%d',l))(pixelIDs) = scShifts(l,:);
+        result(ch).(sprintf('ScatterOffset%d',l))(pixelIDs) = scOset(l,:).*result(ch).MaximumPhotons(1,pixelIDs);
+    end
     %% save auxiliary information
-    result(ch).hostname{1,1} = hostname;
-    result(ch).standalone(1,1) = isdeployed();
-    result(ch).Message(1,1) = {msg};
+    result(ch).hostname(1,:) = repmat({hostname},[1,totalNrPIDs]);
+    result(ch).standalone(1,:) = repmat(isdeployed(),[1,totalNrPIDs]);
+    result(ch).Message(1,pixelIDs) = repmat({msg},[1,length(pixelIDs)]);
     %% save 'per channel' stuff
     %         result(ch).cVec = params.volatile.cVec;
     %         result(ch).cMask = params.volatile.cMask;
@@ -380,19 +385,16 @@ result = orderfields(result);
                 for i = 1:length(fn)
                     dp.(fn{i}) = allOptParams.options_de.(fn{i});
                 end
-                bounds = catstruct(bounds,dp);
-                bounds.NP = fitParams.nApproxParamsAllCh * bounds.NP;
-                bounds.paramDefCell = cell(fitParams.nApproxParamsAllCh,3);
-                bounds.paramDefCell = {'', [bounds.lb bounds.ub], bounds.deQuantization, bounds.init};
-                bounds.useInitParams = 2;
-                
+                dp.NP = fitParams.nApproxParamsAllCh .* dp.NP;
+                dp.useInitParams = 2;
+                dp.paramDefCell = cell(fitParams.nApproxParamsAllCh,3);
+                dp.paramDefCell = {'', [bounds.lb bounds.ub], bounds.deQuantization, bounds.init};
+                bounds = catstruct(bounds,repmat(dp,size(bounds))); 
             case 2 %MSimplexBnd
-                bounds = catstruct(bounds,allOptParams.options_msimplexbnd);
-                
+                bounds = catstruct(bounds,repmat(allOptParams.options_msimplexbnd,size(bounds)));                
             case 3 %fminsearchbnd
                 % Set up optimization options - you can leave any of these blank and fminsearch will use
-                bounds = catstruct(bounds,allOptParams.options_fminsearchbnd);
-                
+                bounds = catstruct(bounds,repmat(allOptParams.options_fminsearchbnd,size(bounds)));                
             case 4 %pso
                 fn = fieldnames(allOptParams.options_pso);
                 dp = psooptimset;
@@ -401,11 +403,11 @@ result = orderfields(result);
                 end
                 dp.PopulationSize = dp.PopulationSize * fitParams.nApproxParamsAllCh;
                 %         bounds = catstruct(bounds,dp);
-                bounds = dp;
+                bounds = repmat(dp,size(bounds));
             case 5 %lsqnonlin
                 
             case 6 %GODLIKE
-                bounds = catstruct(bounds,set_options(),allOptParams.options_godlike);
+                bounds = catstruct(bounds,repmat(set_options(),size(bounds)),repmat(allOptParams.options_godlike,size(bounds)));
                 
                 %     original DE
                 %         %[ub lb ss init] = getUbLbInit(d_max,n_exp,n_tci,offset);

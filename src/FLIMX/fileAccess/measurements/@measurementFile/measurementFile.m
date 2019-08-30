@@ -44,7 +44,7 @@ classdef measurementFile < handle
         fileExt = '.mat';
         myFiles = cell(0,0);
         filesOnHDD = false(1,0);
-        
+
         fileInfoLoaded = false;
         rawFluoData = cell(0,0);
         rawFluoDataFlat = cell(0,0);
@@ -60,7 +60,7 @@ classdef measurementFile < handle
         dirtyFlags = false(1,4); %rawData, fluoFileInfo, auxInfo, ROIInfo
         initMode = false;
     end
-    
+
     properties (Dependent = true)
         paramMgrObj = [];
         useGPU4StaticBin = [];
@@ -85,7 +85,7 @@ classdef measurementFile < handle
         sourcePath = '';
         isDirty = false;
     end
-    
+
     methods
         function this = measurementFile(hPM)
             %constructor
@@ -95,7 +95,7 @@ classdef measurementFile < handle
             this.initMode = false;
             this.fileInfoLoaded = false;
         end
-        
+
         function deleteChannel(this,ch)
             %delete channel from memory and disk
             if(isempty(ch))
@@ -112,7 +112,7 @@ classdef measurementFile < handle
                 %             this.fileInfo.EndPosition(channel,1) = {this.fileInfo.nrTimeChannels};
             end
         end
-        
+
         %% converter
         function out = fluoSyntheticFile(this)
             out = fluoSyntheticFile(this.paramMgrObj);
@@ -123,7 +123,7 @@ classdef measurementFile < handle
             out.rawXSz = this.rawXSz;
             out.rawYSz = this.rawYSz;
             out.fileInfo = this.fileInfo;
-            
+
             out.rawFluoData = this.rawFluoData;
             out.roiFluoData = this.roiFluoData;
             out.rawFluoDataFlat = this.rawFluoDataFlat;
@@ -148,7 +148,7 @@ classdef measurementFile < handle
             end
             this.myFiles = cell(1,length(this.filesOnHDD));
         end
-        
+
         function importMeasurementObj(this,obj)
             %import a measurement object copying its content
             %copy all properties
@@ -173,18 +173,18 @@ classdef measurementFile < handle
             this.initMode = false;
             this.setDirtyFlags([],1:4,true);
         end
-        
+
         function setProgressCallback(this,cb)
             %set callback function for short progress bar
             this.progressCb(end+1) = {cb};
         end
-        
+
         function setSourceFile(this,fn)
             %set file name
             this.sourceFile = fn;
             this.setDirtyFlags([],3,true);
         end
-        
+
         function setROICoord(this,coord)
             %set coordinates for roi coord(x_low, x_high, y_low, y_high)
             if(length(coord) == 4 && isempty(this.ROICoord) || (~isempty(this.ROICoord) && any(coord(:) - this.ROICoord(:))))
@@ -199,30 +199,30 @@ classdef measurementFile < handle
                 this.setDirtyFlags([],4,true);
             end
         end
-        
+
         function setParamMgrHandle(this,hPM)
             %set handle to parameter manager
             this.myParamMgr = hPM;
         end
-        
+
         function setReflectionMask(this,channel,val)
             %set reflection mask for channel
             this.fileInfo.reflectionMask(channel) = {val};
             this.setDirtyFlags(channel,2,true);
         end
-        
+
         function setStartPosition(this,channel,val)
             %set start position for channel
             this.fileInfo.StartPosition(channel) = {val};
             this.setDirtyFlags(channel,2,true);
         end
-        
+
         function setEndPosition(this,channel,val)
             %set end position for channel
             this.fileInfo.EndPosition(channel) = {val};
             this.setDirtyFlags(channel,2,true);
         end
-        
+
         function setROIDataType(this,val)
             %set data type of roi data
             if(~strcmp(this.ROIDataType,val))
@@ -231,17 +231,17 @@ classdef measurementFile < handle
                 this.setDirtyFlags([],4,true);
             end
         end
-        
+
         function set.position(this,val)
             %set position
             this.setPosition(val);
         end
-        
+
         function set.pixelResolution(this,val)
             %set pixel resolution
             this.setPixelResolution(val);
         end
-        
+
         %% output methods
         function out = getDirtyFlags(this,ch,flagPos)
             %return dirty falgs for a channel
@@ -250,7 +250,7 @@ classdef measurementFile < handle
                 out = this.dirtyFlags(ch,flagPos);
             end
         end
-        
+
         function raw = getRawData(this,channel,useMaskFlag)
             %get raw data for channel
             if(nargin < 3)
@@ -282,7 +282,7 @@ classdef measurementFile < handle
                     else
                         raw = this.rawMaskData{channel};
                     end
-                end                
+                end
             elseif(channel > 2 && bp.approximationTarget == 2 && ~isMultipleCall())
                 %get anisotropy data from channel 1 and 2 (ch1 is parallel; ch2 is perpendicular)
                 if(this.nrSpectralChannels >= 2)
@@ -306,7 +306,7 @@ classdef measurementFile < handle
 %                 end
             end
         end
-        
+
         function raw = getRawMaskData(this,channel)
             %get raw data mask for channel
             raw = [];
@@ -314,7 +314,7 @@ classdef measurementFile < handle
                 raw = this.rawMaskData{channel};
             end
         end
-        
+
         function out = get.useMex4StaticBin(this)
             %
             if(isempty(this.useMexFlags))
@@ -322,7 +322,7 @@ classdef measurementFile < handle
             end
             out = this.useMexFlags(1);
         end
-        
+
         function out = get.useMex4AdaptiveBin(this)
             %
             if(isempty(this.useMexFlags) || length(this.useMexFlags) < 2)
@@ -330,7 +330,7 @@ classdef measurementFile < handle
             end
             out = this.useMexFlags(2);
         end
-        
+
         function out = get.useGPU4StaticBin(this)
             %
             if(isempty(this.useGPUFlags))
@@ -338,7 +338,7 @@ classdef measurementFile < handle
             end
             out = this.useGPUFlags(1);
         end
-        
+
         function out = get.useGPU4AdaptiveBin(this)
             %
             if(isempty(this.useGPUFlags) || length(this.useGPUFlags) < 2)
@@ -346,7 +346,7 @@ classdef measurementFile < handle
             end
             out = this.useGPUFlags(2);
         end
-        
+
         function out = get.roiStaticBinningFactor(this)
             %
             if(isempty(this.paramMgrObj))
@@ -356,7 +356,7 @@ classdef measurementFile < handle
                 out = param.roiBinning;
             end
         end
-        
+
         function out = get.roiAdaptiveBinEnable(this)
             %
             if(isempty(this.paramMgrObj))
@@ -366,7 +366,7 @@ classdef measurementFile < handle
                 out = param.roiAdaptiveBinEnable;
             end
         end
-        
+
         function out = get.roiAdaptiveBinThreshold(this)
             %
             if(isempty(this.paramMgrObj))
@@ -376,7 +376,7 @@ classdef measurementFile < handle
                 out = param.roiAdaptiveBinThreshold;
             end
         end
-        
+
         function out = get.roiAdaptiveBinMax(this)
             %
             if(isempty(this.paramMgrObj))
@@ -386,7 +386,7 @@ classdef measurementFile < handle
                 out = param.roiAdaptiveBinMax;
             end
         end
-        
+
         function out = get.ROICoordinates(this)
             %returns the coordinates of the ROI, [xLow, xHigh, yLow, yHigh]
             out = this.ROICoord;
@@ -394,27 +394,27 @@ classdef measurementFile < handle
                 out = [1 max(1,this.getRawXSz) 1 max(1,this.getRawYSz)]';
             end
         end
-        
+
         function out = get.nonEmptyChannelList(this)
             %return a list of channel numbers "with data"
             out = this.getNonEmptyChannelList();
         end
-        
+
         function out = getNonEmptyChannelList(this)
             %return list of channel with measurement data
             out = find(~cellfun('isempty',this.rawFluoData));
         end
-        
+
         function out = get.loadedChannelList(this)
             %return a list of channel numbers "with data"
             out = this.getLoadedChannelList();
         end
-        
+
         function out = getLoadedChannelList(this)
             %return a list of channels in memory
             out = this.getNonEmptyChannelList();
         end
-        
+
         function out = getROIXSz(this)
             %return ROI width of x axis
             coord = this.ROICoordinates;
@@ -423,7 +423,7 @@ classdef measurementFile < handle
                 out = coord(2) - coord(1) +1;
             end
         end
-        
+
         function out = getROIYSz(this)
             %return ROI width of y axis
             coord = this.ROICoordinates;
@@ -432,22 +432,22 @@ classdef measurementFile < handle
                 out = coord(4) - coord(3) +1;
             end
         end
-        
+
         function out = getRawXSz(this)
             %return raw width of x axis
             out = this.rawXSz;
         end
-        
+
         function out = getRawYSz(this)
             %return raw width of x axis
             out = this.rawYSz;
         end
-        
+
         function out = getSourceFile(this)
             %get file name
             out = this.sourceFile;
         end
-        
+
         function [tacRange, nrTimeChans, timeChanWidth, nrSpecChans] = getFileInfo(this)
             %get tacRange nrTimeChans timeChanWidth and nrSpecChans
             tacRange = this.tacRange;
@@ -455,7 +455,7 @@ classdef measurementFile < handle
             timeChanWidth = this.timeChannelWidth;
             nrSpecChans = this.nrSpectralChannels;
         end
-        
+
         function fileInfo = getFileInfoStruct(this,channel)
             %get fluo file info
             if(isempty(channel))
@@ -480,7 +480,7 @@ classdef measurementFile < handle
             fileInfo.position = this.fileInfo.position;
             fileInfo.pixelResolution = this.fileInfo.pixelResolution;
         end
-        
+
         function out = getROIInfo(this,ch)
             %get info about ROI
             out.ROICoordinates = this.ROICoordinates;
@@ -496,63 +496,63 @@ classdef measurementFile < handle
                 out.ROISupport = [];
             end
         end
-        
+
         function params = get.paramMgrObj(this)
             %get parameter manager
             params = this.getMyParamMgr();
         end
-        
+
         function params = get.FLIMXAboutInfo(this)
             %get about info
             params = this.paramMgrObj.getParamSection('about');
         end
-        
+
         function out = get.sourcePath(this)
             %return path (folder) to source file
             out = fileparts(this.sourceFile);
         end
-        
+
         function out = get.position(this)
             %get measurement position (e.g. OD or OS)
             out = this.fileInfo.position;
         end
-        
+
         function out = get.pixelResolution(this)
             %get pixel resolution
             out = this.fileInfo.pixelResolution;
         end
-        
+
         function out = get.tacRange(this)
             %get tac range
             out = this.fileInfo.tacRange;
         end
-        
+
         function out = get.nrTimeChannels(this)
             %get nr of time channels
             out = this.fileInfo.nrTimeChannels;
         end
-        
+
         function out = get.timeChannelWidth(this)
             %get time channel width
             out = this.fileInfo.tacRange / this.fileInfo.nrTimeChannels * 1000;
         end
-        
+
         function out = get.nrSpectralChannels(this)
             %get number of spectral channels
             out = this.getNrSpectralChannels();
         end
-        
+
         function out = get.timeVector(this)
             %get a vector of time points for each "time" class
             %             out = linspace(0,(this.fileInfo.nrTimeChannels-1)*this.getTimeChannelWidth,this.fileInfo.nrTimeChannels)';
             out = linspace(0,this.fileInfo.tacRange,this.fileInfo.nrTimeChannels)';
         end
-        
+
         function out = get.isDirty(this)
             %return true if something has to be saved to disk
             out = any(this.dirtyFlags(:));
         end
-        
+
         function out = getReflectionMask(this,channel)
             %get reflection mask of channel
             if(isempty(this.fileInfo.reflectionMask) || length(this.fileInfo.reflectionMask) < channel || isempty(this.fileInfo.reflectionMask{channel}))
@@ -560,17 +560,17 @@ classdef measurementFile < handle
             end
             out = this.fileInfo.reflectionMask{channel};
         end
-        
+
         function out = getStartPosition(this,channel)
             %get start position of channel
             out = this.fileInfo.StartPosition{channel};
         end
-        
+
         function out = getEndPosition(this,channel)
             %get end position of channel
             out = this.fileInfo.EndPosition{channel};
         end
-        
+
           function out = getRawDataFlat(this,channel)
             %get intensity image of (raw) measurement data
             if(length(this.rawFluoDataFlat) < channel || isempty(this.rawFluoDataFlat{channel}))
@@ -587,7 +587,7 @@ classdef measurementFile < handle
                 out = this.rawFluoDataFlat{channel};
             end
         end
-        
+
         function [out, binFactors] = getROIDataFlat(this,channel,noBinFlag)
             %get intensity of roi for channel, return ROI without binning if noBinFlag is true
             bp = this.paramMgrObj.basicParams;
@@ -658,7 +658,7 @@ classdef measurementFile < handle
                 end
             end
         end
-        
+
         function out = getROIAdaptiveBinLevels(this,channel)
             %get binning levels determined by adaptive binning in channel
             out = [];
@@ -672,7 +672,7 @@ classdef measurementFile < handle
                 out = this.roiBinLevels{channel};
             end
         end
-        
+
         function out = getROIData(this,channel,y,x)
             %get roi data for channel
             out = [];
@@ -696,7 +696,7 @@ classdef measurementFile < handle
                 end
             else
                 %we've got spatial resolution
-                if(~isempty(y) && ~isempty(x) && (length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel})) && (~this.roiAdaptiveBinEnable || ~(length(this.roiBinLevels) < channel || isempty(this.roiBinLevels{channel}))))
+                if(~isempty(y) && isscalar(y) && ~isempty(x) && isscalar(x) && (length(this.roiFluoData) < channel || isempty(this.roiFluoData{channel})) && (~this.roiAdaptiveBinEnable || ~(length(this.roiBinLevels) < channel || isempty(this.roiBinLevels{channel}))))
                     %single pixel is requested => we do binning for pixel (y,x) on the fly
                     if(~this.roiAdaptiveBinEnable)
                         %static binning
@@ -735,7 +735,7 @@ classdef measurementFile < handle
 %                                 tic;out2 = getAdaptiveBinRebuild_mex(raw,roi,bl);toc
 %                                 tic;out = gather(getAdaptiveBinRebuild(gpuArray(raw),roi,bl));toc
                                 this.updateProgress(1,sprintf('ROI rebuild channel %d 100% done',channel));
-                            end                            
+                            end
                         end
                         this.roiFluoData{channel} = out;
                         this.roiFluoDataFlat{channel} = sum(uint32(out),3,'native');
@@ -753,7 +753,13 @@ classdef measurementFile < handle
                         out = this.roiFluoData{channel};
                     end
                     if(~isempty(y) && ~isempty(x))
-                        out = squeeze(out(y,x,:));
+                        if(isscalar(y) && isscalar(x))
+                            out = squeeze(out(y,x,:));
+                        else
+                            idx = sub2ind(size(out),y,x);
+                            out = reshape(out,[],size(out,3));
+                            out = out(idx,:)';
+                        end
                     end
                 end
             end
@@ -779,7 +785,7 @@ classdef measurementFile < handle
 %             end
             out(isnan(out)) = 0;
         end
-        
+
         function out = getROIMerged(this,channel)
             %get the ROI merged to a single decay
             if(length(this.roiMerged) < channel || isempty(this.roiMerged{channel}))
@@ -798,13 +804,14 @@ classdef measurementFile < handle
                 out = this.roiMerged{channel};
             end
         end
-        
+
         function [out,bl,masks,nrPixels] = getInitData(this,ch,targetPhotons)
             %returns data for initialization fit of the corners of the ROI, each corner has >= target photons
             if(size(this.initData,1) < ch || isempty(this.initData{ch,1}))
                 out = [];
                 bl = 0;
                 masks = 0;
+                nrPixels = 0;
             else
                 out = this.initData{ch,1};
                 bl = this.initData{ch,2};
@@ -866,8 +873,8 @@ classdef measurementFile < handle
                 else
                     %fluorescence lifetime data
                     %merge raw ROI to single decay
-                    raw = this.getRawData(ch);                    
-                    out = zeros(gridSz,gridSz,this.nrTimeChannels);                    
+                    raw = this.getRawData(ch);
+                    out = zeros(gridSz,gridSz,this.nrTimeChannels);
                     if(isempty(raw))
                         return
                     end
@@ -905,7 +912,7 @@ classdef measurementFile < handle
                 this.updateProgress(0,'');
             end
         end
-        
+
         function out = getNeigborData(this,channels,y,x,nrNbs)
             %get neighbors from ROI data
             out = [];
@@ -916,10 +923,10 @@ classdef measurementFile < handle
                 out(:,:,ch) = measurementFile.get3DNbs(this.getROIData(channels(ch),[],[]),y,x,nrNbs/8);
             end
         end
-        
+
         function goOn = updateSEPosRM(this,channel)
             %get start-pos, end-pos and reflection mask
-            goOn = true;            
+            goOn = true;
             pParam = this.paramMgrObj.getParamSection('pre_processing');
             %1: auto, 0: manual, -1: fix
             if(pParam.autoStartPos == 1)
@@ -958,7 +965,7 @@ classdef measurementFile < handle
                 this.fileInfo.reflectionMask(channel) = {ones(this.fileInfo.nrTimeChannels,1)};
             end
             %user wants to choose
-            if((pParam.autoStartPos == 0 || pParam.autoEndPos == 0 || pParam.autoReflRem == 0) && ~isempty(this.getROIMerged(channel)))                
+            if((pParam.autoStartPos == 0 || pParam.autoEndPos == 0 || pParam.autoReflRem == 0) && ~isempty(this.getROIMerged(channel)))
                 %call startpos gui
                 studyName = '';
                 subjectName = '';
@@ -976,11 +983,11 @@ classdef measurementFile < handle
                 goOn = false;
                 this.fileInfo.StartPosition{channel} = 1;
                 this.fileInfo.EndPosition{channel} = this.fileInfo.nrTimeChannels;
-                this.fileInfo.reflectionMask{channel} = ones(this.fileInfo.nrTimeChannels,1);                
+                this.fileInfo.reflectionMask{channel} = ones(this.fileInfo.nrTimeChannels,1);
             end
             this.setDirtyFlags([],2,true);
         end
-        
+
         function [rawData, fluoFileInfo, auxInfo, ROIInfo] = makeExportVars(this,ch)
             %save measurement data in separate structure
             fluoFileInfo = []; auxInfo = []; ROIInfo = [];
@@ -994,7 +1001,7 @@ classdef measurementFile < handle
             fluoFileInfo = this.getFileInfoStruct(ch);
             ROIInfo = this.getROIInfo();
         end
-        
+
         function saveMatFile2Disk(this,ch)
             %save result channel to disk
             if(isempty(ch))
@@ -1006,13 +1013,13 @@ classdef measurementFile < handle
                 end
             else
                 this.exportMatFile(ch,'');
-                %this.filesOnHDD(1,ch) = true;                
+                %this.filesOnHDD(1,ch) = true;
             end
             if(length(this.filesOnHDD) < ch || ~this.filesOnHDD(ch))
                 this.checkMyFiles();
             end
         end
-        
+
         function exportMatFile(this,ch,folder)
             %save measurement data to disk
             fn = this.getMeasurementFileName(ch,folder);
@@ -1077,19 +1084,19 @@ classdef measurementFile < handle
             end
             this.setDirtyFlags(ch,1:4,false);
         end
-        
+
         function out = getWorkingDirectory(this)
             %returns working folder
             %supposed to be overloaded by children
             out = cd;
         end
-        
+
         function out = getMyParamMgr(this)
             %returns parameter manager
             %supposed to be overloaded by childs
             out = this.myParamMgr;
         end
-        
+
         %% computation methods
         function guessEyePosition(this)
             %guess position (left: OS or right: OD) of the eye
@@ -1110,7 +1117,7 @@ classdef measurementFile < handle
                 this.position = eyePos;
             end
         end
-        
+
         function out = makeROIData(this,channel)
             %bin raw data using binFactor and save in object
             out = [];
@@ -1166,7 +1173,7 @@ classdef measurementFile < handle
                         maxBin = int32(this.roiAdaptiveBinMax);
                         [roiX,roiY] = compGridCoordinates(roi,0);
                         if(this.useMex4AdaptiveBin && this.nrTimeChannels <= 1024)
-                            [~,binLevels,out] = getAdaptiveBinROI_mex(raw,roiX,roiY,target,maxBin,true);                            
+                            [~,binLevels,out] = getAdaptiveBinROI_mex(raw,roiX,roiY,target,maxBin,true);
                         else
                             [~,binLevels,out] = getAdaptiveBinROI(raw,roiX,roiY,target,maxBin,false);
                         end
@@ -1200,7 +1207,7 @@ classdef measurementFile < handle
                 this.updateProgress(0,'');
             end
         end
-        
+
         function clearRawData(this,ch)
             %clear raw data to save memory, clear all channels if ch is empty
             if(isempty(ch))
@@ -1211,7 +1218,7 @@ classdef measurementFile < handle
                 this.rawMaskData{ch} = [];
             end
         end
-        
+
         function clearROAData(this)
             %clear everything except for the measurement data
             this.roiFluoData = cell(this.nrSpectralChannels,1);
@@ -1224,12 +1231,12 @@ classdef measurementFile < handle
             this.fileInfo.StartPosition = num2cell(ones(this.nrSpectralChannels,1));
             this.fileInfo.EndPosition = num2cell(this.fileInfo.nrTimeChannels.*ones(this.nrSpectralChannels,1));
         end
-        
+
         function clearInitFitData(this)
             %clear data needed for initialization fit
             this.initData = cell(this.nrSpectralChannels,3);
         end
-        
+
         function updateProgress(this,prog,text)
             %either update progress bar of visObj or plot to command line
             for i = length(this.progressCb):-1:1
@@ -1240,9 +1247,9 @@ classdef measurementFile < handle
                 end
             end
         end
-        
+
     end %methods
-    
+
     methods (Access = protected)
         function setPosition(this,val)
             %set position
@@ -1253,7 +1260,7 @@ classdef measurementFile < handle
             this.fileInfo.position = val;
             this.setDirtyFlags([],2,true);
         end
-        
+
         function setPixelResolution(this,val)
             %set pixel resolution
             for i = 1:length(this.nonEmptyChannelList)
@@ -1263,7 +1270,7 @@ classdef measurementFile < handle
             this.fileInfo.pixelResolution = val;
             this.setDirtyFlags([],2,true);
         end
-        
+
         function setDirtyFlags(this,ch,flagPos,val)
             %set one or multiple dirty flags to a new value
             if(isempty(ch))
@@ -1275,14 +1282,14 @@ classdef measurementFile < handle
             end
             this.dirtyFlags(ch,flagPos) = logical(val);
         end
-        
+
         function setNrTimeChannels(this,val)
             %set nr of time channels
             this.fileInfo.nrTimeChannels = val;
             this.fileInfo.reflectionMask = mat2cell(ones(this.fileInfo.nrTimeChannels,this.fileInfo.nrSpectralChannels),val,ones(this.fileInfo.nrSpectralChannels,1))';
             this.setDirtyFlags([],2,true);
         end
-        
+
         function setFileInfoStruct(this,fileInfo)
             %set info (for batch job)
             if(isempty(fileInfo))
@@ -1308,7 +1315,7 @@ classdef measurementFile < handle
                 this.setDirtyFlags([],2,true);
             end
         end
-        
+
         function setSEPosRM(this,channel,startP,endP,RM)
             %set start position, end position and reflection mask
             if(isempty(channel) || length(channel) > 1)
@@ -1325,7 +1332,7 @@ classdef measurementFile < handle
                 this.setDirtyFlags([],2,true);
             end
         end
-        
+
         function setRawData(this,channel,data)
             %set raw data for channel
             if(channel <= this.nrSpectralChannels && ndims(data) == 3)
@@ -1339,11 +1346,11 @@ classdef measurementFile < handle
                 this.roiMerged(channel,1) = cell(1,1);
                 this.roiFluoDataFlat(channel,1) = cell(1,1);
                 this.roiSupport(channel,1) = cell(1,1);
-                this.initData(channel,1) = cell(1,1);                
+                this.initData(channel,1) = cell(1,1);
             end
             this.setDirtyFlags(channel,1,true);
         end
-        
+
         function setRawMaskData(this,channel,data)
             %set raw mask data for channel
             if(channel <= this.nrSpectralChannels && this.rawYSz == size(data,1) && this.rawXSz == size(data,2))
@@ -1354,7 +1361,7 @@ classdef measurementFile < handle
             end
             this.setDirtyFlags(channel,1,true);
         end
-        
+
         function out = getMeasurementFileName(this,ch,folder)
             %returns path and filename for channel ch
             if(isempty(folder))
@@ -1363,7 +1370,7 @@ classdef measurementFile < handle
                 out = fullfile(folder,sprintf('%sch%02d%s',this.fileStub,ch,this.fileExt));
             end
         end
-        
+
         function out = getNrSpectralChannels(this)
             %return number of spectral channels, in case of anisotropy: 4
             out = this.fileInfo.nrSpectralChannels;
@@ -1372,7 +1379,7 @@ classdef measurementFile < handle
             end
         end
     end %methods (Access = protected)
-    
+
     methods(Static)
         function out = sWnd3D(xl,xu,yl,yu,d,raw,pres,hwb)
             % xl - lower bound x
@@ -1389,7 +1396,7 @@ classdef measurementFile < handle
             yl = max(1,min(abs(yl),y));
             yu = max(1,min(y,yu));
             out = zeros(yu-yl+1,xu-xl+1,z,pres);
-            
+
             % %precompute indices
             % idx = zeros(xu-xl+1,yu-yl+1,4);
             % for i = xl:xu
@@ -1397,7 +1404,7 @@ classdef measurementFile < handle
             %        idx(i-xl+1,j-yl+1,:) = [max(i-d,1) min(i+d,y) max(j-d,1) min(j+d,x)];
             %    end
             % end
-            
+
             if(d == 0)
                 out = uint16(raw(yl:yu,xl:xu,:));
             else
@@ -1426,7 +1433,7 @@ classdef measurementFile < handle
             end
             %             out_flat = sum(out,3);
         end
-        
+
         function fi = getDefaultFileInfo()
             %return a file info struct with some default values
             fi.tacRange = 12.5084; %just some default value; in ns (1 / laser repetition rate)
@@ -1442,10 +1449,10 @@ classdef measurementFile < handle
             %fi.ROIDataType = 'uint16';
             fi.rawXSz = 0;
             fi.rawYSz = 0;
-            fi.pixelResolution = 34.375; %just some default value: 58.666 (old) | 34.375 (new) µm / pixel
+            fi.pixelResolution = 34.375; %just some default value: 58.666 (old) | 34.375 (new) ï¿½m / pixel
             fi.position = 'OS'; %OD "oculus dexter" = "right eye"; OS "oculus sinister" = "left eye"
         end
-        
+
         function out = getDefaultROIInfo()
             %return a ROI info struct with some default values
             out.ROICoordinates = [];
@@ -1454,7 +1461,7 @@ classdef measurementFile < handle
             out.ROIAdaptiveBinThreshold = [];
             out.ROISupport = [];
         end
-        
+
         function out = testStaticBinMex()
             %returns true is a mex file can be used for static binning
             out = false;
@@ -1464,7 +1471,7 @@ classdef measurementFile < handle
             catch ME
             end
         end
-        
+
         function out = testAdaptiveBinMex()
             %returns true is a mex file can be used for adaptive binning
             out = false;
@@ -1474,7 +1481,7 @@ classdef measurementFile < handle
             catch ME
             end
         end
-        
+
         function out = testStaticBinGPU()
             %returns true is a GPU could be used for static binning
             persistent GPUFlag
@@ -1507,7 +1514,7 @@ classdef measurementFile < handle
             end
             out = GPUFlag;
         end
-        
+
         function [out, idx] = compReflectionMask(in,aWSz,minGWSz)
             %detectes reflection in fluorescence decay data using 1st order gradient
             out = true(size(in));
@@ -1537,7 +1544,7 @@ classdef measurementFile < handle
                 out(idx(i,1):idx(i,2)) = false;
             end
         end
-        
+
         function idx = getMaskGrps(mask)
             %get indices of true valued groups in index-mask (find of a logical mask)
             if(numel(mask) == 0)
@@ -1558,7 +1565,7 @@ classdef measurementFile < handle
                 end
             end
         end
-        
+
         function nbs = get3DNbs(mat,yPos,xPos,d)
             %find the 4 or 8 neighbors (nbCnt) of yPos/xPos in window d keeping the 3rd dimension
             [y, x, z, nrChannels] = size(mat);
@@ -1599,4 +1606,3 @@ classdef measurementFile < handle
         end
     end %methods(Static)
 end
-

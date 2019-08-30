@@ -1,5 +1,5 @@
 function varargout = differentialevolution(DEParams, paramDefCell, ...
-    objFctHandle, objFctSettings, objFctParams, emailParams, optimInfo)
+    objFctHandle, objFctSettings, objFctParams, pixelIDs, optimInfo)
 %DIFFERENTIALEVOLUTION  Start Differential Evolution optimization.
 %		BESTMEM = DIFFERENTIALEVOLUTION(DEPARAMS, ...) starts a Differential
 %		Evolution (DE) optimization to minimize the cost returned by a given
@@ -785,7 +785,7 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
         %         parfor i = 1:size(popq,2)
         %             val(i) = objFctHandle(popq(:,i));
         %         end
-        val = objFctHandle(checkBounds(checkQuantization(pop',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2)));
+        val = objFctHandle(checkBounds(checkQuantization(pop',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2)),pixelIDs);
         nfeval.local = nfeval.local + size(pop,1);               
         [bestval(reInitCnt), idx] = min(val(:));   % best cost value so far
         %         [val idx] = sort(val); %sort population according to there function values
@@ -859,14 +859,14 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % check which vectors are allowed to enter the new population %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    popnew = checkBounds(popnew',parameterBounds(:,1),parameterBounds(:,2))';
+    popnew = checkBounds(popnew',repmat(parameterBounds(:,1),[1,size(popnew,1)]),repmat(parameterBounds(:,2),[1,size(popnew,1)]))';
     %save constrained parameters, do not save grided parameters
     %     popnewq = checkBounds(checkQuantization(popnew',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2));
     %     tempval = zeros(size(popnewq,2),1);
     %     parfor i = 1:size(popnewq,2)
     %         tempval(i) = objFctHandle(popnewq(:,i));
     %     end
-    tempval = objFctHandle(checkBounds(checkQuantization(popnew',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2)));
+    tempval = objFctHandle(checkBounds(checkQuantization(popnew',parGridVector,parameterBounds(:,1)),repmat(parameterBounds(:,1),[1,size(popnew,1)]),repmat(parameterBounds(:,2),[1,size(popnew,1)])),pixelIDs);
     nfeval.local = nfeval.local + size(popnew,1);
     
     idx = tempval < val;
@@ -1051,7 +1051,7 @@ if nargout > 0
     bestmem = bestmem(idx,:);
     bestmem = checkBounds(bestmem',parameterBounds(:,1),parameterBounds(:,2));
     %check if non-quantisized function value is better than quantisized
-    tmpval = objFctHandle(bestmem);
+    tmpval = objFctHandle(bestmem,pixelIDs);
     if(tmpval < bestval)
         bestval = tmpval;
     else
@@ -1242,7 +1242,7 @@ objFctParamsCell = cell(size(pop,1),1);
 %         paramDefCell, parameterDimVector, pop(n,:)); %#ok
 % end
 
-quantPop = checkBounds(checkQuantization(quantPop',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2))';
+quantPop(memIndex,:) = checkBounds(checkQuantization(quantPop(memIndex,:)',parGridVector,parameterBounds(:,1)),repmat(parameterBounds(:,1),[1,length(memIndex)]),repmat(parameterBounds(:,2),[1,length(memIndex)]))';
 
 % check for multiple occurences and invalid parameter vectors and recompute
 % random vectors

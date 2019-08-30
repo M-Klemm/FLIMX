@@ -37,19 +37,19 @@ classdef FDTSubject < fluoSubject
     properties (Dependent = true)
         FLIMXParamMgrObj = [];
     end
-    
+
     methods
         function this = FDTSubject(parent,name)
-            % Constructor for FDTSubject           
+            % Constructor for FDTSubject
             this = this@fluoSubject(parent,name);
             %this.myDir = sDir;
             this.reset();
         end
-        
+
 %         function updateFileStatus(this)
 %             %update file status
 %         end
-                
+
         function reset(this)
             %reset measurement and result objects
             this.removeResultChannelFromMemory([]);
@@ -67,10 +67,10 @@ classdef FDTSubject < fluoSubject
             end
             this.isInitialized = false;
         end
-        
+
         %% input methods
-        
-        
+
+
         function importMeasurementObj(this, obj)
             %import a measurement object to FDTree
 %             ROIVec = obj.ROICoord; %save old ROIVec if there is one
@@ -103,22 +103,22 @@ classdef FDTSubject < fluoSubject
                 this.deleteChannel(chList(i),'result');
             end
             this.myMeasurement.saveMatFile2Disk([]);
-%             subjectApp = this.myParent.getSubject4Approx(this.name);            
+%             subjectApp = this.myParent.getSubject4Approx(this.name);
 %             subjectApp.reset();
         end
-        
+
 %         function importResultObj(this, obj)
 %             %import a result object to FDTree
-%             
+%
 %         end
-        
+
         function importResultStruct(this,rs,ch,position,scaling)
             %import a result from a result struct
             this.initMode = true;
             this.myResult.importResultStruct(rs,ch,position,scaling);
-            this.importResultPostProcess();            
+            this.importResultPostProcess();
         end
-        
+
         function addFLIMItems(this,ch,itemsStruct)
             %import (additional) FLIM items to this result
             %check size
@@ -184,11 +184,11 @@ classdef FDTSubject < fluoSubject
             end
             this.myResult.addFLIMItems(ch,itemsStruct);
             this.importResultPostProcess();
-            %we might overwrite something that is used for an arithmetic image -> clear them 
+            %we might overwrite something that is used for an arithmetic image -> clear them
             %(we don't have a method to clear only a specific subject, thus clear the whole study)
             this.myParent.clearArithmeticRIs();
         end
-        
+
         function importResultPostProcess(this)
             %import a result to FDTree
             this.initMode = true;
@@ -197,7 +197,7 @@ classdef FDTSubject < fluoSubject
                 %save mat files for measurements and results
                 %save only result, we can assume we already have the measurement
                 this.myResult.saveMatFile2Disk(chList(i)); %force reload of result with new items
-                this.removeResultChannelFromMemory(chList(i));                
+                this.removeResultChannelFromMemory(chList(i));
                 this.myParent.myStudyInfoSet.setAllFLIMItems(this.name,chList(i),removeNonVisItems(this.getResultNames(chList(i),false),3));
             end
             this.initMode = false;
@@ -206,7 +206,7 @@ classdef FDTSubject < fluoSubject
             %subjectApp.updateSubjectChannel([],'measurement'); %check if measurement is dirty before we reset the object
             %subjectApp.reset();
         end
-        
+
         function setResultDirty(this,ch,flag)
             %set dirty flag
             if(~this.isInitialized)
@@ -214,7 +214,7 @@ classdef FDTSubject < fluoSubject
             end
             this.myResult.setDirty(ch,flag);
         end
-        
+
         function setResultType(this,val)
             %set the result type string; only 'FluoDecayFit' (default) and 'ASCII' are valid
             if(~this.isInitialized)
@@ -222,7 +222,7 @@ classdef FDTSubject < fluoSubject
             end
             this.myResult.setResultType(val);
         end
-        
+
         function setEffectiveTime(this,ch,t)
             %set the effective run time for the approximation of ch
             if(~this.isInitialized)
@@ -230,7 +230,7 @@ classdef FDTSubject < fluoSubject
             end
             this.myResult.setEffectiveTime(ch,t);
         end
-        
+
         function setPixelFLIMItem(this,ch,pStr,val)
             %set FLIMItem pStr to value val or add new FLIMItem
             if(~this.isInitialized)
@@ -238,7 +238,7 @@ classdef FDTSubject < fluoSubject
             end
             this.myResult.setPixelFLIMItem(ch,pStr,val);
         end
-        
+
         function setInitFLIMItem(this,ch,pStr,val)
             %set FLIMItem pStr to value val or add new FLIMItem
             if(~this.isInitialized)
@@ -246,7 +246,7 @@ classdef FDTSubject < fluoSubject
             end
             this.myResult.setInitFLIMItem(ch,pStr,val);
         end
-        
+
         function addInitResult(this,ch,indices,resultStruct)
             %add single results to our inner results structure
             if(~this.isInitialized)
@@ -254,7 +254,7 @@ classdef FDTSubject < fluoSubject
             end
             this.myResult.addInitResult(ch,indices,resultStruct);
         end
-        
+
         function addSingleResult(this,ch,row,col,resultStruct)
             %add single results to our inner results structure
             if(~this.isInitialized)
@@ -265,7 +265,7 @@ classdef FDTSubject < fluoSubject
                 this.setPixelFLIMItem(ch,'Intensity',this.getROIDataFlat(ch,false));
             end
         end
-        
+
         function addMultipleResults(this,ch,indices,resultStruct)
             %add mupltiple results according to their indices
             if(~this.isInitialized)
@@ -273,7 +273,7 @@ classdef FDTSubject < fluoSubject
             end
             this.myResult.addMultipleResults(ch,indices,resultStruct);
         end
-        
+
         function addResultColumn(this,ch,col,resultStruct)
             %add complete results column from a cell array to our inner results structure
             if(~this.isInitialized)
@@ -281,7 +281,7 @@ classdef FDTSubject < fluoSubject
             end
             this.myResult.addResultColumn(ch,col,resultStruct);
         end
-        
+
         function addResultRow(this,ch,row,resultStruct)
             %add complete results row from a cell array to our inner results structure
             if(~this.isInitialized)
@@ -289,7 +289,7 @@ classdef FDTSubject < fluoSubject
             end
             this.myResult.addResultRow(ch,row,resultStruct);
         end
-        
+
         function clearROA(this)
             %clears measurement data and results of current region of approximation
             if(~this.isInitialized)
@@ -298,7 +298,7 @@ classdef FDTSubject < fluoSubject
             this.myMeasurement.clearROAData();
             this.clearROAResults(false);
         end
-        
+
         function clearROAResults(this,saveToDiskFlag)
             %clear the results of current region of approximation
             %this.myMeasurement.clearROAData();
@@ -311,8 +311,8 @@ classdef FDTSubject < fluoSubject
             if(saveToDiskFlag)
                 this.saveMatFile2Disk([]);
             end
-        end        
-        
+        end
+
         %% output
         function out = getApproximationPixelIDs(this,ch)
             %return indices of all pixels in channel ch which have the min. required number of photons
@@ -321,52 +321,52 @@ classdef FDTSubject < fluoSubject
             end
             out = find(this.getROIDataFlat(ch,false) >= this.basicParams.photonThreshold);
         end
-        
-        function [parameterCell, idx] = getApproxParamCell(this,ch,pixelPool,fitDim,initFit,optimizationParams,aboutInfo)
-            %put all data needed for approximation in a cell array (corresponds to makePixelFit interface)
-            if(~this.isInitialized)
-                this.init();
-            end
-            if(initFit)
-                %initialization fit                
-                if(any(pixelPool > this.initFitParams.gridSize^2))
-                    parameterCell = [];
-                    idx = [];
-                    return
-                end
-                apObjs = this.getInitApproxObjs(ch);
-                apObjs = apObjs(pixelPool);
-                idx = zeros(length(pixelPool),2);
-                [idx(:,1), idx(:,2)] = ind2sub([this.initFitParams.gridSize this.initFitParams.gridSize],pixelPool);
-                %nPixel = this.initFitParams.gridSize^2;
-            else
-                %ROIData = this.FLIMXObj.curSubject.getROIData(ch,[],[],[]);
-                y = this.getROIYSz();
-                x = this.getROIXSz();
-                if(length(pixelPool) < 1) %we are at the end of the file
-                    parameterCell = [];
-                    idx = [];
-                    return
-                end
-                nPixel = length(pixelPool);
-                %% get pixel indices and data
-                idx = zeros(nPixel,2);
-                parameterCell = cell(1,3);
-                apObjs = cell(nPixel,1);
-                if(fitDim == 2) %x
-                    [idx(:,2), idx(:,1)] = ind2sub([x y],pixelPool);
-                else %y
-                    [idx(:,1), idx(:,2)] = ind2sub([y x],pixelPool);
-                end
-                for i = 1:nPixel %loop over roi pixel
-                    apObjs{i} = getApproxObj(this,ch,idx(i,1),idx(i,2));
-                end
-            end
-            %% assemble cell
-            parameterCell(1) = {apObjs};
-            parameterCell(2) = {optimizationParams};
-            parameterCell(3) = {aboutInfo};
-        end
+
+%         function [parameterCell, idx] = getApproxParamCell(this,ch,pixelPool,fitDim,initFit,optimizationParams,aboutInfo)
+%             %put all data needed for approximation in a cell array (corresponds to makePixelFit interface)
+%             if(~this.isInitialized)
+%                 this.init();
+%             end
+%             if(initFit)
+%                 %initialization fit
+%                 if(any(pixelPool > this.initFitParams.gridSize^2))
+%                     parameterCell = [];
+%                     idx = [];
+%                     return
+%                 end
+%                 apObjs = this.getInitApproxObjs(ch);
+%                 apObjs = apObjs(pixelPool);
+%                 idx = zeros(length(pixelPool),2);
+%                 [idx(:,1), idx(:,2)] = ind2sub([this.initFitParams.gridSize this.initFitParams.gridSize],pixelPool);
+%                 %nPixel = this.initFitParams.gridSize^2;
+%             else
+%                 %ROIData = this.FLIMXObj.curSubject.getROIData(ch,[],[],[]);
+%                 y = this.getROIYSz();
+%                 x = this.getROIXSz();
+%                 if(length(pixelPool) < 1) %we are at the end of the file
+%                     parameterCell = [];
+%                     idx = [];
+%                     return
+%                 end
+%                 nPixel = length(pixelPool);
+%                 %% get pixel indices and data
+%                 idx = zeros(nPixel,2);
+%                 parameterCell = cell(1,3);
+%                 apObjs = cell(nPixel,1);
+% %                 if(fitDim == 2) %x
+% %                     [idx(:,2), idx(:,1)] = ind2sub([x y],pixelPool);
+% %                 else %y
+%                     [idx(:,1), idx(:,2)] = ind2sub([y x],pixelPool);
+% %                 end
+%                 for i = 1:nPixel %loop over roi pixel
+%                     apObjs{i} = getApproxObj(this,ch,idx(i,1),idx(i,2));
+%                 end
+%             end
+%             %% assemble cell
+%             parameterCell(1) = {apObjs};
+%             parameterCell(2) = {optimizationParams};
+%             parameterCell(3) = {aboutInfo};
+%         end
 
         function makeMeasurementROIData(this,channel,binFactor)
             %force building roi from raw data in measurement
@@ -374,11 +374,11 @@ classdef FDTSubject < fluoSubject
                 binFactor = this.myMeasurement.roiBinning;
             end
             this.myMeasurement.makeROIData(channel,binFactor);
-        end       
-   
-        
+        end
 
-        
+
+
+
 %         function out = getSize(this)
 %             %determine memory size of the subject
 %             out = 0;
@@ -391,18 +391,18 @@ classdef FDTSubject < fluoSubject
 %             %todo: add fileInfo?!
 %             %fprintf(1, 'Subject size %d bytes\n', out);
 %         end
-        
+
         function addObj(this,ch,dType,gScale,data)
             %add an object to FDTree and generate id (running number) automatically
             if(isempty(dType))
                 %add only empty channel
                 this.addChildByName(FDTChannel(this,ch),ch);
                 return
-            end            
+            end
             %save size of data for whole subject if it is globally scaled
 %             if(gScale && isempty(this.XSz))
                 %[this.YSz, this.XSz] = size(data);
-%             end            
+%             end
             if(gScale)
                 %check if size of current data matches subject size
                 [y, x, z] = size(data);
@@ -418,13 +418,13 @@ classdef FDTSubject < fluoSubject
             end
             chObj.addObj(dType,gScale,data);
         end
-        
+
         function addObjID(this,nr,ch,dType,gScale,data)
             %add an object to FDTree with specific id (running number)
             %save size of data for whole subject if it is globally scaled
 %             if(gScale && isempty(this.XSz))
 %                 [this.YSz, this.XSz] = size(data);
-%             end            
+%             end
             if(gScale)
                 %check if size of current data matches subject size
                 [y, x, z] = size(data);
@@ -441,9 +441,9 @@ classdef FDTSubject < fluoSubject
             end
             chObj.addObjID(nr,dType,gScale,data);
         end
-        
+
         function addObjMergeID(this,nr,ch,dType,gScale,data)
-            %add merged FData object            
+            %add merged FData object
             %insert data in specific channel
             chObj = this.getChild(ch);
             if(isempty(chObj))
@@ -452,7 +452,7 @@ classdef FDTSubject < fluoSubject
             end
             chObj.addObjMergeID(nr,dType,gScale,data);
         end
-        
+
         function addClusterID(this,ch,id,data)
             % add MVGroup object to channel
             chObj = this.getChild(ch);
@@ -463,7 +463,7 @@ classdef FDTSubject < fluoSubject
             end
             chObj.addCluster(id,data);
         end
-        
+
         function removeObj(this,ch,dType,id)
             %remove object from channel ch
             chObj = this.getChild(ch);
@@ -476,7 +476,7 @@ classdef FDTSubject < fluoSubject
             %                 this.deleteChildByName(ch);
             %             end
         end
-        
+
         function removeResultChannelFromMemory(this,ch)
             %remove channel of a subject
             if(isempty(ch))
@@ -492,7 +492,7 @@ classdef FDTSubject < fluoSubject
 %                 this.YSz = [];
 %             end
         end
-        
+
         function deleteChannel(this,ch,type)
             %delete channel of a subject from memory and disk; type decides if measurement, result or both
             if(isempty(type))
@@ -505,17 +505,17 @@ classdef FDTSubject < fluoSubject
                 %this.removeResultChannelFromMemory(ch);
             end
         end
-        
+
         function updateShortProgress(this,prog,text)
             %update the progress bar of a short operation
             this.myParent.updateShortProgress(prog,text);
         end
-        
+
         function updateLongProgress(this,prog,text)
             %update the progress bar of a long operation consisting of short ops
             this.myParent.updateLongProgress(prog,text);
         end
-        
+
         %% input functions
         function loadChannel(this,ch,forceLoadFlag)
             %load channel (measurement and results)
@@ -541,7 +541,7 @@ classdef FDTSubject < fluoSubject
                     int = this.getROIDataFlat(ch,true);
                     allItems = this.myParent.getAllFLIMItems(this.name,ch);
                     if(~isempty(int) && (isempty(this.YSz) || isempty(this.XSz)) || ~isempty(int) && (size(int,1) == this.YSz && size(int,2) == this.XSz))
-                        this.addObjID(0,ch,'Intensity',1,int);                        
+                        this.addObjID(0,ch,'Intensity',1,int);
                         if(isempty(allItems))
                             this.myParent.setAllFLIMItems(this.name,ch,{'Intensity'});
                         end
@@ -559,7 +559,7 @@ classdef FDTSubject < fluoSubject
                             %this.updateShortProgress(0,'');
                             %return
                         end
-                    end                    
+                    end
                 end
                 %load result
                 if(~this.channelResultIsLoaded(ch) || forceLoadFlag)
@@ -680,7 +680,7 @@ classdef FDTSubject < fluoSubject
                 this.updateShortProgress(0,'');
             end
         end
-        
+
         function setSubjectName(this,val)
             %set subject name
             %save possible changes
@@ -694,35 +694,35 @@ classdef FDTSubject < fluoSubject
                 if(isfolder(oldpath))
                     try
                         [status,msg,msgID] = movefile(oldpath,newpath);
-                    catch ME                        
+                    catch ME
                     end
                 end
                 this.name = val;
                 this.reset();
             end
         end
-        
+
         function setdType(this,dType,val)
             %set new dType (new chunk name)
             for i = 1:this.nrChildren
                 this.getChildAtPos(i).setdType(dType,val);
             end
         end
-        
+
         function setResultROICoordinates(this,dType,ROIType,ROICoord)
             %set the ROI vector for dimension dim
             for i = 1:this.nrChildren
                 this.getChildAtPos(i).setResultROICoordinates(dType,ROIType,ROICoord);
             end
         end
-        
+
         function setResultCrossSection(this,dim,csDef)
             %set the cross section for dimension dim
             for i = 1:this.nrChildren
                 this.getChildAtPos(i).setResultCrossSection(dim,csDef);
             end
         end
-        
+
         %% output functions
         function h = getFDataObj(this,ch,dType,id,sType)
             %get FData object
@@ -739,7 +739,7 @@ classdef FDTSubject < fluoSubject
                 if(strncmp(dType,'MVGroup',7) || strncmp(dType,'ConditionMVGroup',16) || strncmp(dType,'GlobalMVGroup',13))
                     this.addChildByName(FDTChannel(this,ch),ch);
                     chObj = this.getChild(ch);
-                else                    
+                else
                     return
                 end
             elseif(isempty(chObj) && isempty(ch))
@@ -747,12 +747,12 @@ classdef FDTSubject < fluoSubject
             end
             h = chObj.getFDataObj(dType,id,sType);
         end
-                
+
         function nr = getNrChannels(this)
             %get number of channels in subject
             nr = this.nrChildren;
         end
-                
+
         function out = getMVGroupTargets(this,MVGroupNr)
             %get multivariate targets
             gMVs = this.myParent.getMVGroupTargets(MVGroupNr);
@@ -783,7 +783,7 @@ classdef FDTSubject < fluoSubject
                 end
             end
         end
-        
+
 %         function nr = getMyChannelNr(this,caller)
 %             %return the current channel number
 %             for i = 1:this.nrChildren
@@ -794,13 +794,13 @@ classdef FDTSubject < fluoSubject
 %             end
 %             nr = [];
 %         end
-        
+
         function [str, nrs] = getChStr(this)
             %get a string of all channels in subject
             nrs = this.nonEmptyChannelList(:);
             str = sprintfc('Ch %d',nrs);
         end
-        
+
         function str = getChObjStr(this,ch)
             %get a string of all objects in channel ch in subject
             if(~this.channelResultIsLoaded(ch))
@@ -814,7 +814,7 @@ classdef FDTSubject < fluoSubject
                 str = chObj.getChObjStr();
             end
         end
-        
+
 %         function str = getMVGroupNames(this,ch)
 %             %get a string of all MVGroup objects in a channel
 %             if(~this.channelResultIsLoaded(ch))
@@ -828,42 +828,42 @@ classdef FDTSubject < fluoSubject
 %                 str = chObj.getMVGroupNames();
 %             end
 %         end
-                      
+
         function out = getHeight(this)
             %get height of subject
             out = this.YSz;
         end
-        
+
         function out = getWidth(this)
             %get width of subject
             out = this.XSz;
         end
-        
+
         function out = getVicinityInfo(this)
             %get vicinity info
             out = this.myParent.getVicinityInfo();
         end
-                
+
         function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
             [alg, params] = this.myParent.getDataSmoothFilter();
         end
-        
+
         function out = getROICoordinates(this,ROIType)
             %get coordinates of ROI
             out = this.myParent.getResultROICoordinates(this.name,ROIType);
         end
-        
+
         function out = getZScaling(this,ch,dType,dTypeNr)
             %get z scaling
             out = this.myParent.getResultZScaling(this.name,ch,dType,dTypeNr);
         end
-        
+
         function out = getColorScaling(this,ch,dType,dTypeNr)
             %get color scaling
             out = this.myParent.getResultColorScaling(this.name,ch,dType,dTypeNr);
         end
-        
+
         function out = channelMesurementIsLoaded(this,chan)
             %
             hfd = this.getFDataObj(chan,'Intensity',0,1); %check only linear data
@@ -873,7 +873,7 @@ classdef FDTSubject < fluoSubject
                 out = true;
             end
         end
-        
+
         function out = channelResultIsLoaded(this,ch)
             %return true if subject was loaded from disk
             chObj = this.getChild(ch);
@@ -885,11 +885,11 @@ classdef FDTSubject < fluoSubject
                 idx = ismember(cos,'Intensity');
                 cos(idx) = [];
                 out = ~isempty(cos);
-            else                
+            else
                 out = false;
             end
         end
-        
+
         function out = isMember(this,ch,dType)
             %function checks combination of channel and datatype
             if(~this.channelResultIsLoaded(ch))
@@ -902,12 +902,12 @@ classdef FDTSubject < fluoSubject
                 out = chObj.isMember(dType);
             end
         end
-        
+
         function out = isArithmeticImage(this,dType)
             %return true, if dType is an arithmetic image
             out = this.myParent.isArithmeticImage(dType);
         end
-        
+
         function out = getGlobalScale(this,dType)
             %return global scale flag for dType
             out = false;
@@ -915,25 +915,25 @@ classdef FDTSubject < fluoSubject
                 if(~this.channelResultIsLoaded(ch))
                     this.loadChannel(ch,false);
                 end
-                chObj = this.getChild(ch);                
+                chObj = this.getChild(ch);
                 if(~isempty(chObj))
                     out = chObj.getGlobalScale(dType);
                     return
                 end
             end
         end
-        
+
         function out = get.FLIMXParamMgrObj(this)
             %get handle to parameter manager object
             out = this.myParent.FLIMXParamMgrObj;
         end
-                
-        %% compute functions        
+
+        %% compute functions
         function makeArithmeticImage(this,aiName,aiParams)
             %compute arithmetic images (all if aiName is empty)
             if(isempty(aiName) || isempty(aiParams))
                 return
-            end            
+            end
             %check for which channels the arithmetic image should be built
             [~, totalCh] = this.myParent.getChStr(this.name);
             if(aiParams.chA == 0 || aiParams.chB == 0 || (aiParams.chC == 0 && ~strcmp(aiParams.opB,'-no op-') && ~strcmp(aiParams.compAgainstC,'val'))) % todo: chC
@@ -955,7 +955,7 @@ classdef FDTSubject < fluoSubject
                 chCList = totalCh;
             else
                 chCList = repmat(aiParams.chC,1,nCh);
-            end            
+            end
             %loop over channels
             for chIdx = 1:nCh
                 dataA = this.getArithmeticImageData(aiParams,'A',chAList(chIdx));
@@ -974,7 +974,7 @@ classdef FDTSubject < fluoSubject
                     data = FDTSubject.calculateArithmeticImage(dataB,dataC,opB,negB);
                     %now run opA
                     data = FDTSubject.calculateArithmeticImage(dataA,data,opA,negA);
-                end                
+                end
                 %save arithmetic image
                 this.addObjID(0,chAList(chIdx),aiName,1,data);
             end
@@ -985,17 +985,17 @@ classdef FDTSubject < fluoSubject
                 this.setResultCrossSection('Y',csDef(4:6));
             end
         end
-        
+
         function [cimg, lblx, cw, lbly] = makeConditionMVGroupObj(this,chan,MVGroupID)
             %make condition MVGroup for a spectral channel
             [cimg, lblx, cw, lbly] = this.myParent.makeConditionMVGroupObj(this.name,chan,MVGroupID);
         end
-        
+
         function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalMVGroupObj(this,chan,MVGroupID)
             %make global MVGroup for a spectral channel
             [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalMVGroupObj(chan,MVGroupID);
         end
-        
+
 %         function flag = eq(ds1,ds2)
 %             %compare two subjectDS objects
 %             if(ischar(ds2))
@@ -1004,10 +1004,10 @@ classdef FDTSubject < fluoSubject
 %                 flag = strcmp(ds1.name,ds2.name);
 %             end
 %         end
-        
+
     end %methods
-    
-        methods(Access = protected)            
+
+        methods(Access = protected)
             function out = getArithmeticImageData(this,aiParams,layer,ch)
                 %gather data for artificial image layer (A, B or C)
                 out = [];
@@ -1058,21 +1058,21 @@ classdef FDTSubject < fluoSubject
                         out = mean(out(:),'omitnan');
                 end
             end
-            
+
         % Override copyElement method:
-%         function cpObj = copyElement(this)            
-%             %make sure we create the approx. obects for all channels            
+%         function cpObj = copyElement(this)
+%             %make sure we create the approx. obects for all channels
 %             for ch = 1:this.nrSpectralChannels
 %                 this.getApproxObj(ch,1,1);
 %             end
 %             % Make a shallow copy of all properties
 %             cpObj = copyElement@matlab.mixin.Copyable(this);
 %             % Make a deep copy of the DeepCp object
-%             cpObj.myParent = []; 
+%             cpObj.myParent = [];
 %             cpObj.progressCb = cell(0,0);
 %         end
         end
-    
+
         methods(Static)
             function out = calculateArithmeticImage(dataA,dataB,op,neg)
                 %run operation op on dataA and dataB using the negativation flag
@@ -1083,7 +1083,7 @@ classdef FDTSubject < fluoSubject
                 switch op
                     case '&'
                         eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
-                        out = dataA;                        
+                        out = dataA;
                     case '|'
                         eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
                         if(isempty(neg))

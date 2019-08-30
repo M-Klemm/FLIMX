@@ -36,16 +36,16 @@ classdef subjectParamMgr < paramMgr
         volatilePixelParams = [];
         volatileChannelParams = cell(2,1);
     end
-    
+
     properties (Dependent = true)
         fluoFileObj = [];
         resultObj = [];
         initMode = false;
     end
-    
+
     methods
         function this = subjectParamMgr(hSubject,about)
-            %constructor            
+            %constructor
             this = this@paramMgr(about);
             %check if subject has a parent (a simulated subject may have not)
             if(~isempty(hSubject.myParent))
@@ -64,7 +64,7 @@ classdef subjectParamMgr < paramMgr
             %make volatile parameters struct
             this.volatilePixelParams.nModelParamsPerCh = 0;
             this.volatilePixelParams.nApproxParamsAllCh = 0;
-            this.volatilePixelParams.nGFApproxParamsPerCh = 0;              
+            this.volatilePixelParams.nGFApproxParamsPerCh = 0;
             this.volatilePixelParams.globalFitMask = []; %mask which elements in xVec are globally fitted
             this.volatilePixelParams.compatibleGPUs = []; %list of compatible GPUs
             this.volatilePixelParams.nScatter = 0;
@@ -75,9 +75,9 @@ classdef subjectParamMgr < paramMgr
             this.volatileChannelParams{1} = cp;
             this.volatileChannelParams{2} = cp;
         end
-        
+
         %% input methods
-        
+
         %% output methods
         function out = get.fluoFileObj(this)
             %get handle to measurement
@@ -86,7 +86,7 @@ classdef subjectParamMgr < paramMgr
                 out = this.mySubject.myMeasurement;
             end
         end
-        
+
         function out = get.resultObj(this)
             %get handle to result
             out = [];
@@ -94,7 +94,7 @@ classdef subjectParamMgr < paramMgr
                 out = this.mySubject.myResult;
             end
         end
-        
+
         function out = get.initMode(this)
             %return init mode flag
             out = false;
@@ -110,7 +110,7 @@ classdef subjectParamMgr < paramMgr
 %                 out = out || ro.initMode;
 %             end
         end
-        
+
         function out = getVolatileChannelParams(this,ch)
             %return volatile parameters for channel ch
             out = [];
@@ -120,7 +120,7 @@ classdef subjectParamMgr < paramMgr
                 out = this.volatileChannelParams{ch};
             end
         end
-                
+
         %% compute methods
         function makeVolatileParams(this)
             %update the number of fit paramters
@@ -141,13 +141,13 @@ classdef subjectParamMgr < paramMgr
             %             end
             [this.volatilePixelParams, this.volatileChannelParams] = paramMgr.makeVolatileParams(basicParams,this.mySubject.nrSpectralChannels);
         end
-        
+
     end
-    
+
     methods(Access = protected)
-        %internal methods        
+        %internal methods
         function goOn = setSection(this,sStr,new,resetResults)
-            %single parameter struct            
+            %single parameter struct
             %update new sections
             goOn = true;
             if(strcmp('volatilePixel',sStr))
@@ -229,7 +229,7 @@ classdef subjectParamMgr < paramMgr
                 warning('paramMgr:setSection','Parameter section %s not found in config file. The section has been ignored.',sStr);
             end
         end
-        
+
         function out = getSection(this,sStr)
             %get a section from the config file
             out = [];
@@ -245,6 +245,6 @@ classdef subjectParamMgr < paramMgr
                 out = getSection@paramMgr(this,sStr);
             end
         end
-        
+
     end
 end

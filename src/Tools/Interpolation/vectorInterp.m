@@ -1,14 +1,14 @@
-function x = checkBounds(x,lb,ub)
+function Y = vectorInterp(Y,xi)
 %=============================================================================================================
 %
-% @file     checkBounds.m
+% @file     vectorInterp.m
 % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
 % @version  1.0
-% @date     July, 2015
+% @date     June, 2018
 %
 % @section  LICENSE
 %
-% Copyright (C) 2015, Matthias Klemm. All rights reserved.
+% Copyright (C) 2018, Matthias Klemm. All rights reserved.
 %
 % Redistribution and use in source and binary forms, with or without modification, are permitted provided that
 % the following conditions are met:
@@ -29,37 +29,31 @@ function x = checkBounds(x,lb,ub)
 % POSSIBILITY OF SUCH DAMAGE.
 %
 %
-% @brief    A function to make sure x (size = nParams x nPop) is between lower (lb) and upper (ub) bound
-%#codegen
-idx = x < lb;
-x(idx) = lb(idx);
-idx = x > ub;
-x(idx) = ub(idx);
+% @brief    A function to interpolate values in each column in array Y by xi (-1 <= xi <= 1)
 
-% [~,NP,nPixels] = size(x);
-% if(isa(x,'gpuArray'))
-%     NP = gpuArray(NP);
-%     nPixels = gpuArray(nPixels);
-% end
-% for i = 1:NP
-%     for p = 1:nPixels
-%         idx = x(:,i,p) < lb(:,p);
-%         x(idx,i,p) = lb(idx,p);
-%         idx = x(:,i,p) > ub(:,p);
-%         x(idx,i,p) = ub(idx,p);
-%     end
-% end
+xi = xi(:)';
+idxNonZero = abs(xi) > eps;
+if(~any(idxNonZero))
+    return
+end
+%out = NaN(size(Y),'like',Y);
+negFlag = xi<0; %flag of negative shifts
+xi(negFlag) = xi(negFlag)+1;
+%idxFirstRowOverflow = ~negFlag(1,:) & sum(negFlag,1) == size(Y,1)-1;
+%idxLastRowOverflow = ~flag(end,:) & sum(flag,1) == length(x)-1;
+%out(1,idxFirstRowOverflow) = Y(1,idxFirstRowOverflow);
+%out(end,idxLastRowOverflow) = Y(end,idxLastRowOverflow);
+%out(end,:) = Y(end,:);
+%out(:,~idxNonZero) = Y(:,~idxNonZero);
+idxPosShift = ~negFlag & idxNonZero;
+idxNegShift = negFlag & idxNonZero;
+if(any(idxPosShift(:)))
+    %Y(1:end-1,idxPosShift) = (1-xi(idxPosShift)).*Y(1:end-1,idxPosShift) + (xi(idxPosShift)).*Y(2:end,idxPosShift);
+    Y(1:end-1,idxPosShift) = bsxfun(@times,Y(1:end-1,idxPosShift),(1-xi(idxPosShift))) + bsxfun(@times,Y(2:end,idxPosShift),(xi(idxPosShift)));
+end
+if(any(idxNegShift(:)))
+    %Y(2:end,idxNegShift) = (1-xi(idxNegShift)).*Y(1:end-1,idxNegShift) + (xi(idxNegShift)).*Y(2:end,idxNegShift);
+    Y(2:end,idxNegShift) = bsxfun(@times,Y(1:end-1,idxNegShift),(1-xi(idxNegShift))) + bsxfun(@times,Y(2:end,idxNegShift),(xi(idxNegShift)));
+end
 
-% if(NP > 1)
-%     lbM = repmat(lb(:),[1,NP,1]);
-%     ubM = repmat(ub(:),1,NP);
-%     idx = x < lbM;
-%     x(idx) = lbM(idx);
-%     idx = x > ubM;
-%     x(idx) = ubM(idx);
-% else
-%     idx = x < lb;
-%     x(idx) = lb(idx);
-%     idx = x > ub;
-%     x(idx) = ub(idx);
-% end
+end

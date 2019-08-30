@@ -1400,22 +1400,24 @@ classdef FLIMXVisGUI < handle
                             end
                         else
                             %right click
-                            if(this.dynParams.mouseButtonIsInsideROI)
-                                %move ROI
-                                dTarget = int16(flipud(this.dynParams.mouseButtonDownCoord-cpMain));
-                                ROICoord = thisROIObj.getCurROIInfo();
-                                ROICoord = ROICoord(:,2:end);
-                                dMoved = this.dynParams.mouseButtonDownROI(:,1) - ROICoord(:,1);
-                                thisROIObj.moveROI(dTarget-dMoved,true);
-                            else
-                                %move zoom anchor
-                                if(this.objHandles.(sprintf('%sdo',thisSide)).mZoomFactor > 1)
-                                    dTarget = this.dynParams.mouseButtonDownCoord-cpMain;
-                                    this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);                                    
-                                    this.objHandles.(sprintf('%sdo',thisSide)).makeZoom();
+                            if(~isempty(this.dynParams.mouseButtonDownCoord))
+                                if(this.dynParams.mouseButtonIsInsideROI)
+                                    %move ROI
+                                    dTarget = int16(flipud(this.dynParams.mouseButtonDownCoord-cpMain));
+                                    ROICoord = thisROIObj.getCurROIInfo();
+                                    ROICoord = ROICoord(:,2:end);
+                                    dMoved = this.dynParams.mouseButtonDownROI(:,1) - ROICoord(:,1);
+                                    thisROIObj.moveROI(dTarget-dMoved,true);
+                                else
+                                    %move zoom anchor
+                                    if(this.objHandles.(sprintf('%sdo',thisSide)).mZoomFactor > 1)
+                                        dTarget = this.dynParams.mouseButtonDownCoord-cpMain;
+                                        this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);
+                                        this.objHandles.(sprintf('%sdo',thisSide)).makeZoom();
+                                    end
                                 end
                             end
-                        end                    
+                        end
                     end %if(~isempty(cpMain))
                     otherROIObj.updateGUI([]);
                     this.myStatsGroupComp.clearResults();

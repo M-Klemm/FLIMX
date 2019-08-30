@@ -1,4 +1,4 @@
-function [x,func_evals,exitflag,output] = MSimplexBnd(funfcn,x,options,varargin)
+function [x,fcnEvalCount,exitflag,output] = MSimplexBnd(costFcn,x,options,pixelIDs,varargin)
 %=============================================================================================================
 %
 % @file     MSimplexBnd.m
@@ -33,8 +33,8 @@ function [x,func_evals,exitflag,output] = MSimplexBnd(funfcn,x,options,varargin)
 %
 % % Detect problem structure input
 % if nargin == 1
-%     if isa(funfcn,'struct')
-%         [funfcn,x,options] = separateOptimStruct(funfcn);
+%     if isa(costFcn,'struct')
+%         [costFcn,x,options] = separateOptimStruct(costFcn);
 %     else % Single input and non-structure
 %         error('MATLAB:fminsearch:InputArg','The input to MSimplexBnd should be either a structure with valid fields or consist of at least two arguments.');
 %     end
@@ -51,7 +51,10 @@ function [x,func_evals,exitflag,output] = MSimplexBnd(funfcn,x,options,varargin)
 %         'MSimplexBnd only accepts inputs of data type double or single.')
 % end
 
-[n, m] = size(x);
+[nParams, nSeeds, nPixels] = size(x);
+if(nPixels ~= length(pixelIDs))
+    error('FLIMX:MSimplexBnd','Number of pixels in starting point(%d) and pixelIDs(%d) do not match.',size(x,3),length(pixelIDs));
+end
 % if(m > n)
 %     x = x';
 %     [n m] = size(x);
@@ -61,16 +64,21 @@ function [x,func_evals,exitflag,output] = MSimplexBnd(funfcn,x,options,varargin)
 tStart = 0;%clock;
 userbreak = false;
 
-lb = options.lb(:);
-ub = options.ub(:);
-si = options.simplexInit(:);
-quant = options.quantization(:);
-tolf = max(options.TolFun,10*eps(x(1)));
-tol = options.tol(:);
-maxfun = options.MaxFunEvals;
-maxiter = options.MaxIter;
+lb = cast([options.lb],'like',x);
+lbShrink = reshape(repmat(lb,[nSeeds*(nParams+1),1,1]),[nParams,size(lb,2)*nSeeds,nParams+1]);
+ub = cast([options.ub],'like',x);
+ubShrink = reshape(repmat(ub,[nSeeds*(nParams+1),1,1]),[nParams,size(ub,2)*nSeeds,nParams+1]);
+si = cast([options.simplexInit],'like',x);
+quant = cast([options.quantization],'like',x);
+quantShrink = reshape(repmat(quant,[nSeeds*(nParams+1),1,1]),[nParams,size(quant,2)*nSeeds,nParams+1]);
+tolf = repmat(max([options.TolFun],10*eps(x(1))),[1,nSeeds]);
+tol = repmat(cast([options.tol],'like',x),[1,nSeeds]);
+maxfun = repmat(cast([options.MaxFunEvals],'uint16'),[1,nSeeds]);
+maxiter = repmat(cast([options.MaxIter],'uint16'),[1,nSeeds]);
 if(~isfield(options,'iterPostProcess')) 
-    options.iterPostProcess = [];
+    hIterPostProcess = [];
+else
+    hIterPostProcess = options(1).iterPostProcess;
 end
 
 % Following improvement suggested by L.Pfeffer at Stanford
@@ -97,163 +105,168 @@ end
 % end
 
 % Set up a simplex near the initial guess.
-x = checkBounds(checkQuantization(x,quant,lb),options.lb(:),options.ub(:));
-itercount = 1;
-func_evals = 0;
+for s = 1:nSeeds
+    x(:,s,:) = checkBounds(checkQuantization(reshape(x(:,s,:),[nParams,nPixels]),quant(:,pixelIDs),lb(:,pixelIDs)),lb(:,pixelIDs),ub(:,pixelIDs));
+end
+iterCount = ones(1,nPixels,'uint16');
+fcnEvalCount = zeros(1,nPixels,'uint16');
 
-if(m > 1)
-    switch options.multipleSeedsMode
+if(nSeeds > 1)
+    x = reshape(x,[nParams,nSeeds*nPixels]);
+    newPIs = reshape(repmat(pixelIDs,nSeeds,1),[1,nSeeds*nPixels]);
+    switch options(1).multipleSeedsMode
         case 1 %best seed function value
-            fv = funfcn(x,varargin{:});
-            [~,best] = min(fv);
-            x = x(:,best);
-            func_evals = func_evals + m;
-            [vTmp, fvTmp] = init(x);
-            [x,~,exitflag,output] = mainAlgorithm(vTmp,fvTmp);
+            fv = costFcn(x,newPIs,varargin{:});
+            fcnEvalCount = fcnEvalCount + nSeeds;
+            fv = reshape(fv,nSeeds,nPixels);
+            [~,bestSeeds] = min(fv,[],1);
+            id = false(size(fv));
+            for nx = 1:nSeeds
+                id(nx,bestSeeds == nx) = true;
+            end
+            id = reshape(id,[1,nSeeds*nPixels]);
+            x = x(:,id);
+            [vTmp, fvTmp] = init(x,pixelIDs);
+            [x,~,exitflag,iterCnt,feCnt] = mainAlgorithm(vTmp,fvTmp,pixelIDs);
         case 2
             %select best n+1 from all seeds
-            vTmp = zeros(n,n+1,m);
-            fvTmp = zeros(m,n+1);
-            for nx = 1:m
-                [vTmp(:,:,nx), fvTmp(nx,:)] = init(x(:,nx));
+            [vTmp, fvTmp] = init(x,newPIs);
+            for nx = 1:pixelIDs
+                %todo: reshape for single pixels and do the below for each pixel
+                [~,id] = sort(fvTmp(:));
+                v = reshape(vTmp,nParams,[]);
+                ci = v(:,id(1:nParams+1));
+                fv = zeros(1,nParams+1);
             end
-            v = zeros(n,n+1);
-            fv = zeros(1,n+1);
-            ci = 1;
-            for nx=1:m*n
-                [~,id] = min(fvTmp(:));
-                [r,c] = ind2sub([m,n+1],id);
-                if(ci > 1)
-                    d = abs(bsxfun(@minus,v(:,1:ci-1),vTmp(:,c,r))./v(:,1:ci-1));
-                    if(~all(max(d)) >= 0.05)
-                        fvTmp(id) = inf;
-                        continue
-                    end
-                end
-                v(:,ci) = vTmp(:,c,r);
-                fv(1,ci) = fvTmp(r,c);
-                fvTmp(id) = inf;
-                ci=ci+1;
-                if(ci > n+1)
-                    break;
-                end
+            [x,~,exitflag,iterCnt,feCnt] = mainAlgorithm(v,fv,pixelIDs);
+        case 3 %compute all seeds           
+            [vTmp, fvTmp] = init(x,newPIs);
+            %seedIDs = repmat(1:nSeeds,1,nPixels);
+            [x,fv,exitflag,iterCnt,feCnt] = mainAlgorithm(vTmp,fvTmp,newPIs);
+            fv = reshape(fv,nSeeds,nPixels);
+            iterCnt = reshape(iterCnt,nSeeds,nPixels);
+            feCnt = reshape(feCnt,nSeeds,nPixels);
+            [~,bestSeeds] = min(fv,[],1);
+            id = false(size(fv));
+            for nx = 1:nSeeds
+                id(nx,bestSeeds == nx) = true;
             end
-            [x,~,exitflag,output] = mainAlgorithm(v,fv);
-        case 3 %compute all seeds
-            fv = zeros(1,m);
-            iterCnt = zeros(1,m);
-            funcCnt = zeros(1,m);
-            for nx = 1:m
-                [vTmp, fvTmp] = init(x(:,nx));
-                [x(:,nx),fv(nx),exitflag,output] = mainAlgorithm(vTmp,fvTmp);
-                iterCnt(nx) = itercount;
-                itercount = 1;
-                funcCnt(nx) = func_evals;
-                func_evals = 0;
-            end
-            [~,best] = min(fv);
-            x = x(:,best);
-            func_evals = sum(funcCnt(:));
-            output.iterations = sum(iterCnt(:));
-            output.funcCount = func_evals;
+            id = reshape(id,[1,nSeeds*nPixels]);
+            x = x(:,id);            
         case 4 %mean of seeds
-            [vTmp, fvTmp] = init(mean(x,2));
-            [x,~,exitflag,output] = mainAlgorithm(vTmp,fvTmp);
+            x = reshape(x,[nParams,nSeeds,nPixels]);
+            [vTmp, fvTmp] = init(squeeze(mean(x,2)),pixelIDs);
+            [x,~,exitflag,iterCnt,feCnt] = mainAlgorithm(vTmp,fvTmp,pixelIDs);
     end
 else
-    [vTmp, fvTmp] = init(x);
-    [x,~,exitflag,output] = mainAlgorithm(vTmp,fvTmp);
+    [vTmp, fvTmp] = init(squeeze(x),pixelIDs);
+    [x,~,exitflag,iterCnt,feCnt] = mainAlgorithm(vTmp,fvTmp,pixelIDs);
 end
+iterCount = iterCount + sum(iterCnt,1,'native');
+fcnEvalCount = fcnEvalCount + sum(feCnt,1,'native');
+output.iterations = iterCount;
+output.funcCount = fcnEvalCount;
 
 % [x,func_evals,exitflag,output] = mainAlgorithm(v,fv,itercount);
 
-    function [v, fv] = init(x)
+    function [v, fv] = init(x,pixelIDs)
         %make simplex initialization
-        v = zeros(n,n+1);
-        v(:,1) = x(:);
-        fv = zeros(1,n+1);
-        fv(1) = funfcn(x,varargin{:});
-        func_evals = func_evals + 1;        
-        xvec = [0 0];
-        fv_tmp = [0 0];        
-        for i = 1:n
-            xmat = repmat(x,1,8);
+        nPIs = length(pixelIDs);
+        sortIDCache = repmat(uint16(1:nParams+1),nPIs,1);
+        v = zeros(nParams,nPIs,nParams+1,'like',x);
+        v(:,:,1) = x;
+        fv = zeros(nPIs,nParams+1,'like',x);
+        fv(:,1) = costFcn(x,pixelIDs,varargin{:});
+        fcnEvalCount = fcnEvalCount + nSeeds;
+        initPIs = repmat(pixelIDs,1,8);
+        %xvec = []; %zeros(1,8*nPIs);
+        fv_tmp = zeros(1,8*nPIs,'like',x);        
+        for i = 1:nParams
+            xmat = repmat(x,[1,8]);
+            pixelIDMask = true(size(initPIs));
             %determine shift of x(i)
             %maximum of: 10% of value (behavior if finminsearch); 1% of parameter interval; 2x quantization; user defined value
-            dx = min(abs(ub(i)-lb(i))/2,max([abs(x(i)*0.90), abs(ub(i)-lb(i))/10, 2*quant(i)]));%, si(i)]); 
+            dx = min([abs(ub(i,pixelIDs)-lb(i,pixelIDs))/2;max([abs(x(i,:)*0.90); abs(ub(i,pixelIDs)-lb(i,pixelIDs))/10; 2*quant(i,pixelIDs);],[],1);],[],1);%, si(i)]);
             xLow = -dx;%max(-dx,lb(i));%
             xHigh = dx;%min(dx,ub(i));%
-            changeFlag = true;
-            trials = 0; %we have 100 trials to find good starting values per parameter (prevent endless loop)            
-            while(changeFlag && trials < 100)                
+            trials = 0; %we have 100 trials to find good starting values per parameter (prevent endless loop)
+            xvec = [xLow+x(i,:) xHigh+x(i,:) si(i,pixelIDs)+xLow si(i,pixelIDs)+xHigh x(i,:)*1.50 x(i,:)*0.50 x(i,:)*1.10 x(i,:)*0.90];
+            while(true)
                 trials = trials +1;
-                changeFlag = false;
-                xvec = [xLow+x(i) xHigh+x(i) si(i)+xLow si(i)+xHigh x(i)*1.50 x(i)*0.50 x(i)*1.10 x(i)*0.90];
-                if(quant(i) ~= 0)
-                    xvec = checkBounds(checkQuantization(xvec,quant(i),lb(i)),lb(i),ub(i));
+                changeFlag = false(size(pixelIDMask));
+                if(any(quant(i,:)))
+                    xvec(pixelIDMask) = checkBounds(checkQuantization(xvec(pixelIDMask),quant(i,initPIs(pixelIDMask)),lb(i,initPIs(pixelIDMask))),lb(i,initPIs(pixelIDMask)),ub(i,initPIs(pixelIDMask)));
                 else
-                    xvec = checkBounds(xvec,lb(i),ub(i));
+                    xvec(pixelIDMask) = checkBounds(xvec(pixelIDMask),lb(i,initPIs(pixelIDMask)),ub(i,initPIs(pixelIDMask)));
                 end
                 %check if values are exactly at the borders
-                idx = abs(xvec(:) - lb(i)) <= eps & abs(xvec(:) - x(i)) > eps;
-                shift = max(quant(i),abs(ub(i)-lb(i))/100);
+                idx = abs(xvec - lb(i,initPIs)) <= eps | abs(xvec - xmat(i,:)) <= eps('single'); %ismembertol(xvec,x(i,:),eps('single')); %& abs(xvec(:) - x(i,:)) > eps;
+                shift = max(quant(i,initPIs),abs(ub(i,initPIs)-lb(i,initPIs))/100);
                 if(any(idx))
-                    %increase lower shift value                    
-                    xLow = xLow + shift; %max(quant(i),abs(ub(i)-lb(i))/100);
-                    xvec(idx) = xvec(idx) + (0.5+0.5*rand(1,sum(idx(:)))).*shift;
-                    if(idx(1))
-                        changeFlag = true;
-                    end
+                    %increase lower shift value
+                    %xLow = xLow(initPIs(idx)) + shift(pixelIDs(idx)); %max(quant(i),abs(ub(i)-lb(i))/100);
+                    xvec(idx) = xvec(idx) + (0.5+0.5*rand(1,sum(idx))).*shift(idx);
+                    changeFlag = changeFlag | idx;
                 end
-                idx = abs(xvec(:) - ub(i)) <= eps & abs(xvec(:) - x(i)) > eps;
+                idx = abs(xvec - ub(i,initPIs)) <= eps | abs(xvec - xmat(i,:)) <= eps('single'); %ismembertol(xvec,x(i,:),eps('single')); %& abs(xvec(:) - x(i)) > eps;
                 if(any(idx))
                     %decrease upper shift value
-                    xHigh = xHigh - shift; %max(quant(i),abs(ub(i)-lb(i))/100);
-                    xvec(idx) = xvec(idx) - (0.5+0.5*rand(1,sum(idx(:)))).*shift;
-                    if(idx(2))
-                        changeFlag = true;
-                    end
+                    %xHigh = xHigh - shift(pixelIDs); %max(quant(i),abs(ub(i)-lb(i))/100);
+                    xvec(idx) = xvec(idx) - (0.5+0.5*rand(1,sum(idx))).*shift(idx);
+                    changeFlag = changeFlag | idx;
                 end
-                if(changeFlag)
-                    continue
+                if(~any(changeFlag) || trials > 100)                    
+                    break
                 end
-                %compute cost function values                
-                xmat(i,:) = xvec;
-                fv_tmp = funfcn(xmat,varargin{:});
-                func_evals = func_evals + 8;                
-                if(fv_tmp(1) == inf)
-                    %this might be a tau and we might be to close to the previous tau
-                    xLow = min(xHigh - abs(x(i)*0.10),xLow + max(quant(i),abs(ub(i)-lb(i))/100));
-                    changeFlag = true;
-                end
-                if(fv_tmp(2) == inf)
-                    %this might be a tau and we might be to close to the next tau
-                    xHigh = max(xLow + abs(x(i)*0.10),xHigh - max(quant(i),abs(ub(i)-lb(i))/100));
-                    changeFlag = true;
-                end
+                pixelIDMask = changeFlag;
             end
-            [~,idx] = min(fv_tmp);
-%             for j = 1:length(fv_tmp)-1
-%                 if(abs(fv(1) - fv_tmp(idx)) < fv(1)*0.05 || isinf(fv_tmp(idx)))
-%                     %difference of function value in comparison to initial solution is smaller than 5% -> use biggest distance to initial solution                    
-%                     fv_tmp(idx) = inf;
-%                     [~,idx] = min(fv_tmp);
-%                     %[~,idx] = max(abs(xvec - x(i)));
-%                 else
-%                     break
-%                 end                
-%             end
-            fv(i+1) = fv_tmp(idx);
+            %compute cost function values
+            xmat(i,:) = xvec;
+            fv_tmp(1,:) = costFcn(xmat,initPIs,varargin{:});
+            fv_tmp = reshape(fv_tmp,[nPIs,8]);
+            fcnEvalCount = fcnEvalCount + 8;
+            %                 if(fv_tmp(1) == inf)
+            %                     %this might be a tau and we might be to close to the previous tau
+            %                     xLow = min(xHigh - abs(x(i)*0.10),xLow + max(quant(i),abs(ub(i)-lb(i))/100));
+            %                     changeFlag = true;
+            %                 end
+            %                 if(fv_tmp(2) == inf)
+            %                     %this might be a tau and we might be to close to the next tau
+            %                     xHigh = max(xLow + abs(x(i)*0.10),xHigh - max(quant(i),abs(ub(i)-lb(i))/100));
+            %                     changeFlag = true;
+            %                 end
+            
+            [fv(:,i+1),idx] = min(fv_tmp,[],2);
+            fv_tmp = reshape(fv_tmp,[1,nPIs*8]);
+            %             for j = 1:length(fv_tmp)-1
+            %                 if(abs(fv(1) - fv_tmp(idx)) < fv(1)*0.05 || isinf(fv_tmp(idx)))
+            %                     %difference of function value in comparison to initial solution is smaller than 5% -> use biggest distance to initial solution
+            %                     fv_tmp(idx) = inf;
+            %                     [~,idx] = min(fv_tmp);
+            %                     %[~,idx] = max(abs(xvec - x(i)));
+            %                 else
+            %                     break
+            %                 end
+            %             end
+            %fv(1,i+1,:) = fv_tmp(:,idx');
             %[fv(i+1) idx] = min(fv_tmp); %use best cost function value
-            v(:,i+1) = xmat(:,idx);            
+            xmat = reshape(xmat,[nParams,nPIs,8]);
+            for p = 1:nPIs
+                v(:,p,i+1) = xmat(:,p,idx(p));
+            end
         end
         %clear xmat xvec dx fv_tmp
         % sort so v(1,:) has the lowest function value
-        [fv,j] = sort(fv);
-        v = v(:,j);
+        [fv,sortIDs] = sort(fv,2);
+        sortMask = ~all(uint16(sortIDs) == sortIDCache,2);
+        for p = 1:nPIs
+            if(sortMask(p))
+                v(:,p,:) = v(:,p,sortIDs(p,:));
+            end
+        end
     end
 
-    function [x,fval,exitflag,output] = mainAlgorithm(v,fv)
+    function [x,fval,exitflag,iterCount,fcnEvalCount] = mainAlgorithm(v,fv,pixelIDs)
         
         % Main algorithm: iterate until
         % (a) the maximum coordinate difference between the current best point and the
@@ -267,124 +280,200 @@ end
         % are exceeded
         
         % Initialize parameters
-        rho = 1; chi = 2; psi = 0.5; sigma = 0.5;
-        onesn = ones(1,n);
-        two2np1 = 2:n+1;
-        one2n = 1:n;
+        nPIs = uint16(length(pixelIDs));
+        rho = ones(1,1,'like',v); chi = 2*rho; psi = 0.5*rho; sigma = 0.5*rho;
+        iterCount = ones(1,nPIs,'uint16');
+        fcnEvalCount = zeros(1,nPIs,'uint16');
+        onesn = ones(1,nParams,'uint8');
+        two2np1 = uint8(2:nParams+1);
+        one2n = uint8(1:nParams);
+        totalPIDs = uint16(length(pixelIDs));
+        pixelIDMask = true(size(pixelIDs));
+        sortIDCache = repmat(uint16(1:nParams+1),nPIs,1);
+        allPIPos = uint16(1:length(pixelIDMask));
+        nSeeds = uint16(totalPIDs / length(unique(pixelIDs)));
+        nPixels = uint16(totalPIDs / nSeeds);        
         
-        while(func_evals < maxfun && itercount < maxiter && (max(abs(fv(1)-fv(two2np1))) > tolf || any(max(abs(v(:,two2np1)-v(:,onesn)),[],2) > tol)))
+        %while(all(fcnEvalCount < maxfun(pixelIDs)) && all(iterCount < maxiter(pixelIDs)) && any(max(abs(fv(:,1)-fv(:,two2np1))',[],1) > tolf(pixelIDs) | any(max(abs(v(:,:,two2np1)-v(:,:,onesn)),[],3) > tol(:,pixelIDs))))
+        while(any(pixelIDMask))
             %disp(sprintf('tolf: %02.3f; tolx: %02.2f',max(abs(fv(1)-fv(two2np1))), max(max(abs(v(:,two2np1)-v(:,onesn))))));
             %     if max(abs(fv(1)-fv(two2np1))) <= max(tolf,10*eps(fv(1))) && ...
             %             max(max(abs(v(:,two2np1)-v(:,onesn)))) <= max(tolx,10*eps(max(v(:,1))))
             %         break
             %     end            
+            curPIs = pixelIDs(pixelIDMask);
+            curPIPos = allPIPos(pixelIDMask);
             % Compute the reflection point
-            
             % xbar = average of the n (NOT n+1) best points
-            xbar = sum(v(:,one2n), 2)/n;
-            xr = checkBounds(checkQuantization((1 + rho)*xbar - rho*v(:,end),quant,lb),lb,ub); %new M. Klemm;            
-%             xe = checkBounds(checkQuantization((1 + rho*chi)*xbar - rho*chi*v(:,end),quant,lb),lb,ub); %new M. Klemm
-%             xc = checkBounds(checkQuantization((1 + psi*rho)*xbar - psi*rho*v(:,end),quant,lb),lb,ub); %new M. Klemm
-            xcc = checkBounds(checkQuantization((1-psi)*xbar + psi*v(:,end),quant,lb),lb,ub); %new M. Klemm
-            %xSpec = [xr xe xc xcc]; %new M. Klemm
-            xSpec = [xr xcc]; %new M. Klemm
-%             fxr = funfcn(xr,varargin{:});
-%             func_evals = func_evals+1;
-            fv_tmp = funfcn(xSpec,varargin{:}); %new M. Klemm
-            func_evals = func_evals+2;
-            fxr = fv_tmp(1);
-            if fxr < fv(:,1)
+            xbar = mean(v(:,pixelIDMask,one2n), 3,'native');
+            xr = checkBounds(checkQuantization((1 + rho)*xbar - rho*v(:,pixelIDMask,end),quant(:,curPIs),lb(:,curPIs)),lb(:,curPIs),ub(:,curPIs));
+            fxr = costFcn(xr,curPIs,varargin{:});
+            fcnEvalCount(pixelIDMask) = fcnEvalCount(pixelIDMask)+1;
+            idxXRltFV1 = fxr(:) < fv(pixelIDMask,1);
+            if(any(idxXRltFV1))%if fxr < fv(:,1)
                 % Calculate the expansion point
-                xe = checkBounds(checkQuantization((1 + rho*chi)*xbar - rho*chi*v(:,end),quant,lb),lb,ub); %new M. Klemm;
-                fxe = funfcn(xe,varargin{:});
-                func_evals = func_evals+1;
-%                 fxe = fv_tmp(2);
-                if fxe < fxr 
-                    v(:,end) = xe;
-                    fv(:,end) = fxe;
-                    how = 'expand';
-                else
-                    v(:,end) = xr;
-                    fv(:,end) = fxr;
-                    how = 'reflect';
+                tmpPIPos = curPIPos(idxXRltFV1);
+                xe = checkBounds(checkQuantization((1 + rho*chi)*xbar(:,idxXRltFV1) - rho*chi*v(:,tmpPIPos,end),quant(:,curPIs(idxXRltFV1)),lb(:,curPIs(idxXRltFV1))),lb(:,curPIs(idxXRltFV1)),ub(:,curPIs(idxXRltFV1)));
+                fxe = costFcn(xe,curPIs(idxXRltFV1),varargin{:});
+                fcnEvalCount(tmpPIPos) = fcnEvalCount(tmpPIPos)+1;
+                
+                idxXEltXR = fxe < fxr(idxXRltFV1);
+                if(any(idxXEltXR))%if fxe < fxr
+                    v(:,tmpPIPos(idxXEltXR),end) = xe(:,idxXEltXR);
+                    fv(tmpPIPos(idxXEltXR),end) = fxe(idxXEltXR);
+                    %how = 'expand';
                 end
-            else % fv(:,1) <= fxr
-                if fxr < fv(:,n)
-                    v(:,end) = xr;
-                    fv(:,end) = fxr;
-                    how = 'reflect';
-                else % fxr >= fv(:,n)
+                if(any(~idxXEltXR)) %else
+                    idxXR2 = idxXRltFV1;
+                    idxXR2(idxXR2) = ~idxXEltXR;
+                    v(:,tmpPIPos(~idxXEltXR),end) = xr(:,idxXR2);
+                    fv(tmpPIPos(~idxXEltXR),end) = fxr(idxXR2); 
+                    %how = 'reflect';
+                end
+            end
+            if(any(~idxXRltFV1))%else % fv(:,1) <= fxr
+                idxXRltFVn = fxr(:) < fv(pixelIDMask,nParams) & ~idxXRltFV1;
+                if(any(idxXRltFVn))%if fxr < fv(:,nParams)
+                    v(:,curPIPos(idxXRltFVn),end) = xr(:,idxXRltFVn);
+                    fv(curPIPos(idxXRltFVn),end) = fxr(idxXRltFVn);
+                    %how = 'reflect';
+                end
+                idxXRgtFVn = ~idxXRltFVn & ~idxXRltFV1;
+                if(any(idxXRgtFVn))%else % fxr >= fv(:,n) % & ~idxXRltFV1
                     % Perform contraction
-                    if fxr < fv(:,end)
+                    idxXRltFVnp1 = fxr(:) < fv(pixelIDMask,end) & idxXRgtFVn;% & ~idxXRltFV1;
+                    if(any(idxXRltFVnp1)) %if fxr < fv(:,end)
                         % Perform an outside contraction
-                        xc = checkBounds(checkQuantization((1 + psi*rho)*xbar - psi*rho*v(:,end),quant,lb),lb,ub); %new M. Klemm
-                        fxc = funfcn(xc,varargin{:});
-                        func_evals = func_evals+1;
-%                         fxc = fv_tmp(3);
-                        if fxc <= fxr
-                            v(:,end) = xc;
-                            fv(:,end) = fxc;
-                            how = 'contract outside';
-                        else
-                            % perform a shrink
-                            how = 'shrink';
+                        tmpPIs = curPIs(idxXRltFVnp1);
+                        tmpPIPos = curPIPos(idxXRltFVnp1);
+                        xc = checkBounds(checkQuantization((1 + psi*rho)*xbar(:,idxXRltFVnp1) - psi*rho*v(:,tmpPIPos,end),quant(:,tmpPIs),lb(:,tmpPIs)),lb(:,tmpPIs),ub(:,tmpPIs));
+                        fxc = costFcn(xc,tmpPIs,varargin{:});
+                        fcnEvalCount(tmpPIPos) = fcnEvalCount(tmpPIPos)+1;
+                        idxXCCltXR = fxc <= fxr(idxXRltFVnp1);
+                        if(any(idxXCCltXR))%if fxc <= fxr
+                            v(:,tmpPIPos(idxXCCltXR),end) = xc(:,idxXCCltXR);
+                            fv(tmpPIPos(idxXCCltXR),end) = fxc(idxXCCltXR);
+                            %how = 'contract outside';
                         end
-                    else
-                        % Perform an inside contraction
-%                         xcc = checkBounds(checkQuantization((1-psi)*xbar + psi*v(:,end),quant,lb),lb,ub); %new M. Klemm
-%                         fxcc = funfcn(xcc,varargin{:});
-%                         func_evals = func_evals+1;
-                        fxcc = fv_tmp(2);
-                        if fxcc < fv(:,end)
-                            v(:,end) = xcc;
-                            fv(:,end) = fxcc;
-                            how = 'contract inside';
-                        else
+                        if(any(~idxXCCltXR))
                             % perform a shrink
-                            how = 'shrink';
+                            %how = 'shrink';
+                            idxShrink = ~idxXCCltXR;
+                            n = sum(idxShrink);
+                            tmpPIs = tmpPIs(idxShrink);
+                            tmpPIPos = tmpPIPos(idxShrink);
+                            tmp = bsxfun(@plus,sigma*bsxfun(@minus,v(:,tmpPIPos,two2np1),v(:,tmpPIPos,1)),v(:,tmpPIPos,1));
+                            tmp = checkBounds(checkQuantization(tmp,quantShrink(:,tmpPIs,two2np1),lbShrink(:,tmpPIs,two2np1)),lbShrink(:,tmpPIs,two2np1),ubShrink(:,tmpPIs,two2np1));
+                            v(:,tmpPIPos,two2np1) = tmp;
+                            tmp = costFcn(reshape(tmp,[nParams,n*nParams]),repmat(tmpPIs,1,nParams),varargin{:});
+                            fv(tmpPIPos,two2np1) = reshape(tmp,n,nParams);
+                            fcnEvalCount(tmpPIPos) = fcnEvalCount(tmpPIPos)+nParams;
                         end
                     end
-                    if strcmp(how,'shrink')
-                        v(:,two2np1) = checkBounds(checkQuantization(bsxfun(@plus,sigma*bsxfun(@minus,v(:,two2np1),v(:,1)),v(:,1)),quant,lb),lb,ub); %new M. Klemm
-                        fv(:,two2np1) = funfcn(v(:,two2np1),varargin{:}); %new M. Klemm
-%                         for j=two2np1
-%                             v(:,j) = checkBounds(checkQuantization(v(:,1)+sigma*(v(:,j) - v(:,1)),quant,lb),lb,ub); %new M. Klemm
-%                             fv(:,j) = funfcn(v(:,j),varargin{:});
-%                         end
-                        func_evals = func_evals + n;
+                    idxXRgtFVnp1 = fxr(:) >= fv(pixelIDMask,end) & ~idxXRltFV1 & ~idxXRltFVn & ~idxXRltFVnp1;
+                    %idxXRgtFVnp1 = ~idxXRltFVnp1;% & ~idxXRltFV1 & ;
+                    if(any(idxXRgtFVnp1))
+                        % Perform an inside contraction
+                        %xcc = checkBounds(checkQuantization((1-psi)*xbar + psi*v(:,end),quant,lb),lb,ub); %new M. Klemm
+                        %fxcc = costFcn(xcc,varargin{:});
+                        tmpPIs = curPIs(idxXRgtFVnp1);
+                        tmpPIPos = curPIPos(idxXRgtFVnp1);
+                        xcc = checkBounds(checkQuantization((1-psi)*xbar(:,idxXRgtFVnp1) + psi*v(:,tmpPIPos,end),quant(:,tmpPIs),lb(:,tmpPIs)),lb(:,tmpPIs),ub(:,tmpPIs));
+                        fxcc = costFcn(xcc,tmpPIs,varargin{:});
+                        fcnEvalCount(tmpPIPos) = fcnEvalCount(tmpPIPos)+1;
+                        idxXCCltFVnp1 = fxcc(:) < fv(tmpPIPos,end);
+                        if(any(idxXCCltFVnp1)) %if fxcc < fv(:,end)
+                            v(:,tmpPIPos(idxXCCltFVnp1),end) = xcc(:,idxXCCltFVnp1);
+                            fv(tmpPIPos(idxXCCltFVnp1),end) = fxcc(idxXCCltFVnp1);
+                            %how = 'contract inside';
+                        end
+                        if(any(~idxXCCltFVnp1))
+                            % perform a shrink
+                            %how = 'shrink';
+                            idxShrink = ~idxXCCltFVnp1;
+                            n = sum(idxShrink);
+                            tmpPIs = tmpPIs(idxShrink);
+                            tmpPIPos = tmpPIPos(idxShrink);                           
+                            tmp = bsxfun(@plus,sigma*bsxfun(@minus,v(:,tmpPIPos,two2np1),v(:,tmpPIPos,1)),v(:,tmpPIPos,1));
+                            tmp = checkBounds(checkQuantization(tmp,quantShrink(:,tmpPIs,two2np1),lbShrink(:,tmpPIs,two2np1)),lbShrink(:,tmpPIs,two2np1),ubShrink(:,tmpPIs,two2np1)); %new M. Klemm
+                            v(:,tmpPIPos,two2np1) = tmp;
+                            tmp = costFcn(reshape(tmp,[nParams,n*nParams]),repmat(tmpPIs,1,nParams),varargin{:});
+                            fv(tmpPIPos,two2np1) = reshape(tmp,n,nParams);
+                            fcnEvalCount(tmpPIPos) = fcnEvalCount(tmpPIPos)+nParams;
+                        end
                     end
                 end
             end
-            [fv,j] = sort(fv);
-            v = v(:,j);
-            itercount = itercount + 1;
-            
-            if( isa(options.iterPostProcess, 'function_handle') )
-                if(options.iterPostProcess(itercount,maxiter,tStart,v(:,1),fv(:,1)))
+%             [fv,j] = sort(fv);
+%             v = v(:,j);            
+            [fv,sortIDs] = sort(fv,2);
+            sortIDs = uint16(sortIDs);
+            sortMask = ~all(sortIDs == sortIDCache,2);
+            for p = 1:nPIs
+                if(pixelIDMask(p) && sortMask(p))
+                    v(:,p,:) = v(:,p,sortIDs(p,:));
+                end
+            end            
+            iterCount(pixelIDMask) = iterCount(pixelIDMask) + 1;
+            if(isa(hIterPostProcess, 'function_handle'))
+                if(hIterPostProcess(iterCount,maxiter,tStart,v(:,:,1),fv(:,1)))
                     userbreak = true;
                     break;
                 end
             end
-            
+            idxStop = ~(fcnEvalCount(pixelIDMask) < maxfun(pixelIDMask) & iterCount(pixelIDMask) < maxiter(pixelIDMask) & (max(abs(fv(pixelIDMask,1)-fv(pixelIDMask,two2np1))',[],1) > tolf(pixelIDMask) | any(max(abs(v(:,pixelIDMask,two2np1)-v(:,pixelIDMask,onesn)),[],3) > tol(:,pixelIDMask))));
+            if(any(idxStop))
+                %find the pixel IDs which fulfill the abort criteria and have the lowest function value per pixel
+                %idx5 = ~pixelIDMask | ~idx5;
+                pixelIDMask(curPIPos(idxStop)) = false;
+                if(nSeeds > 1)
+                    %find pixel IDs where optimization of 1 pixel has stopped but at least one other seed of that pixel is still being optimized
+                    removeIDsAll = curPIs(idxStop);
+                    removeIDs = unique(removeIDsAll);
+                    removeIDsCnts  = histc(removeIDsAll,removeIDs);
+                    idxAllSeeds = removeIDsCnts == nSeeds;
+                    if(any(idxAllSeeds))
+                        %all seeds of at least one pixel have stopped in this iteration -> remove them from the next iteration and from further checks
+                        idxPixel = ismember(pixelIDs,removeIDs(idxAllSeeds));
+                        pixelIDMask(idxPixel) = false;
+                        idxStop = find(idxStop);
+                        idxAllSeedPos = ismember(removeIDsAll,removeIDs(idxAllSeeds));
+                        idxStop(idxAllSeedPos) = [];
+                        removeIDs(idxAllSeeds) = [];
+                        if(isempty(removeIDs))
+                            continue
+                        end
+                    end
+                    %find the other seeds of those pixels
+                    idxPixel = ismember(pixelIDs,removeIDs);
+                    %get the function values for the seeds
+                    %determine stopped seeds which have the smallest function value for each (to be removed pixel)
+                    idxMin = abs(min(reshape(fv(idxPixel,1),[],length(removeIDs)),[],1) - fv(curPIPos(idxStop),1)') < eps('single');
+                    removeIDs(~idxMin) = [];
+                    idxPixel = ismember(pixelIDs,removeIDs);
+                    %remove all seeds of that pixel from computation
+                    pixelIDMask(idxPixel) = false;
+                end
+            end
         end   % while
         
-        x = v(:,1);
+        x = v(:,:,1);
         fval = fv(:,1);        
-        output.iterations = itercount;
-        output.funcCount = func_evals;
-        output.algorithm = 'Nelder-Mead simplex direct search';
+        %output.iterations = iterCount;
+        %output.funcCount = fcnEvalCount;
+        %output.algorithm = 'Nelder-Mead simplex direct search';
         msg = '';
         if(userbreak)
 %             msg = sprintf(['Exiting: Optimization canceled by user.\n' ...
 %                 '         Current function value: %f \n'], fval);
             exitflag = 0;
         else
-            if func_evals >= maxfun
+            if fcnEvalCount >= maxfun(pixelIDs)
 %                 msg = sprintf(['Exiting: Maximum number of function evaluations has been exceeded\n' ...
 %                     '         - increase MaxFunEvals option.\n' ...
 %                     '         Current function value: %f \n'], fval);
                 exitflag = 0;
-            elseif itercount >= maxiter
+            elseif iterCount >= maxiter(pixelIDs)
 %                 msg = sprintf(['Exiting: Maximum number of iterations has been exceeded\n' ...
 %                     '         - increase MaxIter option.\n' ...
 %                     '         Current function value: %f \n'], fval);

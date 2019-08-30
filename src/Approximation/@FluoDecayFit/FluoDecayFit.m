@@ -90,7 +90,7 @@ classdef FluoDecayFit < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % output methods
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
-        function [parameterCell, idx] = getApproxParamCell(this,ch,pixelPool,fitDim,initFit)
+        function [parameterCell, idx] = getApproxParamCell(this,ch,pixelPool,pixelPerCore,initFit)
             %put all data needed for approximation in a cell array (corresponds to makePixelFit interface)
             if(initFit)
                 %initialization fit                
@@ -117,15 +117,17 @@ classdef FluoDecayFit < handle
                 %% get pixel indices and data
                 idx = zeros(nPixel,2);
                 parameterCell = cell(1,3);
-                apObjs = cell(nPixel,1);
-                if(fitDim == 2) %x
-                    [idx(:,2), idx(:,1)] = ind2sub([x y],pixelPool);
-                else %y
+                apObjs = cell(1,1);%cell(nPixel,1);
+%                 if(fitDim == 2) %x
+%                     [idx(:,2), idx(:,1)] = ind2sub([x y],pixelPool);
+%                 else %y
                     [idx(:,1), idx(:,2)] = ind2sub([y x],pixelPool);
-                end
+%                 end
                 subject = this.FLIMXObj.curSubject;
-                for i = 1:nPixel %loop over roi pixel
-                    apObjs{i} = getApproxObj(subject,ch,idx(i,1),idx(i,2));
+                iterCnt = 1;
+                for i = 1:pixelPerCore:nPixel %loop over roi pixel
+                    apObjs{iterCnt} = getApproxObj(subject,ch,idx(i:min(nPixel,i+pixelPerCore-1),1),idx(i:min(nPixel,i+pixelPerCore-1),2));
+                    iterCnt = iterCnt+1;
                 end
             end
 %             %% build init vector
@@ -219,7 +221,7 @@ classdef FluoDecayFit < handle
             persistent lastUpdate
             this.FLIMXObj.FLIMFitGUI.setButtonStopSpinning(true);
             %% for merged roi
-            [pCell, idx] = this.getApproxParamCell(ch,1:this.initFitParams.gridSize^2,[],true); %,ch,pixelPool,fitDim,initFit
+            [pCell, idx] = this.getApproxParamCell(ch,1:this.initFitParams.gridSize^2,1,true); %,ch,pixelPool,fitDim,initFit
             apObjs = pCell{1};
             nrPixels = length(apObjs);
             parfor p = 1:nrPixels
@@ -245,7 +247,7 @@ classdef FluoDecayFit < handle
             tStart = clock;
             %loop over columns
             for row = 1:y                
-                pCell = this.getApproxParamCell(ch,pixelPool((row-1)*x+1:min(totalPixel,row*x)),2,false);
+                pCell = this.getApproxParamCell(ch,pixelPool((row-1)*x+1:min(totalPixel,row*x)),1,false);
                 %this.FLIMXObj.curSubject.addResultRow(ch,i,makeDataPreProcessing(pCell{1},pCell{4},pCell{6},pCell{7},pCell{5}));
                 parfor col = 1:x                    
                     %apObjs = pCell{1};
@@ -418,7 +420,7 @@ classdef FluoDecayFit < handle
         
         function goOn = computeMultipleFits(this,ch,pixelPool,initFit)
             %compute approximations of multiple pixels
-            persistent lastUpdate            
+            persistent lastUpdate
             totalPixels = length(pixelPool);
             goOn = 'yes'; %todo
             if(totalPixels <1)
@@ -437,25 +439,176 @@ classdef FluoDecayFit < handle
             if(initFit)
                 y = this.initFitParams.gridSize;
                 x = y;
-                fitDim = 3;
+%                 fitDim = 3;
             else
                 y = this.FLIMXObj.curSubject.getROIYSz();
                 x = this.FLIMXObj.curSubject.getROIXSz();
-                if(this.pixelFitParams.fitDimension == 1) %auto
-                    %decide which dimension is better suited for multicore
-                    if(y < x) % create as many work units as possible
-                        fitDim = 2;
-                    else
-                        fitDim = 3;
-                    end
-                else %2-x, 3-y
-                    %user defined with dimension to use
-                    fitDim = this.pixelFitParams.fitDimension;
-                end
+%                 if(this.pixelFitParams.fitDimension == 1) %auto
+%                     %decide which dimension is better suited for multicore
+%                     if(y < x) % create as many work units as possible
+%                         fitDim = 2;
+%                     else
+%                         fitDim = 3;
+%                     end
+%                 else %2-x, 3-y
+%                     %user defined with dimension to use
+%                     fitDim = this.pixelFitParams.fitDimension;
+%                 end
             end
             tStart = clock;
             this.updateProgressShort(0.001,'0.0% - Time left: n/a');
-            %check if we should run the computation locally or distributed
+            %check if all non linear parameters are fixed
+            if(~initFit)
+                parameterCell = this.getApproxParamCell(ch,1,1,false);
+                if(~isempty(parameterCell))
+                    apObj = parameterCell{1}{1};
+                    vcp = apObj.getVolatileChannelParams(ch);
+                    noNonLinOpt = vcp.nApproxParamsPerCh == 0;
+                else
+                    noNonLinOpt = false;
+                end
+                if(noNonLinOpt)
+                    tStart = clock;
+                    measData = this.FLIMXObj.curSubject.getROIData(ch,[],[]);
+                    dataYSz = size(measData,1);
+                    dataXSz = size(measData,2);
+                    dataZSz = size(measData,3);
+                    measData = reshape(measData,dataYSz*dataXSz,dataZSz)';
+                    %generate reference exponetial models
+                        %                     apObj.makeDataPreProcessing([]);
+                        %                     bounds = apObj.getLinearBounds();
+                    bp = apObj.basicParams;
+                    bp.incompleteDecayFactor = 2;
+                    nParams = bp.nExp;                    
+                    fi = apObj.getFileInfoStruct(ch);
+                    t = double(linspace(0,bp.incompleteDecayFactor*(fi.nrTimeChannels-1)*fi.timeChannelWidth,bp.incompleteDecayFactor*fi.nrTimeChannels)'); 
+                    nTimeCh = size(t,1);
+                    expModels = [];
+                    oset = [];
+                    multiModelsFlag = this.FLIMXObj.curSubject.initFitParams.gridSize == 1;
+                    fitOffsetFlag = false;
+                    if(vcp.cMask(end) < 0)
+                        fitOffsetFlag = true;
+                    end
+                    if(~multiModelsFlag)
+                        tauOut = zeros(dataYSz,dataXSz,nParams,'single');
+                        for i = 1:nParams
+                            tauOut(:,:,i) = single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,sprintf('TauInit%d',i)));
+                        end
+                        tauOut = reshape(permute(tauOut,[3,1,2]),nParams,dataYSz*dataXSz);
+                        shiftOut = reshape(single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,'hShiftInit')),1,dataYSz*dataXSz);                      
+                        %apObj.basicParams.hybridFit = 0;
+                        %remove taus and shift from fixed parameters
+                        vcp.cMask(nParams+1:2*nParams) = 0;
+                        vcp.cVec(nParams+1:2*nParams) = [];
+                        vcp.cMask(end-1) = 0;
+                        vcp.cVec(end-1) = [];
+                        apObj.setVolatileChannelParams(ch,vcp);
+                        nrTiles = 256;                        
+                        %[amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch);                                                
+                    else
+                        %set amplitudes to fixed value (1)
+                        vcp.cMask(1:nParams) = 1;
+                        vcp.cMask(end) = 1;
+                        vcp.cVec(1:nParams) = 1;
+                        [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents([],true,ch,1);
+                        shiftOut = ones(1,dataYSz*dataXSz).* hShift;
+                        tauOut = ones(apObj.basicParams.nExp,dataYSz*dataXSz).*taus;
+                        apObj.setVolatileChannelParams(ch,vcp);
+                        expModels = single(apObj.getExponentials(ch,[],1));
+                        nrTiles = nWorkers;
+                    end                                       
+                    %create mask where data is not zero
+                    dataNonZeroMask = measData ~= 0;                    
+                    dataNonZeroMask(1:fi.StartPosition-1,:) = false;
+                    dataNonZeroMask(fi.EndPosition+1:end,:) = false;
+                    if(isempty(fi.reflectionMask))
+                        dataNonZeroMask = dataNonZeroMask & repmat(fi.reflectionMask,1,size(dataNonZeroMask,2));
+                    end
+                    bounds = zeros(nParams,2);
+                    bounds(:,2) = inf;                    
+                    %create tiles                    
+                    idxTiles = floor(linspace(0,dataYSz*dataXSz,nrTiles+1));
+                    tic
+                    dataSlices = cell(nrTiles,1);
+                    dataNZMaskSlices = cell(nrTiles,1);                    
+                    for i = 1:nrTiles
+                        dataSlices{i} = measData(:,idxTiles(i)+1:idxTiles(i+1));
+                        dataNZMaskSlices{i} = dataNonZeroMask(:,idxTiles(i)+1:idxTiles(i+1));
+                    end                   
+                    res = cell(nrTiles,3);
+                    if(bp.reconvoluteWithIRF)
+                        irffft = apObj.myChannels{ch}.getIRFFFT(nTimeCh);
+                    else
+                        irffft = [];
+                    end                    
+                    nExp = uint16(bp.nExp);
+                    incompleteDecayFactor = uint16(bp.incompleteDecayFactor);
+                    scatterEnable = logical(bp.scatterEnable);
+                    scatterIRF = logical(bp.scatterIRF);
+                    stretchedExpMask = logical(bp.stretchedExpMask);
+                    parfor i = 1:nrTiles
+                        tmp = cell(1,3);
+                        md = single(dataSlices{i});
+                        dnzm = dataNZMaskSlices{i};
+                        aTmp = [];
+                        oTmp = [];
+                        mTmp = [];
+                        expMTmp = [];
+                        if(~multiModelsFlag)
+                            %different model for each pixel
+                            %[mTmp, aTmp, ~, oTmp] = apObj.myChannels{ch}.compModel([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(1,idxTiles(i)+1:idxTiles(i+1));]);
+                            [~, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, offset, tciHShiftFine, nVecsTmp] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch,1);
+                            myT = repmat(t(:,1),1,double(nExp)*nVecsTmp);                            
+                            expMTmp = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,...
+                                myT,apObj.myChannels{ch}.iMaxPos,irffft,[],taus, tcis, betas, scAmps, scShifts, [], scOset, hShift, tciHShiftFine,false);
+                            [ao,aTmp,oTmp] = computeAmplitudes(expMTmp,md,dnzm,offset,fitOffsetFlag,zeros([size(expMTmp,2),size(taus,2)],'like',expMTmp),inf([size(expMTmp,2),size(taus,2)],'like',expMTmp));
+                            expMTmp(:,:,1:nVecsTmp) = expMTmp(:,:,1:nVecsTmp).*ao;                            
+                            mTmp = squeeze(sum(expMTmp(:,:,1:nVecsTmp),2));
+                        else
+                            %same model for all pixels
+                            [~,aTmp,oTmp] = computeAmplitudes(expModels,md,dnzm,oset,fitOffsetFlag,zeros([size(expModels,2),1],'like',expModels),inf([size(expModels,2),1],'like',expModels));
+                            mTmp = expModels * [aTmp; oTmp];
+                            %expMTmp = bsxfun(@times,expModels,ao);
+                            %mTmp = squeeze(sum(expMTmp(:,:,1:nVecsTmp),2));
+                        end
+                        %compute chi²
+                        tmp{1,1} = computeFigureOfMerit(mTmp,md,dnzm,nParams,bp)';
+                        tmp{1,2} = aTmp';
+                        tmp{1,3} = oTmp';
+                        res(i,:) = tmp;
+                    end
+                    %[chi2, ampsOut, osetOut] = computeTile(expModels,t,measDataTile,dataNonZeroMask,oset,bounds(:,1),bounds(:,2));
+                    %collect results
+                    chi2 = cell2mat(res(:,1));
+                    ampsOut = cell2mat(res(:,2));
+                    osetOut = cell2mat(res(:,3));
+                    toc
+                    chi2 = reshape(chi2,dataYSz,dataXSz);
+                    ampsOut = reshape(ampsOut,dataYSz,dataXSz,nParams);
+                    tauOut = reshape(permute(tauOut,[2,1]),dataYSz,dataXSz,nParams);
+                    shiftOut = reshape(shiftOut,dataYSz,dataXSz);
+                    osetOut = reshape(osetOut,dataYSz,dataXSz);
+                    xVec = zeros(size(chi2,1),size(chi2,2),length(vcp.cMask));
+                    xVec(:,:,1:apObj.basicParams.nExp) = ampsOut;
+                    xVec(:,:,apObj.basicParams.nExp+1:2*apObj.basicParams.nExp) = tauOut;
+                    xVec(:,:,end-1) = shiftOut;
+                    xVec(:,:,end) = osetOut;
+                    %store results
+                    this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'chi2',chi2);                    
+                    for i = 1:apObj.basicParams.nExp
+                        this.FLIMXObj.curSubject.setPixelFLIMItem(ch,sprintf('Amplitude%d',i),squeeze(ampsOut(:,:,i)));
+                        this.FLIMXObj.curSubject.setPixelFLIMItem(ch,sprintf('Tau%d',i),squeeze(tauOut(:,:,i)));
+                    end
+                    this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'x_vec',xVec);
+                    this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'hShift',xVec(:,:,end-1));
+                    this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'Offset',xVec(:,:,end));
+                    this.FLIMXObj.curSubject.setEffectiveTime(ch,etime(clock,tStart));
+                    this.updateProgressShort(0,'');
+                    return
+                end
+            end
+            %% check if we should run the computation locally or distributed
             if(this.computationParams.useDistComp == 1 && length(pixelPool) > nWorkers)
                 %use multicore package
                 %prep multicore
@@ -465,30 +618,35 @@ classdef FluoDecayFit < handle
                 %mcSettings.maxEvalTimeSingle = this.optimizationParams.options_de.maxiter*this.optimizationParams.options_de.NP*this.volatilePixelParams.nModelParamsPerCh*0.5;
                 mcSettings.useWaitbar        = 1;
                 mcSettings.computeJobHash    = this.computationParams.mcComputeJobHash;
+                pixelPerCore = 32;
                 if(totalPixels <= 5*this.computationParams.mcTargetPixelPerWU) %at least 5 WUs
-                    atOncePixel = 8; %max(1,floor(totalPixel/4)); %make 4 workunits
+                    pixelPerWU = 8*pixelPerCore; %max(1,floor(totalPixel/4)); %make 4 workunits
                     %                 elseif(totalPixel > 32 && totalPixel <= 64)
                     %                     atOncePixel = max(1,floor(totalPixel/8)); %make 8 workunits
                 else % > 4*24 = 96 pixel, = 24/48/96/... pixel/wu -> >= 8 wu
-                    atOncePixel = this.computationParams.mcTargetPixelPerWU*ceil(max(1,round(totalPixels/this.computationParams.mcTargetNrWUs))/this.computationParams.mcTargetPixelPerWU);                    
-                end
-                mcSettings.maxEvalTimeSingle = atOncePixel*2/8; %= guess 2s per pixel, running on 8 cores in parallel; todo
-                iter = ceil(totalPixels/atOncePixel);
+                    %pixelPerCore = this.computationParams.mcTargetPixelPerWU*ceil(max(1,round(totalPixels/this.computationParams.mcTargetNrWUs))/this.computationParams.mcTargetPixelPerWU);                    
+                    pixelPerWU = this.computationParams.mcTargetPixelPerWU * pixelPerCore;
+                end                
+                mcSettings.maxEvalTimeSingle = pixelPerWU*3/8; %= guess 3s per pixel, running on 8 cores in parallel; todo
+                iter = ceil(totalPixels/pixelPerWU);
                 parameterCell = cell(1,iter);
                 idxCell = cell(1,iter);
                 iter = 0;
-                for i = 1:atOncePixel:totalPixels
+                this.FLIMXObj.curSubject.clearCachedApproxObj();
+                oldGPUFlag = this.FLIMXObj.curSubject.computationParams.useGPU;
+                this.FLIMXObj.curSubject.computationParams.useGPU = 0;
+                for i = 1:pixelPerWU:totalPixels
                     iter = iter+1;
-                    subPool = pixelPool(i:min(totalPixels,i+atOncePixel-1));
+                    subPool = pixelPool(i:min(totalPixels,i+pixelPerWU-1));
                     nPixel = length(subPool);
-                    parameterCell{iter} = {@this.getApproxParamCell,ch,subPool,fitDim,initFit};
+                    parameterCell{iter} = {@this.getApproxParamCell,ch,subPool,pixelPerCore,initFit};
                     %parameterCell{iter} = {@sub.getApproxParamCell,ch,subPool,fitDim,initFit,this.optimizationParams,this.aboutInfo};
                     idx = zeros(nPixel,2);
-                    if(fitDim == 2) %x
-                        [idx(:,2), idx(:,1)] = ind2sub([x y],subPool);
-                    else %y
+%                     if(fitDim == 2) %x
+%                         [idx(:,2), idx(:,1)] = ind2sub([x y],subPool);
+%                     else %y
                         [idx(:,1), idx(:,2)] = ind2sub([y x],subPool);
-                    end
+%                     end
                     idxCell(iter) = {idx};
                 end
                 postProcessParams.idxCell = idxCell;
@@ -499,6 +657,8 @@ classdef FluoDecayFit < handle
                 mcSettings.postProcessHandle = @this.mcPostProcess;
                 %distribute work
                 resultCell = startmulticoremaster(@makePixelFit, parameterCell, mcSettings);
+                this.FLIMXObj.curSubject.clearCachedApproxObj();
+                this.FLIMXObj.curSubject.computationParams.useGPU = oldGPUFlag;
                 if(isempty(resultCell) || length(resultCell) ~= iter || isempty(resultCell{1}) || ischar(resultCell{1}))
                     %something went wrong
                     %todo: error message, cleanup
@@ -510,26 +670,32 @@ classdef FluoDecayFit < handle
                 %compute locally
                 if(this.computationParams.useMatlabDistComp > 0)
                     %run on all cores locally, get number of cores
-                    atOncePixel = nWorkers;
+                    pixelPerCore = nWorkers;
                     if(any(ismember([1 4 6 7],this.pixelFitParams.optimizer)))
                         %we have a stochastic optimizer
-                        atOncePixel = 2*max(atOncePixel,1); %make sure nPixel is at least 1 if something went wrong
+                        pixelPerCore = 2*max(pixelPerCore,1); %make sure nPixel is at least 1 if something went wrong
                     else
                         %simplex or levenberg-marquardt
-                        atOncePixel = 16*max(atOncePixel,1); %make sure nPixel is at least 1 if something went wrong
+                        pixelPerCore = max(16*pixelPerCore,1); %0.5*16*16  make sure nPixel is at least 1 if something went wrong
+                        if(this.computationParams.useGPU)
+                            pixelPerCore = pixelPerCore*16;
+                        end
                     end
                 else
                     %oldstyle singlethreaded
-                    atOncePixel = 1;
+                    pixelPerCore = 1;
                 end
-                for i = 1:atOncePixel:totalPixels
+                pixelPerWU = nWorkers * pixelPerCore;
+%                 atOncePixel = 2;
+                for i = 1:pixelPerWU:totalPixels
                     if(this.parameters.stopOptimization)
                         %user wants to stop
                         this.parameters.stopOptimization = false;
                         goOn = '';
                         break;
                     end
-                    [parameterCell, idx] = this.getApproxParamCell(ch,pixelPool(i:min(totalPixels,i+atOncePixel-1)),fitDim,initFit);
+                    curIdx = min(totalPixels,i+pixelPerWU-1);
+                    [parameterCell, idx] = this.getApproxParamCell(ch,pixelPool(i:curIdx),pixelPerCore,initFit);
                     if(isempty(parameterCell) || isempty(idx))
                         goOn = '';
                         break
@@ -547,7 +713,7 @@ classdef FluoDecayFit < handle
                     if(initFit)
                         this.FLIMXObj.curSubject.addInitResult(ch,idx,resultStruct);
                         %update waitbar
-                        this.updateProgressShort(i/totalPixels,sprintf('Initialization: %02.1f%%',i/totalPixels*100));
+                        this.updateProgressShort(curIdx/totalPixels,sprintf('Initialization: %02.1f%%',curIdx/totalPixels*100));
                     else
                         this.FLIMXObj.curSubject.addMultipleResults(ch,idx,resultStruct);
                         %display results
@@ -556,29 +722,22 @@ classdef FluoDecayFit < handle
                             lastUpdate = clock;
                         end
                         %update waitbar
-                        [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(totalPixels-i)); %mean cputime for finished runs * cycles left
-                        this.updateProgressShort(i/totalPixels,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',i/totalPixels*100,hours,minutes,secs));
+                        [hours, minutes, secs] = secs2hms(etime(clock,tStart)/curIdx*(totalPixels-curIdx)); %mean cputime for finished runs * cycles left
+                        this.updateProgressShort(curIdx/totalPixels,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',curIdx/totalPixels*100,hours,minutes,secs));
                     end
                 end %for i = 1:atOncePixel:totalPixel
             end            
             this.updateProgressShort(0,'');
         end
         
-        %         matlabpool('addfiledependencies',{'differentialevolution.m','MSimplexBnd.m','multiExpModel.m','makePixelFit.m',...
-        %         'runOpt.m','defWrapper.m','combineXVec.m','splitXVec','sliceXVec.m','getOptParams.m','sWnd1DAvg.m','fastGrad.m','checkQuantization.m','getBounds.m',...
-        %         'checkBounds.m','makeOffsetGuess.m','mergeXVec.m','gethostname.m','getEndPos.m',...
-        %         'getdefaultparams.m','catstruct.m'});
-        %,[cd '\config\FitConfig.ini']
-        
-        %matlabpool('updatefiledependencies')
-        
         function result = makeSingleCurveFit(this,ch,yPos,xPos,mcSettings)
             %make single curve fit
             if(yPos == 0 && xPos == 0)
-                parameterCell = this.getApproxParamCell(ch,0,3,true);
+                %initalization fit
+                parameterCell = this.getApproxParamCell(ch,0,1,true);
             else
                 pixelPool = sub2ind([this.FLIMXObj.curSubject.getROIYSz() this.FLIMXObj.curSubject.getROIXSz()],yPos,xPos);
-                parameterCell = this.getApproxParamCell(ch,pixelPool,3,false);
+                parameterCell = this.getApproxParamCell(ch,pixelPool,1,false);
             end
             if(~isempty(mcSettings))
                 parameterCell = repmat(parameterCell,1,this.initFitParams.mcInitNrCopies);
@@ -590,12 +749,12 @@ classdef FluoDecayFit < handle
                 [~, idx] = min([res(1,:).chi2]);
                 result = res(1,idx);
             else
-                parameterCell{3}.optimization.options_de.iterPostProcess = @this.iterPostProcess;
+                parameterCell{2}.options_de.iterPostProcess = @this.iterPostProcess;
                 result = feval(@makePixelFit, parameterCell{:});
             end
             this.updateProgressShort(0,'');
         end
-                
+        
         function goOn = makeCleanUpFit(this,ch,initFit)
             %find outliers in current result and try to improve them
             if(~this.cleanupFitParams.enable || (initFit && ~this.FLIMXObj.curSubject.isInitResult(ch)) || (~initFit && ~this.FLIMXObj.curSubject.isPixelResult(ch)) || isempty(this.cleanupFitParams.target))
@@ -645,7 +804,7 @@ classdef FluoDecayFit < handle
                 hit = false(size(chi2));
                 hit(secStageParams.pixelPool) = true;
                 %save hit mask in result
-                for chIdx = ch                    
+                for chIdx = ch
                     if(initFit)
                         iVec = this.FLIMXObj.curSubject.getInitFLIMItem(chIdx,'iVec');
                     else
@@ -654,7 +813,7 @@ classdef FluoDecayFit < handle
                     [y, x, z] = size(iVec);
                     for i = 1:length(secStageParams.pixelPool)
                         [yi, xi] = ind2sub([y x],secStageParams.pixelPool(i));
-                        iVec(yi,xi,:) = apObj.getFullXVec(chIdx,secStageParams.iVec(:,i));
+                        iVec(yi,xi,:) = apObj.getFullXVec(chIdx,1,secStageParams.iVec(:,i));
                     end
                     if(initFit)
                         this.FLIMXObj.curSubject.setInitFLIMItem(chIdx,'iVec',iVec);
@@ -667,14 +826,14 @@ classdef FluoDecayFit < handle
                 this.computeMultipleFits(chIdx,secStageParams.pixelPool,initFit);
             end
         end
-                        
+        
         function secStageParams = prepareSecondStage(this,apObj,data,chi2,xVec,chList)
-            %make parameters structure for second approximation stage            
-            secStageParams.pixelPool = [];  
+            %make parameters structure for second approximation stage
+            secStageParams.pixelPool = [];
             kernel = @median;
             if(this.cleanupFitParams.filterType == 1)
                 kernel = @mean;
-            end            
+            end
             fs = this.cleanupFitParams.filterSize;
             for chIdx = chList
                 for i = 1:size(data,1)
@@ -729,6 +888,11 @@ classdef FluoDecayFit < handle
         function params = get.computationParams(this)
             %get pre processing parameters
             params = this.FLIMXObj.paramMgr.getParamSection('computation');
+        end
+        
+        function set.computationParams(this,val)
+            %get pre processing parameters
+            this.FLIMXObj.paramMgr.computationParams = val;
         end
         
         function params = get.cleanupFitParams(this)

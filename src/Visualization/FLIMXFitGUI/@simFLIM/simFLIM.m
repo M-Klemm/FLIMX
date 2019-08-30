@@ -412,7 +412,7 @@ classdef simFLIM < handle
                 %apObj.setCurrentChannel(sdc.channelNr);
                 %make model vector
                 model = zeros([1 1 sdc.nrTimeChannels]);
-                model(1,1,:) = apObj.getModel(sdc.channelNr,apObj.getNonConstantXVec(sdc.channelNr,xVec)); %fixme
+                model(1,1,:) = apObj.getModel(sdc.channelNr,apObj.getNonConstantXVec(sdc.channelNr,xVec),1); %fixme
             elseif(~isempty(sdc.modelData))
                 %we got a data vector
                 model = sdc.modelData;
