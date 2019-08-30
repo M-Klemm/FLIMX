@@ -129,6 +129,9 @@ classdef FLIMXFitGUI < handle
         
         function setButtonStopSpinning(this,flag)
             %switch between spinning and regular stop button
+            if(~this.isOpenVisWnd())
+                return
+            end
             if(flag)
                 try
                     set(this.visHandles.buttonStop,'String',sprintf('<html><img src="file:/%s"/> Stop</html>',FLIMX.getAnimationPath()));
@@ -318,7 +321,7 @@ classdef FLIMXFitGUI < handle
 %             else
 %                 flag = 'on';
 %             end
-%             set(this.visHandles.menuFitAll,'Enable',flag);
+%             set(this.visHandles.menuFitAllChannels,'Enable',flag);
             flag = 'on';
             set(this.visHandles.menuBatchSubjectAllCh,'Enable',flag);
         end %setupGUI
@@ -1912,8 +1915,10 @@ classdef FLIMXFitGUI < handle
         
         function menuFitInit_Callback(this,hObject,eventdata)
             %start fitting for current channel
-            cla(this.visHandles.axesRes);
-            cla(this.visHandles.axesResHis);
+            if(this.isOpenVisWnd())
+                cla(this.visHandles.axesRes);
+                cla(this.visHandles.axesResHis);
+            end
             this.FLIMXObj.curSubject.clearROAResults(true); %clear old results
             this.FLIMXObj.curSubject.update(); 
             this.updateGUI(true);
@@ -1927,8 +1932,10 @@ classdef FLIMXFitGUI < handle
         
         function menuFitPixel_Callback(this,hObject,eventdata)
             %start fitting for current pixel
-            cla(this.visHandles.axesRes);
-            cla(this.visHandles.axesResHis);
+            if(this.isOpenVisWnd())
+                cla(this.visHandles.axesRes);
+                cla(this.visHandles.axesResHis);
+            end
             %start actual fitting process
             this.setButtonStopSpinning(true);
             this.FLIMXObj.FLIMFit.startFitProcess(this.currentChannel,this.currentY,this.currentX);
@@ -1936,10 +1943,12 @@ classdef FLIMXFitGUI < handle
             this.updateGUI(true);
         end
         
-        function menuFitChannel_Callback(this,hObject,eventdata)
+        function menuFitCurrentChannel_Callback(this,hObject,eventdata)
             %start fitting for current channel
-            cla(this.visHandles.axesRes);
-            cla(this.visHandles.axesResHis);
+            if(this.isOpenVisWnd())
+                cla(this.visHandles.axesRes);
+                cla(this.visHandles.axesResHis);
+            end
             %start actual fitting process
             this.setButtonStopSpinning(true);
             this.FLIMXObj.FLIMFit.startFitProcess(this.currentChannel,[],[]);
@@ -1949,10 +1958,12 @@ classdef FLIMXFitGUI < handle
             this.updateGUI(true);
         end
         
-        function menuFitAll_Callback(this,hObject,eventdata)
+        function menuFitAllChannels_Callback(this,hObject,eventdata)
             %fit all channels
-            cla(this.visHandles.axesRes);
-            cla(this.visHandles.axesResHis);
+            if(this.isOpenVisWnd())
+                cla(this.visHandles.axesRes);
+                cla(this.visHandles.axesResHis);
+            end
             %start actual fitting process
             this.setButtonStopSpinning(true);
             this.FLIMXObj.FLIMFit.setInitFitOnly(false);
@@ -1969,8 +1980,10 @@ classdef FLIMXFitGUI < handle
         
         function menuCleanUpFit_Callback(this,hObject,eventdata)
             %fit all channels
-            cla(this.visHandles.axesRes);
-            cla(this.visHandles.axesResHis);
+            if(this.isOpenVisWnd())
+                cla(this.visHandles.axesRes);
+                cla(this.visHandles.axesResHis);
+            end
             %start actual fitting process
             this.setButtonStopSpinning(true);
             this.FLIMXObj.FLIMFit.makeCleanUpFit(this.currentChannel,false);
@@ -1978,7 +1991,29 @@ classdef FLIMXFitGUI < handle
             this.setButtonStopSpinning(false);
             this.setupGUI();
             this.updateGUI(true);
-        end        
+        end
+        
+        function menuFitAllSubjects_Callback(this,hObject,eventdata)
+            %fit all subjects in current study condition
+            if(this.isOpenVisWnd())
+                cla(this.visHandles.axesRes);
+                cla(this.visHandles.axesResHis);
+            end
+            %start actual fitting process
+            subjects = this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,this.currentCondition);
+            tStart = clock;
+            for i = 1:length(subjects)
+                this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentCondition,subjects{i});
+                this.menuFitAllChannels_Callback(this.visHandles.menuFitAllChannels,[]);
+                %update progressbar
+                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(subjects)-i)); %mean time for finished runs * iterations left
+                this.updateProgressLong(i/length(subjects),sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',i/length(subjects)*100,hours,minutes,secs));
+            end
+            this.updateProgressLong(0,'');
+%             this.setButtonStopSpinning(false);
+%             this.setupGUI();
+%             this.updateGUI(true);
+        end
         
         function menuBatchSubject_Callback(this,hObject,eventdata)
             %add current channel to batch job manager
@@ -2230,9 +2265,10 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.menuRunPreProcessing,'Callback',@this.menuRunPreProcessing_Callback);
             set(this.visHandles.menuFitInit,'Callback',@this.menuFitInit_Callback);
             set(this.visHandles.menuFitPixel,'Callback',@this.menuFitPixel_Callback);
-            set(this.visHandles.menuFitChannel,'Callback',@this.menuFitChannel_Callback);
-            set(this.visHandles.menuFitAll,'Callback',@this.menuFitAll_Callback);
+            set(this.visHandles.menuFitCurrentChannel,'Callback',@this.menuFitCurrentChannel_Callback);
+            set(this.visHandles.menuFitAllChannels,'Callback',@this.menuFitAllChannels_Callback);            
             set(this.visHandles.menuCleanUpFit,'Callback',@this.menuCleanUpFit_Callback);
+            set(this.visHandles.menuFitAllSubjects,'Callback',@this.menuFitAllSubjects_Callback);  
             %batch job manager
             set(this.visHandles.menuOpenBatchJobMgr,'Callback',@this.menuOpenBatchJobMgr_Callback);
             set(this.visHandles.menuBatchSubjectCurCh,'Callback',@this.menuBatchSubject_Callback);

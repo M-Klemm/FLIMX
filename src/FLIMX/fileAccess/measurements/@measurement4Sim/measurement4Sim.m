@@ -49,7 +49,7 @@ classdef measurement4Sim < measurementInFDTree
         function setSyntheticData(this,channel,data)
             %set synthetic data for channel
             this.setRawData(channel,data);
-            this.clearROIData();
+            this.clearROAData();
         end
         function out = getNonEmptyChannelList(this)
             %return list of channel with measurement data

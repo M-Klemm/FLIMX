@@ -188,7 +188,7 @@ classdef measurementFile < handle
         function setROICoord(this,coord)
             %set coordinates for roi coord(x_low, x_high, y_low, y_high)
             if(length(coord) == 4 && isempty(this.ROICoord) || (~isempty(this.ROICoord) && any(coord(:) - this.ROICoord(:))))
-                this.clearROIData();
+                this.clearROAData();
                 if(~isempty(this.rawXSz))
                     coord(2) = min(coord(2),this.rawXSz);
                 end
@@ -227,7 +227,7 @@ classdef measurementFile < handle
             %set data type of roi data
             if(~strcmp(this.ROIDataType,val))
                 this.ROIDataType = val;
-                this.clearROIData();
+                this.clearROAData();
                 this.setDirtyFlags([],4,true);
             end
         end
@@ -1212,7 +1212,7 @@ classdef measurementFile < handle
             end
         end
         
-        function clearROIData(this)
+        function clearROAData(this)
             %clear everything except for the measurement data
             this.roiFluoData = cell(this.nrSpectralChannels,1);
             this.rawMaskData = cell(this.nrSpectralChannels,1);
@@ -1293,7 +1293,7 @@ classdef measurementFile < handle
             this.fileInfo.nrTimeChannels = fileInfo.nrTimeChannels;
             this.fileInfo.nrSpectralChannels = fileInfo.nrSpectralChannels;
             if(~this.initMode && (~this.fileInfoLoaded || old.tacRange ~= fileInfo.tacRange || old.nrTimeChannels ~= fileInfo.nrTimeChannels || old.nrSpectralChannels ~= fileInfo.nrSpectralChannels))
-                this.clearROIData();
+                this.clearROAData();
             end
             if(~isfield(fileInfo,'reflectionMask'))
                 fileInfo.reflectionMask = mat2cell(ones(fileInfo.nrTimeChannels,fileInfo.nrSpectralChannels),val,ones(fileInfo.nrSpectralChannels,1))';

@@ -295,7 +295,7 @@ classdef FDTSubject < fluoSubject
             if(~this.isInitialized)
                 this.init();
             end
-            this.myMeasurement.clearROIData();
+            this.myMeasurement.clearROAData();
             this.clearROAResults(false);
         end
         
