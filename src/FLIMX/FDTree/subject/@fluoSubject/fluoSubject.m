@@ -200,9 +200,6 @@ classdef fluoSubject < FDTreeNode
         
         function updateAuxiliaryData(this,chList)
             %update auxiliaryData in my result from measurement, clears results
-            if(isMultipleCall)
-                return
-            end
 %             if(~this.isInitialized)
 %                 this.init();
 %             end

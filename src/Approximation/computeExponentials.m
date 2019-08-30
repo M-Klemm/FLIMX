@@ -90,7 +90,7 @@ scHShiftsFine = reshape(scHShiftsFine,nVecs*nScatter,1);
 % end
 
 %% prepare scatter
-if(any(scOset))
+if(any(scOset(:)))
             for i = 1:nScatter
                 scatterData(:,i,:) = bsxfun(@plus,squeeze(scatterData(:,i,:)),scOset(i,:));
 %                 scVec(:,i,:) = circShiftArray(bsxfun(@times, squeeze(scVec(:,i,:)),scAmps(i,:)).*this.dMaxVal,scShifts(i,:));
