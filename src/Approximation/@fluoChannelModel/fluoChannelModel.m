@@ -262,7 +262,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         function out = getDataNonZeroMask(this,pixelIDs)
             %return mask where measurement data is not zero
             if(isempty(this.dataStorage.measurement.nonZeroMask))
-                this.compMeasurementZeroMask()
+                this.compMeasurementZeroMask();
             end
             out = this.dataStorage.measurement.nonZeroMask(:,pixelIDs);
         end
@@ -270,7 +270,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         function out = getDataNonZeroMaskTail(this,pixelIDs)
             %return mask where measurement data is not zero
             if(isempty(this.dataStorage.measurement.nonZeroMaskTail))
-                this.compMeasurementZeroMask()
+                this.compMeasurementZeroMask();
             end
             out = this.dataStorage.measurement.nonZeroMaskTail(:,pixelIDs);
         end
@@ -567,152 +567,152 @@ classdef fluoChannelModel < matlab.mixin.Copyable
 %             expModelOut = expModelsShort(1:nTimeChNoID,1:bp.nExp+vpp.nScatter+1,1:nVecs);
         end
                 
-        function [model, ampsOut, scAmpsOut, osetOut, exponentialsOut] = compModel(this,x)
-            % compute model for parameters x and reconvolute
-            % inputs:   x       - parameterset, e.g. [a1; a2; a3; t1; t2; t3; tc2; tc3; scA1 scS1 vShift hShift oset;]
-            %lsqlinOpts = optimset('TolFun',0.01,'TolX',0.001,'LargeScale','on','Display','off');
-            %             if(this.basicParams.useGPU)
-            %                 x=gsingle(x);
-            %             else
-            %                 x=double(x);
-            %             end
-            persistent t tSingle exponentialsLong exponentialsShort exponentialsOffset
-            [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = getXVecComponents(this.myParent,x,true,this.myChannelNr,1);
-            bp = this.basicParams;
-            nTimeCh = this.tLen;
-            if(bp.incompleteDecay)
-                nTimeCh = nTimeCh ./ 2;
-            end
-            vpp = this.volatilePixelParams;
-            vcp = this.volatileChannelParams;
-            nExp = bp.nExp;
-            taus = 1./taus;
-            if(isempty(t) || size(t,1) ~= this.tLen || size(t,2) < nVecs)
-                t = repmat(this.time(:,1),1,nVecs);
-                tSingle = single(t(:,1));
-            end
-            if((vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)) > 0)
-                %shiftAndLinearOpt function will move all components by hShift -> compensate scatter shifts here
-                tcis = [tcis; bsxfun(@minus,scShifts,hShift)];
-                tciHShiftFine = [tciHShiftFine; scHShiftsFine];
-            end
-            %% allocate memory for temporary vatiables
-            if(isempty(exponentialsLong) || size(exponentialsLong,1) ~= size(t,1) || size(exponentialsLong,3) < nVecs || size(exponentialsLong,2) ~= nExp || size(exponentialsShort,2) ~= nExp+vpp.nScatter)
-                exponentialsLong = ones(size(t,1),nExp+(bp.scatterEnable && bp.scatterIRF),nVecs);
-                exponentialsShort = ones(nTimeCh,nExp+vpp.nScatter,nVecs);
-                exponentialsOffset = ones(nTimeCh,nExp+vpp.nScatter+1,nVecs,'single');
-            end
-            if(~isempty(this.dataStorage.scatter.raw))
-                scVec = repmat(this.getScatterData(),[1,1,nVecs]);
-            else
-                scVec = zeros(size(exponentialsShort,1),vpp.nScatter-bp.scatterIRF,nVecs);
-            end
-            
-            %% get approximation for current parameters
-            data = this.getMeasurementData();
-            %% prepare scatter
-%             for i = 1:vpp.nScatter
-%                 scVec(:,i,:) = bsxfun(@plus,squeeze(scVec(:,i,:)),scOset(i,:));
-% %                 scVec(:,i,:) = circShiftArray(bsxfun(@times, squeeze(scVec(:,i,:)),scAmps(i,:)).*this.dMaxVal,scShifts(i,:));
+%         function [model, ampsOut, scAmpsOut, osetOut, exponentialsOut] = compModel(this,x)
+%             % compute model for parameters x and reconvolute
+%             % inputs:   x       - parameterset, e.g. [a1; a2; a3; t1; t2; t3; tc2; tc3; scA1 scS1 vShift hShift oset;]
+%             %lsqlinOpts = optimset('TolFun',0.01,'TolX',0.001,'LargeScale','on','Display','off');
+%             %             if(this.basicParams.useGPU)
+%             %                 x=gsingle(x);
+%             %             else
+%             %                 x=double(x);
+%             %             end
+%             persistent t tSingle exponentialsLong exponentialsShort exponentialsOffset
+%             [amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = getXVecComponents(this.myParent,x,true,this.myChannelNr,1);
+%             bp = this.basicParams;
+%             nTimeCh = this.tLen;
+%             if(bp.incompleteDecay)
+%                 nTimeCh = nTimeCh ./ 2;
 %             end
-%                 this.myStartPos = max(this.fileInfo.StartPosition + min(scShifts(:)), this.fileInfo.StartPosition);
-%                 this.myEndPos = min([this.fileInfo.EndPosition + min(scShifts(:)), this.fileInfo.EndPosition, nTimeCh]);
-            %% make exponentials
-            %stretched exponentials
-            for i = find(bp.stretchedExpMask)
-                exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@power,bsxfun(@times, t(:,1:nVecs), taus(i,:)), betas(i,:)));
-            end
-            %'normal' exponentials
-            for i = find(~bp.stretchedExpMask)
-                exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@times, t(:,1:nVecs), taus(i,:)));
-            end
-            if(bp.scatterEnable && bp.scatterIRF)
-                nExp = nExp+1;
-                exponentialsLong(:,nExp,1:nVecs) = zeros(size(t,1),1,nVecs);
-                exponentialsLong(1,nExp,1:nVecs) = 1;
-            end
-            %% reconvolute
-            if(bp.reconvoluteWithIRF)
-                %determine reconv model length
-                [~, p] = log2(size(exponentialsLong,1)-1);
-                len_model_2 = pow2(p);    % smallest power of 2 > len_model
-%                 if(this.useGPU && nVecs > 1) %uses matlab gpu support
-%                     if(isempty(this.irfFFTGPU) || length(this.irfFFTGPU) ~= len_model_2)
-%                         this.irfFFTGPU = fft(gpuArray(this.getIRF()),len_model_2);
+%             vpp = this.volatilePixelParams;
+%             vcp = this.volatileChannelParams;
+%             nExp = bp.nExp;
+%             taus = 1./taus;
+%             if(isempty(t) || size(t,1) ~= this.tLen || size(t,2) < nVecs)
+%                 t = repmat(this.time(:,1),1,nVecs);
+%                 tSingle = single(t(:,1));
+%             end
+%             if((vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)) > 0)
+%                 %shiftAndLinearOpt function will move all components by hShift -> compensate scatter shifts here
+%                 tcis = [tcis; bsxfun(@minus,scShifts,hShift)];
+%                 tciHShiftFine = [tciHShiftFine; scHShiftsFine];
+%             end
+%             %% allocate memory for temporary vatiables
+%             if(isempty(exponentialsLong) || size(exponentialsLong,1) ~= size(t,1) || size(exponentialsLong,3) < nVecs || size(exponentialsLong,2) ~= nExp || size(exponentialsShort,2) ~= nExp+vpp.nScatter)
+%                 exponentialsLong = ones(size(t,1),nExp+(bp.scatterEnable && bp.scatterIRF),nVecs);
+%                 exponentialsShort = ones(nTimeCh,nExp+vpp.nScatter,nVecs);
+%                 exponentialsOffset = ones(nTimeCh,nExp+vpp.nScatter+1,nVecs,'single');
+%             end
+%             if(~isempty(this.dataStorage.scatter.raw))
+%                 scVec = repmat(this.getScatterData(),[1,1,nVecs]);
+%             else
+%                 scVec = zeros(size(exponentialsShort,1),vpp.nScatter-bp.scatterIRF,nVecs);
+%             end
+%             
+%             %% get approximation for current parameters
+%             data = this.getMeasurementData();
+%             %% prepare scatter
+% %             for i = 1:vpp.nScatter
+% %                 scVec(:,i,:) = bsxfun(@plus,squeeze(scVec(:,i,:)),scOset(i,:));
+% % %                 scVec(:,i,:) = circShiftArray(bsxfun(@times, squeeze(scVec(:,i,:)),scAmps(i,:)).*this.dMaxVal,scShifts(i,:));
+% %             end
+% %                 this.myStartPos = max(this.fileInfo.StartPosition + min(scShifts(:)), this.fileInfo.StartPosition);
+% %                 this.myEndPos = min([this.fileInfo.EndPosition + min(scShifts(:)), this.fileInfo.EndPosition, nTimeCh]);
+%             %% make exponentials
+%             %stretched exponentials
+%             for i = find(bp.stretchedExpMask)
+%                 exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@power,bsxfun(@times, t(:,1:nVecs), taus(i,:)), betas(i,:)));
+%             end
+%             %'normal' exponentials
+%             for i = find(~bp.stretchedExpMask)
+%                 exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@times, t(:,1:nVecs), taus(i,:)));
+%             end
+%             if(bp.scatterEnable && bp.scatterIRF)
+%                 nExp = nExp+1;
+%                 exponentialsLong(:,nExp,1:nVecs) = zeros(size(t,1),1,nVecs);
+%                 exponentialsLong(1,nExp,1:nVecs) = 1;
+%             end
+%             %% reconvolute
+%             if(bp.reconvoluteWithIRF)
+%                 %determine reconv model length
+%                 [~, p] = log2(size(exponentialsLong,1)-1);
+%                 len_model_2 = pow2(p);    % smallest power of 2 > len_model
+% %                 if(this.useGPU && nVecs > 1) %uses matlab gpu support
+% %                     if(isempty(this.irfFFTGPU) || length(this.irfFFTGPU) ~= len_model_2)
+% %                         this.irfFFTGPU = fft(gpuArray(this.getIRF()),len_model_2);
+% %                     end
+% %                     exponentialsLong(:,1:nExp,1:nVecs) = gather(real(ifft(bsxfun(@times, fft(exponentialsLong(:,1:nExp,1:nVecs), len_model_2, 1), this.irfFFTGPU), len_model_2, 1)));
+% %                 else
+%                     if(isempty(this.irfFFT) || length(this.irfFFT) ~= len_model_2)
+%                         this.irfFFT = fft(this.getIRF(), len_model_2);
 %                     end
-%                     exponentialsLong(:,1:nExp,1:nVecs) = gather(real(ifft(bsxfun(@times, fft(exponentialsLong(:,1:nExp,1:nVecs), len_model_2, 1), this.irfFFTGPU), len_model_2, 1)));
-%                 else
-                    if(isempty(this.irfFFT) || length(this.irfFFT) ~= len_model_2)
-                        this.irfFFT = fft(this.getIRF(), len_model_2);
-                    end
-                    exponentialsLong(:,1:nExp,1:nVecs) = real(ifft(bsxfun(@times, fft(exponentialsLong(:,1:nExp,1:nVecs), len_model_2, 1), this.irfFFT), len_model_2, 1));
+%                     exponentialsLong(:,1:nExp,1:nVecs) = real(ifft(bsxfun(@times, fft(exponentialsLong(:,1:nExp,1:nVecs), len_model_2, 1), this.irfFFT), len_model_2, 1));
+% %                 end
+%                 if(bp.approximationTarget == 2 && this.myChannelNr <= 2) %only in anisotropy mode
+%                     %correct for shift caused by reconvolution
+%                     dtci = zeros(size(tcis));
+%                     [~,dtci(:,:)] = max(exponentialsShort(:,:,1:nVecs),[],1);
+%                     tcis = tcis - bsxfun(@minus,dtci,dtci(1,:));
 %                 end
-                if(bp.approximationTarget == 2 && this.myChannelNr <= 2) %only in anisotropy mode
-                    %correct for shift caused by reconvolution
-                    dtci = zeros(size(tcis));
-                    [~,dtci(:,:)] = max(exponentialsShort(:,:,1:nVecs),[],1);
-                    tcis = tcis - bsxfun(@minus,dtci,dtci(1,:));
-                end
-            else
-                for i = 1:size(exponentialsLong,2)
-                    exponentialsLong(:,i,1:nVecs) = circShiftArrayNoLUT(squeeze(exponentialsLong(:,i,1:nVecs)),repmat(this.iMaxPos,nVecs,1));
-                end
-            end
-            %% incomplete decay
-            if(bp.incompleteDecay)
-                exponentialsShort(1:nTimeCh,1:nExp,1:nVecs) = exponentialsLong(1:nTimeCh,:,1:nVecs) + exponentialsLong(nTimeCh+1:2*nTimeCh,:,1:nVecs) + exponentialsLong(2*nTimeCh+1:3*nTimeCh,:,1:nVecs) + exponentialsLong(3*nTimeCh+1:end,:,1:nVecs);
-            else
-                exponentialsShort(1:nTimeCh,1:nExp,1:nVecs) = exponentialsLong(1:nTimeCh,:,1:nVecs);
-            end
-            %% add scatter
-            if((vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)) > 0)
-                exponentialsShort(:,nExp+1:nExp+vpp.nScatter,1:nVecs) = scVec(:,:,1:nVecs);
-            end
-            %% move to position of data maximum + hShift - tci
-            if(this.useMex && this.dLen <= 4096 && size(exponentialsShort,2) <= 16 && nVecs <= 256) %&& strcmp(bp.timeInterpMethod,'linear')
-                [exponentialsOffset(:,1:nExp+(vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)),1:nVecs), ao] = shiftAndLinearOpt_mex(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.getDataNonZeroMask(),...
-                    single(hShift),single(tcis),single(tciHShiftFine),single(oset),this.linLB,this.linUB,vcp.cMask(end)<0,true);
-            else
-                [exponentialsOffset(:,1:nExp+(vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)),1:nVecs), ao] = shiftAndLinearOpt(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.getDataNonZeroMask(),...
-                    single(hShift),single(tcis),single(tciHShiftFine),single(oset),this.linLB,this.linUB,vcp.cMask(end)<0,false);
-            end
-            exponentialsOffset(:,end,1:nVecs) = ones(nTimeCh,nVecs,1,'single');
-            if(bp.approximationTarget == 2 && bp.anisotropyR0Method == 3 && this.myChannelNr == 4)
-                %%heikal
-                z = zeros(nTimeCh,nVecs);
-                n = zeros(nTimeCh,nVecs);
-                for i = 1:2:nExp
-                    z = z + bsxfun(@times,squeeze(exponentialsOffset(:,i,1:nVecs)),amps(i,:)) .* bsxfun(@times,squeeze(exponentialsOffset(:,i+1,1:nVecs)),amps(i+1,:));
-                    n = n + bsxfun(@times,squeeze(exponentialsOffset(:,i,1:nVecs)),amps(i,:));
-                end
-                model = (z./n + bsxfun(@times,squeeze(exponentialsOffset(:,end,1:nVecs)),oset));% .* this.dMaxVal;
-                model(isnan(model)) = 0;
-                ampsOut = double(amps);
-                osetOut = double(oset);
-                scAmpsOut = zeros(0,nVecs);
-            else
-                if(~any(vcp.cMask < 0))
-                    ao(1,:,:) = [amps; scAmps; oset];
-                end
-                if(vpp.nScatter > 0)
-                    scAmpsOut = double(squeeze(ao(1,bp.nExp+1:bp.nExp+vpp.nScatter,:)));
-                else
-                    scAmpsOut = zeros(0,nVecs);
-                end
-                exponentialsOffset(isnan(exponentialsOffset)) = 0;
-                exponentialsOffset(:,:,1:nVecs) = bsxfun(@times,exponentialsOffset(:,:,1:nVecs),ao);
-                model = squeeze(sum(exponentialsOffset(:,:,1:nVecs),2));
-                if(bp.heightMode == 2)
-                    %force model to maximum of data
-                    model = bsxfun(@times,model, 1./max(model,[],1)).*this.dMaxVal;
-                end
-                ampsOut = double(squeeze(ao(1,1:bp.nExp,:)));
-                osetOut = double(squeeze(ao(1,end,:)));
-            end
-            if(nargout == 5)
-                exponentialsOut = exponentialsOffset(:,:,1:nVecs);
-            end
-        end %compModelTci
+%             else
+%                 for i = 1:size(exponentialsLong,2)
+%                     exponentialsLong(:,i,1:nVecs) = circShiftArrayNoLUT(squeeze(exponentialsLong(:,i,1:nVecs)),repmat(this.iMaxPos,nVecs,1));
+%                 end
+%             end
+%             %% incomplete decay
+%             if(bp.incompleteDecay)
+%                 exponentialsShort(1:nTimeCh,1:nExp,1:nVecs) = exponentialsLong(1:nTimeCh,:,1:nVecs) + exponentialsLong(nTimeCh+1:2*nTimeCh,:,1:nVecs) + exponentialsLong(2*nTimeCh+1:3*nTimeCh,:,1:nVecs) + exponentialsLong(3*nTimeCh+1:end,:,1:nVecs);
+%             else
+%                 exponentialsShort(1:nTimeCh,1:nExp,1:nVecs) = exponentialsLong(1:nTimeCh,:,1:nVecs);
+%             end
+%             %% add scatter
+%             if((vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)) > 0)
+%                 exponentialsShort(:,nExp+1:nExp+vpp.nScatter,1:nVecs) = scVec(:,:,1:nVecs);
+%             end
+%             %% move to position of data maximum + hShift - tci
+%             if(this.useMex && this.dLen <= 4096 && size(exponentialsShort,2) <= 16 && nVecs <= 256) %&& strcmp(bp.timeInterpMethod,'linear')
+%                 [exponentialsOffset(:,1:nExp+(vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)),1:nVecs), ao] = shiftAndLinearOpt_mex(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.getDataNonZeroMask(),...
+%                     single(hShift),single(tcis),single(tciHShiftFine),single(oset),this.linLB,this.linUB,vcp.cMask(end)<0,true);
+%             else
+%                 [exponentialsOffset(:,1:nExp+(vpp.nScatter-(bp.scatterEnable && bp.scatterIRF)),1:nVecs), ao] = shiftAndLinearOpt(single(exponentialsShort(1:nTimeCh,:,1:nVecs)),tSingle(1:nTimeCh,1),data,this.getDataNonZeroMask(),...
+%                     single(hShift),single(tcis),single(tciHShiftFine),single(oset),this.linLB,this.linUB,vcp.cMask(end)<0,false);
+%             end
+%             exponentialsOffset(:,end,1:nVecs) = ones(nTimeCh,nVecs,1,'single');
+%             if(bp.approximationTarget == 2 && bp.anisotropyR0Method == 3 && this.myChannelNr == 4)
+%                 %%heikal
+%                 z = zeros(nTimeCh,nVecs);
+%                 n = zeros(nTimeCh,nVecs);
+%                 for i = 1:2:nExp
+%                     z = z + bsxfun(@times,squeeze(exponentialsOffset(:,i,1:nVecs)),amps(i,:)) .* bsxfun(@times,squeeze(exponentialsOffset(:,i+1,1:nVecs)),amps(i+1,:));
+%                     n = n + bsxfun(@times,squeeze(exponentialsOffset(:,i,1:nVecs)),amps(i,:));
+%                 end
+%                 model = (z./n + bsxfun(@times,squeeze(exponentialsOffset(:,end,1:nVecs)),oset));% .* this.dMaxVal;
+%                 model(isnan(model)) = 0;
+%                 ampsOut = double(amps);
+%                 osetOut = double(oset);
+%                 scAmpsOut = zeros(0,nVecs);
+%             else
+%                 if(~any(vcp.cMask < 0))
+%                     ao(1,:,:) = [amps; scAmps; oset];
+%                 end
+%                 if(vpp.nScatter > 0)
+%                     scAmpsOut = double(squeeze(ao(1,bp.nExp+1:bp.nExp+vpp.nScatter,:)));
+%                 else
+%                     scAmpsOut = zeros(0,nVecs);
+%                 end
+%                 exponentialsOffset(isnan(exponentialsOffset)) = 0;
+%                 exponentialsOffset(:,:,1:nVecs) = bsxfun(@times,exponentialsOffset(:,:,1:nVecs),ao);
+%                 model = squeeze(sum(exponentialsOffset(:,:,1:nVecs),2));
+%                 if(bp.heightMode == 2)
+%                     %force model to maximum of data
+%                     model = bsxfun(@times,model, 1./max(model,[],1)).*this.dMaxVal;
+%                 end
+%                 ampsOut = double(squeeze(ao(1,1:bp.nExp,:)));
+%                 osetOut = double(squeeze(ao(1,end,:)));
+%             end
+%             if(nargout == 5)
+%                 exponentialsOut = exponentialsOffset(:,:,1:nVecs);
+%             end
+%         end %compModelTci
         
         function chiVec = compFigureOfMerit2(this,model,tailFlag,pixelIDs,figureOfMerit,chiWeightingMode,fomModifier)
            %compute the figure of merit (goodness of fit)
@@ -734,165 +734,165 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 this.basicParams,figureOfMerit,chiWeightingMode,fomModifier);            
         end
         
-        function chiVec = compFigureOfMerit(this,model,tailFlag,figureOfMerit,chiWeightingMode,fomModifier)
-            %compute the figure of merit (goodness of fit)
-            if(nargin < 6)
-                fomModifier = this.basicParams.figureOfMeritModifier;
-            end
-            if(nargin < 5)
-                chiWeightingMode = this.basicParams.chiWeightingMode;
-            end
-            if(nargin < 4)
-                figureOfMerit = this.basicParams.figureOfMerit;
-            end
-            persistent e_lsq_NB
-            nrM = size(model,2);
-            if(this.basicParams.neighborFit)
-                nrNB = size(this.dataStorage.neighbor.raw,2);
-            else
-                nrNB = 0;
-            end
-            %% get errors & least squares
-            e_lsq = bsxfun(@minus,model,this.getMeasurementData()).^2;
-            e_lsq(isnan(e_lsq)) = 0;
-            if(nrNB)
-                if(isempty(e_lsq_NB) || size(e_lsq_NB,1) ~= this.fileInfo.nrTimeChannels || size(e_lsq_NB,2) < nrM*nrNB)
-                    e_lsq_NB = zeros(this.fileInfo.nrTimeChannels,nrM*nrNB);
-                end
-                NBs = this.getNeighborData();
-                NBsRez = this.getNeighborDataRez();
-                for i = 1:nrNB
-                    e_lsq_NB(:,(i-1)*nrM+1 : i*nrM) = bsxfun(@minus,model,NBs(:,i)).^2;
-                end
-            end
-            
-            %% compute error measure
-            %             if(this.basicParams.useGPU)
-            %                 e_lsq = e_lsq - repmat(this.dataRez,1,nrM);
-            %                 idx = 1:size(model,1);
-            %                 idx(this.dataStorage.measurement.nonZeroMask) = 0;
-            %                 idx(1:this.myStartPos-1) = 0;
-            %                 idx(this.myEndPos:end) = 0;
-            %                 idx = repmat(logical(idx),1,nrM);
-            %                 e_lsq(idx) = 0;
-            %                 chiVec = sum(e_lsq,1) .* repmat(this.chi_weights,1,nrM) ./ (sum(this.dataStorage.measurement.nonZeroMask,1)-this.volatileChannelParams.nApproxParamsPerCh);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
-            %                 chi = sum(chiVec(:));
-            %                 chiD = chiVec(1);
-            %             else
-            if(figureOfMerit == 2)
-                %least squares
-                chiVec = sum(e_lsq);
-                chiVec(chiVec <= eps(chiVec)) = inf;
-%                 chi = sum(chiVec(:));
-%                 chiD = chiVec(1);
-                return
-            end
-            %                 elseif(figureOfMerit == 3) %maximum likelihood
-            %                     tmp = bsxfun(@minus,model,this.getMeasurementData());
-            %                     nz = repmat(this.dataStorage.measurement.nonZeroMask,1,nrM);
-            %                     tmp(~nz) = 0;
-            %                     t1 = sum(tmp,1)*2;
-            %                     tmp = log(bsxfun(@times,model,this.getMeasurementDataRez())).*model;
-            %                     tmp(~nz) = 0;
-            %                     t2 = sum(tmp,1)*2;
-            %                     chiVec = t1 + t2;
-            switch chiWeightingMode
-                case 2
-                    m_nz_idx = model > 0;
-                    m_nz_idx(1:this.fileInfo.StartPosition-1,:) = false;
-                    m_nz_idx(this.fileInfo.EndPosition+1:end,:) = false;
-                    if(isempty(this.fileInfo.reflectionMask))
-                        reflectionMask = true(size(this.getDataNonZeroMask()));
-                    else
-                        reflectionMask = this.fileInfo.reflectionMask;
-                    end
-                    m_nz_idx = m_nz_idx & repmat(reflectionMask,1,nrM);
-                    m_rez = 1./model(m_nz_idx);
-                    e_lsq(m_nz_idx) = e_lsq(m_nz_idx) .* m_rez;
-                    e_lsq(~m_nz_idx) = 0;
-                case 3
-                    e_lsq = bsxfun(@times,e_lsq,this.getChiWeightDataRez());
-                case 4
-                    e_lsq = bsxfun(@times,e_lsq,this.getChiWeightDataRez().*1./(this.dMaxVal*min(this.getChiWeightDataRez()))); %normalize weight vector to data maximum
-                otherwise
-                    e_lsq = bsxfun(@times,e_lsq,this.getMeasurementDataRez());
-            end
-            %use only residuum of non-zero values in measurement data
-            if(tailFlag)
-                e_lsq(repmat(~this.getDataNonZeroMaskTail(),1,nrM)) = 0;
-            else
-                e_lsq(repmat(~this.getDataNonZeroMask(),1,nrM)) = 0;
-            end
-            
-            switch fomModifier
-                case 1 %regular chi²
-                    if(tailFlag)
-                        chiVec = sum(e_lsq,1) ./ (sum(this.getDataNonZeroMaskTail(),1)-this.volatileChannelParams.nApproxParamsPerCh);
-                    else
-                        chiVec = sum(e_lsq,1) ./ (sum(this.getDataNonZeroMask(),1)-this.volatileChannelParams.nApproxParamsPerCh);%(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
-                    end
-                    if(nrNB)
-                        %goodness of fit measure for neighbor pixels
-                        for i = 1:nrNB
-                            e_lsq_NB(:,(i-1)*nrM+1 : i*nrM) = bsxfun(@times,e_lsq_NB(:,(i-1)*nrM+1 : i*nrM),NBsRez(:,i));
-                            if(tailFlag)
-                                e_lsq_NB(~this.dataStorage.neighbor.nonZeroMaskTail(:,i),(i-1)*nrM+1 : i*nrM) = 0;
-                            else
-                                e_lsq_NB(~this.dataStorage.neighbor.nonZeroMask(:,i),(i-1)*nrM+1 : i*nrM) = 0;
-                            end
-                        end
-                        nbSum = sum(e_lsq_NB,1);
-                        if(tailFlag)
-                            chiVecNB = bsxfun(@times,nbSum(1:nrM*nrNB),this.basicParams.neighborWeight) ./ repmat(sum(this.dataStorage.neighbor.nonZeroMaskTail,1)-this.volatileChannelParams.nApproxParamsPerCh,1,nrM);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
-                        else
-                            chiVecNB = bsxfun(@times,nbSum(1:nrM*nrNB),this.basicParams.neighborWeight) ./ repmat(sum(this.dataStorage.neighbor.nonZeroMask,1)-this.volatileChannelParams.nApproxParamsPerCh,1,nrM);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
-                        end
-                        chiVec = chiVec.^2 + sum(reshape(chiVecNB./nrNB,nrM,nrNB),2).^2';
-                    end
-                    
-                case 2 %boost chi2 around the 'peak'
-                    idx = false(size(e_lsq));
-                    idx(1:min(this.basicParams.ErrorMP2+this.basicParams.ErrorMP3+1,this.myEndPos),:) = true;
-                    idx = circShiftArray(idx,repmat(max(this.dMaxPos-this.basicParams.ErrorMP2-1,0),1,nrM));
-                    roi = e_lsq(idx);
-                    %boost error only if model is too high
-                    roi(roi > 0) = (roi(roi > 0).*this.basicParams.ErrorMP1).^2;%boost
-                    e_lsq(idx) = roi;
-                    if(tailFlag)
-                        chiVec = sum(e_lsq,1) ./ (sum(this.getDataNonZeroMaskTail(),1)-this.volatileChannelParams.nApproxParamsPerCh);
-                    else
-                        chiVec = sum(e_lsq,1) ./ (sum(this.getDataNonZeroMask(),1)-this.volatileChannelParams.nApproxParamsPerCh);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
-                    end
-                    if(nrNB)
-                        %goodness of fit measure for neighbor pixels
-                        for i = 1:nrNB
-                            e_lsq_NB(:,(i-1)*nrM+1 : i*nrM) = bsxfun(@times,e_lsq_NB(:,(i-1)*nrM+1 : i*nrM),this.dataStorage.neighbor.rez(:,i));
-                            if(tailFlag)
-                                e_lsq_NB(~this.dataStorage.neighbor.nonZeroMaskTail(:,i),(i-1)*nrM+1 : i*nrM) = 0;
-                            else
-                                e_lsq_NB(~this.dataStorage.neighbor.nonZeroMask(:,i),(i-1)*nrM+1 : i*nrM) = 0;
-                            end
-                            tmp = e_lsq_NB(:,(i-1)*nrM+1 : i*nrM);
-                            roi = tmp(idx);
-                            %boost error only if model is too high
-                            roi(roi > 0) = roi(roi > 0).*this.basicParams.ErrorMP1;%boost
-                            tmp(idx) = roi;
-                            e_lsq_NB(:,(i-1)*nrM+1 : i*nrM) = tmp;
-                        end
-                        nbSum = sum(e_lsq_NB,1);
-                        if(tailFlag)
-                            chiVecNB = bsxfun(@times,nbSum(1:nrM*nrNB),this.basicParams.neighborWeight) ./ repmat(sum(this.dataStorage.neighbor.nonZeroMaskTail,1)-this.volatileChannelParams.nApproxParamsPerCh,1,nrM);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
-                        else
-                            chiVecNB = bsxfun(@times,nbSum(1:nrM*nrNB),this.basicParams.neighborWeight) ./ repmat(sum(this.dataStorage.neighbor.nonZeroMask,1)-this.volatileChannelParams.nApproxParamsPerCh,1,nrM);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
-                        end
-                        chiVec = chiVec.^2 + sum(reshape(chiVecNB./nrNB,nrM,nrNB),2).^2';
-                    end                    
-            end
-            %chiVec = abs(1-chiVec);
-            chiVec(chiVec == 0) = inf;
-%             chi = sum(chiVec(:));
-%             chiD = chiVec(1);
-        end
+%         function chiVec = compFigureOfMerit(this,model,tailFlag,figureOfMerit,chiWeightingMode,fomModifier)
+%             %compute the figure of merit (goodness of fit)
+%             if(nargin < 6)
+%                 fomModifier = this.basicParams.figureOfMeritModifier;
+%             end
+%             if(nargin < 5)
+%                 chiWeightingMode = this.basicParams.chiWeightingMode;
+%             end
+%             if(nargin < 4)
+%                 figureOfMerit = this.basicParams.figureOfMerit;
+%             end
+%             persistent e_lsq_NB
+%             nrM = size(model,2);
+%             if(this.basicParams.neighborFit)
+%                 nrNB = size(this.dataStorage.neighbor.raw,2);
+%             else
+%                 nrNB = 0;
+%             end
+%             %% get errors & least squares
+%             e_lsq = bsxfun(@minus,model,this.getMeasurementData()).^2;
+%             e_lsq(isnan(e_lsq)) = 0;
+%             if(nrNB)
+%                 if(isempty(e_lsq_NB) || size(e_lsq_NB,1) ~= this.fileInfo.nrTimeChannels || size(e_lsq_NB,2) < nrM*nrNB)
+%                     e_lsq_NB = zeros(this.fileInfo.nrTimeChannels,nrM*nrNB);
+%                 end
+%                 NBs = this.getNeighborData();
+%                 NBsRez = this.getNeighborDataRez();
+%                 for i = 1:nrNB
+%                     e_lsq_NB(:,(i-1)*nrM+1 : i*nrM) = bsxfun(@minus,model,NBs(:,i)).^2;
+%                 end
+%             end
+%             
+%             %% compute error measure
+%             %             if(this.basicParams.useGPU)
+%             %                 e_lsq = e_lsq - repmat(this.dataRez,1,nrM);
+%             %                 idx = 1:size(model,1);
+%             %                 idx(this.dataStorage.measurement.nonZeroMask) = 0;
+%             %                 idx(1:this.myStartPos-1) = 0;
+%             %                 idx(this.myEndPos:end) = 0;
+%             %                 idx = repmat(logical(idx),1,nrM);
+%             %                 e_lsq(idx) = 0;
+%             %                 chiVec = sum(e_lsq,1) .* repmat(this.chi_weights,1,nrM) ./ (sum(this.dataStorage.measurement.nonZeroMask,1)-this.volatileChannelParams.nApproxParamsPerCh);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
+%             %                 chi = sum(chiVec(:));
+%             %                 chiD = chiVec(1);
+%             %             else
+%             if(figureOfMerit == 2)
+%                 %least squares
+%                 chiVec = sum(e_lsq);
+%                 chiVec(chiVec <= eps(chiVec)) = inf;
+% %                 chi = sum(chiVec(:));
+% %                 chiD = chiVec(1);
+%                 return
+%             end
+%             %                 elseif(figureOfMerit == 3) %maximum likelihood
+%             %                     tmp = bsxfun(@minus,model,this.getMeasurementData());
+%             %                     nz = repmat(this.dataStorage.measurement.nonZeroMask,1,nrM);
+%             %                     tmp(~nz) = 0;
+%             %                     t1 = sum(tmp,1)*2;
+%             %                     tmp = log(bsxfun(@times,model,this.getMeasurementDataRez())).*model;
+%             %                     tmp(~nz) = 0;
+%             %                     t2 = sum(tmp,1)*2;
+%             %                     chiVec = t1 + t2;
+%             switch chiWeightingMode
+%                 case 2
+%                     m_nz_idx = model > 0;
+%                     m_nz_idx(1:this.fileInfo.StartPosition-1,:) = false;
+%                     m_nz_idx(this.fileInfo.EndPosition+1:end,:) = false;
+%                     if(isempty(this.fileInfo.reflectionMask))
+%                         reflectionMask = true(size(this.getDataNonZeroMask()));
+%                     else
+%                         reflectionMask = this.fileInfo.reflectionMask;
+%                     end
+%                     m_nz_idx = m_nz_idx & repmat(reflectionMask,1,nrM);
+%                     m_rez = 1./model(m_nz_idx);
+%                     e_lsq(m_nz_idx) = e_lsq(m_nz_idx) .* m_rez;
+%                     e_lsq(~m_nz_idx) = 0;
+%                 case 3
+%                     e_lsq = bsxfun(@times,e_lsq,this.getChiWeightDataRez());
+%                 case 4
+%                     e_lsq = bsxfun(@times,e_lsq,this.getChiWeightDataRez().*1./(this.dMaxVal*min(this.getChiWeightDataRez()))); %normalize weight vector to data maximum
+%                 otherwise
+%                     e_lsq = bsxfun(@times,e_lsq,this.getMeasurementDataRez());
+%             end
+%             %use only residuum of non-zero values in measurement data
+%             if(tailFlag)
+%                 e_lsq(repmat(~this.getDataNonZeroMaskTail(),1,nrM)) = 0;
+%             else
+%                 e_lsq(repmat(~this.getDataNonZeroMask(),1,nrM)) = 0;
+%             end
+%             
+%             switch fomModifier
+%                 case 1 %regular chi²
+%                     if(tailFlag)
+%                         chiVec = sum(e_lsq,1) ./ (sum(this.getDataNonZeroMaskTail(),1)-this.volatileChannelParams.nApproxParamsPerCh);
+%                     else
+%                         chiVec = sum(e_lsq,1) ./ (sum(this.getDataNonZeroMask(),1)-this.volatileChannelParams.nApproxParamsPerCh);%(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
+%                     end
+%                     if(nrNB)
+%                         %goodness of fit measure for neighbor pixels
+%                         for i = 1:nrNB
+%                             e_lsq_NB(:,(i-1)*nrM+1 : i*nrM) = bsxfun(@times,e_lsq_NB(:,(i-1)*nrM+1 : i*nrM),NBsRez(:,i));
+%                             if(tailFlag)
+%                                 e_lsq_NB(~this.dataStorage.neighbor.nonZeroMaskTail(:,i),(i-1)*nrM+1 : i*nrM) = 0;
+%                             else
+%                                 e_lsq_NB(~this.dataStorage.neighbor.nonZeroMask(:,i),(i-1)*nrM+1 : i*nrM) = 0;
+%                             end
+%                         end
+%                         nbSum = sum(e_lsq_NB,1);
+%                         if(tailFlag)
+%                             chiVecNB = bsxfun(@times,nbSum(1:nrM*nrNB),this.basicParams.neighborWeight) ./ repmat(sum(this.dataStorage.neighbor.nonZeroMaskTail,1)-this.volatileChannelParams.nApproxParamsPerCh,1,nrM);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
+%                         else
+%                             chiVecNB = bsxfun(@times,nbSum(1:nrM*nrNB),this.basicParams.neighborWeight) ./ repmat(sum(this.dataStorage.neighbor.nonZeroMask,1)-this.volatileChannelParams.nApproxParamsPerCh,1,nrM);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
+%                         end
+%                         chiVec = chiVec.^2 + sum(reshape(chiVecNB./nrNB,nrM,nrNB),2).^2';
+%                     end
+%                     
+%                 case 2 %boost chi2 around the 'peak'
+%                     idx = false(size(e_lsq));
+%                     idx(1:min(this.basicParams.ErrorMP2+this.basicParams.ErrorMP3+1,this.myEndPos),:) = true;
+%                     idx = circShiftArray(idx,repmat(max(this.dMaxPos-this.basicParams.ErrorMP2-1,0),1,nrM));
+%                     roi = e_lsq(idx);
+%                     %boost error only if model is too high
+%                     roi(roi > 0) = (roi(roi > 0).*this.basicParams.ErrorMP1).^2;%boost
+%                     e_lsq(idx) = roi;
+%                     if(tailFlag)
+%                         chiVec = sum(e_lsq,1) ./ (sum(this.getDataNonZeroMaskTail(),1)-this.volatileChannelParams.nApproxParamsPerCh);
+%                     else
+%                         chiVec = sum(e_lsq,1) ./ (sum(this.getDataNonZeroMask(),1)-this.volatileChannelParams.nApproxParamsPerCh);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
+%                     end
+%                     if(nrNB)
+%                         %goodness of fit measure for neighbor pixels
+%                         for i = 1:nrNB
+%                             e_lsq_NB(:,(i-1)*nrM+1 : i*nrM) = bsxfun(@times,e_lsq_NB(:,(i-1)*nrM+1 : i*nrM),this.dataStorage.neighbor.rez(:,i));
+%                             if(tailFlag)
+%                                 e_lsq_NB(~this.dataStorage.neighbor.nonZeroMaskTail(:,i),(i-1)*nrM+1 : i*nrM) = 0;
+%                             else
+%                                 e_lsq_NB(~this.dataStorage.neighbor.nonZeroMask(:,i),(i-1)*nrM+1 : i*nrM) = 0;
+%                             end
+%                             tmp = e_lsq_NB(:,(i-1)*nrM+1 : i*nrM);
+%                             roi = tmp(idx);
+%                             %boost error only if model is too high
+%                             roi(roi > 0) = roi(roi > 0).*this.basicParams.ErrorMP1;%boost
+%                             tmp(idx) = roi;
+%                             e_lsq_NB(:,(i-1)*nrM+1 : i*nrM) = tmp;
+%                         end
+%                         nbSum = sum(e_lsq_NB,1);
+%                         if(tailFlag)
+%                             chiVecNB = bsxfun(@times,nbSum(1:nrM*nrNB),this.basicParams.neighborWeight) ./ repmat(sum(this.dataStorage.neighbor.nonZeroMaskTail,1)-this.volatileChannelParams.nApproxParamsPerCh,1,nrM);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
+%                         else
+%                             chiVecNB = bsxfun(@times,nbSum(1:nrM*nrNB),this.basicParams.neighborWeight) ./ repmat(sum(this.dataStorage.neighbor.nonZeroMask,1)-this.volatileChannelParams.nApproxParamsPerCh,1,nrM);  %(numel(this.dataStorage.measurement.nonZeroMask)-this.volatileChannelParams.nApproxParamsPerCh);
+%                         end
+%                         chiVec = chiVec.^2 + sum(reshape(chiVecNB./nrNB,nrM,nrNB),2).^2';
+%                     end                    
+%             end
+%             %chiVec = abs(1-chiVec);
+%             chiVec(chiVec == 0) = inf;
+% %             chi = sum(chiVec(:));
+% %             chiD = chiVec(1);
+%         end
     end %methods
     
     methods(Access = protected)
@@ -928,8 +928,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             % data - the data vector
             % iLen - length input vec
             % o_len - length output vec
-            % shift - number of points to shift
-            
+            % shift - number of points to shift            
             if(any(shift)) %if all elements in shift are zero: nothing to do
                 data = circShiftArray(data,shift);
             end
@@ -987,7 +986,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 this.dataStorage.measurement.nonZeroMask = this.dataStorage.measurement.raw ~= 0;
                 maxPos = this.dMaxPos; %this will compute myStartPos -> fix this
                 for i = 1:length(this.myStartPos)
-                    this.dataStorage.measurement.nonZeroMask(1:this.myStartPos(i)-1,:) = false;
+                    this.dataStorage.measurement.nonZeroMask(1:this.myStartPos(i)-1,i) = false;
                 end
                 this.dataStorage.measurement.nonZeroMask(this.myEndPos+1:end,:) = false;
                 if(isempty(fi.reflectionMask))
@@ -996,7 +995,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 this.dataStorage.measurement.nonZeroMask = this.dataStorage.measurement.nonZeroMask & fi.reflectionMask;
                 this.dataStorage.measurement.nonZeroMaskTail = this.dataStorage.measurement.nonZeroMask;
                 for i = 1:length(this.dMaxPos)
-                    this.dataStorage.measurement.nonZeroMaskTail(1:max(1,maxPos(i)-this.basicParams.tailFitPreMaxSteps-1),:) = false;
+                    this.dataStorage.measurement.nonZeroMaskTail(1:max(1,maxPos(i)-this.basicParams.tailFitPreMaxSteps-1),i) = false;
                 end
             else
                 this.dataStorage.measurement.nonZeroMask = false;

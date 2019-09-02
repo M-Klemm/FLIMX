@@ -291,8 +291,8 @@ output.funcCount = fcnEvalCount;
         pixelIDMask = true(size(pixelIDs));
         sortIDCache = repmat(uint16(1:nParams+1),nPIs,1);
         allPIPos = uint16(1:length(pixelIDMask));
-        nSeeds = uint16(totalPIDs / length(unique(pixelIDs)));
-        nPixels = uint16(totalPIDs / nSeeds);        
+        nSeedsMain = uint16(totalPIDs / length(unique(pixelIDs)));
+        %nPixelsMain = uint16(totalPIDs / nSeedsMain);        
         
         %while(all(fcnEvalCount < maxfun(pixelIDs)) && all(iterCount < maxiter(pixelIDs)) && any(max(abs(fv(:,1)-fv(:,two2np1))',[],1) > tolf(pixelIDs) | any(max(abs(v(:,:,two2np1)-v(:,:,onesn)),[],3) > tol(:,pixelIDs))))
         while(any(pixelIDMask))
@@ -305,7 +305,7 @@ output.funcCount = fcnEvalCount;
             curPIPos = allPIPos(pixelIDMask);
             % Compute the reflection point
             % xbar = average of the n (NOT n+1) best points
-            xbar = mean(v(:,pixelIDMask,one2n), 3,'native');
+            xbar = mean(v(:,pixelIDMask,one2n), 3, 'native');
             xr = checkBounds(checkQuantization((1 + rho)*xbar - rho*v(:,pixelIDMask,end),quant(:,curPIs),lb(:,curPIs)),lb(:,curPIs),ub(:,curPIs));
             fxr = costFcn(xr,curPIs,varargin{:});
             fcnEvalCount(pixelIDMask) = fcnEvalCount(pixelIDMask)+1;
@@ -426,12 +426,12 @@ output.funcCount = fcnEvalCount;
                 %find the pixel IDs which fulfill the abort criteria and have the lowest function value per pixel
                 %idx5 = ~pixelIDMask | ~idx5;
                 pixelIDMask(curPIPos(idxStop)) = false;
-                if(nSeeds > 1)
+                if(nSeedsMain > 1)
                     %find pixel IDs where optimization of 1 pixel has stopped but at least one other seed of that pixel is still being optimized
                     removeIDsAll = curPIs(idxStop);
                     removeIDs = unique(removeIDsAll);
                     removeIDsCnts  = histc(removeIDsAll,removeIDs);
-                    idxAllSeeds = removeIDsCnts == nSeeds;
+                    idxAllSeeds = removeIDsCnts == nSeedsMain;
                     if(any(idxAllSeeds))
                         %all seeds of at least one pixel have stopped in this iteration -> remove them from the next iteration and from further checks
                         idxPixel = ismember(pixelIDs,removeIDs(idxAllSeeds));
