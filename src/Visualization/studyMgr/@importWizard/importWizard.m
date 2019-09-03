@@ -834,7 +834,7 @@ classdef importWizard < handle
                 roi = [];
                 return
             end
-            th = sum(imgFlat(:) / numel(imgFlat));
+            th = sum(single(imgFlat(:)) / numel(imgFlat));
             bin = imgFlat >= th*0.5; %fitParams.roi_autoThreshold;
             bin =  imerode(bin,strel('square', max(1,roiBinning)));
             xl = find(any(bin,1),1,'first');
