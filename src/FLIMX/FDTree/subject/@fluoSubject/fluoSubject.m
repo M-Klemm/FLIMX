@@ -159,6 +159,7 @@ classdef fluoSubject < FDTreeNode
                 this.init();
             end
             this.myMeasurement.setROICoord(roi);
+            this.update(); %load parameters from FLIMX parameter manager
             this.myResult.allocResults(1:this.nrSpectralChannels,roi(4)-roi(3)+1,roi(2)-roi(1)+1);
         end
         
