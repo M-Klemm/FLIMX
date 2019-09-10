@@ -396,6 +396,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             this.dataStorage.measurement.realStartPos = [];
             this.dLen = size(pixelData,1);
             this.chi_weights = ones(1,size(pixelData,2));
+            this.setLinearBounds([]);
 %             if(~isempty(neighborData))
 %                 this.chi_weights(1,2:end) = double(fitParams.neighbor_weight/(size(neighborData,1)));                
 %             end            
@@ -966,7 +967,12 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             ids = (5:10:85)./100;
             this.dataStorage.measurement.risingIDs = zeros(this.dataStorage.measurement.nPixel,size(ids,1));
             for p = 1:this.dataStorage.measurement.nPixel
-                this.dataStorage.measurement.FWHMPos(p) = find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p),dMaxValTmp(p)*0.6),1,'last');
+                tmp = max(1,find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p),dMaxValTmp(p)*0.6),1,'last'));
+                if(isempty(tmp))
+                    this.dataStorage.measurement.FWHMPos(p) = 1;
+                else
+                    this.dataStorage.measurement.FWHMPos(p) = tmp;
+                end
                 minVal = min(this.dataStorage.measurement.raw(this.dRealStartPos:this.dataStorage.measurement.maxPos,p));
                 dataRange = dMaxValTmp(p) - minVal;
                 for i = 1:length(ids)                    
