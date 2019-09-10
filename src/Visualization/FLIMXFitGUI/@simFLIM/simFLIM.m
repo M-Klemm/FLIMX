@@ -389,30 +389,16 @@ classdef simFLIM < handle
             %generate synthetic FLIM data
             if(~isempty(sdc.xVec) && length(sdc.xVec) >= 2*sdc.nrExponentials && any(sdc.xVec(1:sdc.nrExponentials)))
                 %we got a set of parameters
-%                 irf = this.FLIMXObj.irfMgr.getIRF(sdc.IRFName,sdc.channelNr,sdc.nrTimeChannels);
                 if(isempty(this.mySimSubject))
                     this.newSimSubject(sdc);
                 end
                 xVec = sdc.xVec;
                 xVec(1:sdc.nrExponentials) = xVec(1:sdc.nrExponentials)./sum(xVec(1:sdc.nrExponentials));
                 oset = xVec(end);
-                %xVec(end) = 0;
                 %build approximation object
-%                 allIRFs{sdc.channelNr} = irf;
-%                 fileInfo(sdc.channelNr) = this.fileInfo;
-%                 params.volatilePixel = this.volatilePixelParams;
-%                 params.volatileChannel = this.paramMgrObj.getParamSection('volatileChannel');
-%                 params.basicFit = this.basicParams;
-%                 params.preProcessing = [];
-%                 params.computation = this.computationParams;
-%                 params.bounds = [];
-%                 params.pixelFit = this.pixelFitParams;
-%                 apObj = fluoPixelModel(allIRFs,fileInfo,params);
                 apObj = this.mySimSubject.getApproxObj(sdc.channelNr,1,1);
-                %apObj.setCurrentChannel(sdc.channelNr);
                 %make model vector
                 model = zeros([1 1 sdc.nrTimeChannels]);
-                apObj.setMeasurementData(sdc.channelNr,ones(sdc.nrTimeChannels,1));
                 model(1,1,:) = apObj.getModel(sdc.channelNr,apObj.getNonConstantXVec(sdc.channelNr,xVec),1); %fixme
             elseif(~isempty(sdc.modelData))
                 %we got a data vector
@@ -425,26 +411,10 @@ classdef simFLIM < handle
             end
             %offset is given in photons, amplitudes are relative -> handle offset seperately
             model = model - oset;
-            %oset is average value for offset photons in all time channels -> calculate total nr of offset photons
-            osetPhotons = round(oset * sdc.nrTimeChannels);
-            %photons for exponentials are the remaining photons
-            expPhotons = max(0,round(sdc.nrPhotons - osetPhotons));
-            mmax = max(model,[],3);
-            model = repmat(model,[szY szX 1]);
-            %generate the random photon distributions for exponentials
-            raw = simFLIM.sampleMExpDec(reshape(model,[],sdc.nrTimeChannels),expPhotons);
-            %generate the random photon distributions for offset
-            osetRaw = simFLIM.sampleMExpDec(ones(size(raw)),osetPhotons);
+            model = repmat(squeeze(model)',[szY*szX 1]);            
+            [raw, model] = calcSimDecay(model,oset,sdc.nrPhotons);
             %reshape to desired height and width
-            raw = reshape(raw,szY, szX,sdc.nrTimeChannels);
-            osetRaw = reshape(osetRaw,szY, szX,sdc.nrTimeChannels);
-            if(nargout == 2)
-                %scale model function to data
-                rmax = max(raw,[],3);
-                model = bsxfun(@times,model,rmax./mmax);
-                model = model + oset;
-            end
-            raw = raw + osetRaw;            
+            raw = reshape(raw,szY,szX,sdc.nrTimeChannels);            
         end
         
         function sdc = updateSynthDataDef(this,oldParams)
@@ -1742,7 +1712,7 @@ classdef simFLIM < handle
                     end
                     if(this.FLIMXObj.FLIMFitGUI.currentChannel ~= this.currentChannel)
                         %not sucessful
-                        uiwait(warndlg(sprintf('Current fluoDecayFit dataset does not have channel %d! Aborting...',this.currentChannel),'Channel not available','modal'));
+                        uiwait(warndlg(sprintf('Current FLIMXFit subject does not have channel %d! Aborting...',this.currentChannel),'Channel not available','modal'));
                         return
                     end
                     sdc.xVec = [];
@@ -1764,7 +1734,7 @@ classdef simFLIM < handle
         
         function GUI_buttonShowInFluo_Callback(this, hObject, eventdata)
             %
-            button = questdlg(sprintf('This will clear the current dataset and its results in FluoDecayFit!\n\nContinue?'),'Clear data and results?','Yes','No','Yes');
+            button = questdlg(sprintf('This will clear the current subject and its results in FLIMXFit!\n\nContinue?'),'Clear data and results?','Yes','No','Yes');
             if(strcmp(button,'No'))
                 return
             end
@@ -1898,35 +1868,6 @@ classdef simFLIM < handle
                 eval(sprintf('t%d = taus(i);',i));
             end
             eval(['taus(idx) = ' char(res) ';']);
-        end
-        
-        function out = sampleMExpDec(inHist,ph)
-            %make synthetic multi exponential decay
-            nBins = size(inHist,2);
-            out = zeros(size(inHist));
-            if(ph == 0)
-                return
-            end
-            parfor pixel = 1:size(out,1)
-                dfIdx = 1;
-                temp = zeros(nBins,1);
-                df = cumsum(inHist(pixel,:)); %compute commulative distribution function
-                rn = sort(rand(round(ph),1).*df(end),1); %make random numbers
-                for i = 1:size(rn,1)
-                    if(rn(i) < df(dfIdx))
-                        %random number fits into current class of distribution function
-                        temp(dfIdx) = temp(dfIdx)+1;
-                    else
-                        while(rn(i) >= df(dfIdx) && dfIdx < length(df))
-                            %current random number is bigger than current class of distribution function -> move to next class
-                            dfIdx = dfIdx+1;
-                        end
-                        %random number fits into current class of distribution function
-                        temp(dfIdx) = temp(dfIdx)+1;
-                    end
-                end
-                out(pixel,:) = temp;
-            end
-        end
+        end                
     end %methods(Static)
 end
