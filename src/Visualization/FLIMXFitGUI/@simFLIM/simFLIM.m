@@ -397,6 +397,7 @@ classdef simFLIM < handle
                 oset = xVec(end);
                 %build approximation object
                 apObj = this.mySimSubject.getApproxObj(sdc.channelNr,1,1);
+                apObj.setMeasurementData(sdc.channelNr,ones(sdc.nrTimeChannels,1));
                 %make model vector
                 model = zeros([1 1 sdc.nrTimeChannels]);
                 model(1,1,:) = apObj.getModel(sdc.channelNr,apObj.getNonConstantXVec(sdc.channelNr,xVec),1); %fixme

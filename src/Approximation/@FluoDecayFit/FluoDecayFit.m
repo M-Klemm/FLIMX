@@ -475,8 +475,6 @@ classdef FluoDecayFit < handle
                     dataZSz = size(measData,3);
                     measData = reshape(measData,dataYSz*dataXSz,dataZSz)';
                     %generate reference exponetial models
-                        %                     apObj.makeDataPreProcessing([]);
-                        %                     bounds = apObj.getLinearBounds();
                     bp = apObj.basicParams;
                     bp.incompleteDecayFactor = 2;
                     nParams = bp.nExp;                    
@@ -496,8 +494,7 @@ classdef FluoDecayFit < handle
                             tauOut(:,:,i) = single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,sprintf('TauInit%d',i)));
                         end
                         tauOut = reshape(permute(tauOut,[3,1,2]),nParams,dataYSz*dataXSz);
-                        shiftOut = reshape(single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,'hShiftInit')),1,dataYSz*dataXSz);                      
-                        %apObj.basicParams.hybridFit = 0;
+                        shiftOut = reshape(single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,'hShiftInit')),1,dataYSz*dataXSz);
                         %remove taus and shift from fixed parameters
                         vcp.cMask(nParams+1:2*nParams) = 0;
                         vcp.cVec(nParams+1:2*nParams) = [];
@@ -505,7 +502,6 @@ classdef FluoDecayFit < handle
                         vcp.cVec(end-1) = [];
                         apObj.setVolatileChannelParams(ch,vcp);
                         nrTiles = 256;                        
-                        %[amps, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, oset, tciHShiftFine, nVecs] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch);                                                
                     else
                         %set amplitudes to fixed value (1)
                         vcp.cMask(1:nParams) = 1;
@@ -529,7 +525,6 @@ classdef FluoDecayFit < handle
                     bounds(:,2) = inf;                    
                     %create tiles                    
                     idxTiles = floor(linspace(0,dataYSz*dataXSz,nrTiles+1));
-                    tic
                     dataSlices = cell(nrTiles,1);
                     dataNZMaskSlices = cell(nrTiles,1);                    
                     for i = 1:nrTiles
@@ -557,7 +552,6 @@ classdef FluoDecayFit < handle
                         expMTmp = [];
                         if(~multiModelsFlag)
                             %different model for each pixel
-                            %[mTmp, aTmp, ~, oTmp] = apObj.myChannels{ch}.compModel([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(1,idxTiles(i)+1:idxTiles(i+1));]);
                             [~, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, offset, tciHShiftFine, nVecsTmp] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch,1);
                             myT = repmat(t(:,1),1,double(nExp)*nVecsTmp);                            
                             expMTmp = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,...
@@ -569,8 +563,6 @@ classdef FluoDecayFit < handle
                             %same model for all pixels
                             [~,aTmp,oTmp] = computeAmplitudes(expModels,md,dnzm,oset,fitOffsetFlag,zeros([size(expModels,2),1],'like',expModels),inf([size(expModels,2),1],'like',expModels));
                             mTmp = expModels * [aTmp; oTmp];
-                            %expMTmp = bsxfun(@times,expModels,ao);
-                            %mTmp = squeeze(sum(expMTmp(:,:,1:nVecsTmp),2));
                         end
                         %compute chi²
                         tmp{1,1} = computeFigureOfMerit(mTmp,md,dnzm,nParams,bp)';
@@ -578,12 +570,10 @@ classdef FluoDecayFit < handle
                         tmp{1,3} = oTmp';
                         res(i,:) = tmp;
                     end
-                    %[chi2, ampsOut, osetOut] = computeTile(expModels,t,measDataTile,dataNonZeroMask,oset,bounds(:,1),bounds(:,2));
                     %collect results
                     chi2 = cell2mat(res(:,1));
                     ampsOut = cell2mat(res(:,2));
                     osetOut = cell2mat(res(:,3));
-                    toc
                     chi2 = reshape(chi2,dataYSz,dataXSz);
                     ampsOut = reshape(ampsOut,dataYSz,dataXSz,nParams);
                     tauOut = reshape(permute(tauOut,[2,1]),dataYSz,dataXSz,nParams);
@@ -642,11 +632,7 @@ classdef FluoDecayFit < handle
                     parameterCell{iter} = {@this.getApproxParamCell,ch,subPool,pixelPerCore,initFit};
                     %parameterCell{iter} = {@sub.getApproxParamCell,ch,subPool,fitDim,initFit,this.optimizationParams,this.aboutInfo};
                     idx = zeros(nPixel,2);
-%                     if(fitDim == 2) %x
-%                         [idx(:,2), idx(:,1)] = ind2sub([x y],subPool);
-%                     else %y
-                        [idx(:,1), idx(:,2)] = ind2sub([y x],subPool);
-%                     end
+                    [idx(:,1), idx(:,2)] = ind2sub([y x],subPool);
                     idxCell(iter) = {idx};
                 end
                 postProcessParams.idxCell = idxCell;
@@ -686,7 +672,6 @@ classdef FluoDecayFit < handle
                     pixelPerCore = 1;
                 end
                 pixelPerWU = nWorkers * pixelPerCore;
-%                 atOncePixel = 2;
                 for i = 1:pixelPerWU:totalPixels
                     if(this.parameters.stopOptimization)
                         %user wants to stop
@@ -725,7 +710,7 @@ classdef FluoDecayFit < handle
                         [hours, minutes, secs] = secs2hms(etime(clock,tStart)/curIdx*(totalPixels-curIdx)); %mean cputime for finished runs * cycles left
                         this.updateProgressShort(curIdx/totalPixels,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',curIdx/totalPixels*100,hours,minutes,secs));
                     end
-                end %for i = 1:atOncePixel:totalPixel
+                end %for i = 1:pixelPerWU:totalPixel
             end            
             this.updateProgressShort(0,'');
         end
