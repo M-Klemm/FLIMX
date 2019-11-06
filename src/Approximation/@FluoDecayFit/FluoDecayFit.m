@@ -318,6 +318,7 @@ classdef FluoDecayFit < handle
             end
             this.parameters.stopOptimization = false;
             if(isempty(ch))
+                tStart = clock;
                 %fit all channels
                 if(this.FLIMXObj.curSubject.basicParams.approximationTarget == 2 && this.FLIMXObj.curSubject.basicFit.anisotropyR0Method == 2)
                     %in case of anisotropy compute channel 3 (sum of ch1 and ch2) first
@@ -330,9 +331,13 @@ classdef FluoDecayFit < handle
                     status = this.startFitProcess(chList(ch),[],[]); %do the computation
                     if(status || this.parameters.stopOptimization)
                         %fit was aborted
-                        break
+                        [hours, minutes, secs] = secs2hms(etime(clock,tStart));
+                        msg = sprintf('Fluorescence lifetime approximation aborted after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
+                        return
                     end
                 end
+                [hours, minutes, secs] = secs2hms(etime(clock,tStart));
+                msg = sprintf('Fluorescence lifetime approximation finished after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs)); 
                 return
             end            
             if(strcmp(this.FLIMXObj.curSubject.getResultType(),'ASCII'))
@@ -359,8 +364,8 @@ classdef FluoDecayFit < handle
             if(this.parameters.stopOptimization)
                 this.parameters.stopOptimization = false;
                 status = true;
-                msg = sprintf('Fitting process aborted after initialization fit!\n');
-                button = questdlg(sprintf('Fitting process aborted.\n\nDo you want to save the incomplete results?'),'Fitting process aborted!','Yes','No','No');
+                msg = sprintf('Fluorescence lifetime approximation aborted after initialization fit!\n');
+                button = questdlg(sprintf('Fluorescence lifetime approximation aborted.\n\nDo you want to save the incomplete approximation results?'),'Approximation aborted!','Yes','No','No');
                 switch button
                     case 'Yes'
                         studyName = this.FLIMXObj.curSubject.getStudyName();
@@ -413,10 +418,10 @@ classdef FluoDecayFit < handle
                 end
                 this.FLIMXObj.fdt.saveStudy(studyName);
                 [hours, minutes, secs] = secs2hms(t);
-                msg = sprintf('Fitting process finished after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
+                msg = sprintf('Fluorescence lifetime approximation finished after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
             else
                 [hours, minutes, secs] = secs2hms(t);
-                msg = sprintf('Fitting process aborted after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
+                msg = sprintf('Fluorescence lifetime approximation aborted after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
             end
         end
         
