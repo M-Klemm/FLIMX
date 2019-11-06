@@ -1951,7 +1951,8 @@ classdef FLIMXFitGUI < handle
             end
             %start actual fitting process
             this.setButtonStopSpinning(true);
-            this.FLIMXObj.FLIMFit.startFitProcess(this.currentChannel,[],[]);
+            [status, msg] = this.FLIMXObj.FLIMFit.startFitProcess(this.currentChannel,[],[]);
+            fprintf(msg);
             this.FLIMXObj.FLIMVisGUI.updateGUI('');
             this.setButtonStopSpinning(false);
             this.setupGUI();
@@ -1971,11 +1972,47 @@ classdef FLIMXFitGUI < handle
             for ch = 1:this.FLIMXObj.curSubject.nrSpectralChannels
                 this.currentChannel = ch;
             end
-            this.FLIMXObj.FLIMFit.startFitProcess([],[],[]);
+            [status, msg] = this.FLIMXObj.FLIMFit.startFitProcess([],[],[]);
+            fprintf(msg);
             this.FLIMXObj.FLIMVisGUI.updateGUI('');
             this.setButtonStopSpinning(false);
             this.setupGUI();
             this.updateGUI(true);
+        end
+        
+        function menuFitAllSubjects_Callback(this,hObject,eventdata)
+            %fit all subjects
+            subjects = this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,this.currentCondition);            
+            this.setButtonStopSpinning(true);
+            this.FLIMXObj.FLIMFit.setInitFitOnly(false);
+            this.FLIMXObj.FLIMFit.stopOptimization(false);
+            tStart = clock;
+            for i = 1:length(subjects)
+                if(this.FLIMXObj.FLIMFit.parameters.stopOptimization)
+                    %stop fit process
+                    break
+                end
+                this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentCondition,subjects{i});
+                this.FLIMXObj.curSubject.clearROAResults(true); %delete old fit results
+                %start actual fitting process
+                try
+                    status = this.FLIMXObj.FLIMFit.startFitProcess([],[],[]);
+                    if(status)
+                        %user pressed stop
+                        break
+                    end
+                catch ME
+                    %todo
+                end
+                this.FLIMXObj.FLIMVisGUI.updateGUI('');
+                %update progressbar
+                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(subjects)-i)); %mean time for finished runs * iterations left
+                this.updateProgressLong(i/length(subjects),sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',i/length(subjects)*100,hours,minutes,secs));                
+            end
+            [hours, minutes, secs] = secs2hms(etime(clock,tStart));
+            fprintf('Fitting process finished after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
+            this.setButtonStopSpinning(false);
+            this.updateProgressLong(0,'');
         end
 
         function menuCleanUpFit_Callback(this,hObject,eventdata)

@@ -285,9 +285,10 @@ classdef FluoDecayFit < handle
             this.FLIMXObj.FLIMFitGUI.setButtonStopSpinning(false);
         end
         
-        function stratStr = startFitProcess(this,ch,yPos,xPos)
+        function [status, msg] = startFitProcess(this,ch,yPos,xPos)
             %actual fitting process
-            stratStr = '';
+            status = 0;
+            msg = '';
             if(nargin < 3)
                 xPos = [];
                 yPos = [];
@@ -326,8 +327,8 @@ classdef FluoDecayFit < handle
                 end
                 for ch = 1:length(chList)
                     this.FLIMXObj.FLIMFitGUI.currentChannel = chList(ch); %switch GUI to current channel
-                    msg = this.startFitProcess(chList(ch),[],[]); %do the computation
-                    if(isempty(msg) || this.parameters.stopOptimization)
+                    status = this.startFitProcess(chList(ch),[],[]); %do the computation
+                    if(status || this.parameters.stopOptimization)
                         %fit was aborted
                         break
                     end
@@ -344,7 +345,7 @@ classdef FluoDecayFit < handle
             %% initialization fit
             if((this.basicParams.optimizerInitStrategy == 2 || ~isempty(this.basicParams.fix2InitTargets)) && ~this.FLIMXObj.curSubject.isInitResult(ch))                
                 this.updateProgressLong(0.01,'Approximate Initialization...');
-                stratStr = this.computeMultipleFits(ch,1:this.initFitParams.gridSize^2,true);
+                status = this.computeMultipleFits(ch,1:this.initFitParams.gridSize^2,true);
                 this.updateProgressLong(0.25,'Cleanup Initialization Approximation...');
                 this.makeCleanUpFit(ch,true);
                 if(~isempty(xPos) && ~isempty(yPos) && xPos == 0 && yPos == 0)
@@ -357,7 +358,8 @@ classdef FluoDecayFit < handle
             %user may have pressed stop while init fit was running
             if(this.parameters.stopOptimization)
                 this.parameters.stopOptimization = false;
-                fprintf('Fitting process aborted after initialization fit!\n');
+                status = true;
+                msg = sprintf('Fitting process aborted after initialization fit!\n');
                 button = questdlg(sprintf('Fitting process aborted.\n\nDo you want to save the incomplete results?'),'Fitting process aborted!','Yes','No','No');
                 switch button
                     case 'Yes'
@@ -387,19 +389,19 @@ classdef FluoDecayFit < handle
             %make ROI first
             this.FLIMXObj.curSubject.getROIData(ch,[],[]);
             this.updateProgressLong(0.5,'Approximate Pixels...');
-            stratStr = this.computeMultipleFits(ch,totalPixelIDs,false); %user aborted if stratStr is empty            
+            status = this.computeMultipleFits(ch,totalPixelIDs,false); %user aborted if stratStr is empty            
             %clean up stage
-            if(~isempty(stratStr) && this.cleanupFitParams.enable > 0)
+            if(~status && this.cleanupFitParams.enable > 0)
                 %update FLIMXFitGUI
                 this.FLIMXObj.FLIMFitGUI.setCurrentPos(1,1);
                 this.updateProgressLong(0.75,'Cleanup Pixel Approximation...');
-                stratStr = this.makeCleanUpFit(ch,false);
+                status = this.makeCleanUpFit(ch,false);
             end
             t = etime(clock,tStart);
             this.FLIMXObj.curSubject.setEffectiveTime(ch,t);
             this.updateProgressShort(0,'');
             this.updateProgressLong(0,'');
-            if(~isempty(stratStr))
+            if(~status)
                 %if channels exists delete old result
                 studyName = this.FLIMXObj.curSubject.getStudyName();
                 if(any(this.volatilePixelParams.globalFitMask))
@@ -411,21 +413,21 @@ classdef FluoDecayFit < handle
                 end
                 this.FLIMXObj.fdt.saveStudy(studyName);
                 [hours, minutes, secs] = secs2hms(t);
-                fprintf('Fitting process finished after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
+                msg = sprintf('Fitting process finished after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
             else
                 [hours, minutes, secs] = secs2hms(t);
-                fprintf('Fitting process aborted after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
+                msg = sprintf('Fitting process aborted after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
             end
         end
         
-        function goOn = computeMultipleFits(this,ch,pixelPool,initFit)
+        function status = computeMultipleFits(this,ch,pixelPool,initFit)
             %compute approximations of multiple pixels
             persistent lastUpdate
             totalPixels = length(pixelPool);
-            goOn = 'yes'; %todo
+            status = false;
             if(totalPixels <1)
                 %nothing to do
-                goOn = '';
+                status = true;
                 return
             end
             nWorkers = 1;
@@ -650,7 +652,7 @@ classdef FluoDecayFit < handle
                     %todo: error message, cleanup
                     this.parameters.stopOptimization = true;
                     warning('FluoDecayFit:computeMultipleFits','Approximation process yielded empty or corrupt results - aborting...');
-                    goOn = '';                    
+                    status = true;                    
                 end
             else
                 %compute locally
@@ -676,13 +678,13 @@ classdef FluoDecayFit < handle
                     if(this.parameters.stopOptimization)
                         %user wants to stop
                         this.parameters.stopOptimization = false;
-                        goOn = '';
+                        status = true;
                         break;
                     end
                     curIdx = min(totalPixels,i+pixelPerWU-1);
                     [parameterCell, idx] = this.getApproxParamCell(ch,pixelPool(i:curIdx),pixelPerCore,initFit);
                     if(isempty(parameterCell) || isempty(idx))
-                        goOn = '';
+                        status = true;
                         break
                     end
                     resultStruct = makePixelFit(parameterCell{:});
@@ -691,7 +693,7 @@ classdef FluoDecayFit < handle
                         %todo: error message, cleanup
                         this.parameters.stopOptimization = true;
                         warning('FluoDecayFit:makeLocalFit','Approximation process yielded empty results - aborting...');
-                        goOn = '';
+                        status = true;
                         break
                     end
                     %store results
@@ -740,14 +742,13 @@ classdef FluoDecayFit < handle
             this.updateProgressShort(0,'');
         end
         
-        function goOn = makeCleanUpFit(this,ch,initFit)
+        function status = makeCleanUpFit(this,ch,initFit)
             %find outliers in current result and try to improve them
+            status = false;
             if(~this.cleanupFitParams.enable || (initFit && ~this.FLIMXObj.curSubject.isInitResult(ch)) || (~initFit && ~this.FLIMXObj.curSubject.isPixelResult(ch)) || isempty(this.cleanupFitParams.target))
-                goOn = 'nothingToDo';
                 return
             end
-            this.parameters.stopOptimization = false;
-            goOn = 'normal';
+            this.parameters.stopOptimization = false;            
             %[dStr, stratStr] = this.getOutlierSearchStr();
             if(any(this.volatilePixelParams.globalFitMask))
                 ch = 1:this.FLIMXObj.curSubject.nrSpectralChannels;
