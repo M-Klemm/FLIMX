@@ -46,10 +46,14 @@ if(apObj.basicParams.approximationTarget == 1)
     msg = 'Not enough Photons for Approximation!';
     for ch = 1:nrChannels
         result(ch).Message(1,pixelIDs(idx)) = repmat({msg},[1,sum(idx)]);
+        result(ch).hostname(1,pixelIDs(idx)) = repmat({hostname},[1,sum(idx)]);
+        result(ch).standalone(1,pixelIDs(idx)) = repmat(isdeployed(),[1,sum(idx)]);
     end
     pixelIDs(idx) = [];
 end
-if(~isempty(pixelIDs))
+if(isempty(pixelIDs))
+    return
+else
     %restrict tci & hShift to >= starting point
     for ch = 1:nrChannels
         vcp = apObj.getVolatileChannelParams(chList(ch));
