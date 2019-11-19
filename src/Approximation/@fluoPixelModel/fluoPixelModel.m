@@ -1429,10 +1429,10 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             for m = 1:size(exponentials,3)
                 for i = 1:size(exponentials,2)
                     if(force2Edge)
-                        tmp = find(exponentials(1:expMaxPos(i),i,m) <= expMax(1,tcIdx,m)/8,1,'last');
+                        tmp = find(exponentials(1:expMaxPos(1,i,m),i,m) <= expMax(1,tcIdx,m)/8,1,'last');
                         %[~,fwhmPos] = max(bsxfun(@gt,exponentials,max(exponentials(:,tcIdx,:),[],1)/8),[],1);
                     else
-                        tmp = find(exponentials(1:expMaxPos(i),i) <= expMax(i)/8,1,'last');
+                        tmp = find(exponentials(1:expMaxPos(1,i,m),i) <= expMax(1,i,m)/8,1,'last');
                         %[~,fwhmPos] = max(bsxfun(@gt,exponentials,max(exponentials,[],1)/8),[],1);
                     end
                     if(isempty(tmp))
@@ -1452,7 +1452,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     d = min(bsxfun(@minus,fwhmPos(~tcIdx,:),fwhmPos(tcIdx,:)),[],1);
                 end
                 %check shifted components against rising edge position
-                d = min(d,(fwhmPos(tcIdx,:) - lowerBound(m)));
+                d = min(d,fwhmPos(tcIdx,:) - lowerBound(m));
                 %check shifted components against data maximum
                 d = min(d,upperBound(m) - fwhmPos(tcIdx,:));
                 if(d < 0)
