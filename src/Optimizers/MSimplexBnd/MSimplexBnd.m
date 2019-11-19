@@ -426,34 +426,34 @@ output.funcCount = fcnEvalCount;
                 %find the pixel IDs which fulfill the abort criteria and have the lowest function value per pixel
                 %idx5 = ~pixelIDMask | ~idx5;
                 pixelIDMask(curPIPos(idxStop)) = false;
-                if(nSeedsMain > 1)
-                    %find pixel IDs where optimization of 1 pixel has stopped but at least one other seed of that pixel is still being optimized
-                    removeIDsAll = curPIs(idxStop);
-                    removeIDs = unique(removeIDsAll);
-                    removeIDsCnts  = histc(removeIDsAll,removeIDs);
-                    idxAllSeeds = removeIDsCnts == nSeedsMain;
-                    if(any(idxAllSeeds))
-                        %all seeds of at least one pixel have stopped in this iteration -> remove them from the next iteration and from further checks
-                        idxPixel = ismember(pixelIDs,removeIDs(idxAllSeeds));
-                        pixelIDMask(idxPixel) = false;
-                        idxStop = find(idxStop);
-                        idxAllSeedPos = ismember(removeIDsAll,removeIDs(idxAllSeeds));
-                        idxStop(idxAllSeedPos) = [];
-                        removeIDs(idxAllSeeds) = [];
-                        if(isempty(removeIDs))
-                            continue
-                        end
-                    end
-                    %find the other seeds of those pixels
-                    idxPixel = ismember(pixelIDs,removeIDs);
-                    %get the function values for the seeds
-                    %determine stopped seeds which have the smallest function value for each (to be removed pixel)
-                    idxMin = abs(min(reshape(fv(idxPixel,1),[],length(removeIDs)),[],1) - fv(curPIPos(idxStop),1)') < eps('single');
-                    removeIDs(~idxMin) = [];
-                    idxPixel = ismember(pixelIDs,removeIDs);
-                    %remove all seeds of that pixel from computation
-                    pixelIDMask(idxPixel) = false;
-                end
+%                 if(nSeedsMain > 1)
+%                     %find pixel IDs where optimization of 1 pixel has stopped but at least one other seed of that pixel is still being optimized
+%                     removeIDsAll = curPIs(idxStop);
+%                     removeIDs = unique(removeIDsAll);
+%                     removeIDsCnts  = histc(removeIDsAll,removeIDs);
+%                     idxAllSeeds = removeIDsCnts == nSeedsMain;
+%                     if(any(idxAllSeeds))
+%                         %all seeds of at least one pixel have stopped in this iteration -> remove them from the next iteration and from further checks
+%                         idxPixel = ismember(pixelIDs,removeIDs(idxAllSeeds));
+%                         pixelIDMask(idxPixel) = false;
+%                         idxStop = find(idxStop);
+%                         idxAllSeedPos = ismember(removeIDsAll,removeIDs(idxAllSeeds));
+%                         idxStop(idxAllSeedPos) = [];
+%                         removeIDs(idxAllSeeds) = [];
+%                         if(isempty(removeIDs))
+%                             continue
+%                         end
+%                     end
+%                     %find the other seeds of those pixels
+%                     %idxPixel = ismember(pixelIDs,removeIDs);
+%                     %get the function values for the seeds
+%                     %determine stopped seeds which have the smallest function value for each (to be removed pixel)
+% %                     idxMin = abs(min(reshape(fv(idxPixel,1),[],length(removeIDs)),[],1) - fv(curPIPos(idxStop),1)') < eps('single');
+% %                     removeIDs(~idxMin) = [];
+% %                     idxPixel = ismember(pixelIDs,removeIDs);
+%                     %remove all seeds of that pixel from computation
+%                     %pixelIDMask(idxPixel) = false;
+%                 end
             end
         end   % while
         
