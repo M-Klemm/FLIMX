@@ -829,12 +829,16 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.editX,'String',x);
             set(this.visHandles.editY,'String',y);
             %% counts scaling
-            if(~this.dynVisParams.countsScalingAuto)
-                ylim(hAxMain,[this.dynVisParams.countsScalingStart this.dynVisParams.countsScalingEnd]);
-                set(hAxMain,'Yscale',yScaleStr,'XTickLabelMode','auto','YTickLabelMode','auto');
+            if(this.dynVisParams.countsScalingAuto)
+                %set(hAxMain,'YLimMode','auto','Yscale',yScaleStr,'XTickLabelMode','auto','YTickLabelMode','auto');
+                if(dMin < eps)
+                    dMin = 1;
+                end
+                ylim(hAxMain,[10^floor(log10(dMin)) 10^ceil(log10(max(data)))]);
             else
-                set(hAxMain,'YLimMode','auto','Yscale',yScaleStr,'XTickLabelMode','auto','YTickLabelMode','auto');
+                ylim(hAxMain,[this.dynVisParams.countsScalingStart this.dynVisParams.countsScalingEnd]);                
             end
+            set(hAxMain,'Yscale',yScaleStr,'XTickLabelMode','auto','YTickLabelMode','auto');
             ylabel(hAxMain,yLbl);
             grid(hAxMain,'on');
             [residuum, residuumHist] = this.visRes(ch,y,x,apObj,hAxRes,hAxResHis);
