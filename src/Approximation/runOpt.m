@@ -233,6 +233,10 @@ else
             apObj.setCurrentChannel(chList(ch));
             %apObj.makeDataPreProcessing(allInitVec); %we have to run pre-processing again to set the linear bounds
             [result(ch).chi2(pixelIDs), ampsH, ampsScH, osetH, result(ch).chi2Tail(pixelIDs)] = apObj.costFcn(xArray,pixelIDs);
+            if(apObj.basicParams.nExp == 1)
+                result.RAUC1(pixelIDs) = 100*ones('like',result.RAUC1(pixelIDs));
+                result.RAUCIS1(pixelIDs) = 100*ones('like',result.RAUCIS1(pixelIDs));
+            else
             qs = apObj.getExponentials(chList(ch),xArray,pixelIDs);
             %compute percentage
             rauc = squeeze(trapz(qs(:,1:end-1-apObj.volatilePixelParams.nScatter,:),1)); %remove offset and scatter components and integrate over each component
@@ -254,6 +258,7 @@ else
                 for n = 1:size(rauc,1)
                     result(ch).(sprintf('RAUCIS%d',n))(pixelIDs) = rauc(n,:);
                 end
+            end
             end
             apObj.volatilePixelParams.globalFitMask = gfOld;
             apObj.basicParams = bpOld;
