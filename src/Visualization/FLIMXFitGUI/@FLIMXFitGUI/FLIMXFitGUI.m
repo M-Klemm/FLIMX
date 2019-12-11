@@ -1998,6 +1998,7 @@ classdef FLIMXFitGUI < handle
                 end
                 this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentCondition,subjects{i});
                 this.FLIMXObj.curSubject.clearROAResults(true); %delete old fit results
+                this.FLIMXObj.curSubject.update();
                 %start actual fitting process
                 try
                     status = this.FLIMXObj.FLIMFit.startFitProcess([],[],[]);
