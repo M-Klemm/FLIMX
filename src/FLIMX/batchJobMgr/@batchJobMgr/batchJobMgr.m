@@ -368,7 +368,7 @@ classdef batchJobMgr < handle
             elseif(flag > 1)
                 %fit all channels
                 this.updateGUI();                
-                this.FLIMXObj.FLIMFitGUI.menuFitAll_Callback(); %todo: don't use GUI callback
+                this.FLIMXObj.FLIMFitGUI.menuFitAllChannels_Callback(); %todo: don't use GUI callback
             end
             this.runningJobUID = [];
         end
