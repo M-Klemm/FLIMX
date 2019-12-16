@@ -605,7 +605,7 @@ classdef result4Approx < resultFile
             newIdx = 1:size(indices,1);
             if(any(strcmpi(fn,'chi2')))
                 for i = size(indices,1) : -1 : 1
-                    if(tmp.chi2(indices(i,1),indices(i,2)) > 0 && tmp.chi2(indices(i,1),indices(i,2)) < resultStruct.chi2(i,1))
+                    if(tmp.chi2(indices(i,1),indices(i,2)) > 0 && tmp.chi2(indices(i,1),indices(i,2)) < resultStruct.chi2(1,i))
                         newIdx(i) = [];
                     end
                 end
