@@ -54,7 +54,7 @@ function varargout = GUI_fitOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_fitOptions
 
-% Last Modified by GUIDE v2.5 21-Jul-2016 14:26:01
+% Last Modified by GUIDE v2.5 16-Dec-2019 19:59:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -103,6 +103,11 @@ if(strcmp('Off',varargin{11}))
     rdh.enableGUIControlsFlag = 'Off';
 else
     rdh.enableGUIControlsFlag = 'On';
+    if(rdh.init.gridSize > 1 && rdh.init.gridPhotons == 0)
+        %this should not happen -> fix invalid value
+        rdh.init.gridPhotons = 500000;
+        rdh.isDirty(2) = 1;
+    end
 end
 updateGUI(handles, rdh);
 set(handles.fitOptionsFigure,'userdata',rdh);
@@ -222,8 +227,6 @@ set(handles.popupAnisoR0Method,'Value',data.basic.anisotropyR0Method,'Enable',da
 set(handles.checkIDec,'Value',data.basic.incompleteDecay,'Enable',data.enableGUIControlsFlag);
 set(handles.editPhotons,'String',num2str(data.basic.photonThreshold),'Enable',data.enableGUIControlsFlag);
 set(handles.checkSmoothInitFix,'Value',data.basic.fix2InitSmoothing,'Enable',data.enableGUIControlsFlag);
-set(handles.editInitGridSize,'String',num2str(data.init.gridSize),'Enable',data.enableGUIControlsFlag);
-set(handles.editInitGridPhotons,'String',num2str(data.init.gridPhotons),'Enable',data.enableGUIControlsFlag);
 set(handles.editResultValidyCheckCnt,'String',num2str(data.basic.resultValidyCheckCnt),'Enable',data.enableGUIControlsFlag);
 switch data.basic.neighborFit
     case 0
@@ -263,6 +266,19 @@ end
 
 %init
 set(handles.popupInitOptimizer,'Value',data.init.optimizer(1),'Enable',data.enableGUIControlsFlag);
+if(data.init.gridSize == 1 && data.init.gridPhotons == 0)
+    set(handles.popupInitPhotonsMode,'Value',1,'Enable',data.enableGUIControlsFlag);
+    set(handles.editInitGridPhotons,'String',num2str(data.init.gridPhotons),'Visible','Off');
+else
+    set(handles.popupInitPhotonsMode,'Value',2)
+    if(data.init.gridSize > 1)
+        set(handles.popupInitPhotonsMode,'Enable','Off');
+    else
+        set(handles.popupInitPhotonsMode,'Enable',data.enableGUIControlsFlag);
+    end
+    set(handles.editInitGridPhotons,'String',num2str(data.init.gridPhotons),'Visible','On','Enable',data.enableGUIControlsFlag);
+end
+set(handles.editInitGridSize,'String',num2str(data.init.gridSize),'Enable',data.enableGUIControlsFlag);
 %per pixel
 set(handles.popupPPOptInit,'Value',data.basic.optimizerInitStrategy,'Enable',data.enableGUIControlsFlag);
 set(handles.popupPPOptimizer1,'Value',data.pixel.optimizer(1),'Enable',data.enableGUIControlsFlag);
@@ -666,10 +682,12 @@ set(hObject,'String',num2str(rdh.basic.anisotropyPerpendicularFactor));
 
 function editInitGridSize_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
-rdh.init.gridSize = round(abs(str2double(get(hObject,'String'))));
+rdh.init.gridSize = max(1,round(abs(str2double(get(hObject,'String')))));
 rdh.isDirty(2) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
 set(hObject,'String',num2str(rdh.init.gridSize));
+popupInitPhotonsMode_Callback(handles.popupInitPhotonsMode, [], handles);
+
 
 function editInitGridPhotons_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
@@ -748,6 +766,7 @@ rdh.basic.tciMask = zeros(size(rdh.basic.tciMask));
 rdh.isDirty(1) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
 updateGUI(handles, rdh);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %push buttons
@@ -860,6 +879,25 @@ end
 rdh.init.optimizer = current;
 rdh.isDirty(2) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
+
+% --- Executes on button press in popupInitPhotonsMode.
+function popupInitPhotonsMode_Callback(hObject, eventdata, handles)
+rdh = get(handles.fitOptionsFigure,'userdata');
+if(hObject.Value == 1 && rdh.init.gridSize == 1)
+    rdh.init.gridPhotons = 0;
+    rdh.isDirty(2) = 1;
+elseif(hObject.Value == 1 && rdh.init.gridSize > 1)
+    hObject.Value = 2;
+    if(rdh.init.gridPhotons == 0)
+        rdh.init.gridPhotons = 500000;
+        rdh.isDirty(2) = 1;
+    end
+elseif(hObject.Value == 2 && rdh.init.gridPhotons == 0)
+    rdh.init.gridPhotons = 500000;
+    rdh.isDirty(2) = 1;    
+end
+set(handles.fitOptionsFigure,'userdata',rdh);
+updateGUI(handles, rdh);
 
 % --- Executes on selection change in popupPPOptInit.
 function popupPPOptInit_Callback(hObject, eventdata, handles)
