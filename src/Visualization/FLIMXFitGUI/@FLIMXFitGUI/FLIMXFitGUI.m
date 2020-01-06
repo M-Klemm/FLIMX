@@ -365,7 +365,7 @@ classdef FLIMXFitGUI < handle
                 end
                 this.axesRawMgr.setMainData(double(this.FLIMXObj.curSubject.getRawDataFlat(this.currentChannel)));
                 data = this.axesSuppData;
-                if(~strcmp(str,'Intensity') && ~all(this.axesSuppDataMask(:)))
+                if(~isempty(data) && ~strcmp(str,'Intensity') && ~all(this.axesSuppDataMask(:)))
                     tmp = data(data ~= 0 | this.axesSuppDataMask);
                     lb = min(tmp(:));
                     ub = max(tmp(:));

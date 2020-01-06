@@ -237,28 +237,30 @@ else
                 result.RAUC1(pixelIDs) = 100*ones('like',result.RAUC1(pixelIDs));
                 result.RAUCIS1(pixelIDs) = 100*ones('like',result.RAUCIS1(pixelIDs));
             else
-            qs = apObj.getExponentials(chList(ch),xArray,pixelIDs);
-            %compute percentage
-            rauc = squeeze(trapz(qs(:,1:end-1-apObj.volatilePixelParams.nScatter,:),1)); %remove offset and scatter components and integrate over each component
-            if(size(rauc,1) == 1)
-                rauc = rauc(:);
-            end
-            rauc = 100*rauc./sum(rauc,1);
-            %excluding scatter
-            for n = 1:size(rauc,1)
-                result(ch).(sprintf('RAUC%d',n))(pixelIDs) = rauc(n,:);
-            end
-            %including scatter
-            if(apObj.volatilePixelParams.nScatter > 0)
-                rauc = squeeze(trapz(qs(:,1:end-1,:),1)); %remove offset and integrate over each component
+                qs = apObj.getExponentials(chList(ch),xArray,pixelIDs);
+                %compute percentage
+                rauc = squeeze(trapz(qs(:,1:end-1-apObj.volatilePixelParams.nScatter,:),1)); %remove offset and scatter components and integrate over each component
                 if(size(rauc,1) == 1)
                     rauc = rauc(:);
                 end
+                %remove shifted (tci) components
+                rauc = rauc(~apObj.basicParams.tciMask,:);                
                 rauc = 100*rauc./sum(rauc,1);
+                %excluding scatter
                 for n = 1:size(rauc,1)
-                    result(ch).(sprintf('RAUCIS%d',n))(pixelIDs) = rauc(n,:);
+                    result(ch).(sprintf('RAUC%d',n))(pixelIDs) = rauc(n,:);
                 end
-            end
+                %including scatter
+                if(apObj.volatilePixelParams.nScatter > 0)
+                    rauc = squeeze(trapz(qs(:,1:end-1,:),1)); %remove offset and integrate over each component
+                    if(size(rauc,1) == 1)
+                        rauc = rauc(:);
+                    end
+                    rauc = 100*rauc./sum(rauc,1);
+                    for n = 1:size(rauc,1)
+                        result(ch).(sprintf('RAUCIS%d',n))(pixelIDs) = rauc(n,:);
+                    end
+                end
             end
             apObj.volatilePixelParams.globalFitMask = gfOld;
             apObj.basicParams = bpOld;

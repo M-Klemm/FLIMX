@@ -793,6 +793,9 @@ classdef fluoSubject < FDTreeNode
                 this.init();
             end
             out = this.myResult.getResultNames(ch,isInitResult);
+            if(~isempty(out) && ~any(strcmp(out,'Intensity')) && ~isempty(this.getFDataObj(ch,'Intensity',0,1)))
+                out{end+1,1} = 'Intensity';
+            end
         end
         
         function out = isInitResult(this,ch)

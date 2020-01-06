@@ -1040,14 +1040,24 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             rs.hShiftGuess = zeros(nRows,nCols);
             rs.SlopeStartPosition = zeros(nRows,nCols);
             rs.StartPosition = ones(nRows,nCols);
-            rs.EndPosition = 2.*ones(nRows,nCols);
-            str = {'Amplitude';'Tau';'AmplitudeGuess';'TauGuess';'RAUC';};
+            rs.EndPosition = 2.*ones(nRows,nCols);            
             if(any(this.basicParams.tciMask))
-                str(end+1) = {'tc'};
+                for i = find(this.basicParams.tciMask)
+                    tmp = sprintf('tc%d',i);
+                    rs.(tmp) = zeros(nRows,nCols);
+                end                
+            end
+            for i = find(~this.basicParams.tciMask)
+                tmp = sprintf('RAUC%d',i);
+                rs.(tmp) = zeros(nRows,nCols);
             end
             if(any(this.basicParams.stretchedExpMask))
-                str(end+1) = {'Beta'};
+                for i = find(this.basicParams.stretchedExpMask)
+                    tmp = sprintf('Beta%d',i);
+                    rs.(tmp) = zeros(nRows,nCols);
+                end
             end
+            str = {'Amplitude';'Tau';'AmplitudeGuess';'TauGuess';};
             for i = 1:this.basicParams.nExp
                 for j = 1:length(str)
                     tmp = sprintf('%s%d',str{j},i);

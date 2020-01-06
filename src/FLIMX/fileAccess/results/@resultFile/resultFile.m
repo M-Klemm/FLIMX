@@ -915,13 +915,12 @@ classdef resultFile < handle
                 a = sprintf('Amplitude%d',i);
                 ag = sprintf('AmplitudeGuess%d',i);
                 t = sprintf('Tau%d',i);
-                tg = sprintf('TauGuess%d',i);
-                r = sprintf('RAUC%d',i);
+                tg = sprintf('TauGuess%d',i);                
                 results.(a) = zeros(y,x);
                 results.(ag) = zeros(y,x);
                 results.(t) = zeros(y,x);
                 results.(tg) = zeros(y,x);
-                results.(r) = zeros(y,x);
+                
             end
             for i = 1:(bp.nExp + vp.nScatter)
                 r = sprintf('RAUCIS%d',i);
@@ -933,8 +932,10 @@ classdef resultFile < handle
                 for i = 1 : nTci
                     tci_str = sprintf('tc%d',tcis(i));
                     tcig_str = sprintf('tcGuess%d',tcis(i));
+                    r = sprintf('RAUC%d',i);
                     results.(tci_str) = zeros(y,x);
                     results.(tcig_str) = zeros(y,x);
+                    results.(r) = zeros(y,x);
                 end
             end
             Betas = find(bp.stretchedExpMask);
@@ -1026,6 +1027,7 @@ classdef resultFile < handle
             rs = load(resFN);
             %update result to latest version
             rs = resultFile.updateFitResultsStruct(rs,this.paramMgrObj.getDefaults().about);
+            rs = this.checkConsistency(rs);
         end
         
         function saveMatFile2Disk(this,ch)
@@ -1248,6 +1250,66 @@ classdef resultFile < handle
             wRSi = whos('myRSi');
             wRSp = whos('myRSp');
             this.resultMemorySize = wRSi.bytes + wRSp.bytes;
+        end
+        
+        function rs = checkConsistency(this, rs)
+            %check and correct consistency of result structure
+            if(~isfield(rs,'size') || isempty(rs.size) || length(rs.size) ~= 2 || ~isfield(rs,'results'))
+                rs = [];
+                return
+            end
+            if(isfield(rs,'resultType') && strcmp(rs.resultType,'FluoDecayFit') && isfield(rs,'parameters'))
+                rs.parameters = checkStructConsistency(rs.parameters,this.paramMgrObj.getDefaults());
+            end
+            ignoreItems = {'EffectiveTime'};
+            %init results, if available
+            if(isfield(rs.results,'init') && isfield(rs.results.init,'Amplitude1') && isfield(rs,'resultType') && strcmp(rs.resultType,'FluoDecayFit'))
+                if(~isfield(rs,'parameters'))
+                    rs = [];
+                    return
+                end
+                nonTci = find(~rs.parameters.basic_fit.tciMask);
+                for i = nonTci
+                    if(isfield(rs.results.init,sprintf('tc%d',i)))
+                        rs.results.init = rmfield(rs.results.init,sprintf('tc%d',i));
+                    end
+                end
+                fn = fieldnames(rs.results.init);
+                fn = fn(~strcmp(fn,ignoreItems));
+                for i = 1:length(fn)
+                    if(size(rs.results.init.(fn{i}),1) ~= rs.parameters.init_fit.gridSize || size(rs.results.init.(fn{i}),2) ~= rs.parameters.init_fit.gridSize)
+                        if(size(rs.results.init.(fn{i}),1) * size(rs.results.init.(fn{i}),2) == rs.parameters.init_fit.gridSize * rs.parameters.init_fit.gridSize)
+                            %number of elements is correct, but not the shape
+                            rs.results.init.(fn{i}) = reshape(rs.results.init.(fn{i}),rs.parameters.init_fit.gridSize,rs.parameters.init_fit.gridSize,[]);
+                        else
+                            %remove the corrupt element
+                            rs.results.init = rmfield(rs.results.init,fn{i});
+                        end
+                    end
+                end                
+            end
+            %pixel results
+            if(isfield(rs.results,'pixel') && isfield(rs.results.pixel,'Amplitude1'))                
+                nonTci = find(~rs.parameters.basic_fit.tciMask);
+                for i = nonTci
+                    if(isfield(rs.results.pixel,sprintf('tc%d',i)))
+                        rs.results.pixel = rmfield(rs.results.pixel,sprintf('tc%d',i));
+                    end
+                end
+                fn = fieldnames(rs.results.pixel);
+                fn = fn(~strcmp(fn,ignoreItems));
+                for i = 1:length(fn)
+                    if(size(rs.results.pixel.(fn{i}),1) ~= rs.size(1) || size(rs.results.pixel.(fn{i}),2) ~= rs.size(2))
+                        if(size(rs.results.pixel.(fn{i}),1) * size(rs.results.pixel.(fn{i}),2) == prod(rs.size))
+                            %number of elements is correct, but not the shape
+                            rs.results.pixel.(fn{i}) = reshape(rs.results.pixel.(fn{i}),rs.size(1),rs.size(2),[]);
+                        else
+                            %remove the corrupt element
+                            rs.results.pixel = rmfield(rs.results.pixel,fn{i});
+                        end
+                    end
+                end
+            end
         end
     end
     
@@ -1639,7 +1701,7 @@ classdef resultFile < handle
 %             end
             %set current version
             result.about.results_revision = aboutInfo.results_revision;
-        end
+        end        
         
     end %methods(Static)
     
