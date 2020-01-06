@@ -188,6 +188,9 @@ classdef result4Approx < resultFile
                 end
             end
             for l = 1:length(fn)
+                if(~isfield(tmp,fn{l}))
+                    tmp.(fn{l}) = zeros(this.resultSize(1),this.resultSize(2),'like',tmp.chi2);
+                end
                 lenThis = size(tmp.(fn{l}),2);
                 lenIn = length(resultStruct.(fn{l}));
                 if(lenThis == lenIn)
@@ -277,6 +280,9 @@ classdef result4Approx < resultFile
                 end
             end
             for l = 1:length(fn)
+                if(~isfield(tmp,fn{l}))
+                    tmp.(fn{l}) = zeros(this.resultSize(1),this.resultSize(2),'like',tmp.chi2);
+                end
                 lenThis = size(tmp.(fn{l}),1);
                 lenIn = length(resultStruct.(fn{l}));
                 if(lenThis == lenIn)
@@ -383,6 +389,9 @@ classdef result4Approx < resultFile
             %copy remaining results
             for l = 1:length(fn)
                 %todo: check if indices are out of bounds...
+                if(~isfield(tmp,fn{l}))
+                    tmp.(fn{l}) = zeros(this.resultSize(1),this.resultSize(2),'like',tmp.chi2);
+                end
                 try
                     tmp.(fn{l})(idx) = resultStruct.(fn{l})(newIdx);
                 catch ME
@@ -435,6 +444,9 @@ classdef result4Approx < resultFile
                 end
             end            
             for l = 1:length(fn)
+                if(~isfield(tmp,fn{l}))
+                    tmp.(fn{l}) = zeros(this.resultSize(1),this.resultSize(2),'like',tmp.chi2);
+                end
                 tmp.(fn{l})(row,col) = resultStruct.(fn{l});
             end
             this.results.pixel{ch,1} = tmp;

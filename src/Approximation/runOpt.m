@@ -251,15 +251,13 @@ else
                     result(ch).(sprintf('RAUC%d',n))(pixelIDs) = rauc(n,:);
                 end
                 %including scatter
-                if(apObj.volatilePixelParams.nScatter > 0)
-                    rauc = squeeze(trapz(qs(:,1:end-1,:),1)); %remove offset and integrate over each component
-                    if(size(rauc,1) == 1)
-                        rauc = rauc(:);
-                    end
-                    rauc = 100*rauc./sum(rauc,1);
-                    for n = 1:size(rauc,1)
-                        result(ch).(sprintf('RAUCIS%d',n))(pixelIDs) = rauc(n,:);
-                    end
+                rauc = squeeze(trapz(qs(:,1:end-1,:),1)); %remove offset and integrate over each component
+                if(size(rauc,1) == 1)
+                    rauc = rauc(:);
+                end
+                rauc = 100*rauc./sum(rauc,1);
+                for n = 1:size(rauc,1)
+                    result(ch).(sprintf('RAUCIS%d',n))(pixelIDs) = rauc(n,:);
                 end
             end
             apObj.volatilePixelParams.globalFitMask = gfOld;
