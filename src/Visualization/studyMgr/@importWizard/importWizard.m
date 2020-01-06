@@ -564,9 +564,9 @@ classdef importWizard < handle
                     %update all channels
                     for ch = 1:m.nrSpectralChannels
                         m.myParent.updateSubjectChannel(ch,'measurement');
-                        this.FLIMXObj.FLIMFitGUI.updateProgressShort(0.50+0.5*ch/m.nrSpectralChannels,[],sprintf('%2.0f%% - Updating File Info',(0.50+0.5*ch/m.nrSpectralChannels)*100));
+                        this.FLIMXObj.FLIMFitGUI.updateShortProgress(0.50+0.5*ch/m.nrSpectralChannels,[],sprintf('%2.0f%% - Updating File Info',(0.50+0.5*ch/m.nrSpectralChannels)*100));
                     end
-                    this.FLIMXObj.FLIMFitGUI.updateProgressShort(0,[],'');
+                    this.FLIMXObj.FLIMFitGUI.updateShortProgress(0,[],'');
                 else
                     %make sure we read all channels from the measurement file
                     for ch = 1:m.nrSpectralChannels
@@ -582,9 +582,9 @@ classdef importWizard < handle
                     %update all channels
                     for ch = 1:m.nrSpectralChannels
                         m.myParent.updateSubjectChannel(ch,'measurement');
-                        this.FLIMXObj.FLIMFitGUI.updateProgressShort(0.50+0.5*ch/m.nrSpectralChannels,[],sprintf('%2.0f%% - Updating File Info',(0.50+0.5*ch/m.nrSpectralChannels)*100));
+                        this.FLIMXObj.FLIMFitGUI.updateShortProgress(0.50+0.5*ch/m.nrSpectralChannels,[],sprintf('%2.0f%% - Updating File Info',(0.50+0.5*ch/m.nrSpectralChannels)*100));
                     end
-                    this.FLIMXObj.FLIMFitGUI.updateProgressShort(0,[],'');
+                    this.FLIMXObj.FLIMFitGUI.updateShortProgress(0,[],'');
                 end
             end
             if(this.isNewMeasurement)

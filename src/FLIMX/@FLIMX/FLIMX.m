@@ -76,15 +76,15 @@ classdef FLIMX < handle
             %constructor
             warning('off','MATLAB:rankDeficientMatrix');
             this.splashScreenGUIObj = FLIMXSplashScreen();
-            this.updateSplashScreenProgressLong(0.01,'Load IRFs...');
+            this.updateSplashScreenLongProgress(0.01,'Load IRFs...');
             %parameters from ini file
             warning('off','parallel:gpu:DeviceCapabiity');
             %make lower level objects
             this.paramMgr = FLIMXParamMgr(this,FLIMX.getVersionInfo());
             this.irfMgr = IRFMgr(this,fullfile(FLIMX.getWorkingDir(),'data'));
-            this.updateSplashScreenProgressLong(0.3,'Build data tree structure...');
+            this.updateSplashScreenLongProgress(0.3,'Build data tree structure...');
             this.fdt = FDTree(this,FLIMX.getWorkingDir()); %replace with path from config?!
-            this.updateSplashScreenProgressShort(0,'');
+            this.updateSplashScreenShortProgress(0,'');
             fp = this.paramMgr.getParamSection('filtering');
             if(fp.ifilter)
                 alg = fp.ifilter_type;
@@ -104,7 +104,7 @@ classdef FLIMX < handle
                 this.paramMgr.generalParams.maxMemoryCacheSize = FLIMX.getMaxSystemCacheSize();
             end
             %load a subject
-            this.updateSplashScreenProgressLong(0.5,'Load first subject...');
+            this.updateSplashScreenLongProgress(0.5,'Load first subject...');
             subs = this.fdt.getAllSubjectNames('Default',FDTree.defaultConditionName());
             if(isempty(subs))
                 %todo: generate a dummy subject with simulated data
@@ -112,9 +112,9 @@ classdef FLIMX < handle
             else
                 this.setCurrentSubject('Default',FDTree.defaultConditionName(),subs{1});
             end
-            this.updateSplashScreenProgressLong(0.7,'Open pool of MATLAB workers...');
+            this.updateSplashScreenLongProgress(0.7,'Open pool of MATLAB workers...');
             this.openMatlabPool();
-            this.updateSplashScreenProgressShort(0,'');
+            this.updateSplashScreenShortProgress(0,'');
         end
 
         function openFLIMXFitGUI(this)
@@ -134,7 +134,7 @@ classdef FLIMX < handle
             if(computationParams.useMatlabDistComp > 0 && isempty(p))
                 %start local matlab workers
                 if(ishandle(this.splashScreenGUIObj))
-                    this.splashScreenGUIObj.updateProgressShort(0.5,sprintf('MATLAB pool workers can be disabled in Settings -> Computation'));
+                    this.splashScreenGUIObj.updateShortProgress(0.5,sprintf('MATLAB pool workers can be disabled in Settings -> Computation'));
                 end
                 try
                     if(computationParams.useGPU)
@@ -145,11 +145,11 @@ classdef FLIMX < handle
                         p = parpool('local',feature('numCores'));
                     end
                     pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
-                    this.splashScreenGUIObj.updateProgressShort(1,'Open pool of MATLAB workers - done');
+                    this.splashScreenGUIObj.updateShortProgress(1,'Open pool of MATLAB workers - done');
                     %p.IdleTimeout = 0;
                 catch ME
                     if(ishandle(this.splashScreenGUIObj))
-                        this.splashScreenGUIObj.updateProgressShort(1,'Open pool of MATLAB workers - failed');
+                        this.splashScreenGUIObj.updateShortProgress(1,'Open pool of MATLAB workers - failed');
                     end
                     warning('FLIMX:openMatlabPool','Could not open MATLAB pool for parallel computations: %s',ME.message);
                 end
@@ -400,20 +400,20 @@ classdef FLIMX < handle
 
         function updateFluoDecayFitProgressbar(this,x,text)
             %set progress in FLIMXFitGUI to new value
-            this.FLIMFitGUI.updateProgressShort(x,text);
+            this.FLIMFitGUI.updateShortProgress(x,text);
         end
 
-        function updateSplashScreenProgressShort(this,x,text)
+        function updateSplashScreenShortProgress(this,x,text)
             %set short progress in splash screen to new value
             if(~isempty(this.splashScreenGUIObj))
-                this.splashScreenGUIObj.updateProgressShort(x,text);
+                this.splashScreenGUIObj.updateShortProgress(x,text);
             end
         end
 
-        function updateSplashScreenProgressLong(this,x,text)
+        function updateSplashScreenLongProgress(this,x,text)
             %set short progress in splash screen to new value
             if(~isempty(this.splashScreenGUIObj))
-                this.splashScreenGUIObj.updateProgressLong(x,text);
+                this.splashScreenGUIObj.updateLongProgress(x,text);
             end
         end
 
@@ -490,7 +490,7 @@ classdef FLIMX < handle
             out.config_revision = 267;
             out.client_revision_major = 4;
             out.client_revision_minor = 10;
-            out.client_revision_fix = 11;
+            out.client_revision_fix = 12;
             out.core_revision = 416;
             out.results_revision = 256;
             out.measurement_revision = 205;

@@ -66,12 +66,12 @@ classdef FluoDecayFit < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % input methods
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function setProgressShortCallback(this,cb)
+        function setShortProgressCallback(this,cb)
             %set callback function for short progress bar
             this.progressShortCb(end+1) = {cb};
         end
         
-        function setProgressLongCallback(this,cb)
+        function setLongProgressCallback(this,cb)
             %set callback function for short progress bar
             this.progressLongCb(end+1) = {cb};
         end
@@ -147,7 +147,7 @@ classdef FluoDecayFit < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % computation methods
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function updateProgressShort(this,prog,text)
+        function updateShortProgress(this,prog,text)
             %either update short progress bar of visObj or plot to command line
             for i = length(this.progressShortCb):-1:1
                 try
@@ -158,7 +158,7 @@ classdef FluoDecayFit < handle
             end
         end
         
-        function updateProgressLong(this,prog,text)
+        function updateLongProgress(this,prog,text)
             %either update long progress bar of visObj or plot to command line
             for i = length(this.progressLongCb):-1:1
                 try
@@ -179,7 +179,7 @@ classdef FluoDecayFit < handle
             persistent lastUpdate
             if(isempty(lastUpdate) || etime(clock, lastUpdate) > 1)
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/iter*(maxIter-iter)); %mean cputime for finished runs * cycles left
-                this.updateProgressShort(iter/maxIter,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',iter/maxIter*100,hours,minutes,secs));
+                this.updateShortProgress(iter/maxIter,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',iter/maxIter*100,hours,minutes,secs));
                 lastUpdate = clock;
             end
         end
@@ -207,10 +207,10 @@ classdef FluoDecayFit < handle
                 end
             end            
             done = mcStruct.nrOfFilesMaster + mcStruct.nrOfFilesSlaves;
-            this.updateProgressShort(done/mcStruct.nrOfFiles,sprintf('%02.1f%%',done/mcStruct.nrOfFiles*100)); %- Time left: %02.0fh %02.0fm %02.0fs ,hours,minutes,secs
+            this.updateShortProgress(done/mcStruct.nrOfFiles,sprintf('%02.1f%%',done/mcStruct.nrOfFiles*100)); %- Time left: %02.0fh %02.0fm %02.0fs ,hours,minutes,secs
             idx = idx(end,:);
             if((isempty(lastUpdate) || etime(clock, lastUpdate) > 1) && ~myParams.initFit)
-                this.FLIMXObj.FLIMFitGUI.setCurrentPos(idx(1),idx(2)); %todo: move this call to a callback function similar to this.updateProgressShort                
+                this.FLIMXObj.FLIMFitGUI.setCurrentPos(idx(1),idx(2)); %todo: move this call to a callback function similar to this.updateShortProgress                
                 lastUpdate = clock;
             end
             goOn = true;
@@ -269,7 +269,7 @@ classdef FluoDecayFit < handle
                 %                     this.FLIMXObj.curSubject.addSingleResult(ch,row,col,apObj.makeDataPreProcessing(pCell{3}));
                 %                 end
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/row*(y-row)); %mean cputime for finished runs * cycles left
-                this.updateProgressShort(row/y,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',row/y*100,hours,minutes,secs));
+                this.updateShortProgress(row/y,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',row/y*100,hours,minutes,secs));
                 if(isempty(lastUpdate) || etime(clock, lastUpdate) > 5)
                     %                     [idx(1,2) idx(1,1)] = ind2sub([x y],i);
                     this.FLIMXObj.FLIMFitGUI.setCurrentPos(row,1);
@@ -281,7 +281,7 @@ classdef FluoDecayFit < handle
                 end
             end
             this.parameters.lastResultFile = [];
-            this.updateProgressShort(0,'');
+            this.updateShortProgress(0,'');
             this.FLIMXObj.FLIMFitGUI.setButtonStopSpinning(false);
         end
         
@@ -349,14 +349,14 @@ classdef FluoDecayFit < handle
             tStart = clock;            
             %% initialization fit
             if((this.basicParams.optimizerInitStrategy == 2 || ~isempty(this.basicParams.fix2InitTargets)) && ~this.FLIMXObj.curSubject.isInitResult(ch))                
-                this.updateProgressLong(0.01,'Approximate Initialization...');
+                this.updateLongProgress(0.01,'Approximate Initialization...');
                 status = this.computeMultipleFits(ch,1:this.initFitParams.gridSize^2,true);
-                this.updateProgressLong(0.25,'Cleanup Initialization Approximation...');
+                this.updateLongProgress(0.25,'Cleanup Initialization Approximation...');
                 this.makeCleanUpFit(ch,true);
                 if(~isempty(xPos) && ~isempty(yPos) && xPos == 0 && yPos == 0)
                     %init (merged ROI) fit only
-                    this.updateProgressShort(0,'');
-                    this.updateProgressLong(0,'');
+                    this.updateShortProgress(0,'');
+                    this.updateLongProgress(0,'');
                     return
                 end
             end
@@ -377,35 +377,35 @@ classdef FluoDecayFit < handle
                         this.FLIMXObj.fdt.saveStudy(studyName);
                         %this.FLIMXObj.curSubject.setResultDirty(ch,false);
                 end
-                this.updateProgressShort(0,'');
-                this.updateProgressLong(0,'');
+                this.updateShortProgress(0,'');
+                this.updateLongProgress(0,'');
                 return
             end
             %% we've got all we need to fit a single pixel or the current channel
             if(~(isempty(xPos) && isempty(yPos)))
                 %single pixel
                 this.FLIMXObj.curSubject.addSingleResult(ch,yPos,xPos,this.makeSingleCurveFit(ch,yPos,xPos,[]));
-                this.updateProgressShort(0,'');
-                this.updateProgressLong(0,'');
+                this.updateShortProgress(0,'');
+                this.updateLongProgress(0,'');
                 return
             end            
             %fit current channel
             totalPixelIDs = this.FLIMXObj.curSubject.getApproximationPixelIDs(ch); %this.FLIMXObj.curSubject.getROIXSz() * this.FLIMXObj.curSubject.getROIYSz();
             %make ROI first
             this.FLIMXObj.curSubject.getROIData(ch,[],[]);
-            this.updateProgressLong(0.5,'Approximate Pixels...');
+            this.updateLongProgress(0.5,'Approximate Pixels...');
             status = this.computeMultipleFits(ch,totalPixelIDs,false); %user aborted if stratStr is empty            
             %clean up stage
             if(~status && this.cleanupFitParams.enable > 0)
                 %update FLIMXFitGUI
                 this.FLIMXObj.FLIMFitGUI.setCurrentPos(1,1);
-                this.updateProgressLong(0.75,'Cleanup Pixel Approximation...');
+                this.updateLongProgress(0.75,'Cleanup Pixel Approximation...');
                 status = this.makeCleanUpFit(ch,false);
             end
             t = etime(clock,tStart);
             this.FLIMXObj.curSubject.setEffectiveTime(ch,t);
-            this.updateProgressShort(0,'');
-            this.updateProgressLong(0,'');
+            this.updateShortProgress(0,'');
+            this.updateLongProgress(0,'');
             if(~status)
                 %if channels exists delete old result
                 studyName = this.FLIMXObj.curSubject.getStudyName();
@@ -463,7 +463,7 @@ classdef FluoDecayFit < handle
 %                 end
             end
             tStart = clock;
-            this.updateProgressShort(0.001,'0.0% - Time left: n/a');
+            this.updateShortProgress(0.001,'0.0% - Time left: n/a');
             %check if all non linear parameters are fixed
             if(~initFit)
                 parameterCell = this.getApproxParamCell(ch,1,1,false);
@@ -601,7 +601,7 @@ classdef FluoDecayFit < handle
                     this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'hShift',xVec(:,:,end-1));
                     this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'Offset',xVec(:,:,end));
                     this.FLIMXObj.curSubject.setEffectiveTime(ch,etime(clock,tStart));
-                    this.updateProgressShort(0,'');
+                    this.updateShortProgress(0,'');
                     return
                 end
             end
@@ -705,7 +705,7 @@ classdef FluoDecayFit < handle
                     if(initFit)
                         this.FLIMXObj.curSubject.addInitResult(ch,idx,resultStruct);
                         %update waitbar
-                        this.updateProgressShort(curIdx/totalPixels,sprintf('Initialization: %02.1f%%',curIdx/totalPixels*100));
+                        this.updateShortProgress(curIdx/totalPixels,sprintf('Initialization: %02.1f%%',curIdx/totalPixels*100));
                     else
                         this.FLIMXObj.curSubject.addMultipleResults(ch,idx,resultStruct);
                         %display results
@@ -715,11 +715,11 @@ classdef FluoDecayFit < handle
                         end
                         %update waitbar
                         [hours, minutes, secs] = secs2hms(etime(clock,tStart)/curIdx*(totalPixels-curIdx)); %mean cputime for finished runs * cycles left
-                        this.updateProgressShort(curIdx/totalPixels,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',curIdx/totalPixels*100,hours,minutes,secs));
+                        this.updateShortProgress(curIdx/totalPixels,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',curIdx/totalPixels*100,hours,minutes,secs));
                     end
                 end %for i = 1:pixelPerWU:totalPixel
             end            
-            this.updateProgressShort(0,'');
+            this.updateShortProgress(0,'');
         end
         
         function result = makeSingleCurveFit(this,ch,yPos,xPos,mcSettings)
@@ -744,7 +744,7 @@ classdef FluoDecayFit < handle
                 parameterCell{2}.options_de.iterPostProcess = @this.iterPostProcess;
                 result = feval(@makePixelFit, parameterCell{:});
             end
-            this.updateProgressShort(0,'');
+            this.updateShortProgress(0,'');
         end
         
         function status = makeCleanUpFit(this,ch,initFit)

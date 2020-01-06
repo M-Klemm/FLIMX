@@ -578,6 +578,9 @@ classdef FDTStudy < FDTreeNode
         
         function unloadAllChannels(this)
             %remove all channels in all subjects from memory
+            if(~this.isLoaded)
+                return
+            end
             subStr = this.getAllSubjectNames(FDTree.defaultConditionName());
             for i=1:length(subStr)
                 subject = this.getChild(subStr{i});

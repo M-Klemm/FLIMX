@@ -53,7 +53,7 @@ classdef FLIMXSplashScreen < handle
             out = ~(isempty(this.visHandles) || ~isfield(this.visHandles,'FLIMXSplashFigure') || ~ishandle(this.visHandles.FLIMXSplashFigure) || ~strcmp(get(this.visHandles.FLIMXSplashFigure,'Tag'),'FLIMXSplashFigure'));
         end
         
-        function updateProgressShort(this,x,text)
+        function updateShortProgress(this,x,text)
             %update short progress bar, progress x: 0..1
             if(~this.isOpenVisWnd())
                 return
@@ -69,7 +69,7 @@ classdef FLIMXSplashScreen < handle
             drawnow;
         end
         
-        function updateProgressLong(this,x,text)
+        function updateLongProgress(this,x,text)
             %update long progress bar, progress x: 0..1
             if(~this.isOpenVisWnd())
                 return

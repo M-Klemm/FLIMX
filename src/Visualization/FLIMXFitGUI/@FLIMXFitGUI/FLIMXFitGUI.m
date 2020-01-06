@@ -114,8 +114,9 @@ classdef FLIMXFitGUI < handle
             this.dynVisParams.countsScalingStart = 0.1; %only if countsScalingAuto = 0
             this.dynVisParams.countsScalingEnd = 10000; %only if countsScalingAuto = 0
 
-            this.FLIMXObj.FLIMFit.setProgressShortCallback(@this.updateProgressShort);
-            this.FLIMXObj.FLIMFit.setProgressLongCallback(@this.updateProgressLong);
+            this.FLIMXObj.FLIMFit.setShortProgressCallback(@this.updateShortProgress);
+            this.FLIMXObj.FLIMFit.setLongProgressCallback(@this.updateLongProgress);
+            this.fdt.setLongProgressCallback(@this.updateLongProgress);
         end %constructor
 
 %         function setBusyStatus(this,flag)
@@ -618,7 +619,7 @@ classdef FLIMXFitGUI < handle
             end
         end %closeVisWnd
 
-        function updateProgressShort(this,x,text,varargin)
+        function updateShortProgress(this,x,text,varargin)
             %update short progress bar, progress x: 0..1, varargin{1}: title (currently unused), varargin{2}: text on progressbar
             if(~this.isOpenVisWnd())
                 return
@@ -640,7 +641,7 @@ classdef FLIMXFitGUI < handle
             drawnow;
         end
 
-        function updateProgressLong(this,x,text,varargin)
+        function updateLongProgress(this,x,text,varargin)
             %update long progress bar, progress x: 0..1, varargin{1}: title (currently unused), varargin{2}: text on progressbar
             if(~this.isOpenVisWnd())
                 return
@@ -2012,12 +2013,12 @@ classdef FLIMXFitGUI < handle
                 this.FLIMXObj.FLIMVisGUI.updateGUI('');
                 %update progressbar
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(subjects)-i)); %mean time for finished runs * iterations left
-                this.updateProgressLong(i/length(subjects),sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',i/length(subjects)*100,hours,minutes,secs));                
+                this.updateLongProgress(i/length(subjects),sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',i/length(subjects)*100,hours,minutes,secs));                
             end
             [hours, minutes, secs] = secs2hms(etime(clock,tStart));
             fprintf('Fitting process finished after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
             this.setButtonStopSpinning(false);
-            this.updateProgressLong(0,'');
+            this.updateLongProgress(0,'');
         end
 
         function menuCleanUpFit_Callback(this,hObject,eventdata)
@@ -2108,9 +2109,9 @@ classdef FLIMXFitGUI < handle
                 this.menuBatchSubject_Callback(this.visHandles.menuBatchSubjectAllCh,true);
                 %update progressbar
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(subjects)-i)); %mean time for finished runs * iterations left
-                this.updateProgressLong(i/length(subjects),sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',i/length(subjects)*100,hours,minutes,secs));
+                this.updateLongProgress(i/length(subjects),sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',i/length(subjects)*100,hours,minutes,secs));
             end
-            this.updateProgressLong(0,'');
+            this.updateLongProgress(0,'');
         end
 
         function menuOpenBatchJobMgr_Callback(this,hObject,eventdata)

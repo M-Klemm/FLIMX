@@ -71,7 +71,7 @@ end
 % end
 if(aboutInfo.core_revision ~= myAboutInfo.core_revision)
     warning('FluoDecayFit:mcOpt:coreVersionMismatch', 'Revision of this core (%01.2f) does not match the core revision of calling client (%01.2f)! Skipping computation...',...
-        myAboutInfo.core_revision,aboutInfo.core_revision);
+        myAboutInfo.core_revision/100,aboutInfo.core_revision/100);
     if(myAboutInfo.core_revision < aboutInfo.core_revision)
         verb = 'newer';
     else

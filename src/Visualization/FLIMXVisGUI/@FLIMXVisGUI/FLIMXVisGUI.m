@@ -83,8 +83,8 @@ classdef FLIMXVisGUI < handle
             this.dynParams.mouseButtonIsInsideROI = false;
             this.dynParams.lastExportFile = 'image.png';
             %init objects
-            this.fdt.setShortProgressCallback(@this.updateShortProgressbar);
-            this.fdt.setLongProgressCallback(@this.updateLongProgressbar);
+            this.fdt.setShortProgressCallback(@this.updateShortProgress);
+            this.fdt.setLongProgressCallback(@this.updateLongProgress);
         end %constructor
         
         %% input functions        
@@ -435,7 +435,7 @@ classdef FLIMXVisGUI < handle
             end %for j=1:length(side)
         end %updateGUI
         
-        function updateShortProgressbar(this,x,text)
+        function updateShortProgress(this,x,text)
             %update short progress bar; inputs: progress x: 0..1, text on progressbar
             if(this.isOpenVisWnd())
                 x = max(0,min(100*x,100));
@@ -447,7 +447,7 @@ classdef FLIMXVisGUI < handle
             end
         end
         
-        function updateLongProgressbar(this,x,text)
+        function updateLongProgress(this,x,text)
             %update long progress bar; inputs: progress x: 0..1, text on progressbar
             if(this.isOpenVisWnd())
                 x = max(0,min(100*x,100));

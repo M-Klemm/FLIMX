@@ -71,7 +71,7 @@ classdef FDTree < FDTreeNode
             this.myConditionsMerged = FDTSubject(this,'GlobalMergedSubjects');
             this.myGlobalMVGroupTargets = LinkedList();
             try
-                this.setShortProgressCallback(@parent.updateSplashScreenProgressShort);
+                this.setShortProgressCallback(@parent.updateSplashScreenShortProgress);
             end
             this.scanForStudies();
             if(this.nrChildren == 0)
@@ -617,7 +617,7 @@ classdef FDTree < FDTreeNode
                 end
                 if(tNow-lastUpdate > oneSec)
                     [~, minutes, secs] = secs2hms((tNow-tStart)/oneSec/i*(length(studyNames)-i)); %mean cputime for finished runs * cycles left
-                    this.updateLongProgress(i/length(studyNames),sprintf('Time left: %dmin %.0fsec - Unloading study ''%s''',minutes,secs,studyNames{i}));
+                    this.updateLongProgress(i/length(studyNames),sprintf('%d%% - unloading studies: %dmin %dsec',round(100*i/length(studyNames)),round(minutes),round(secs)));
                     lastUpdate = tNow;
                 end
             end
