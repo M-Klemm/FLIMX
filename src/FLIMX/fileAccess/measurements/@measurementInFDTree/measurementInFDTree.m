@@ -48,12 +48,8 @@ classdef measurementInFDTree < measurementFile
             this = this@measurementFile(hPM);
             this.myParent = hParent;
             this.myFolder = myFolder;
-            try
-                this.uid = datenummx(clock);  %fast
-            catch
-                this.uid = now;  %slower
-            end
-            this.checkMyFiles();            
+            this.uid = FLIMX.now();
+            this.checkMyFiles();
         end
         
         function delete(this)

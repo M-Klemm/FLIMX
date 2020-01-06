@@ -69,15 +69,11 @@ classdef resultFile < handle
     methods
         function this = resultFile(hSubject)
             %constructor
-            this.myParent = hSubject;                       
+            this.myParent = hSubject;
             this.results.init = cell(1,0);
             this.results.pixel = cell(1,0);
             this.results.about = FLIMX.getVersionInfo();
-            try
-                this.uid = datenummx(clock);  %fast
-            catch
-                this.uid = now;  %slower
-            end
+            this.uid = FLIMX.now();
             this.checkMyFiles();
         end
         

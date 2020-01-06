@@ -490,7 +490,7 @@ classdef FLIMX < handle
             out.config_revision = 267;
             out.client_revision_major = 4;
             out.client_revision_minor = 10;
-            out.client_revision_fix = 12;
+            out.client_revision_fix = 13;
             out.core_revision = 416;
             out.results_revision = 256;
             out.measurement_revision = 205;
@@ -566,6 +566,15 @@ classdef FLIMX < handle
             if(status ~= 0)
                 %failed, try Matlab webbrowser
                 web('www.flimx.de');
+            end
+        end
+        
+        function out = now()
+            %get current time
+            try
+                out = datenummx(clock);  %fast
+            catch
+                out = now;  %slower
             end
         end
 

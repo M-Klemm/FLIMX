@@ -882,18 +882,21 @@ classdef FLIMXVisGUI < handle
         function GUI_mouseMotion_Callback(this,hObject,eventdata)
             %executes on mouse move in window 
             oneSec = 1/24/60/60;
-            persistent inFunction lastUpdate
-            if(isempty(lastUpdate))
-                lastUpdate = now;
-            end            
-            if(~isempty(inFunction) && now - lastUpdate < 5*oneSec), return; end
+            persistent inFunction lastUpdate           
+            if(~isempty(inFunction) && inFunction < 100)
+                inFunction = inFunction+1;
+                return
+            elseif(~isempty(inFunction) && inFunction >= 100)
+                %fallback if function hangs
+                tNow = FLIMX.now();
+                if(tNow - lastUpdate > 3)
+                    %no change since at least 3 seconds -> reset
+                    inFunction = [];
+                end
+            end
             inFunction = 1;  %prevent callback re-entry
             %update at most 100 times per second (every 0.01 sec)            
-            try
-                tNow = datenummx(clock);  %fast
-            catch
-                tNow = now;  %slower
-            end            
+            tNow = FLIMX.now();           
             if(~isempty(lastUpdate) && tNow - lastUpdate < 0.010*oneSec) %|| this.dynParams.mouseButtonUp)
                 inFunction = [];  %enable callback
                 return;

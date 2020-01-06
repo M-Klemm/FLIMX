@@ -1378,18 +1378,23 @@ classdef FLIMXFitGUI < handle
             %             if(isMultipleCall)
             %                 return
             %             end
-            persistent inFunction
-            if ~isempty(inFunction), return; end
+            persistent inFunction lastUpdate
+            if(~isempty(inFunction) && inFunction < 100)
+                inFunction = inFunction+1;
+                return
+            elseif(~isempty(inFunction) && inFunction >= 100)
+                %fallback if function hangs
+                tNow = FLIMX.now();
+                if(tNow - lastUpdate > 3)
+                    %no change since at least 3 seconds -> reset
+                    inFunction = [];
+                end
+            end
             inFunction = 1;  %prevent callback re-entry
             %update at most 50 times per second (every 0.02 sec)
-            persistent lastUpdate
-            try
-                tNow = datenummx(clock);  %fast
-            catch
-                tNow = now;  %slower
-            end
+            tNow = FLIMX.now();
             oneSec = 1/24/60/60;
-            if ~isempty(lastUpdate) && tNow - lastUpdate < 0.02*oneSec
+            if(~isempty(lastUpdate) && tNow - lastUpdate < 0.02*oneSec)
                 inFunction = [];  %enable callback
                 return;
             end

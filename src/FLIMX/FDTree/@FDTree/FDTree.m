@@ -83,11 +83,7 @@ classdef FDTree < FDTreeNode
         function pingLRUCacheTable(this,obj)
             %ping LRU table for object obj
             %find obj in LRU table
-            try
-                t = datenummx(clock);  %fast
-            catch
-                t = now;  %slower
-            end
+            t = FLIMX.now();
             if(isempty(this.LRUTableObjs))
                 this.LRUTableObjs(1,1) = {obj};
                 this.LRUTableInfo(1,1:3) = [obj.uid,t,obj.getCacheMemorySize()];
@@ -606,11 +602,7 @@ classdef FDTree < FDTreeNode
             lastUpdate = tStart;
             oneSec = 1/24/60/60;
             for i = 1:length(studyNames)
-                try
-                    tNow = datenummx(clock);  %fast
-                catch
-                    tNow = now;  %slower
-                end
+                tNow = FLIMX.now();
                 study = this.getChild(studyNames{i});
                 if(~isempty(study))
                     study.unloadAllChannels();
