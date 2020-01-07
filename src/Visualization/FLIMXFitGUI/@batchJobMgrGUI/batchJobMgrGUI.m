@@ -39,8 +39,7 @@ classdef batchJobMgrGUI < handle
         axesROIMgr = [];
     end
     properties (Dependent = true)
-        deleteFinishedJobs = [];
-        batchJobMgr = []; %handle of the job manager
+        batchJobMgr %handle of the job manager
     end
 
     methods
@@ -168,7 +167,7 @@ classdef batchJobMgrGUI < handle
                 hObject.String = sprintf('<html><img src="file:/%s"/> Running</html>',FLIMX.getAnimationPath());
                 drawnow;
             end
-            this.batchJobMgr.runSelectedJobs(this.mySelJobs,this.deleteFinishedJobs);
+            this.batchJobMgr.runSelectedJobs(this.mySelJobs,true);
             this.updateGUI();
             this.updateProgressbar(0,'');
             hObject.String = oldStr;
@@ -186,7 +185,7 @@ classdef batchJobMgrGUI < handle
                 hObject.String = sprintf('<html><img src="file:/%s"/> Running</html>',FLIMX.getAnimationPath());
                 drawnow;
             end
-            this.batchJobMgr.runAllJobs(this.deleteFinishedJobs);
+            this.batchJobMgr.runAllJobs(true);
             this.updateGUI();
             this.updateProgressbar(0,'');
             hObject.String = oldStr;
@@ -230,7 +229,6 @@ classdef batchJobMgrGUI < handle
             axis(this.visHandles.axesROI,'off');
             axis(this.visHandles.axesRaw,'off');
             %set callbacks
-            set(this.visHandles.buttonClose,'Callback',@this.menuExit_Callback);
             set(this.visHandles.buttonRunSelected,'Callback',@this.GUI_buttonRunSelected_Callback);
             set(this.visHandles.buttonRunAll,'Callback',@this.GUI_buttonRunAll_Callback);
             set(this.visHandles.buttonStop,'Callback',@this.GUI_buttonStop_Callback);
@@ -331,11 +329,7 @@ classdef batchJobMgrGUI < handle
             set(this.visHandles.axesCbROI,'YDir','normal','YTick',ytick,'YTickLabel','','YAxisLocation','right','XTick',[],'XTickLabel','');
             ylim(this.visHandles.axesCbROI,[1 size(this.FLIMXObj.FLIMFitGUI.dynVisParams.cmIntensity,1)]);
         end
-        
-        function out = get.deleteFinishedJobs(this)
-            out = get(this.visHandles.checkDelFinishedJobs,'Value');
-        end
-        
+                
         function out = get.batchJobMgr(this)
             out = this.FLIMXObj.batchJobMgr;
         end

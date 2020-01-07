@@ -287,7 +287,7 @@ classdef FluoDecayFit < handle
         
         function [status, msg] = startFitProcess(this,ch,yPos,xPos)
             %actual fitting process
-            status = 0;
+            status = false;
             msg = '';
             if(nargin < 3)
                 xPos = [];
@@ -394,7 +394,12 @@ classdef FluoDecayFit < handle
             %make ROI first
             this.FLIMXObj.curSubject.getROIData(ch,[],[]);
             this.updateLongProgress(0.5,'Approximate Pixels...');
-            status = this.computeMultipleFits(ch,totalPixelIDs,false); %user aborted if stratStr is empty            
+            status = this.computeMultipleFits(ch,totalPixelIDs,false); %user aborted if status is true
+            if(this.parameters.stopOptimization)
+                %user wants to stop
+                this.parameters.stopOptimization = false;
+                status = true;
+            end
             %clean up stage
             if(~status && this.cleanupFitParams.enable > 0)
                 %update FLIMXFitGUI

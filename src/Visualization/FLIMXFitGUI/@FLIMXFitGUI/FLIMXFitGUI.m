@@ -1713,7 +1713,7 @@ classdef FLIMXFitGUI < handle
             this.FLIMXObj.destroy(false);
         end
 
-        function menuVersionInfo_Callback(this,hObject,eventdata)
+        function menuAbout_Callback(this,hObject,eventdata)
             %
             GUI_versionInfo(this.about,this.FLIMXObj.curSubject.aboutInfo());
         end
@@ -2053,42 +2053,29 @@ classdef FLIMXFitGUI < handle
                 init = sprintf('%s_%s_ch%d',this.currentStudy,this.currentSubject,ch);
             end
             jobInfo = this.FLIMXObj.batchJobMgr.getAllJobsInfo();
-            loop = 1;
-            if(isempty(eventdata))
-                eventdata = false;
-            end
+            options.Resize = 'on';
+            options.WindowStyle = 'modal';
+            options.Interpreter = 'none';
             while(true)
-                if(~islogical(eventdata) || ~eventdata) %ask user
-                    options.Resize='on';
-                    options.WindowStyle='modal';
-                    options.Interpreter='none';
-                    jn=inputdlg('Enter unique batch job name (required!):','Batch Job Name',1,{init},options);
-                    if(isempty(jn))
-                        %user pressed cancel
-                        return
-                    end
-                    %remove any '\' a might have entered
-                    jn = char(jn{1,1});
-                    idx = strfind(jn,filesep);
-                    if(~isempty(idx))
-                        jn(idx) = '';
-                    end
-                else %generate automatically
-                    if(loop == 1)
-                        jn = init;
-                    else
-                        jn = sprintf('%s%02.0f',init,loop);
-                    end
+                jn = inputdlg('Enter unique batch job name (required!):','Batch Job Name',1,{init},options);
+                if(isempty(jn))
+                    %user pressed cancel
+                    return
+                end
+                %remove any '\' a might have entered
+                jn = char(jn{1,1});
+                idx = strfind(jn,filesep);
+                if(~isempty(idx))
+                    jn(idx) = '';
                 end
                 idx = strcmp(jn,jobInfo(:,1));
                 if(~any(idx))
                     break
-                elseif(any(idx) && ~islogical(eventdata) || ~eventdata)
+                else
                     %ask user for new job name
                     uiwait(warndlg(sprintf('Batch job name ''%s'' is already used. Please choose a different batch job name!',jn),'Batch job name error','modal'));
                     init = jn;
                 end
-                loop = loop+1;
             end %while
             %put data into batch job manager
             if(any(this.volatilePixelParams.globalFitMask) || allChFlag)
@@ -2108,10 +2095,27 @@ classdef FLIMXFitGUI < handle
         function menuBatchStudy_Callback(this,hObject,eventdata)
             %add study with current settings to batchjob manager
             subjects = this.FLIMXObj.fdt.getAllSubjectNames(this.currentStudy,this.currentCondition);
+            jobInfo = this.FLIMXObj.batchJobMgr.getAllJobsInfo(); 
+            replaceAllFlag = false;
             tStart = clock;
             for i = 1:length(subjects)
                 this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentCondition,subjects{i});
-                this.menuBatchSubject_Callback(this.visHandles.menuBatchSubjectAllCh,true);
+                %this.menuBatchSubject_Callback(this.visHandles.menuBatchSubjectAllCh,true);
+                jn = sprintf('%s_%s',this.currentStudy,subjects{i});
+                idx = strcmp(jn,jobInfo(:,1));
+                if(any(idx) && ~replaceAllFlag)
+                    %job already exists
+                    choice = questdlg(sprintf('Job for subject ''%s'' in study ''%s'' already exists in Batch Job Manager.\n\n Replace or Skip?',subjects{i},this.currentStudy),'Job exists','Replace','Replace All','Abort','Abort');
+                    switch choice
+                        case 'Abort'
+                            return
+                        case 'Replace All'
+                            replaceAllFlag = true;
+                    end
+                end
+                this.FLIMXObj.batchJobMgr.deleteJob(jn);
+                this.FLIMXObj.batchJobMgr.newJob(jn,this.FLIMXObj.paramMgr.getParamSection('batchJob'),this.FLIMXObj.curSubject,[]);
+                this.FLIMXObj.batchJobMgrGUI.updateGUI();
                 %update progressbar
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(subjects)-i)); %mean time for finished runs * iterations left
                 this.updateLongProgress(i/length(subjects),sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',i/length(subjects)*100,hours,minutes,secs));
@@ -2268,7 +2272,7 @@ classdef FLIMXFitGUI < handle
             set(this.visHandles.menuSimAnalysis,'Callback',@this.menuSimAnalysis_Callback);
             set(this.visHandles.menuIRFMgr,'Callback',@this.menuIRFMgr_Callback);
 
-            set(this.visHandles.menuVersionInfo,'Callback',@this.menuVersionInfo_Callback);
+            set(this.visHandles.menuAbout,'Callback',@this.menuAbout_Callback);
             set(this.visHandles.menuUserGuide,'Callback',@this.menuUserGuide_Callback);
             set(this.visHandles.menuWebsite,'Callback',@this.menuWebsite_Callback);
             set(this.visHandles.menuCompInfo,'Callback',@this.menuCompInfo_Callback);

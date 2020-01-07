@@ -123,14 +123,14 @@ axis(handles.axesLogo,'off');
 daspect(handles.axesLogo,[1 1 1]);
 
 set(handles.textSclient,'String',sprintf('%d.%d.%d',dataS.client_revision_major,dataS.client_revision_minor,dataS.client_revision_fix));
-set(handles.textScore,'String',num2str(dataS.core_revision/100,'%01.2f'));
-set(handles.textSconfig,'String',num2str(dataS.config_revision/100,'%01.2f'));
-set(handles.textSresults,'String',num2str(dataS.results_revision/100,'%01.2f'));
+set(handles.textScore,'String',sprintf('%01.2f.0',dataS.core_revision/100));
+set(handles.textSconfig,'String',sprintf('%01.2f.0',dataS.config_revision/100));
+set(handles.textSresults,'String',sprintf('%01.2f.0',dataS.results_revision/100));
 
 set(handles.textRclient,'String',sprintf('%d.%d.%d',dataR.client_revision_major,dataR.client_revision_minor,dataR.client_revision_fix));
-set(handles.textRcore,'String',num2str(dataR.core_revision/100,'%01.2f'));
-set(handles.textRconfig,'String',num2str(dataR.config_revision/100,'%01.2f'));
-set(handles.textRresults,'String',num2str(dataR.results_revision/100,'%01.2f'));
+set(handles.textRcore,'String',sprintf('%01.2f.0',dataR.core_revision/100));
+set(handles.textRconfig,'String',sprintf('%01.2f.0',dataR.config_revision/100));
+set(handles.textRresults,'String',sprintf('%01.2f.0',dataR.results_revision/100));
 
 buttonMexTest_Callback( [], [], handles);
 %license

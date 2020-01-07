@@ -347,6 +347,7 @@ classdef batchJobMgr < handle
                     break
                 end
             end
+            this.updateProgress(0,'');
         end
         
         function runAllJobs(this,deleteFlag)
