@@ -1073,7 +1073,7 @@ classdef fluoSubject < FDTreeNode
                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx) = 0;
                 end
                 ad = this.myResult.getAuxiliaryData(ch);
-                if(isempty(ad))
+                if(isempty(ad) || ~isfield(ad,'fielInfo') || isempty(ad.fileInfo))
                     this.updateAuxiliaryData(ch)
                     ad = this.myResult.getAuxiliaryData(ch);
                 end
