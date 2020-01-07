@@ -739,6 +739,7 @@ classdef studyMgr < handle
                 end
                 this.updateGUI();
             end
+            this.fdt.saveStudy(this.curStudyName);
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
             figure(this.visHandles.studyMgrFigure);
@@ -802,6 +803,7 @@ classdef studyMgr < handle
                 end
                 this.updateGUI();
             end
+            this.fdt.saveStudy(this.curStudyName);
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
             figure(this.visHandles.studyMgrFigure);
@@ -810,6 +812,7 @@ classdef studyMgr < handle
         function contextMoveColL_Callback(this,hObject,eventdata)
             %move selected column by swapping with its left neighbor
             this.fdt.swapColumn(this.curStudyName,this.selectedInfoField(2),-1);
+            this.fdt.saveStudy(this.curStudyName);
             this.updateGUI();
             figure(this.visHandles.studyMgrFigure);
         end
@@ -817,6 +820,7 @@ classdef studyMgr < handle
         function contextMoveColR_Callback(this,hObject,eventdata)
             %move selected column by swapping with its right neighbor
             this.fdt.swapColumn(this.curStudyName,this.selectedInfoField(2),1);
+            this.fdt.saveStudy(this.curStudyName);
             this.updateGUI();
             figure(this.visHandles.studyMgrFigure);
         end
@@ -828,6 +832,7 @@ classdef studyMgr < handle
                 this.fdt.swapColumn(this.curStudyName,col,-1);
                 col = col-1;
             end
+            this.fdt.saveStudy(this.curStudyName);
             this.updateGUI();
             figure(this.visHandles.studyMgrFigure);
         end
@@ -840,6 +845,7 @@ classdef studyMgr < handle
                 this.fdt.swapColumn(this.curStudyName,col,1);
                 col = col+1;
             end
+            this.fdt.saveStudy(this.curStudyName);
             this.updateGUI();
             figure(this.visHandles.studyMgrFigure);
         end
@@ -863,7 +869,8 @@ classdef studyMgr < handle
                 end
             end
             %User want to delete column or column is empty:
-            this.fdt.removeColumn(this.curStudyName,infoHeaders{col,1})
+            this.fdt.removeColumn(this.curStudyName,infoHeaders{col,1});
+            this.fdt.saveStudy(this.curStudyName);
             this.updateGUI();
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
@@ -933,6 +940,7 @@ classdef studyMgr < handle
                 this.fdt.addSubject(this.curStudyName,subName);
                 this.lastAddedSubject = subName;
                 this.selectedSubjects = this.fdt.getSubjectNr(this.curStudyName,subName);
+                this.fdt.saveStudy(this.curStudyName);
                 this.updateGUI();
             end
         end
@@ -981,8 +989,9 @@ classdef studyMgr < handle
             subNrs = subNrs(end)-1;
             if(subNrs < 0)
                 subNrs = [];
-            end
+            end            
             this.selectedSubjects = subNrs;
+            this.fdt.saveStudy(this.curStudyName);
             this.checkVisWnd();
         end
         
@@ -1044,14 +1053,14 @@ classdef studyMgr < handle
             %duplicate subject
             if(this.fdt.checkStudyDirtyFlag(this.curStudyName))
                 %warning dialog
-                choice = questdlg(sprintf('All changes in study ''%s'' will be saved. Do you want to continue?',this.curStudyName),...
-                    'Inserting Subjects','Yes','Abort','Abort');
-                switch choice
-                    case 'Yes'
+%                 choice = questdlg(sprintf('All changes in study ''%s'' will be saved. Do you want to continue?',this.curStudyName),...
+%                     'Inserting Subjects','Yes','Abort','Abort');
+%                 switch choice
+%                     case 'Yes'
                         this.fdt.saveStudy(this.curStudyName);
-                    case 'Abort'
-                        return
-                end %end switch
+%                     case 'Abort'
+%                         return
+%                 end %end switch
             end %end if
             subNrs = this.selectedSubjects;
             subNames = cell(length(subNrs),1);
@@ -1069,6 +1078,7 @@ classdef studyMgr < handle
                 this.fdt.copySubject(this.curStudyName,subNames{i},this.curStudyName,newSubName);
                 newSubNrs(i) = this.fdt.getSubjectNr(this.curStudyName,newSubName);
             end
+            this.fdt.saveStudy(this.curStudyName);
             this.updateGUI();
             this.visObj.setupGUI();
             this.FLIMXObj.FLIMFitGUI.setupGUI();
@@ -1101,6 +1111,7 @@ classdef studyMgr < handle
                     newSubNrs(i) = this.fdt.getSubjectNr(this.curStudyName,newSubName);
                 end
             end
+            this.fdt.saveStudy(this.curStudyName);
             newSubNrs = newSubNrs(newSubNrs ~= 0);
             this.visObj.setupGUI();
             this.FLIMXObj.FLIMFitGUI.setupGUI();
@@ -1139,6 +1150,7 @@ classdef studyMgr < handle
                 end
                 this.plotProgressbar(0,'');
             end
+            this.fdt.saveStudy(this.curStudyName);
             this.updateGUI();
             this.visObj.updateGUI('');
         end
@@ -1211,6 +1223,7 @@ classdef studyMgr < handle
 %                     this.FLIMXObj.curResultObj.allocResults();
 %                 end
             end
+            this.fdt.saveStudy(this.curStudyName);
             this.plotProgressbar(0,'');
             this.updateGUI();
             this.visObj.setupGUI();
@@ -1238,6 +1251,7 @@ classdef studyMgr < handle
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/(i)*(nSubjects-(i))); %mean cputime for finished runs * cycles left
                 this.plotProgressbar((i)/nSubjects,sprintf('Progress: %02.1f%% - Time left: %dh %dmin %.0fsec', 100*(i)/nSubjects,hours,minutes,secs));
             end
+            this.fdt.saveStudy(studies{destStudyID});
             this.plotProgressbar(0,'');
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
@@ -1300,6 +1314,7 @@ classdef studyMgr < handle
                 end
                 this.fdt.setArithmeticImageDefinition(studies{destStudyID},aiStrSource{i},aiParamSource{i});
             end
+            this.fdt.saveStudy(studies{destStudyID});
             this.visHandles.buttonStop.String = oldStr;
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
@@ -1329,6 +1344,7 @@ classdef studyMgr < handle
             fn = fullfile(path,file);
             this.lastStudyPath = path;
             this.fdt.importStudyInfo(this.curStudyName,fn,mode);
+            this.fdt.saveStudy(this.curStudyName);
             this.updateGUI;
             figure(this.visHandles.studyMgrFigure);
         end

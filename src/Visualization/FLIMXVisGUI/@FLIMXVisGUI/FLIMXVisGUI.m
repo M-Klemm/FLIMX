@@ -1524,7 +1524,9 @@ classdef FLIMXVisGUI < handle
             s = 'r';
             if(strcmp(get(hObject,'Tag'),'dataset_l_pop'))
                 s = 'l';
-            end            
+            end
+            %save study info to disk
+            this.FLIMXObj.fdt.saveStudy(this.getStudy(s));
             this.setupGUI();
             this.updateGUI(s);
         end
@@ -1547,6 +1549,8 @@ classdef FLIMXVisGUI < handle
                 otherwise
                     return
             end
+            %save study info to disk
+            this.FLIMXObj.fdt.saveStudy(this.getStudy(s));
             this.setupGUI();
             this.updateGUI(s);
         end

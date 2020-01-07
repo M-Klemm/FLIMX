@@ -651,7 +651,8 @@ classdef importWizard < handle
 %             for ch = 1:subject.nrSpectralChannels
 %                 subject.myParent.updateSubjectChannel(subject,ch,'measurement');
 %             end
-
+            %save study info to disk
+            this.FLIMXObj.fdt.saveStudy(this.currentStudy);
             this.closeCallback();
         end
         

@@ -259,6 +259,8 @@ classdef importFolderGUI < handle
                 end
             end
             pMgr.setParamSection('pre_processing',oldPPP,false);
+            %save study info to disk
+            this.FLIMXObj.fdt.saveStudy(this.currentStudy);
             set(hObject,'String','OK');
             this.plotProgressbar(0,'','');
             this.closeCallback();

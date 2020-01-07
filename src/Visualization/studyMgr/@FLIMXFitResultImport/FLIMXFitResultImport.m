@@ -961,6 +961,8 @@ classdef FLIMXFitResultImport < handle
                 end
             end
 %             this.FLIMXObj.studyMgrGUI.updateGUI();
+            %save study info to disk
+            this.FLIMXObj.fdt.saveStudy(this.currentStudyName);
             this.closeVisWnd();            
         end
         
