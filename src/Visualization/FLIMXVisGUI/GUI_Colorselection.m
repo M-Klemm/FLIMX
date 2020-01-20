@@ -69,6 +69,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
+movegui(handles.colorSelectionFigure,'center');
 
 set(gcf,'Name','Color Selection');
 map1 = hsv(256);

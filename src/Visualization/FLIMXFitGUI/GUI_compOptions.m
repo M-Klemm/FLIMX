@@ -89,6 +89,7 @@ function GUI_compOptions_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Update handles structure
 % guidata(hObject, handles);
+movegui(handles.compOptionsFigure,'center');
 rdh.computation = varargin{1};
 if(strcmp('Off',varargin{2}))
     rdh.enableGUIControlsFlag = 'Off';

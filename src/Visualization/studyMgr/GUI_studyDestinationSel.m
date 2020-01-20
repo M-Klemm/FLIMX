@@ -89,7 +89,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
-
+movegui(handles.studyDestinationFigure,'center');
 rdh.studiesStr = varargin{1};
 rdh.studyOrgSel = varargin{2};
 tStr = varargin{3};

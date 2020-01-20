@@ -89,6 +89,7 @@ handles.output = handles;
 
 % Update handles structure
 guidata(hObject, handles);
+movegui(handles.simAnalysisFigure,'center');
 
 % UIWAIT makes GUI_simAnalysis wait for user response (see UIRESUME)
 % uiwait(handles.simAnalysisFigure);

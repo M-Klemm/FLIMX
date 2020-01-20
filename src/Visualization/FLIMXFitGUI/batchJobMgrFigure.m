@@ -89,7 +89,7 @@ function batchJobMgrFigure_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Update handles structure
 guidata(hObject, handles);
-
+movegui(handles.batchJobMgrFigure,'center');
 % UIWAIT makes batchJobMgrFigure wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 

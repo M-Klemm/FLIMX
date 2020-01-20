@@ -89,7 +89,7 @@ handles.output = handles;
 
 % Update handles structure
 guidata(hObject, handles);
-
+movegui(handles.StatsMVGroupMgrFigure,'center');
 % UIWAIT makes StatsMVGroupMgrFigure wait for user response (see UIRESUME)
 % uiwait(handles.StatsMVGroupMgrFigure);
 

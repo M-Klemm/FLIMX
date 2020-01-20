@@ -86,7 +86,7 @@ function importWizardFigure_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Update handles structure
 guidata(hObject, handles);
-
+movegui(handles.importWizardFigure,'center');
 
 
 % --- Outputs from this function are returned to the command line.

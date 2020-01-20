@@ -89,7 +89,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
-
+movegui(handles.boundsOptionsFigure,'center');
 rdh.bounds = varargin{1};
 if(strcmp('Off',varargin{2}))
     rdh.enableGUIControlsFlag = 'Off';

@@ -89,6 +89,7 @@ function StatsDescriptiveFigure_OpeningFcn(hObject, eventdata, handles, varargin
 
 % Update handles structure
 guidata(hObject, handles);
+movegui(handles.StatsDescriptiveFigure,'center');
 
 % UIWAIT makes StatsDescriptiveFigure wait for user response (see UIRESUME)
 % uiwait(handles.figure1);

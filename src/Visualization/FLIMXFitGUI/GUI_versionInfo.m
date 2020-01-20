@@ -89,6 +89,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
+movegui(handles.versionInfoFigure,'center');
 
 updateGUI(handles,varargin{1},varargin{2});
 

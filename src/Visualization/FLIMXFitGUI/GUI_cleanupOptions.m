@@ -89,6 +89,7 @@ function GUI_cleanupOptions_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Update handles structure
 % guidata(hObject, handles);
+movegui(handles.cleanupOptionsFigure,'center');
 rdh.cleanup_fit = varargin{1};
 rdh.volatilePixel = varargin{2};
 updateGUI(handles, rdh);  

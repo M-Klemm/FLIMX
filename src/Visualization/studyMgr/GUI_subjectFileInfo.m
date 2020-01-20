@@ -89,7 +89,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
-
+movegui(handles.subjectFileInfoFigure,'center');
 rdh.position = varargin{1};
 rdh.resolution = varargin{2};
 if(isempty(rdh.resolution))

@@ -62,9 +62,7 @@ function GUI_Statistics_Options_OpeningFcn(hObject, eventdata, handles, varargin
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to GUI_Rosediagram_options (see VARARGIN)
-
-
-
+movegui(handles.StatisticsOptionsFigure,'center');
 rdh = varargin{1};
 %setup objects
 parent.visHandles = handles;
@@ -110,7 +108,6 @@ rdh.obj.o.setStatus(rdh.prefs.o_lim);
 %read current settings and draw them
 updateGUI(handles, rdh.prefs);  
 set(handles.StatisticsOptionsFigure,'userdata',rdh);
-
 
 % Choose default command line output for GUI_Rosediagram_options
 %handles.output = hObject;

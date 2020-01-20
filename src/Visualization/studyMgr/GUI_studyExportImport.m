@@ -83,10 +83,9 @@ function GUI_studyExportImport_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to GUI_studyExportImport (see VARARGIN)
-
+movegui(handles.figure1,'center');
 studiesFLIM = varargin{1};
 studiesFile = varargin{2};
-
 %initialize GUI
 if(isempty(studiesFile))
     %Export

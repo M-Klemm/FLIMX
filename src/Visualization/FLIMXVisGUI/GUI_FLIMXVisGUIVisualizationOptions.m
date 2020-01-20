@@ -63,6 +63,7 @@ function GUI_FLIMXVisGUIVisualizationOptions_OpeningFcn(hObject, eventdata, hand
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to GUI_Rosediagram_options (see VARARGIN)
 %read current settings and draw them
+movegui(handles.FLIMXVisVisualizationOptionsFigure,'center');
 rdh.flimvis = varargin{1};
 rdh.general = varargin{2};
 rdh.defaults = varargin{3};

@@ -89,6 +89,7 @@ function GUI_FLIMXFitGUIVisualizationOptions_OpeningFcn(hObject, eventdata, hand
 
 % Update handles structure
 % guidata(hObject, handles);
+movegui(handles.FLIMXFitGUIVisualizationOptions,'center');
 rdh.fluoDecay = varargin{1};
 rdh.general = varargin{2};
 rdh.fdt = varargin{3};

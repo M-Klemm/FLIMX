@@ -89,6 +89,7 @@ function GUI_preProcessOptions_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Update handles structure
 % guidata(hObject, handles);
+movegui(handles.preProcessOptionsFigure,'center');
 rdh.preProcessing = varargin{1};
 rdh.currentSubject = varargin{2};
 if(strcmp('Off',varargin{3}))

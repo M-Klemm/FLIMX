@@ -172,7 +172,7 @@ classdef StatsMVGroupMgr < handle
                 if(cMVs.ROI.ROIType == 0)
                     this.visHandles.popupROIType.Value = cMVs.ROI.ROIType+1;
                 else
-                    pStr = this.popupROIType.String;
+                    pStr = this.visHandles.popupROIType.String;
                     if(ischar(pStr))
                         pStr = {pStr};
                     end
@@ -309,8 +309,8 @@ classdef StatsMVGroupMgr < handle
         
         function ROI = getROIInfo(this)
             %get ROI type, subtype and invert flag from GUI
-            str = this.popupROIType.String;
-            nr = this.popupROIType.Value;
+            str = this.visHandles.popupROIType.String;
+            nr = this.visHandles.popupROIType.Value;
             if(iscell(str))
                 str = str{nr};
             elseif(ischar(str))

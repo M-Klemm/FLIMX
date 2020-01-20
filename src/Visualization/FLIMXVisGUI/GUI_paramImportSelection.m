@@ -89,6 +89,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
+movegui(handles.ParamImportSelFigure,'center');
 
 items = varargin{1};
 targets = varargin{2};

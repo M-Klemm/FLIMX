@@ -62,16 +62,13 @@ function GUI_Export_Options_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to GUI_Rosediagram_options (see VARARGIN)
-
-
-
+movegui(handles.exportOptionsGUIFigure,'center');
 rdh = varargin{1};
 %read current settings and draw them
 %set(handles.cipopup,'String','99%|95%|90%');
 %set(handles.cipopup,'Value',1);
 updateGUI(handles, rdh.prefs);  
 set(handles.exportOptionsGUIFigure,'userdata',rdh);
-
 
 % Choose default command line output for GUI_Rosediagram_options
 %handles.output = hObject;

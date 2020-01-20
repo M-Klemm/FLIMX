@@ -89,7 +89,7 @@ handles.output = handles;
 
 % Update handles structure
 guidata(hObject, handles);
-
+movegui(handles.studyMgrFigure,'center');
 % UIWAIT makes studyMgrFigure wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 

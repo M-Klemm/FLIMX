@@ -89,6 +89,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
+movegui(handles.IRFManagerFigure,'center');
 
 % UIWAIT makes IRFManagerFigure wait for user response (see UIRESUME)
 % uiwait(handles.figure1);

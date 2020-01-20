@@ -90,6 +90,7 @@ handles.mySize = 1; %I'm default
 
 % Update handles structure
 guidata(hObject, handles);
+movegui(handles.FLIMXVisGUIFigure,'east');
 
 % UIWAIT makes FLIMXVisGUIFigure wait for user response (see UIRESUME)
 % uiwait(handles.FLIMXVisGUIFigure);

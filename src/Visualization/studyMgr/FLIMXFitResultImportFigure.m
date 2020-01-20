@@ -57,7 +57,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
-
+movegui(handles.FLIMXFitResultImportFigure,'center');
 % UIWAIT makes FLIMXFitResultImportFigure wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 

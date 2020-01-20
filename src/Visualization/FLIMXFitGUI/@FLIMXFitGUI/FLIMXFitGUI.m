@@ -2153,7 +2153,7 @@ classdef FLIMXFitGUI < handle
                     this.visHandles = FLIMXFitGUIFigureSmall();
                 case 3
                     this.visHandles = FLIMXFitGUIFigureLarge();
-            end
+            end            
             set(this.visHandles.FLIMXFitGUIFigure,'CloseRequestFcn',@this.menuExit_Callback);
             set(this.visHandles.axesWaitShort,'XLim',[0 100],...
                 'YLim',[0 1],...

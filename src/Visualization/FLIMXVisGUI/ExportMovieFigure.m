@@ -86,6 +86,7 @@ function ExportMovieFigure_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Update handles structure
 guidata(hObject, handles);
+movegui(handles.exportMovieFigure,'center');
 
 % UIWAIT makes ExportMovieFigure wait for user response (see UIRESUME)
 % uiwait(handles.GUI_ExportMovieFigure);

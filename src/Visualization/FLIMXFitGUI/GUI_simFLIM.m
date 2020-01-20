@@ -89,6 +89,7 @@ handles.output = handles;
 
 % Update handles structure
 guidata(hObject, handles);
+movegui(handles.simFLIMFigure,'center');
 
 % --- Outputs from this function are returned to the command line.
 function varargout = GUI_simFLIM_OutputFcn(hObject, eventdata, handles) 

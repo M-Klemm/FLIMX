@@ -89,6 +89,7 @@ function GUI_fitOptions_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Update handles structure
 % guidata(hObject, handles);
+movegui(handles.fitOptionsFigure,'center');
 rdh.basic = varargin{1};
 rdh.init = varargin{2};
 rdh.pixel = varargin{3};

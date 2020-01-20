@@ -57,6 +57,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
+movegui(handles.FLIMXSplashFigure,'center');
 set(0,'units','pixels');
 ss = get(0,'screensize');
 set(handles.FLIMXSplashFigure,'units','pixels','Position',[(ss(3)-500)/2,50+(ss(4)-370-50)/2,500,350],'Name','FLIMX Startup...');

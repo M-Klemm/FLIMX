@@ -89,6 +89,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
+movegui(handles.compInfoFigure,'center');
 updateGUI(handles,varargin{1});
 
 % UIWAIT makes GUI_compInfo wait for user response (see UIRESUME)

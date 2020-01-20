@@ -83,6 +83,7 @@ function GUI_startEndPosWizard_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to GUI_startEndPosWizard (see VARARGIN)
+movegui(handles.startEndPosWizardFigure,'center');
 sep.data = varargin{1};
 sep.params = varargin{2};
 handles.textStudyName.String = varargin{3};

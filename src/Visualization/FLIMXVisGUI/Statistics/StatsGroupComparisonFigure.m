@@ -89,7 +89,7 @@ handles.output = handles;
 
 % Update handles structure
 guidata(hObject, handles);
-
+movegui(handles.StatsGroupComparisonFigure,'center');
 % UIWAIT makes StatsGroupComparisonFigure wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 

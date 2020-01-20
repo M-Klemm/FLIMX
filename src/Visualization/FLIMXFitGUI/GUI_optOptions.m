@@ -89,6 +89,7 @@ function GUI_optOptions_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Update handles structure
 % guidata(hObject, handles);
+movegui(handles.optOptionsFigure,'center');
 rdh.optParams = varargin{1};
 if(strcmp('Off',varargin{2}))
     rdh.enableGUIControlsFlag = 'Off';
