@@ -1226,6 +1226,7 @@ classdef measurementFile < handle
             this.roiFluoDataFlat = cell(this.nrSpectralChannels,1);
             this.roiMerged = cell(this.nrSpectralChannels,1);
             this.roiSupport = cell(this.nrSpectralChannels,1);
+            this.roiBinLevels = cell(this.nrSpectralChannels,1);
             this.initData = cell(this.nrSpectralChannels,3);
             this.fileInfo.reflectionMask = cell(this.nrSpectralChannels,1);
             this.fileInfo.StartPosition = num2cell(ones(this.nrSpectralChannels,1));

@@ -97,7 +97,7 @@ parfor px = 1:nPixel
     %multiply the tile with all masks
     tile = reshape(tile,tSz*tSz,1);
     for binFactor = 1:maxBinFactor
-        val = sum(tile(allMasks(:,idxCoarse(binFactor))),'native');
+        val = appMask2Tile(tile,allMasks,idxCoarse,binFactor);
         if(val >= targetPhotons)            
             break
         end
@@ -132,6 +132,8 @@ parfor px = 1:nPixel
     binLevelEnd = binLevelEnd(1); %for codegen
     for binLevel = binLevelStart:binLevelEnd
         val = sum(tile(allMasks(:,binLevel)),'native');
+        roiFlat(px) = val;%pxYcoord(px),pxXcoord(px)
+        binLevels(px) = binLevel;
         if(val >= targetPhotons)            
             break
         end
@@ -152,8 +154,8 @@ parfor px = 1:nPixel
     %         val = sum(flat(idx),'native');
     %     end
     %% save results and combine time data
-    roiFlat(px) = val;%pxYcoord(px),pxXcoord(px)
-    binLevels(px) = binLevel(1);
+    % roiFlat(px) = val;%pxYcoord(px),pxXcoord(px)
+    % binLevels(px) = binLevel(1);
     if(~any(idx))
         %algorithm failed
         continue
@@ -190,4 +192,9 @@ else
     mask = false;
 end
 roiFull = reshape(roiFullTmp,roiYLen,roiXLen,zR);
+end
+
+function out = appMask2Tile(tile,masks,idxList,binFactor)
+    %apply mask to tile - workaround required because of parfor limitation
+    out = sum(tile(masks(:,idxList(binFactor))),'native');
 end
