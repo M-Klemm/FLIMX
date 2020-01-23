@@ -208,7 +208,7 @@ classdef FluoDecayFit < handle
             end            
             done = mcStruct.nrOfFilesMaster + mcStruct.nrOfFilesSlaves;
             this.updateShortProgress(done/mcStruct.nrOfFiles,sprintf('%02.1f%%',done/mcStruct.nrOfFiles*100)); %- Time left: %02.0fh %02.0fm %02.0fs ,hours,minutes,secs
-            idx = idx(end,:);
+            idx = idx(randi(size(idx,1)),:);
             if((isempty(lastUpdate) || etime(clock, lastUpdate) > 1) && ~myParams.initFit)
                 this.FLIMXObj.FLIMFitGUI.setCurrentPos(idx(1),idx(2)); %todo: move this call to a callback function similar to this.updateShortProgress                
                 lastUpdate = clock;

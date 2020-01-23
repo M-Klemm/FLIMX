@@ -220,14 +220,15 @@ classdef paramMgr < handle
             def.pre_processing.roiAdaptiveBinThreshold  =   200000;
             def.pre_processing.roiAdaptiveBinMax        =   10;
                         
-            def.computation.useDistComp         =	0; %0: run only local, 1: multicore, 2: TU Ilmenau LSF
-            def.computation.useMatlabDistComp   =   0; %0: don't use Matlabs distrubuted computing engine, 1: use Matlabs distrubuted computing engine
-            def.computation.mcTargetNrWUs       =   100;
-            def.computation.mcTargetPixelPerWU  =   84;
-            def.computation.mcShare             =   'W:';
-            def.computation.mcWorkLocal         =	0;
-            def.computation.mcComputeJobHash    =   0;
-            def.computation.useGPU              =	0; %use matlab gpu accelaration
+            def.computation.useDistComp                 =	0; %0: run only local, 1: multicore, 2: TU Ilmenau LSF
+            def.computation.useMatlabDistComp           =   0; %0: don't use Matlabs distrubuted computing engine, 1: use Matlabs distrubuted computing engine
+            def.computation.maxNrWorkersMatlabDistComp  =   32; %upper limit for number of workers per computer
+            def.computation.mcTargetNrWUs               =   100;
+            def.computation.mcTargetPixelPerWU          =   64;
+            def.computation.mcShare                     =   'W:';
+            def.computation.mcWorkLocal                 =	0;
+            def.computation.mcComputeJobHash            =   0;
+            def.computation.useGPU                      =	0; %use matlab gpu accelaration
             
             def.basic_fit.approximationTarget   =   1; %1: lifetime; 2: anisotropy
             def.basic_fit.anisotropyChannelShift=   0; %shift between channel 1 and 2 in time channels

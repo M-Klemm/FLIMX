@@ -201,13 +201,14 @@ maxMasterWaitTime = maxEvalTimeSingle * nrOfEvalsAtOnce;
 
 % build parameter file name (including the date is important because slave
 % processes might still be working with old parameters)
-dateStr = sprintf('%04d%02d%02d%02d%02d%02d', round(clock));
+dateStr = sprintf('%04d%02d%02d%02d%02d%02d',round(clock));
+dateHostnameStr = sprintf('%s_%s',gethostname(),dateStr);
 %create a directory for this multicore session
-[status, message, ~] = mkdir(multicoreDir,dateStr);
+[status, message, ~] = mkdir(multicoreDir,dateHostnameStr);
 if(~status)
-    error('multicore:startmulticoremaster','Unable to create session directory ''%s'' in ''%s'':\n\n%s',dateStr,multicoreDir,message);
+    error('multicore:startmulticoremaster','Unable to create session directory ''%s'' in ''%s'':\n\n%s',dateHostnameStr,multicoreDir,message);
 end
-multicoreDir = fullfile(multicoreDir,dateStr);
+multicoreDir = fullfile(multicoreDir,dateHostnameStr);
 parameterFileNameTemplate = fullfile(multicoreDir,sprintf('parameters_%s_XX.mat', dateStr));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%

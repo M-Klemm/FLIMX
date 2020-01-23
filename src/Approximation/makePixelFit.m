@@ -57,7 +57,7 @@ if(isdeployed())
         %check if matlabpool is open
         if(isempty(gcp('nocreate')))
             try
-                parpool('local',feature('numCores'));
+                parpool('local',min(apObjs{1}.computationParams.maxNrWorkersMatlabDistComp,feature('numCores')));
                 pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
             catch
                 parpool('local');
