@@ -1443,6 +1443,13 @@ classdef studyIS < handle
                     if(~(isa(colA,'double') || isa(colA,'logical')))
                         %try to convert to double
                         colA = str2num(colA);
+                    end                    
+                    if(ischar(ref.valA))
+                        %try to convert
+                        tmp = str2num(ref.valA);
+                        if(~isempty(tmp))
+                            ref.valA = tmp;
+                        end
                     end
                     if(ischar(ref.valA))
                         %comparison value for A does not fit
@@ -1501,6 +1508,13 @@ classdef studyIS < handle
                         if(~(isa(colB,'double') || isa(colB,'logical')))
                             %try to convert to double
                             colB = str2num(colB);
+                        end
+                        if(ischar(ref.valB))
+                            %try to convert
+                            tmp = str2num(ref.valB);
+                            if(~isempty(tmp))
+                                ref.valB = tmp;
+                            end
                         end
                         if(ischar(ref.valB))
                             %comparison value for A does not fit

@@ -275,11 +275,16 @@ if(isempty(val))
     errordlg('This is not a valid value! Please insert another number or string!',...
         'Error entering value');
 else
+    %check if val is numeric
+    tmp = str2num(val);
+    if(~isempty(val))
+        val = tmp;
+    end
     %save new value
     opt.valA = val;
     set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
 end
-set(hObject,'String',opt.valA);
+set(hObject,'String',num2str(opt.valA));
 
 function editValB_Callback(hObject, eventdata, handles)
 % value for relational condition of column B
@@ -290,11 +295,16 @@ if(isempty(val))
     errordlg('This is not a valid value! Please insert another number or string!',...
         'Error entering value');
 else
+    %check if val is numeric
+    tmp = str2num(val);
+    if(~isempty(val))
+        val = tmp;
+    end
     %save new value
     opt.valB = val;
     set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
 end
-set(hObject,'String',opt.valB);    
+set(hObject,'String',num2str(opt.valB));    
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
