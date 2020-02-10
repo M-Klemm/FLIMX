@@ -54,7 +54,7 @@ function varargout = GUI_fitOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_fitOptions
 
-% Last Modified by GUIDE v2.5 16-Dec-2019 19:59:25
+% Last Modified by GUIDE v2.5 10-Feb-2020 17:09:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -228,7 +228,7 @@ set(handles.popupAnisoR0Method,'Value',data.basic.anisotropyR0Method,'Enable',da
 set(handles.checkIDec,'Value',data.basic.incompleteDecay,'Enable',data.enableGUIControlsFlag);
 set(handles.editPhotons,'String',num2str(data.basic.photonThreshold),'Enable',data.enableGUIControlsFlag);
 set(handles.checkSmoothInitFix,'Value',data.basic.fix2InitSmoothing,'Enable',data.enableGUIControlsFlag);
-set(handles.editResultValidyCheckCnt,'String',num2str(data.basic.resultValidyCheckCnt),'Enable',data.enableGUIControlsFlag);
+set(handles.editRisingEdgeErrorMargin,'String',num2str(data.basic.risingEdgeErrorMargin),'Enable',data.enableGUIControlsFlag);
 switch data.basic.neighborFit
     case 0
         set(handles.popupNBPixels,'Value',1,'Enable',data.enableGUIControlsFlag);
@@ -697,9 +697,9 @@ rdh.isDirty(2) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
 set(hObject,'String',num2str(rdh.init.gridPhotons));
 
-function editResultValidyCheckCnt_Callback(hObject, eventdata, handles)
+function editRisingEdgeErrorMargin_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
-rdh.basic.resultValidyCheckCnt = abs(str2double(get(hObject,'String')));
+rdh.basic.risingEdgeErrorMargin = max(0,round(str2double(get(hObject,'String'))));
 rdh.isDirty(1) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
 updateGUI(handles, rdh);
@@ -1144,7 +1144,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 % --- Executes during object creation, after setting all properties.
-function editResultValidyCheckCnt_CreateFcn(hObject, eventdata, handles)
+function editRisingEdgeErrorMargin_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

@@ -36,12 +36,14 @@ classdef FLIMX < handle
         irfMgr = [];        %object to handle IRF access
         paramMgr = [];      %parameter objects
         curSubject = [];    %current subject
+        loggerObj = [];     %logger object
     end
 
     properties(GetAccess = protected, SetAccess = private)
         FLIMFitObj = [];    %approximation object
         sDDMgrObj = [];     %only temporary: manage synthetic datasets
-        batchJobMgrObj = [];   %batch job manager
+        batchJobMgrObj = [];%batch job manager
+        
         %GUIs
         FLIMFitGUIObj = []; %visualization of approximation
         FLIMVisGUIObj = []; %extended visualization and statistics
@@ -60,6 +62,7 @@ classdef FLIMX < handle
         FLIMFit = [];    %approximation object
         sDDMgr = [];     %only temporary: manage synthetic datasets
         batchJobMgr = [];   %batch job manager
+        logger = [];
 
         FLIMFitGUI = [];     %visualization of approximation
         FLIMVisGUI = []; %extended visualization and statistics
@@ -75,6 +78,7 @@ classdef FLIMX < handle
         function this = FLIMX()
             %constructor
             warning('off','MATLAB:rankDeficientMatrix');
+            this.loggerObj = logging.getLogger('FLIMXLog','path',fullfile(FLIMX.getWorkingDir(),'log','FLIMX.log'));%,'commandWindowLevel',0);
             this.splashScreenGUIObj = FLIMXSplashScreen();
             this.updateSplashScreenLongProgress(0.01,'Load IRFs...');
             %parameters from ini file
@@ -489,8 +493,8 @@ classdef FLIMX < handle
             %set current revisions HERE!
             out.config_revision = 268;
             out.client_revision_major = 4;
-            out.client_revision_minor = 12;
-            out.client_revision_fix = 1;
+            out.client_revision_minor = 13;
+            out.client_revision_fix = 0;
             out.core_revision = 418;
             out.results_revision = 256;
             out.measurement_revision = 205;
@@ -586,7 +590,7 @@ classdef FLIMX < handle
             else
                 dStr = '';
             end
-            out = {sprintf('Copyright (c) 2014%s, authors of FLIMX. All rights reserved.',dStr);
+            out = {sprintf('Copyright (c) 2020%s, authors of FLIMX. All rights reserved.',dStr);
                 char(13);
                 'Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:'
                 char(13);
@@ -1068,6 +1072,29 @@ classdef FLIMX < handle
                 '* Neither the names of the copyright holders nor the names of the contributors may be used to endorse or promote products derived from this software without specific prior written permission.';
                 char(13);
                 'This software is provided by the copyright holders and contributors �as is� and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall copyright holders or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.';
+                
+                newline;
+                'This software uses ''logging4matlab'' by Dominique Orban from https://https://github.com/optimizers/logging4matlab, which is covered by the following license:';
+                'MIT License'
+                'Copyright (c) 2016 optimizers';
+                char(13);
+                'Permission is hereby granted, free of charge, to any person obtaining a copy';
+                'of this software and associated documentation files (the "Software"), to deal';
+                'in the Software without restriction, including without limitation the rights';
+                'to use, copy, modify, merge, publish, distribute, sublicense, and/or sell';
+                'copies of the Software, and to permit persons to whom the Software is';
+                'furnished to do so, subject to the following conditions:';
+                char(13);
+                'The above copyright notice and this permission notice shall be included in all';
+                'copies or substantial portions of the Software.';
+                char(13);
+                'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR';
+                'IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,';
+                'FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE';
+                'AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER';
+                'LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,';
+                'OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE';
+                'SOFTWARE.';
 
                 };
         end
