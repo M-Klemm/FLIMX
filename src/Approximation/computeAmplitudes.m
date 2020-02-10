@@ -67,6 +67,13 @@ end
 if(isempty(linLB))
     linLB = zeros(nParams,1,'like',expModels);
     linUB = inf(nParams,1,'like',expModels);
+else
+%     mMax = squeeze(max(expModels(:,1:nParams-1,:),[],1));
+%     if(isvector(mMax))
+%         mMax = mMax';
+%     end    
+%     linLB = linLB(1:nParams-1,:)./mMax;
+%     linUB = linUB(1:nParams-1,:)./mMax;
 end
 if(fitOsetFlag)
     if(singleModelFlag)
@@ -87,12 +94,14 @@ else
 %     gpuFlag = false;
 end
 if(singleModelFlag)
+    %todo: add aplitude bounds check for all data in ao (not only those in for loop
     if(fitOsetFlag)
         dA = decomposition(expModels);
         ao(1,:,:) = dA\measData;
         idx = find(any(ao(1,:,:) < 0,2));
         for j = 1:length(idx)
-            ao(1,:,idx(j)) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idx(j)),:),(measData(dataNonZeroMask(:,idx(j)),idx(j)))),linLB(:,1),linUB(:,1));
+            tmp = LinNonNeg(expModels(dataNonZeroMask(:,idx(j)),:),(measData(dataNonZeroMask(:,idx(j)),idx(j))));
+            ao(1,:,idx(j)) = checkBounds(tmp,sum(tmp(:),1).*linLB(:,1),sum(tmp(:),1).*linUB(:,1));
         end
     else
         measData = measData - oset;
@@ -100,7 +109,8 @@ if(singleModelFlag)
         ao(1,:,:) = dA\measData;
         idx = find(any(ao(1,:,:) < 0,2));
         for j = 1:length(idx)
-            ao(1,:,idx(j)) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idx(j)),1:nParams-1),(measData(dataNonZeroMask(:,idx(j)),idx(j)))),linLB(1:nParams-1,1),linUB(1:nParams-1,1));
+            tmp = LinNonNeg(expModels(dataNonZeroMask(:,idx(j)),1:nParams-1),(measData(dataNonZeroMask(:,idx(j)),idx(j))));
+            ao(1,:,idx(j)) = checkBounds(tmp,sum(tmp(:),1).*linLB(1:nParams-1,1),sum(tmp(:),1).*linUB(1:nParams-1,1));
         end
     end
     
@@ -116,11 +126,13 @@ else
         if(fitOsetFlag)
             %determine amplitudes and offset
             %ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),idxExpModel),measData(dataNonZeroMask(:,idxData),idxData)),linLB,linUB);
-            ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),:,idxData),measData(dataNonZeroMask(:,idxData),idxData)),linLB(1:nParams,idxData),linUB(1:nParams,idxData));
+            tmp = LinNonNeg(expModels(dataNonZeroMask(:,idxData),:,idxData),measData(dataNonZeroMask(:,idxData),idxData));
+            ao(1,:,j) = checkBounds(tmp,sum(tmp(:)).*linLB(1:nParams,idxData),sum(tmp(:)).*linUB(1:nParams,idxData));
         else
             %determine amplitudes only, offset is already set
             %ao(1,1:nParams-1,j) = checkBounds(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel)\(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel)),linLB(1:nParams-1,:),linUB(1:nParams-1,:));
-            ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel),(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel))),linLB(1:nParams-1,idxData),linUB(1:nParams-1,idxData));
+            tmp = LinNonNeg(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel),(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel)));
+            ao(1,:,j) = checkBounds(tmp,sum(tmp(:)).*linLB(1:nParams-1,idxData),sum(tmp(:)).*linUB(1:nParams-1,idxData));
         end
     end
 end

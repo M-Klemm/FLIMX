@@ -232,7 +232,7 @@ else
             apObj.basicParams.neighborFit = 0;
             apObj.setCurrentChannel(chList(ch));
             %apObj.makeDataPreProcessing(allInitVec); %we have to run pre-processing again to set the linear bounds
-            [result(ch).chi2(pixelIDs), ampsH, ampsScH, osetH, result(ch).chi2Tail(pixelIDs)] = apObj.costFcn(xArray,pixelIDs);
+            [result(ch).chi2(pixelIDs), ampsH, ampsScH, osetH, result(ch).chi2Tail(pixelIDs)] = apObj.costFcn(xArray,pixelIDs,true);
             if(apObj.basicParams.nExp == 1)
                 result.RAUC1(pixelIDs) = 100*ones('like',result.RAUC1(pixelIDs));
                 result.RAUCIS1(pixelIDs) = 100*ones('like',result.RAUCIS1(pixelIDs));

@@ -747,7 +747,7 @@ classdef FluoDecayFit < handle
                 result = res(1,idx);
             else
                 parameterCell{2}.options_de.iterPostProcess = @this.iterPostProcess;
-                result = feval(@makePixelFit, parameterCell{:});
+                result = makePixelFit(parameterCell{:});
             end
             this.updateShortProgress(0,'');
         end

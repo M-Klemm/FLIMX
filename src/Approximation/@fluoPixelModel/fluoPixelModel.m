@@ -443,8 +443,11 @@ classdef fluoPixelModel < matlab.mixin.Copyable
         end
 
         %%computation methods
-        function [chi2, amps, scAmps, oset, chi2tail] = costFcn(this,xVec,pixelIDs)
+        function [chi2, amps, scAmps, oset, chi2tail] = costFcn(this,xVec,pixelIDs,noChi2PenalityFlag)
             %compute model and get chi2
+            if(nargin < 4)
+                noChi2PenalityFlag = false;
+            end
             nPixels = uint16(length(pixelIDs));
             nModels = uint16(size(xVec,2));
             if(this.computationParams.useGPU && this.useGPU && nPixels >= 64)
@@ -499,12 +502,12 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     switch nargout
                         case 5
                             for j = 1:this.nrChannels
-                                [chi2(j,mIDX), amps((j-1)*this.basicParams.nExp+1:(j)*this.basicParams.nExp,mIDX), scAmps((j-1)*this.volatilePixelParams.nScatter+1:(j)*this.volatilePixelParams.nScatter,mIDX), oset(j,mIDX), chi2tail(j,mIDX)] = this.computeChannel(j,squeeze(xArray(:,j,:)),pixelIDs(1,pIDX));
+                                [chi2(j,mIDX), amps((j-1)*this.basicParams.nExp+1:(j)*this.basicParams.nExp,mIDX), scAmps((j-1)*this.volatilePixelParams.nScatter+1:(j)*this.volatilePixelParams.nScatter,mIDX), oset(j,mIDX), chi2tail(j,mIDX)] = this.computeChannel(j,squeeze(xArray(:,j,:)),pixelIDs(1,pIDX),noChi2PenalityFlag);
                             end
                             chi2tail = sum(chi2tail,1);
                         otherwise
                             for j = 1:this.nrChannels
-                                [chi2(j,mIDX), amps((j-1)*this.basicParams.nExp+1:(j)*this.basicParams.nExp,mIDX), scAmps((j-1)*this.volatilePixelParams.nScatter+1:(j)*this.volatilePixelParams.nScatter,mIDX), oset(j,mIDX)] = this.computeChannel(j,squeeze(xArray(:,j,:)),pixelIDs(1,pIDX));
+                                [chi2(j,mIDX), amps((j-1)*this.basicParams.nExp+1:(j)*this.basicParams.nExp,mIDX), scAmps((j-1)*this.volatilePixelParams.nScatter+1:(j)*this.volatilePixelParams.nScatter,mIDX), oset(j,mIDX)] = this.computeChannel(j,squeeze(xArray(:,j,:)),pixelIDs(1,pIDX),noChi2PenalityFlag);
                             end
                     end
                     chi2 = sum(chi2.^2,1,'native');
@@ -514,21 +517,21 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     end
                     switch nargout
                         case 1
-                            chi2(1,mIDX) = this.computeChannel(this.currentChannel,xVec(:,mIDX),pixelIDs(1,pIDX));
+                            chi2(1,mIDX) = this.computeChannel(this.currentChannel,xVec(:,mIDX),pixelIDs(1,pIDX),noChi2PenalityFlag);
                         case 2
-                            [chi2(1,mIDX), amps(:,mIDX)] = this.computeChannel(this.currentChannel,xVec(:,mIDX),pixelIDs(1,pIDX));
+                            [chi2(1,mIDX), amps(:,mIDX)] = this.computeChannel(this.currentChannel,xVec(:,mIDX),pixelIDs(1,pIDX),noChi2PenalityFlag);
                         case 3
-                            [chi2(1,mIDX), amps(:,mIDX), scAmps(:,mIDX)] = this.computeChannel(this.currentChannel,xVec(:,mIDX),pixelIDs(1,pIDX));
+                            [chi2(1,mIDX), amps(:,mIDX), scAmps(:,mIDX)] = this.computeChannel(this.currentChannel,xVec(:,mIDX),pixelIDs(1,pIDX),noChi2PenalityFlag);
                         case 4
-                            [chi2(1,mIDX), amps(:,mIDX), scAmps(:,mIDX), oset(1,mIDX)] = this.computeChannel(this.currentChannel,xVec(:,mIDX),pixelIDs(1,pIDX));
+                            [chi2(1,mIDX), amps(:,mIDX), scAmps(:,mIDX), oset(1,mIDX)] = this.computeChannel(this.currentChannel,xVec(:,mIDX),pixelIDs(1,pIDX),noChi2PenalityFlag);
                         case 5
-                            [chi2(1,mIDX), amps(:,mIDX), scAmps(:,mIDX), oset(1,mIDX), chi2tail(1,mIDX)] = this.computeChannel(this.currentChannel,xVec(:,mIDX),pixelIDs(1,pIDX));
+                            [chi2(1,mIDX), amps(:,mIDX), scAmps(:,mIDX), oset(1,mIDX), chi2tail(1,mIDX)] = this.computeChannel(this.currentChannel,xVec(:,mIDX),pixelIDs(1,pIDX),noChi2PenalityFlag);
                     end
                 end
             end
         end
 
-        function [chi2, amps, scAmps, oset, chi2tail] = computeChannel(this,ch,xVec,pixelIDs)
+        function [chi2, amps, scAmps, oset, chi2tail] = computeChannel(this,ch,xVec,pixelIDs,noChi2PenalityFlag)
             %compute model and get chi2 of a single channel            
             %% check for correct parameters
             xVecCheck = this.getFullXVec(ch,pixelIDs,xVec); %todo add pixel id
@@ -543,7 +546,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             scAmps = zeros(this.volatilePixelParams.nScatter,size(xVec,2));
             oset = zeros(1,nVecs);%,'like',xVec);
             chi2 = zeros(1,nVecs,'like',xVec);
-            if(~(bp.approximationTarget == 2 && (ch == 2 || bp.anisotropyR0Method == 3 && ch == 4)))
+            if(~noChi2PenalityFlag && ~(bp.approximationTarget == 2 && (ch == 2 || bp.anisotropyR0Method == 3 && ch == 4)))
                 %ensure tau ordering
                 %exclude stretched exponentials
                 mask = find(~bp.stretchedExpMask)+bp.nExp;
@@ -589,7 +592,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 return
             end
             %ensure amplitude ordering
-            if(bp.amplitudeOrder > 0 && bp.nExp > 1)
+            if(~noChi2PenalityFlag && bp.amplitudeOrder > 0 && bp.nExp > 1)
                 if(bp.amplitudeOrder == 1)
                     n = 1;
                 else
@@ -604,8 +607,8 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             end
             exponentials(:,:,idxIgnored) = 0;
             %help optimizer to get shift right, very coarse!
-            % increase chi2 depending on distance if difference of model and data is beyond the allowed error margin (configured by user
-            if(ch < 4) %only for fluorescence lifetime %bp.approximationTarget == 1 ||
+            % increase chi2 depending on distance if difference of model and data is beyond the allowed error margin (configured by user            
+            if(~noChi2PenalityFlag && ch < 4) %only for fluorescence lifetime %bp.approximationTarget == 1 ||
                 %compute model positions of the rising edge between 5% and 85%
                 modelIDs = find(~idxIgnored);
                 risingIDsTargets = (5:10:85)./100;
@@ -641,7 +644,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     else
                         %multiple pixels, one model each
                         d = max(abs(risingIDs(usedRisingIDs) - measurementRisingIDs(pixelIDs(m),usedRisingIDs)));
-                    end
+                    end                    
                     if(d > bp.risingEdgeErrorMargin)
                         idxIgnored(modelIDs(m)) = true;
                         chi2(modelIDs(m)) = (d+1)*100.*chi2(modelIDs(m));
@@ -652,41 +655,43 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     return
                 end
             end
-            %ensure tci components are earlier on the time axis compared to the other components
-            vcp = this.getVolatileChannelParams(ch);
-            cMask = vcp(1).cMask;
-            loopCnt = 0;
-            for i = find(bp.tciMask)
-                loopCnt = loopCnt + 1;
-                if(~cMask(2*bp.nExp+loopCnt))
-                    tcIdx = false(1,bp.nExp);
-                    tcIdx(i) = true;
-                    %for multiple tci: remove other tci-components from comparison
-                    cIdx = ~bp.tciMask | tcIdx;
-                    tcIdx(~tcIdx & ~cIdx) = [];
-                    [chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,exponentials(:,cIdx,~idxIgnored),tcIdx,this.myChannels{ch}.slopeStartPos(pixelIDs(~idxIgnored)),this.myChannels{ch}.dMaxPos(pixelIDs(~idxIgnored)));
+            if(~noChi2PenalityFlag)
+                %ensure tci components are earlier on the time axis compared to the other components
+                vcp = this.getVolatileChannelParams(ch);
+                cMask = vcp(1).cMask;
+                loopCnt = 0;
+                for i = find(bp.tciMask)
+                    loopCnt = loopCnt + 1;
+                    if(~cMask(2*bp.nExp+loopCnt))
+                        tcIdx = false(1,bp.nExp);
+                        tcIdx(i) = true;
+                        %for multiple tci: remove other tci-components from comparison
+                        cIdx = ~bp.tciMask | tcIdx;
+                        tcIdx(~tcIdx & ~cIdx) = [];
+                        [chi2, idxIgnored, ~] = fluoPixelModel.timeShiftCheck(true,chi2,idxIgnored,exponentials(:,cIdx,~idxIgnored),tcIdx,this.myChannels{ch}.slopeStartPos(pixelIDs(~idxIgnored)),this.myChannels{ch}.dMaxPos(pixelIDs(~idxIgnored)));
+                    end
                 end
+                %ensure that lens fluorescence is earlier on the time axis compared to the other components
+                if((this.volatilePixelParams.nScatter - bp.scatterIRF) > 0 && any(any(scAmps(1,~idxIgnored))) && ~any(strcmp('ScatterShift 1',bp.(sprintf('constMaskSaveStrCh%d',ch)))))
+                    %get slope position of scatter data and exponentials
+                    tcIdx = false(bp.nExp+size(scAmps,1),1);
+                    tcIdx(bp.nExp+1) = true;
+                    nzAmpsIdx = scAmps(1,:)' > 0 & ~idxIgnored;
+                    [chi2New, idxNew] = fluoPixelModel.timeShiftCheck(true,chi2,~nzAmpsIdx,exponentials(:,1:end-1,nzAmpsIdx),tcIdx,this.myChannels{ch}.slopeStartPos(pixelIDs(nzAmpsIdx)),this.myChannels{ch}.dMaxPos(pixelIDs(nzAmpsIdx)));
+                    idxIgnored(nzAmpsIdx) = idxIgnored(nzAmpsIdx) | idxNew(nzAmpsIdx);
+                    chi2(nzAmpsIdx) = chi2New(nzAmpsIdx);
+                end
+                if(bp.scatterIRF && isempty(idxIgnored) && any(any(scAmps(end,~idxIgnored))))
+                    %get slope position of scatter data and exponentials
+                    tcIdx = false(bp.nExp+size(scAmps,1),1);
+                    tcIdx(end) = true;
+                    nzAmpsIdx = scAmps(end,:)' > 0 & ~idxIgnored;
+                    [chi2New, idxNew] = fluoPixelModel.timeShiftCheck(false,chi2,~nzAmpsIdx,exponentials(:,1:end-1,nzAmpsIdx),tcIdx,this.myChannels{ch}.dMaxPos(pixelIDs(nzAmpsIdx)),this.myChannels{ch}.dMaxPos(pixelIDs(nzAmpsIdx)));
+                    idxIgnored(nzAmpsIdx) = idxIgnored(nzAmpsIdx) | idxNew(nzAmpsIdx);
+                    chi2(nzAmpsIdx) = chi2New(nzAmpsIdx);
+                end
+                chi2tail = chi2;
             end
-            %ensure that lens fluorescence is earlier on the time axis compared to the other components
-            if((this.volatilePixelParams.nScatter - bp.scatterIRF) > 0 && any(any(scAmps(1,~idxIgnored))) && ~any(strcmp('ScatterShift 1',bp.(sprintf('constMaskSaveStrCh%d',ch)))))
-                %get slope position of scatter data and exponentials
-                tcIdx = false(bp.nExp+size(scAmps,1),1);
-                tcIdx(bp.nExp+1) = true;
-                nzAmpsIdx = scAmps(1,:)' > 0 & ~idxIgnored;
-                [chi2New, idxNew] = fluoPixelModel.timeShiftCheck(true,chi2,~nzAmpsIdx,exponentials(:,1:end-1,nzAmpsIdx),tcIdx,this.myChannels{ch}.slopeStartPos(pixelIDs(nzAmpsIdx)),this.myChannels{ch}.dMaxPos(pixelIDs(nzAmpsIdx)));
-                idxIgnored(nzAmpsIdx) = idxIgnored(nzAmpsIdx) | idxNew(nzAmpsIdx);
-                chi2(nzAmpsIdx) = chi2New(nzAmpsIdx);
-            end
-            if(bp.scatterIRF && isempty(idxIgnored) && any(any(scAmps(end,~idxIgnored))))
-                %get slope position of scatter data and exponentials
-                tcIdx = false(bp.nExp+size(scAmps,1),1);
-                tcIdx(end) = true;
-                nzAmpsIdx = scAmps(end,:)' > 0 & ~idxIgnored;
-                [chi2New, idxNew] = fluoPixelModel.timeShiftCheck(false,chi2,~nzAmpsIdx,exponentials(:,1:end-1,nzAmpsIdx),tcIdx,this.myChannels{ch}.dMaxPos(pixelIDs(nzAmpsIdx)),this.myChannels{ch}.dMaxPos(pixelIDs(nzAmpsIdx)));
-                idxIgnored(nzAmpsIdx) = idxIgnored(nzAmpsIdx) | idxNew(nzAmpsIdx);
-                chi2(nzAmpsIdx) = chi2New(nzAmpsIdx);
-            end
-            chi2tail = chi2;
             if(all(idxIgnored == true))
                 return
             elseif(isempty(idxIgnored))
@@ -771,7 +776,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
 %                         nonLinBoundsCh(chIdx).ub = this.getNonConstantXVec(chList(chIdx),ampsUB,tausUB,tcisUB,betasUB,scAmpsUB,scShiftsUB,scOsetUB,hShiftUB,osetUB);
 %                     end
 %                 end
-                if(~all(~isnan(struct2array(linBounds)),'all'))
+                if(all(~isnan(struct2array(linBounds)),'all'))
                     this.myChannels{chList(chIdx)}.setLinearBounds(linBounds(chIdx,:));
                 else
                     this.myChannels{chList(chIdx)}.setLinearBounds([]);
@@ -1569,14 +1574,14 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 %in case of heikal's anisotropy fitting method we have to allow much larger amplitudes
                 d_max = d_max .* 50;
             end
-            for i = 1:basicFitParams.nExp
-                nonLinBounds.(str).lb(i) = nonLinBounds.(str).lb(i)*d_max;
-                nonLinBounds.(str).ub(i) = nonLinBounds.(str).ub(i)*d_max;
-                nonLinBounds.(str).deQuantization(i) = nonLinBounds.(str).deQuantization(i)*d_max;
-                %nonLinBounds.(str).simplexInit(i) = nonLinBounds.(str).simplexInit(i)*d_max;
-                nonLinBounds.(str).init(i) = nonLinBounds.(str).init(i)*d_max;
-                nonLinBounds.(str).tol(i) = nonLinBounds.(str).tol(i)*d_max;
-            end
+%             for i = 1:basicFitParams.nExp
+%                 nonLinBounds.(str).lb(i) = nonLinBounds.(str).lb(i)*d_max;
+%                 nonLinBounds.(str).ub(i) = nonLinBounds.(str).ub(i)*d_max;
+%                 nonLinBounds.(str).deQuantization(i) = nonLinBounds.(str).deQuantization(i)*d_max;
+%                 %nonLinBounds.(str).simplexInit(i) = nonLinBounds.(str).simplexInit(i)*d_max;
+%                 nonLinBounds.(str).init(i) = nonLinBounds.(str).init(i)*d_max;
+%                 nonLinBounds.(str).tol(i) = nonLinBounds.(str).tol(i)*d_max;
+%             end
             %tci
             nonLinBounds = nonLinBounds.(str);
             tcis = find(basicFitParams.tciMask);
