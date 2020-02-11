@@ -939,9 +939,13 @@ classdef FLIMXFitGUI < handle
             nz_idx(EndPosition:end) = false;
             e_vec(isinf(e_vec)) = 0;
             e_vec_smooth = e_vec;
-            e_vec_smooth(ds:de) = fastsmooth(e_vec(ds:de),50,3,0);
-            e_vec_smooth(1:ds) = e_vec_smooth(ds);
-            e_vec_smooth(de:end) = e_vec_smooth(de);
+            if(this.visualizationParams.plotResTrend)
+                %e_vec_smooth(ds:de) = fastsmooth(e_vec(ds:de),15,2,1);
+                %e_vec_smooth(ds:de) = smooth(e_vec(ds:de),31);
+                e_vec_smooth(ds:de) = filtfilt(zeros(21,1)+1/21,1,e_vec(ds:de));
+                e_vec_smooth(1:ds) = 0; %e_vec_smooth(ds);
+                e_vec_smooth(de:end) = 0; %e_vec_smooth(de);
+            end
             if(~this.dynVisParams.timeScalingAuto)
                 e_vec = e_vec(this.dynVisParams.timeScalingStart:this.dynVisParams.timeScalingEnd);
                 e_vec_smooth = e_vec_smooth(this.dynVisParams.timeScalingStart:this.dynVisParams.timeScalingEnd);
@@ -953,20 +957,22 @@ classdef FLIMXFitGUI < handle
             hold(hAxRes,'on');
             idx = measurementFile.getMaskGrps(find(nz_idx > 0));
             if(isempty(idx)) %empty data
-                plot(hAxRes,xAxis,e_vec,'linewidth',2,'color',[0 0 0]);
+                plot(hAxRes,xAxis,e_vec,'linewidth',this.visualizationParams.plotResLinewidth,'color',[0 0 0],'LineStyle',this.visualizationParams.plotResLinestyle);
             else
                 if(idx(1,1) > 1) %plot first 'black' part
-                    plot(hAxRes,xAxis(1:idx(1,1)-1),e_vec(1:idx(1,1)-1),'linewidth',2,'color',[0 0 0]);
+                    plot(hAxRes,xAxis(1:idx(1,1)-1),e_vec(1:idx(1,1)-1),'linewidth',this.visualizationParams.plotResLinewidth,'color',[0 0 0],'LineStyle',this.visualizationParams.plotResLinestyle);
                 end
                 for cnt = 1:size(idx,1) %plot 'black' and 'red' parts
-                    plot(hAxRes,xAxis(idx(cnt,1):idx(cnt,2)),e_vec(idx(cnt,1):idx(cnt,2)),'linewidth',2,'color','red');
+                    plot(hAxRes,xAxis(idx(cnt,1):idx(cnt,2)),e_vec(idx(cnt,1):idx(cnt,2)),'linewidth',this.visualizationParams.plotResLinewidth,'color',this.visualizationParams.plotResColor,'LineStyle',this.visualizationParams.plotResLinestyle);
                     if(cnt > 1)
-                        plot(hAxRes,xAxis(idx(cnt-1,2):idx(cnt,1)),e_vec(idx(cnt-1,2):idx(cnt,1)),'linewidth',2,'color',[0 0 0]);
+                        plot(hAxRes,xAxis(idx(cnt-1,2):idx(cnt,1)),e_vec(idx(cnt-1,2):idx(cnt,1)),'linewidth',this.visualizationParams.plotResLinewidth,'color',[0 0 0],'LineStyle',this.visualizationParams.plotResLinestyle);
                     end
                 end
-                plot(hAxRes,xAxis(idx(end,2):end),e_vec(idx(end,2):end),'linewidth',2,'color',[0 0 0]); %plot remaining 'black' part
+                plot(hAxRes,xAxis(idx(end,2):end),e_vec(idx(end,2):end),'linewidth',this.visualizationParams.plotResLinewidth,'color',[0 0 0],'LineStyle',this.visualizationParams.plotResLinestyle); %plot remaining 'black' part
             end
-            plot(hAxRes,xAxis,e_vec_smooth,'linewidth',1,'color',[1.0000 0.8125 0]);
+            if(this.visualizationParams.plotResTrend)
+                plot(hAxRes,xAxis,e_vec_smooth,'linewidth',this.visualizationParams.plotResTrendLinewidth,'color',this.visualizationParams.plotResTrendColor,'LineStyle',this.visualizationParams.plotResTrendLinestyle);
+            end
             hold(hAxRes,'off');
             e_vec_nz = e_vec(nz_idx > 0);
             if(this.resScaleFlag)
@@ -1003,7 +1009,7 @@ classdef FLIMXFitGUI < handle
                 bh = barh(hAxResHis,binVec,rh,'hist');
                 xlim(hAxResHis,[0 max(rh(:))]);
                 ylim(hAxResHis,[-yl yl]);
-                set(bh,'FaceColor','r','LineStyle','none');
+                set(bh,'FaceColor',this.visualizationParams.plotResColor,'LineStyle','none');
                 set(hAxResHis,'XTickLabel','');
                 set(hAxResHis,'YTickLabel','');
             else

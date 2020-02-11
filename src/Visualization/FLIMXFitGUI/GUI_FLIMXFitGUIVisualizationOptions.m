@@ -54,7 +54,7 @@ function varargout = GUI_FLIMXFitGUIVisualizationOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_FLIMXFitGUIVisualizationOptions
 
-% Last Modified by GUIDE v2.5 30-Jan-2019 16:34:51
+% Last Modified by GUIDE v2.5 11-Feb-2020 17:56:51
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -158,6 +158,7 @@ set(handles.checkData,'Value',data.fluoDecay.plotData);
 set(handles.checkExpSum,'Value',data.fluoDecay.plotExpSum);
 set(handles.checkCurLinesAndText,'Value',data.fluoDecay.plotCurLinesAndText);
 set(handles.checkExp,'Value',data.fluoDecay.plotExp);
+set(handles.checkResTrend,'Value',data.fluoDecay.plotResTrend);
 set(handles.checkIRF,'Value',data.fluoDecay.plotIRF);
 set(handles.checkStartEnd,'Value',data.fluoDecay.plotStartEnd);
 set(handles.checkSlope,'Value',data.fluoDecay.plotSlope);
@@ -205,6 +206,8 @@ set(handles.checkReverseYDir,'Value',data.general.reverseYDir);
 set(handles.editDataLinewidth,'String',num2str(data.fluoDecay.plotDataLinewidth,'%d'));
 set(handles.editExpSumLinewidth,'String',num2str(data.fluoDecay.plotExpSumLinewidth,'%d'));
 set(handles.editExpLinewidth,'String',num2str(data.fluoDecay.plotExpLinewidth,'%d'));
+set(handles.editResLinewidth,'String',num2str(data.fluoDecay.plotResLinewidth,'%d'));
+set(handles.editResTrendLinewidth,'String',num2str(data.fluoDecay.plotResTrendLinewidth,'%d'));
 set(handles.editIRFLinewidth,'String',num2str(data.fluoDecay.plotIRFLinewidth,'%d'));
 set(handles.editCurlineswidth,'String',num2str(data.fluoDecay.plotCurlineswidth,'%d'));
 set(handles.editStartEndLinewidth,'String',num2str(data.fluoDecay.plotStartEndLinewidth,'%d'));
@@ -214,6 +217,8 @@ set(handles.editInitLinewidth,'String',num2str(data.fluoDecay.plotInitLinewidth,
 set(handles.popupDataLinestyle,'Value',lineStyle2id(data.fluoDecay.plotDataLinestyle));
 set(handles.popupExpSumLinestyle,'Value',lineStyle2id(data.fluoDecay.plotExpSumLinestyle));
 set(handles.popupExpLinestyle,'Value',lineStyle2id(data.fluoDecay.plotExpLinestyle));
+set(handles.popupResLinestyle,'Value',lineStyle2id(data.fluoDecay.plotResLinestyle));
+set(handles.popupResTrendLinestyle,'Value',lineStyle2id(data.fluoDecay.plotResTrendLinestyle));
 set(handles.popupIRFLinestyle,'Value',lineStyle2id(data.fluoDecay.plotIRFLinestyle));
 set(handles.popupCurLinesStyle,'Value',lineStyle2id(data.fluoDecay.plotCurLinesStyle));
 set(handles.popupStartEndLinestyle,'Value',lineStyle2id(data.fluoDecay.plotStartEndLinestyle));
@@ -230,6 +235,8 @@ set(handles.buttonExp2Color,'BackgroundColor',data.fluoDecay.plotExp2Color);
 set(handles.buttonExp3Color,'BackgroundColor',data.fluoDecay.plotExp3Color);
 set(handles.buttonExp4Color,'BackgroundColor',data.fluoDecay.plotExp4Color);
 set(handles.buttonExp5Color,'BackgroundColor',data.fluoDecay.plotExp5Color);
+set(handles.buttonResColor,'BackgroundColor',data.fluoDecay.plotResColor);
+set(handles.buttonResTrendColor,'BackgroundColor',data.fluoDecay.plotResTrendColor);
 set(handles.buttonIRFColor,'BackgroundColor',data.fluoDecay.plotIRFColor);
 set(handles.buttonStartEndColor,'BackgroundColor',data.fluoDecay.plotStartEndColor);
 set(handles.buttonSlopeColor,'BackgroundColor',data.fluoDecay.plotSlopeColor);
@@ -375,6 +382,13 @@ rdh.fluoDecay.plotExp = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
+% --- Executes on button press in checkResTrend.
+function checkResTrend_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.fluoDecay.plotResTrend = get(hObject,'Value');
+rdh.isDirty(1) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
 % --- Executes on button press in checkIRF.
 function checkIRF_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
@@ -484,6 +498,20 @@ set(hObject,'String',rdh.fluoDecay.plotIRFLinewidth);
 function editExpLinewidth_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
 rdh.fluoDecay.plotExpLinewidth = max(1,abs(round(str2double(get(hObject,'String')))));
+rdh.isDirty(1) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+set(hObject,'String',rdh.fluoDecay.plotExpLinewidth);
+
+function editResLinewidth_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.fluoDecay.plotResLinewidth = max(1,abs(round(str2double(get(hObject,'String')))));
+rdh.isDirty(1) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+set(hObject,'String',rdh.fluoDecay.plotExpLinewidth);
+
+function editResTrendLinewidth_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.fluoDecay.plotResTrendLinewidth = max(1,abs(round(str2double(get(hObject,'String')))));
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 set(hObject,'String',rdh.fluoDecay.plotExpLinewidth);
@@ -696,6 +724,28 @@ if(length(new) == 3)
     set(hObject,'BackgroundColor',new);
 end
 
+% --- Executes on button press in buttonResColor.
+function buttonResColor_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+new = GUI_Colorselection(rdh.fluoDecay.plotResColor);
+if(length(new) == 3)
+    rdh.fluoDecay.plotResColor = new;
+    rdh.isDirty(1) = 1;
+    set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);    
+    set(hObject,'BackgroundColor',new);
+end
+
+% --- Executes on button press in buttonResTrendColor.
+function buttonResTrendColor_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+new = GUI_Colorselection(rdh.fluoDecay.plotResTrendColor);
+if(length(new) == 3)
+    rdh.fluoDecay.plotResTrendColor = new;
+    rdh.isDirty(1) = 1;
+    set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);    
+    set(hObject,'BackgroundColor',new);
+end
+
 % --- Executes on button press in buttonExpSumColor.
 function buttonExpSumColor_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
@@ -784,6 +834,20 @@ set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 function popupExpLinestyle_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
 rdh.fluoDecay.plotExpLinestyle = id2LineStyle(get(hObject,'Value'));
+rdh.isDirty(1) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
+% --- Executes on selection change in popupResLinestyle.
+function popupResLinestyle_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.fluoDecay.plotResLinestyle = id2LineStyle(get(hObject,'Value'));
+rdh.isDirty(1) = 1;
+set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
+
+% --- Executes on selection change in popupResTrendLinestyle.
+function popupResTrendLinestyle_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXFitGUIVisualizationOptions,'userdata');
+rdh.fluoDecay.plotResTrendLinestyle = id2LineStyle(get(hObject,'Value'));
 rdh.isDirty(1) = 1;
 set(handles.FLIMXFitGUIVisualizationOptions,'userdata',rdh);
 
@@ -1099,6 +1163,26 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function editCacheMemorySize_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupResLinestyle_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editResLinewidth_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupResTrendLinestyle_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editResTrendLinewidth_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

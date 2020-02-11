@@ -335,6 +335,15 @@ classdef paramMgr < handle
             def.fluo_decay_fit_gui.plotExpMarkerstyle     = 'none';
             def.fluo_decay_fit_gui.plotExpMarkersize      = 6;
             
+            
+            def.fluo_decay_fit_gui.plotResLinewidth       =	2;
+            def.fluo_decay_fit_gui.plotResLinestyle       =	'-';
+            def.fluo_decay_fit_gui.plotResColor           =	[1 0 0];
+            def.fluo_decay_fit_gui.plotResTrend           =	1;
+            def.fluo_decay_fit_gui.plotResTrendLinewidth  =	1;
+            def.fluo_decay_fit_gui.plotResTrendLinestyle  =	'-';
+            def.fluo_decay_fit_gui.plotResTrendColor      =	[1 0.8125 0];
+            
             def.fluo_decay_fit_gui.plotIRF                =	1;
             def.fluo_decay_fit_gui.plotIRFLinewidth       =	1;
             def.fluo_decay_fit_gui.plotIRFLinestyle       =	'-';
