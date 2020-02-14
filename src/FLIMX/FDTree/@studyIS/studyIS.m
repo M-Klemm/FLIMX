@@ -314,7 +314,7 @@ classdef studyIS < handle
             end
             if(isempty(ROIType))
                 %set all ROI coordinates at once
-                if(size(ROICoord,1) >= 7 && size(ROICoord,2) == 3 && size(ROICoord,3) >= 2)
+                if(size(ROICoord,1) >= 7 && size(ROICoord,2) >= 3 && size(ROICoord,3) >= 2)
                     tmp = int16(ROICoord);
                 end
             else

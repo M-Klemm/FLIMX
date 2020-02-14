@@ -520,7 +520,6 @@ classdef FDTSubject < fluoSubject
         function loadChannel(this,ch,forceLoadFlag)
             %load channel (measurement and results)
             hfd = this.getFDataObj(ch,'Intensity',0,1); %check only linear data
-%             this = this.getSubject4Approx();
             if(any(this.nonEmptyChannelList(:)) && any(ch == this.nonEmptyChannelList(:)) && (isempty(hfd) || ~this.channelResultIsLoaded(ch) || forceLoadFlag))
                 this.updateShortProgress(0.33,sprintf('Load Ch %s',num2str(ch)));
                 %add empty channel objects
