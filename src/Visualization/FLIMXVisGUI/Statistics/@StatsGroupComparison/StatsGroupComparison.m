@@ -543,7 +543,18 @@ classdef StatsGroupComparison < handle
                 end
             end
             set(this.visHandles.tableMain,'ColumnName',this.currentColumnHeaders,'RowName',this.currentRowHeaders,'Data',tData,'ColumnEditable',cEdit);
-            %h = this.histograms{this.currentGrpIdx};
+            if(get(this.visHandles.popupDispStudy,'Value') == 1)
+                %pathology group
+                backColor = this.settings.colorPath;
+            else
+                backColor = this.settings.colorControls;
+            end
+            if(sum(backColor(:)) < 1.5)
+                textColor = [1 1 1];
+            else
+                textColor = [0 0 0];
+            end
+            set(this.visHandles.popupDispStudy,'Backgroundcolor',backColor,'ForegroundColor',textColor);
             %histogram plot
             histData = this.histograms{this.currentGrpIdx};
             histIdxStart = find(~this.columnIgnore,1,'first');
