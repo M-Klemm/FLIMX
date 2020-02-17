@@ -493,8 +493,8 @@ classdef FLIMX < handle
             %set current revisions HERE!
             out.config_revision = 269;
             out.client_revision_major = 4;
-            out.client_revision_minor = 13;
-            out.client_revision_fix = 4;
+            out.client_revision_minor = 14;
+            out.client_revision_fix = 0;
             out.core_revision = 419;
             out.results_revision = 256;
             out.measurement_revision = 205;

@@ -1413,6 +1413,9 @@ classdef FDTStudy < FDTreeNode
                         colDescription(i) = {hg{i}.subjectName};
                         ROICoordinates = this.getResultROICoordinates(colDescription{i},ROIType);
                         [~, histTemp, cTemp]= hg{i}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
+                        if(isempty(cTemp))
+                            continue
+                        end
                         start = find(centers == cTemp(1));
                         if(isempty(start))
                             start = find(cTemp == centers(1));                            

@@ -595,7 +595,7 @@ classdef FDTSubject < fluoSubject
                     end
                     newItems = removeNonVisItems(allItems,this.FLIMXParamMgrObj.generalParams.flimParameterView);
                     csDef = this.myParent.getResultCrossSection(this.name);
-                    %we may update an exiting subject -> remove unwanted items
+                    %we may update an existing subject -> remove unwanted items
                     chObj = this.getChild(ch);
                     if(~isempty(chObj))
                         loadedItems = chObj.getChObjStr();
@@ -629,7 +629,7 @@ classdef FDTSubject < fluoSubject
                     nr_e = numel(newItems);
                     for i=1:nr_e
                         dType = newItems{i};
-                        %strip of tailing numbers
+                        %strip off tailing numbers
                         dTypeNr = str2double(dType(isstrprop(dType, 'digit')));
                         if(isnan(dTypeNr))
                             dTypeNr = 1;
@@ -655,6 +655,13 @@ classdef FDTSubject < fluoSubject
                                 return
                             end
                         end
+                    end
+                    %find pixel without approximated fluorescence lifetime
+                    tmp = this.getPixelFLIMItem(ch,'AmplitudePercent1');
+                    if(~isempty(tmp))
+                        ignoreMask = isnan(tmp);
+                        chObj = this.getChild(ch);
+                        chObj.setIgnoredPixelsMask(ignoreMask);
                     end
                     this.updateShortProgress(1,sprintf('Load Ch %s',num2str(ch))); %0.5
                     %intensity image

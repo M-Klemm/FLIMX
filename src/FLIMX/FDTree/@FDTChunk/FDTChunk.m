@@ -307,6 +307,16 @@ classdef FDTChunk < FDTreeNode
             out = this.myParent.isArithmeticImage(this.dType);
         end
         
+        function out = getIgnoredPixelsMask(this)
+            %get mask of ignored pixels
+            if(this.globalScale)
+                %only for global scale data
+                out = this.myParent.ignoredPixelsMask;
+            else
+                out = [];
+            end
+        end
+        
         function out = get.FLIMXParamMgrObj(this)
             %get handle to parameter manager object
             out = this.myParent.FLIMXParamMgrObj;

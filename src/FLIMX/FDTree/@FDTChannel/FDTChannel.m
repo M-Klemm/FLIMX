@@ -32,6 +32,7 @@ classdef FDTChannel < FDTreeNode
     % @brief    A class to represent a (spectral) channel in FDTree.
     %
     properties(SetAccess = private,GetAccess = public)
+        ignoredPixelsMask = []
     end
     properties(SetAccess = protected,GetAccess = protected)
     end
@@ -83,7 +84,18 @@ classdef FDTChannel < FDTreeNode
             end
             chunk.addObjMergeID(nr,data);
         end
-                       
+        
+        function setIgnoredPixelsMask(this,mask)
+            %set mask for pixels which are ignored
+            %check if size of current data matches subject size
+            [y, x, z] = size(mask);
+            if(~isempty(this.myParent.XSz) && (this.myParent.YSz ~= y))
+                %todo: remove this error message here
+                error('FDTree:FDTChannel:setIgnoredPixelsMask','Size of ignored pixel mask (%dx%d) does not match subject size (%dx%d)!',x,y,this.myParent.XSz,this.myParent.YSz);
+            end
+            this.ignoredPixelsMask = mask;
+        end
+                               
         function chunk = addChunk(this,dType,gScale)
             %add a new chunk
             chunk = this.getChild(dType);

@@ -306,16 +306,19 @@ classdef FData < handle
         function out = getFullImage(this)
             %get raw image with respect to linear/log scaling
             out = this.rawImage;
+            imask = this.myParent.getIgnoredPixelsMask();
             scaling = this.sType;
             %scale to log
             if(scaling == 2)
                 out = log10(abs(out)); %turn negative values positive
                 out(isinf(out)) = 0;
             end
+            out(imask) = NaN;
             %don't filter intensity image
-            if(~this.isArithmeticImage() && ~(strcmpi(this.dType,'intensity') && strncmp('MVGroup',this.dType,7) && strncmp('ConditionMVGroup',this.dType,16) && strncmp('GlobalMVGroup',this.dType,13)))
+            if(~this.isArithmeticImage() && ~(strcmpi(this.dType,'intensity') || strncmp('MVGroup',this.dType,7) || strncmp('ConditionMVGroup',this.dType,16) || strncmp('GlobalMVGroup',this.dType,13)))
                 if(isempty(this.rawImgFilt))
                     out = this.filter(out);
+                    out(imask) = NaN;
                     this.rawImgFilt = out;
                 else
                     out = this.rawImgFilt;
@@ -855,9 +858,9 @@ classdef FData < handle
             [alg, params] = this.getDataSmoothFilter();
             switch alg
                 case 1
-                    data = sffilt(@mean,data,[params params]);
+                    data = sffilt(@meanOmitNaN,data,[params params]);
                 case 2
-                    data = sffilt(@median,data,[params params]);
+                    data = sffilt(@medianOmitNaN,data,[params params]);
                 case 3
                     data = smoothn(data,'robust');
                 case 4
