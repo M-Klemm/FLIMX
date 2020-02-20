@@ -372,7 +372,9 @@ dstr(:,4) = num2cell(false(length(dstr),1));
 for i = 1 : size(dstr,1)
     idxConst = find(strcmp(dstr{i},basicParams.(sprintf('constMaskSaveStrCh%d',ch))),1);
     idxInit = strcmp(dstr{i},basicParams.fix2InitTargets);
-    if(any(idxConst))
+    if(any(idxInit))
+        dstr(i,4) = {true};
+    elseif(any(idxConst))
         tmp = basicParams.(sprintf('constMaskSaveValCh%d',ch));
         if(length(tmp) >= idxConst)
             dstr(i,2) = {tmp(idxConst)};
@@ -381,9 +383,7 @@ for i = 1 : size(dstr,1)
         end
         dstr(i,3) = {true};
     end
-    if(any(idxInit))
-        dstr(i,4) = {true};
-    end    
+       
 end
 
 function str = makeGlobalFitSaveString(handles)

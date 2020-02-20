@@ -466,13 +466,12 @@ classdef result4Approx < resultFile
             vp = this.volatilePixelParams;            
             XSz = this.resultSize(2);
             YSz = this.resultSize(1);
-            roiX = round(linspace(1,XSz,ip.gridSize));% 1:floor((XSz-1)/(ip.gridSize-1)):XSz;
-            roiY = round(linspace(1,YSz,ip.gridSize));% 1:floor((YSz-1)/(ip.gridSize-1)):YSz;
+            roiX = round(linspace(1,XSz,ip.gridSize));
+            roiY = round(linspace(1,YSz,ip.gridSize));
             [X,Y] = meshgrid(roiX,roiY);
             [XI,YI] = meshgrid(1:XSz,1:YSz);
             %re-allocate pixel results for channel
             this.allocPixelResult(ch);
-            %this.results.pixel(ch) = {this.makeResultStructs(YSz,XSz)};
             %interpolate global initialization for all pixels
             if(this.basicParams.optimizerInitStrategy == 2)
                 for i = 1:length(vp.modelParamsString)
@@ -505,51 +504,6 @@ classdef result4Approx < resultFile
                     this.results.pixel{ch,1}.iVec = iTmp;
                 end  
             end
-%                 %taus
-%                 for i = 1:bp.nExp
-%                     if(ip.gridSize == 1)
-%                         this.results.pixel{ch,1}.(sprintf('TauInit%d',i)) = repmat(this.getInitFLIMItem(ch,(sprintf('Tau%d',i))),YSz,XSz);
-%                     else
-%                         this.results.pixel{ch,1}.(sprintf('TauInit%d',i)) = interp2(X,Y,this.getInitFLIMItem(ch,(sprintf('Tau%d',i))),XI,YI,'linear');
-%                     end
-%                 end
-%                 %tci
-%                 idx = find(strncmp('tc',fn,2));
-%                 for i = 1:length(idx)
-%                     tmpStr = fn{idx(i)};
-%                     if(ip.gridSize == 1)
-%                         this.results.pixel{ch,1}.(sprintf('tcInit%s',tmpStr(3))) = repmat(tmp.(tmpStr),YSz,XSz);
-%                     else
-%                         this.results.pixel{ch,1}.(sprintf('tcInit%s',tmpStr(3))) = interp2(X,Y,tmp.(tmpStr),XI,YI,'linear');
-%                     end
-%                 end
-%                 %beta
-%                 idx = find(strncmp('Beta',fn,4));
-%                 for i = 1:length(idx)
-%                     tmpStr = fn{idx(i)};
-%                     if(ip.gridSize == 1)
-%                         this.results.pixel{ch,1}.(sprintf('BetaInit%s',tmpStr(5))) = repmat(tmp.(tmpStr),YSz,XSz);
-%                     else
-%                         this.results.pixel{ch,1}.(sprintf('BetaInit%s',tmpStr(5))) = interp2(X,Y,tmp.(tmpStr),XI,YI,'linear');
-%                     end
-%                 end
-%                 %offset
-%                 if(ip.gridSize == 1)
-%                     this.results.pixel{ch,1}.OffsetInit = repmat(tmp.Offset,XSz,XSz);
-%                 else
-%                     this.results.pixel{ch,1}.OffsetInit = interp2(X,Y,tmp.Offset,XI,YI,'linear');
-%                 end
-%                 %iVec as a whole
-%                 iTmp = zeros(YSz,XSz,size(tmp.iVec,3));
-%                 if(ip.gridSize == 1)
-%                     this.results.pixel{ch,1}.iVec = repmat(tmp.x_vec,[YSz,XSz,1]);
-%                 else
-%                     for i = 1:size(tmp.iVec,3)
-%                         iTmp(:,:,i) = interp2(X,Y,tmp.x_vec(:,:,i),XI,YI,'linear');
-%                     end
-%                     this.results.pixel{ch,1}.iVec = iTmp;
-%                 end                
-%             end
             sStr = bp.(sprintf('constMaskSaveStrCh%d',ch));
             sVals = double(bp.(sprintf('constMaskSaveValCh%d',ch)));
             for i = 1:length(bp.fix2InitTargets)
@@ -558,35 +512,12 @@ classdef result4Approx < resultFile
                 idx = find(strcmp(fStr,sStr),1);
                 if(isempty(idx))
                     idx = length(sStr)+1;
-                    %bp.(sprintf('constMaskSaveValCh%d',ch)) = double(bp.(sprintf('constMaskSaveValCh%d',ch)));
                 end
                 sStr{idx} = fStr;
                 sVals(idx) = 0;
             end
             bp.(sprintf('constMaskSaveStrCh%d',ch)) = sStr;
             bp.(sprintf('constMaskSaveValCh%d',ch)) = sVals;
-
-%                 sStr = bp.(sprintf('constMaskSaveStrCh%d',ch));
-%                 idx = find(strcmp('hShift',sStr),1);
-%                 if(isempty(idx))
-%                     idx = length(sStr)+1;
-%                     bp.(sprintf('constMaskSaveValCh%d',ch)) = double(bp.(sprintf('constMaskSaveValCh%d',ch)));
-%                 end
-%                 sStr{idx} = 'hShift';
-%                 bp.(sprintf('constMaskSaveStrCh%d',ch)) = sStr;
-%                 bp.(sprintf('constMaskSaveValCh%d',ch))(idx) = 0;
-%                 if(isfield(tmp,'ShiftScatter1'))
-%                     sStr = bp.(sprintf('constMaskSaveStrCh%d',ch));
-%                     idx = find(strcmp('Scatter Shift 1',sStr),1);
-%                     if(isempty(idx))
-%                         idx = length(sStr)+1;
-%                         bp.(sprintf('constMaskSaveValCh%d',ch)) = double(bp.(sprintf('constMaskSaveValCh%d',ch)));
-%                     end
-%                     sStr{idx} = 'ShiftScatter1';
-%                     bp.(sprintf('constMaskSaveStrCh%d',ch)) = sStr;
-%                     bp.(sprintf('constMaskSaveValCh%d',ch))(idx) = 0;
-%                 end                 
-%             end
             this.paramMgrObj.setParamSection('basic_fit',bp,false);
         end
         
@@ -676,26 +607,6 @@ classdef result4Approx < resultFile
             this.loadedChannels(ch,1) = true;
             this.postProcessInitialization(ch);
         end
-        
-        %% output
-%         function result = makeExportStruct(this,ch)
-%             %build the structure with results for export
-% %             [~, fileName, ext] = fileparts(this.myParent.getSourceFile());
-% %             roi = this.myParent.ROICoordinates;
-% %             int = this.myParent.getRawDataFlat(ch);
-% %             if(length(roi) == 4 && ~isempty(int) && size(int,1) >= roi(4) && size(int,2) >= roi(2))
-% %                 int = int(roi(3):roi(4),roi(1):roi(2));
-% %             else
-% %                 int = [];
-% %             end
-%             result = makeExportStruct@resultFile(this,ch);%,this.myParent.getDatasetName(),[fileName ext],roi,int,this.myParent.getReflectionMask(ch));
-%         end        
-        
-%         function exportMatFile(this,ch,folder)
-%              %save results to specific folder
-%              fn = this.getResultFileName(ch,folder);
-%              exportMatFile@resultFile(this,ch,fn);
-%         end
         
     end
     
