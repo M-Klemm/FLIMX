@@ -29,8 +29,8 @@ if(isdeployed())
 else
     %check Matlab version
     nr = version('-release');
-    reqMajor = 2017;
-    reqMinor = 'a';
+    reqMajor = 2018;
+    reqMinor = 'b';
     if(~(str2double(nr(1:4)) > reqMajor || str2double(nr(1:4)) == reqMajor && nr(end) >= reqMinor))
         uiwait(errordlg(sprintf('Your MATLAB version is R%s. This software requires MATLAB R%d%s or newer. Please update your MATLAB installation.',nr,reqMajor,reqMinor),'MATLAB version too old','modal'));
         return

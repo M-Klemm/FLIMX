@@ -472,9 +472,11 @@ classdef studyIS < handle
                 tmp{idxNr,2} = dType;
                 tmp{idxNr,3} = dTypeNr;
             end
-            tmp{find(idxNr,1),4} = colorBorders;
-            this.resultColorScaling(idx) = {tmp};
-            this.setDirty(true);
+            if(isempty(tmp) || isempty(tmp{find(idxNr,1),4}) || any(tmp{find(idxNr,1),4} ~= colorBorders,'all'))
+                tmp{find(idxNr,1),4} = colorBorders;
+                this.resultColorScaling(idx) = {tmp};
+                this.setDirty(true);
+            end
         end
         
         function setResultCrossSection(this,subName,dim,csDef)
