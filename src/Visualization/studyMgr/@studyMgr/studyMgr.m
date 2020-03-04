@@ -383,7 +383,7 @@ classdef studyMgr < handle
                     %clear subject from source study
                     this.fdt.removeSubject(this.myClipboard{2},subName);
                 end
-                this.fdt.checkStudyFiles(this.myClipboard{2});
+                %this.fdt.checkStudyFiles(this.myClipboard{2});
                 this.fdt.saveStudy(this.myClipboard{2});
             end
             this.fdt.checkConditionRef(destinationStudyName,[]);
@@ -435,7 +435,7 @@ classdef studyMgr < handle
             %executes on figure close
             %close StudyManager
             studies = this.fdt.getAllStudyNames();
-            askUser = true;            
+            askUser = false;            
             for i = 1:length(studies)
                 if(~isempty(studies{i}) && any(this.fdt.checkStudyDirtyFlag(studies{i})))
                     if(askUser)
@@ -448,13 +448,13 @@ classdef studyMgr < handle
                                 this.fdt.saveStudy(studies{i});
                             case 'No'
                                 %load unmodified study and check files
-                                this.fdt.loadStudy(studies{i});
+                                %this.fdt.loadStudy(studies{i});
                         end
                     else
                         %always save changes
                         this.fdt.saveStudy(studies{i});
                     end
-                    this.fdt.checkStudyFiles(studies{i});
+                    %this.fdt.checkStudyFiles(studies{i});
                 end
             end
             if(~isempty(this.visHandles) && ishandle(this.visHandles.studyMgrFigure))

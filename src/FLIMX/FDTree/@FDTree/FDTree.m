@@ -49,6 +49,7 @@ classdef FDTree < FDTreeNode
     properties (Dependent = true)
         FLIMXParamMgrObj = [];
         maxMemoryCacheSize = 0;
+        hashEngine = [];        
     end
     
     methods
@@ -1262,6 +1263,11 @@ classdef FDTree < FDTreeNode
             out = this.myMaxMemoryCacheSize;
         end
         
+        function out = get.hashEngine(this)
+            %return FLIMX hash engine
+            out = this.myParent.hashEngine;
+        end
+        
         function set.maxMemoryCacheSize(this,val)
             %get maximum memory size used to cache data
             if(isnumeric(val) && val > 250e6)
@@ -1548,13 +1554,13 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function checkStudyFiles(this,studyID)
-            %check data files on disk for subject and update this.subjectFiles
-            study = this.getChild(studyID);
-            if(~isempty(study))
-                study.checkStudyFiles();
-            end
-        end
+%         function checkStudyFiles(this,studyID)
+%             %check data files on disk for subject and update this.subjectFiles
+%             study = this.getChild(studyID);
+%             if(~isempty(study))
+%                 study.checkStudyFiles();
+%             end
+%         end
         
     end %methods
     

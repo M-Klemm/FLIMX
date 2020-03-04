@@ -37,9 +37,10 @@ classdef FDTStudy < FDTreeNode
         myConditionStatistics = [];  %merged objects to save statistics
         IRFInfo = [];           %struct to save information on the used IRF
         dirtyFlag = false;        %flag is true if something of the study was changed
-        isLoaded = false;       %flag is true if study was loaded from disk
+        isLoaded = false;       %flag is true if study was loaded from disk        
     end
     properties (Dependent = true)
+        hashEngine = [];        %engine for md5 hash
         myDir = '';             %study's working directory
         FLIMXParamMgrObj = [];
         isDirty = false;        %flag is true if something of the study was changed
@@ -59,7 +60,7 @@ classdef FDTStudy < FDTreeNode
                 end
             end
             this.myStudyInfoSet = studyIS(this);
-            this.myConditionStatistics = LinkedList();
+            this.myConditionStatistics = LinkedList();            
         end
         
         function  pingLRUCacheTable(this,obj)
@@ -90,10 +91,28 @@ classdef FDTStudy < FDTreeNode
             try
                 import = load(fullfile(this.myDir,'studyData.mat'));
             catch
-                %file not found
-                return
+                bakFile = fullfile(this.myDir,'studyData.bak');
+                if(~isempty(dir(bakFile)))
+                    try
+                        import = load(bakFile);
+                    catch
+                        %file not found
+                        return
+                    end
+                else
+                    return
+                end
+            end            
+            if(isfield(import,'checksum') && ~isempty(import.checksum) && ~isempty(this.hashEngine))
+                this.hashEngine.reset();
+                this.hashEngine.update(getByteStreamFromArray(import.export));
+                myImportHash = typecast(this.hashEngine.digest, 'uint8');
+                if(length(myImportHash(:)) ~= length(import.checksum(:)) || ~all(myImportHash(:) == import.checksum(:)))
+                    warning('Loading study from %s failed because hash values did not match.\n', this.myDir);
+                    %return
+                end
             end
-            import = import.export;            
+            import = import.export;
             if(import.revision < this.revision)
                 %version problem
                 import = this.updateStudyVer(import);
@@ -754,6 +773,8 @@ classdef FDTStudy < FDTreeNode
                 this.myStudyInfoSet.removeSubject(subjectID);                
                 this.clearObjMerged();
             end
+            %new
+            this.clearSubjectFiles(subjectID);
         end
         
         function removeMVGroup(this,MVGroupID)
@@ -885,12 +906,39 @@ classdef FDTStudy < FDTreeNode
         %% output functions
         function save(this)
             %save current study data to disk
+            if(~this.isDirty || isMultipleCall())
+                return
+            end
             export = this.myStudyInfoSet.makeExportStruct([]);
             export.name = this.name;
             export.revision = this.revision;
-            save(fullfile(this.myDir,'studyData.mat'),'export');
+            matFile = fullfile(this.myDir,'studyData.mat');
+            bakFile = fullfile(this.myDir,'studyData.bak');
+            if(~isempty(this.hashEngine))
+                this.hashEngine.reset();
+                this.hashEngine.update(getByteStreamFromArray(export));
+                checksum = typecast(this.hashEngine.digest, 'uint8');
+            else
+                checksum = [];
+            end
+            %try to rename old file
+            if(~isempty(dir(bakFile)))
+                try
+                    delete(bakFile);
+                catch ME
+                end
+            end
+            if(~isempty(dir(matFile)))
+                [renameStatus,renameMsg,renameMsgID] = movefile(matFile,bakFile);
+                if(~renameStatus)
+                    warning('Warning: Unable to rename %s to file %s', matFile,bakFile);
+                    %delete(fileMat);
+                end
+            end
+            save(matFile,'export','checksum');
             %remove unnecessary files
-            this.checkStudyFiles(); %this will set dirty flag to false
+            %this.checkStudyFiles(); %this will set dirty flag to false
+            this.dirtyFlag = false;
             if(this.isDirty)
                 %there are changes in subjects -> save them
                 for i = 1:this.nrChildren
@@ -1756,6 +1804,11 @@ classdef FDTStudy < FDTreeNode
             out = fullfile(this.myParent.getWorkingDirectory(),this.name);
         end
         
+        function out = get.hashEngine(this)
+            %return FLIMX hash engine
+            out = this.myParent.hashEngine;
+        end
+        
         function out = getWorkingDirectory(this)
             %return this studies working directory
             out = this.myDir;
@@ -1835,22 +1888,22 @@ classdef FDTStudy < FDTreeNode
 %             end
 %         end
         
-        function checkStudyFiles(this)
-            %check study and its corresponding files on hard disk
-            curDir = dir(this.myDir);
-            SubFiles = {curDir.name};
-            for i = 3:size(SubFiles,2)
-                subDir = fullfile(this.myDir,SubFiles{i});
-                if(isfolder(subDir))
-                    idx = this.myStudyInfoSet.subName2idx(SubFiles{i});
-                    if(isempty(idx))
-                        %something on disk, but we don't know the subject
-                        [status, message, messageid] = rmdir(subDir,'s');
-                    end
-                end
-            end
-            this.dirtyFlag = false;
-        end
+%         function checkStudyFiles(this)
+%             %check study and its corresponding files on hard disk
+%             curDir = dir(this.myDir);
+%             SubFiles = {curDir.name};
+%             for i = 3:size(SubFiles,2)
+%                 subDir = fullfile(this.myDir,SubFiles{i});
+%                 if(isfolder(subDir))
+%                     idx = this.myStudyInfoSet.subName2idx(SubFiles{i});
+%                     if(isempty(idx))
+%                         %something on disk, but we don't know the subject
+%                         %[status, message, messageid] = rmdir(subDir,'s');
+%                     end
+%                 end
+%             end
+%             %this.dirtyFlag = false;
+%         end
         
         function checkSubjectFiles(this,subjectID)
             %check data files on disk for subject and update this.subjectFiles
@@ -1872,7 +1925,7 @@ classdef FDTStudy < FDTreeNode
                 idx = this.myStudyInfoSet.subName2idx(subjectID);
                 if(isempty(idx))
                     %we don't know this subject, try to clear it
-                    this.clearSubjectFiles(subjectID)
+                    %this.clearSubjectFiles(subjectID)
                     return
                 elseif(~isempty(idx) && ~isfolder(subDir))
                     %we know the subject but there is nothing on disk

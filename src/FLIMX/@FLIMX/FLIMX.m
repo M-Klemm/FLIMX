@@ -32,7 +32,7 @@ classdef FLIMX < handle
     % @brief    A class to represent the base class FLIM eXplorer, which stores all other objects
     %
     properties(GetAccess = public, SetAccess = private)
-        fdt = [];        %FDTree object, our datastorage
+        fdt = [];           %FDTree object, our datastorage
         irfMgr = [];        %object to handle IRF access
         paramMgr = [];      %parameter objects
         curSubject = [];    %current subject
@@ -43,35 +43,37 @@ classdef FLIMX < handle
         FLIMFitObj = [];    %approximation object
         sDDMgrObj = [];     %only temporary: manage synthetic datasets
         batchJobMgrObj = [];%batch job manager
+        hashEngineObj = []; %MD5 hash engine
         
         %GUIs
-        FLIMFitGUIObj = []; %visualization of approximation
-        FLIMVisGUIObj = []; %extended visualization and statistics
-        studyMgrGUIObj = [];%manager for subject studies
-        irfMgrGUIObj = [];  %GUI to handle IRF access
-        batchJobMgrGUIObj = [];%batch job manager GUI
-        importMeasurementGUIObj = [];  %measurement import wizard
-        importResultGUIObj = [];  %result import wizard
-        matlabPoolTimer = [];
-        splashScreenGUIObj = [];
+        FLIMFitGUIObj = [];             %visualization of approximation
+        FLIMVisGUIObj = [];             %extended visualization and statistics
+        studyMgrGUIObj = [];            %manager for subject studies
+        irfMgrGUIObj = [];              %GUI to handle IRF access
+        batchJobMgrGUIObj = [];         %batch job manager GUI
+        importMeasurementGUIObj = [];   %measurement import wizard
+        importResultGUIObj = [];        %result import wizard
+        matlabPoolTimer = [];           %timer to prevent MATLAB pool shutdown
+        splashScreenGUIObj = [];        %splash screen window for FLIMX startup
     end
 
     properties (Dependent = true)
-        configPath = '';
+        configPath = ''; %path to config file
         %objects
         FLIMFit = [];    %approximation object
         sDDMgr = [];     %only temporary: manage synthetic datasets
-        batchJobMgr = [];   %batch job manager
-        logger = [];
+        batchJobMgr = [];%batch job manager
+        logger = [];     %log object
+        hashEngine = []; %MD5 hash engine
 
-        FLIMFitGUI = [];     %visualization of approximation
-        FLIMVisGUI = []; %extended visualization and statistics
-        studyMgrGUI = [];%manager for subject studies
-        irfMgrGUI = [];  %GUI to handle IRF access
-        batchJobMgrGUI = [];%batch job manager GUI
-        importGUI = [];  %import wizard
-        importResultGUI = [];  %result import wizard
-        splashScreenGUI = []; %splash screen
+        FLIMFitGUI = [];        %visualization of approximation
+        FLIMVisGUI = [];        %extended visualization and statistics
+        studyMgrGUI = [];       %manager for subject studies
+        irfMgrGUI = [];         %GUI to handle IRF access
+        batchJobMgrGUI = [];    %batch job manager GUI
+        importGUI = [];         %import wizard
+        importResultGUI = [];   %result import wizard
+        splashScreenGUI = [];   %splash screen
     end
 
     methods
@@ -192,7 +194,7 @@ classdef FLIMX < handle
             if(forceFlag || (~this.FLIMFitGUI.isOpenVisWnd() && ~this.FLIMVisGUI.isOpenVisWnd()))
                 %do some cleanup
                 studies = this.fdt.getAllStudyNames();
-                askUser = true;
+                askUser = false;
                 for i = 1:length(studies)
                     if(~isempty(studies{i}) && any(this.fdt.checkStudyDirtyFlag(studies{i})))
                         if(askUser)
@@ -211,7 +213,7 @@ classdef FLIMX < handle
                             %always save changes
                             this.fdt.saveStudy(studies{i});
                         end
-                        this.fdt.checkStudyFiles(studies{i});
+                        %this.fdt.checkStudyFiles(studies{i});
                     end
                 end
                 if(~isempty(this.sDDMgrObj) && this.sDDMgrObj.anyDirtySDDs())
@@ -344,6 +346,18 @@ classdef FLIMX < handle
                 this.importResultGUIObj = FLIMXFitResultImport(this);
             end
             out = this.importResultGUIObj;
+        end
+        
+        function out = get.hashEngine(this)
+            %return FLIMX hash engine
+            if(isempty(this.hashEngineObj))
+                try
+                    this.hashEngineObj = java.security.MessageDigest.getInstance('MD5');
+                catch
+                    this.hashEngineObj = [];
+                end
+            end
+            out = this.hashEngineObj;
         end
 
         function saveCurResultInFDT(this)
@@ -494,7 +508,7 @@ classdef FLIMX < handle
             out.config_revision = 269;
             out.client_revision_major = 4;
             out.client_revision_minor = 14;
-            out.client_revision_fix = 3;
+            out.client_revision_fix = 5;
             out.core_revision = 419;
             out.results_revision = 256;
             out.measurement_revision = 205;

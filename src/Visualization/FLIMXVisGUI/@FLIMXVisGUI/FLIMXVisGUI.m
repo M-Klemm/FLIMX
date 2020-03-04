@@ -1499,14 +1499,13 @@ classdef FLIMXVisGUI < handle
         end
         
         function GUI_studySet_Callback(this,hObject,eventdata)
-            %select study                        
+            %select study
             s = 'r';
-            if(strcmp(get(hObject,'Tag'),'study_l_pop'))                
-                s = 'l';            
+            if(strcmp(get(hObject,'Tag'),'study_l_pop'))
+                s = 'l';
             end
             this.setupGUI();
-            this.updateGUI(s);            
-            
+            this.updateGUI(s);
         end
         
         function GUI_conditionSet_Callback(this,hObject,eventdata)

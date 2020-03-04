@@ -562,7 +562,7 @@ classdef FDTSubject < fluoSubject
                 end
                 %load result
                 if(~this.channelResultIsLoaded(ch) || forceLoadFlag)
-                    if(~any(this.myResult.filesOnHDD(:)) && any(this.myResult.pixelApproximated(:)))
+                    if(~any(this.myResult.filesOnHDD(:)) && ~any(this.myResult.pixelApproximated(:)))
                         %nothing to do
                         this.updateShortProgress(0,'');
                         return
