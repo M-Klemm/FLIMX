@@ -60,9 +60,12 @@ classdef StatsGroupComparison < handle
         currentGrpIdx = 0;
         currentRowHeaders = cell(0,0);
         currentColumnHeaders = cell(0,0);
-        ch = 1;
-        dType = '';
-        id = 0;
+        ch1 = 1;
+        ch2 = 1;
+        dType1 = '';
+        dType2 = '';
+        id1 = 0;
+        id2 = 0;
         alpha = 0.05;
         sortP = true;
         HistSumScale = 1;
@@ -101,8 +104,8 @@ classdef StatsGroupComparison < handle
             set(this.visHandles.popupSelView2,'Callback',@this.GUI_SelView2Pop_Callback);
             set(this.visHandles.buttonStudyPColor,'Callback',@this.GUI_ColorButton_Callback);
             set(this.visHandles.buttonStudyCColor,'Callback',@this.GUI_ColorButton_Callback);
-            set(this.visHandles.popupSelCh,'Callback',@this.GUI_SelChPop_Callback);
-            set(this.visHandles.popupSelParam,'Callback',@this.GUI_SelParamPop_Callback);                      
+            set(this.visHandles.popupSelCh1,'Callback',@this.GUI_SelChPop_Callback);
+            set(this.visHandles.popupSelParam1,'Callback',@this.GUI_SelParamPop_Callback);                      
             set(this.visHandles.popupSelROIType,'Callback',@this.GUI_SelROITypePop_Callback);
             set(this.visHandles.popupSelROISubType,'Callback',@this.GUI_SelROITypePop_Callback);
             %test method
@@ -303,8 +306,16 @@ classdef StatsGroupComparison < handle
             [file,path] = uiputfile('*.xls','Export Data in Excel Fileformat...');
             if ~file ; return ; end
             fn = fullfile(path,file);
-            exportExcel(fn,this.makeExcelExortData(),[],[],...
-                sprintf('%s %d(%s - %s)',this.dType,this.id,this.study1,this.study2),sprintf('%s %d (centers)',this.dType,this.id));                        
+            this.clearResults();
+            this.updateGUI();
+            if(strcmp(this.dType1,this.dType2) && this.id1 == this.id2)
+                sheetName = sprintf('%s %d(%s - %s)',this.dType1,this.id1,this.study1,this.study2);
+                tableName = sprintf('%s %d (centers)',this.dType1,this.id1);                
+            else
+                sheetName = sprintf('%s%d(%s) - %s%d(%s)',this.dType1,this.id1,this.study1,this.dType2,this.id2,this.study2);
+                tableName = sprintf('%s%d-%s%d (centers)',this.dType1,this.id1,this.dType2,this.id2); 
+            end
+            exportExcel(fn,this.makeExcelExortData(),[],[],sheetName,tableName);
         end
         
         function menuExcelExportAllParams_Callback(this,hObject,eventdata)
@@ -315,16 +326,62 @@ classdef StatsGroupComparison < handle
             [file,path] = uiputfile('*.xls','Export Data in Excel Fileformat...');
             if ~file ; return ; end
             fn = fullfile(path,file);
-            chObjStr = get(this.visHandles.popupSelParam,'String');
+            chObjStr1 = get(this.visHandles.popupSelParam1,'String');
+            chObjStr2 = get(this.visHandles.popupSelParam2,'String');
+            chObjStr = intersect(chObjStr1, chObjStr2);
             whitelist = {'AmplitudePercent','Tau','Q','RAUC'};
-            for i = 1:length(chObjStr)
-                set(this.visHandles.popupSelParam,'Value',i);
-                GUI_SelParamPop_Callback(this,this.visHandles.popupSelParam,[]);
-                if(any(strcmp(whitelist, this.dType)))                    
-                    exportExcel(fn,this.makeExcelExortData(),[],[],...
-                        sprintf('%s %d(%s - %s)',this.dType,this.id,this.study1,this.study2),sprintf('%s %d (centers)',this.dType,this.id));
+            set(this.visHandles.popupSelParam1,'Enable','off');
+            set(this.visHandles.popupSelStudy1,'Enable','off');
+            set(this.visHandles.popupSelView1,'Enable','off');
+            set(this.visHandles.popupSelCh1,'Enable','off');
+            set(this.visHandles.popupSelParam2,'Enable','off');
+            set(this.visHandles.popupSelStudy2,'Enable','off');
+            set(this.visHandles.popupSelView2,'Enable','off');
+            set(this.visHandles.popupSelCh2,'Enable','off');
+            set(this.visHandles.popupSelROIType,'Enable','off');
+            set(this.visHandles.popupSelROISubType,'Enable','off');
+            set(this.visHandles.popupSelROIVicinity,'Enable','off');
+            set(this.visHandles.popupTestSel,'Enable','off');
+            set(this.visHandles.editAlpha,'Enable','off');            
+            set(this.visHandles.checkNonZeroRowCnt,'Enable','off');
+            set(this.visHandles.editNonZeroRowCnt,'Enable','off');
+            set(this.visHandles.checkSubstractRowMax,'Enable','off');
+            set(this.visHandles.editSubstractRowMax,'Enable','off');
+            set(this.visHandles.popupExtAnalysis,'Enable','off');            
+            try
+                for i = 1:length(chObjStr)
+                    idx1 = find(strcmp(chObjStr{i},chObjStr1),1);
+                    idx2 = find(strcmp(chObjStr{i},chObjStr2),1);
+                    set(this.visHandles.popupSelParam1,'Value',idx1);
+                    set(this.visHandles.popupSelParam2,'Value',idx2);
+                    GUI_SelParamPop_Callback(this,this.visHandles.popupSelParam1,[]);
+                    if(any(strcmp(whitelist, this.dType1)))
+                        this.clearResults();
+                        this.updateGUI();
+                        exportExcel(fn,this.makeExcelExortData(),[],[],...
+                            sprintf('%s %d(%s - %s)',this.dType1,this.id1,this.study1,this.study2),sprintf('%s %d (centers)',this.dType1,this.id1));
+                    end
                 end
+            catch ME
             end
+            set(this.visHandles.popupSelParam1,'Enable','on');
+            set(this.visHandles.popupSelStudy1,'Enable','on');
+            set(this.visHandles.popupSelView1,'Enable','on');
+            set(this.visHandles.popupSelCh1,'Enable','on');
+            set(this.visHandles.popupSelParam2,'Enable','on');
+            set(this.visHandles.popupSelStudy2,'Enable','on');
+            set(this.visHandles.popupSelView2,'Enable','on');
+            set(this.visHandles.popupSelCh2,'Enable','on');
+            set(this.visHandles.popupSelROIType,'Enable','on');
+            set(this.visHandles.popupSelROISubType,'Enable','on');
+            set(this.visHandles.popupSelROIVicinity,'Enable','on');
+            set(this.visHandles.popupTestSel,'Enable','on');
+            set(this.visHandles.editAlpha,'Enable','on');            
+            set(this.visHandles.checkNonZeroRowCnt,'Enable','on');
+            set(this.visHandles.editNonZeroRowCnt,'Enable','on');
+            set(this.visHandles.checkSubstractRowMax,'Enable','on');
+            set(this.visHandles.editSubstractRowMax,'Enable','on');
+            set(this.visHandles.popupExtAnalysis,'Enable','on');  
         end
         
         function out = makeExcelExortData(this)
@@ -421,7 +478,7 @@ classdef StatsGroupComparison < handle
             ds1 = this.visObj.fdt.getAllSubjectNames(this.study1,this.condition1);
             if(~isempty(ds1))
                 ch1 = this.visObj.fdt.getChStr(this.study1,ds1{1});
-                coStr = this.visObj.fdt.getChObjStr(this.study1,ds1{1},this.ch);
+                coStr1 = this.visObj.fdt.getChObjStr(this.study1,ds1{1},this.ch1);
                 allROT = this.visObj.fdt.getResultROICoordinates(this.study1,ds1{1},[]);
                 if(isempty(allROT))
                     allROT = ROICtrl.getDefaultROIStruct();
@@ -429,21 +486,23 @@ classdef StatsGroupComparison < handle
                 allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
             else
                 ch1 = [];
-                coStr = 'param';
+                coStr1 = 'param';
                 allROIStr = {ROICtrl.ROIType2ROIItem(0)};
             end
             ds2 = this.visObj.fdt.getAllSubjectNames(this.study2,this.condition2);
             if(~isempty(ds2))
                 ch2 = this.visObj.fdt.getChStr(this.study2,ds2{1});
-                coStr = intersect(coStr,this.visObj.fdt.getChObjStr(this.study2,ds2{1},this.ch));
-            else
+                coStr2 = this.visObj.fdt.getChObjStr(this.study2,ds2{1},this.ch2);
+            else                
                 ch2 = [];
+                coStr2 = 'param';
             end
             chStr = unique([ch1; ch2]);
             if(isempty(chStr))
                 chStr = 'Ch 1';
             end
-            set(this.visHandles.popupSelCh,'String',chStr,'Value',min(length(chStr),get(this.visHandles.popupSelCh,'Value')));
+            set(this.visHandles.popupSelCh1,'String',chStr,'Value',min(length(chStr),get(this.visHandles.popupSelCh1,'Value')));
+            set(this.visHandles.popupSelCh2,'String',chStr,'Value',min(length(chStr),get(this.visHandles.popupSelCh2,'Value')));
             %ROI
             set(this.visHandles.popupSelROIType,'String',allROIStr,'Value',min(this.visHandles.popupSelROIType.Value,length(allROIStr)));
             rt = this.ROIType;
@@ -458,19 +517,33 @@ classdef StatsGroupComparison < handle
             end
             set(this.visHandles.popupSelROIVicinity,'Visible',flag);
             %params
-            if(isempty(coStr))
-                set(this.visHandles.popupSelParam,'String','FLIM param','Value',1);
+            if(isempty(coStr1))
+                set(this.visHandles.popupSelParam1,'String','FLIM param','Value',1);
             else
-                oldPStr = get(this.visHandles.popupSelParam,'String');
+                oldPStr = get(this.visHandles.popupSelParam1,'String');
                 if(iscell(oldPStr) && ~isempty(oldPStr))
-                    oldPStr = oldPStr(get(this.visHandles.popupSelParam,'Value'));
+                    oldPStr = oldPStr(get(this.visHandles.popupSelParam1,'Value'));
                 end
                 %try to find oldPStr in new pstr
-                idx = find(strcmp(oldPStr,coStr),1);
+                idx = find(strcmp(oldPStr,coStr1),1);
                 if(isempty(idx))
-                    idx = min(get(this.visHandles.popupSelParam,'Value'),length(coStr));
+                    idx = min(get(this.visHandles.popupSelParam1,'Value'),length(coStr1));
                 end
-                set(this.visHandles.popupSelParam,'String',coStr,'Value',idx);
+                set(this.visHandles.popupSelParam1,'String',coStr1,'Value',idx);
+            end
+            if(isempty(coStr2))
+                set(this.visHandles.popupSelParam2,'String','FLIM param','Value',1);
+            else
+                oldPStr = get(this.visHandles.popupSelParam2,'String');
+                if(iscell(oldPStr) && ~isempty(oldPStr))
+                    oldPStr = oldPStr(get(this.visHandles.popupSelParam2,'Value'));
+                end
+                %try to find oldPStr in new pstr
+                idx = find(strcmp(oldPStr,coStr2),1);
+                if(isempty(idx))
+                    idx = min(get(this.visHandles.popupSelParam2,'Value'),length(coStr2));
+                end
+                set(this.visHandles.popupSelParam2,'String',coStr2,'Value',idx);
             end
             set(this.visHandles.buttonStudyPColor,'Backgroundcolor',this.settings.colorPath);
             set(this.visHandles.buttonStudyCColor,'Backgroundcolor',this.settings.colorControls);
@@ -624,15 +697,15 @@ classdef StatsGroupComparison < handle
                     legend(this.visHandles.axesSumGrps,grpStr);
                     title(this.visHandles.axesSumGrps,'Normalized Group Histograms');
                     title(this.visHandles.axesDiffGrps,'Difference of Group Histograms');
-                    xlabel(this.visHandles.axesSumGrps,sprintf('%s %d',this.dType,this.id));
-                    xlabel(this.visHandles.axesDiffGrps,sprintf('%s %d',this.dType,this.id));
+                    xlabel(this.visHandles.axesSumGrps,sprintf('%s %d',this.dType1,this.id1));
+                    xlabel(this.visHandles.axesDiffGrps,sprintf('%s %d',this.dType1,this.id1));
                 else
                     legend(this.visHandles.axesSumGrps,'off');
                     legend(this.visHandles.axesDiffGrps,'off');
                     title(this.visHandles.axesSumGrps,'remove');
                     title(this.visHandles.axesDiffGrps,'remove');
-                    xlabel(this.visHandles.axesSumGrps,sprintf('%s %d',this.dType,this.id));
-                    xlabel(this.visHandles.axesDiffGrps,sprintf('%s %d',this.dType,this.id));
+                    xlabel(this.visHandles.axesSumGrps,sprintf('%s %d',this.dType1,this.id1));
+                    xlabel(this.visHandles.axesDiffGrps,sprintf('%s %d',this.dType1,this.id1));
                     %                     set(this.visHandles.sumGrpsText,'String',sprintf('Normalized sum of histograms of %s and %s',grpStr{1},grpStr{2}));
                     %                     set(this.visHandles.diffGrpsText,'String',sprintf('Difference of %s and %s',grpStr{1},grpStr{2}));
                 end
@@ -832,7 +905,7 @@ classdef StatsGroupComparison < handle
                 rocdata(1:size(patients,1),1) = patients(:,histClass);
                 rocdata(1:size(patients,1),2) = ones(size(patients,1),1);
                 rocdata(size(patients,1)+1:end,1) = healthy(:,histClass);
-                stats = this.visObj.fdt.getStudyStatistics(this.study1,this.condition1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag,false);
+                stats = this.visObj.fdt.getStudyStatistics(this.study1,this.condition1,this.ch1,this.dType1,this.id1,this.ROIType,this.ROISubType,this.ROIVicinityFlag,false);
                 %we simply use the ROI size of the last subject, which might be wrong, as subjects are not checked to have identical ROI sizes yet
                 %also, it is quite expensive to calculate the study statistics only to get the ROI size
                 this.rocData = roc(rocdata,[],[],false,stats(1,end));
@@ -845,8 +918,8 @@ classdef StatsGroupComparison < handle
             str = get(this.visHandles.popupExtAnalysis,'String');
             str = str{get(this.visHandles.popupExtAnalysis,'Value')};
             if(isempty(this.grpData))
-                this.grpData{1} = this.visObj.fdt.getStudyPayload(this.study1,this.condition1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag,str);
-                this.grpData{2} = this.visObj.fdt.getStudyPayload(this.study2,this.condition2,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag,str);
+                this.grpData{1} = this.visObj.fdt.getStudyPayload(this.study1,this.condition1,this.ch1,this.dType1,this.id1,this.ROIType,this.ROISubType,this.ROIVicinityFlag,str);
+                this.grpData{2} = this.visObj.fdt.getStudyPayload(this.study2,this.condition2,this.ch2,this.dType2,this.id2,this.ROIType,this.ROISubType,this.ROIVicinityFlag,str);
             end
             dataP = this.grpData{1};
             dataC = this.grpData{2};
@@ -918,11 +991,11 @@ classdef StatsGroupComparison < handle
         function makeHistTables(this)
             %make histogram tables
             %first get the centers for all groups
-            centers = unique([this.visObj.fdt.getStudyHistogram(this.study1,this.condition1,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag)...
-                this.visObj.fdt.getStudyHistogram(this.study2,this.condition2,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag)]);
+            centers = unique([this.visObj.fdt.getStudyHistogram(this.study1,this.condition1,this.ch1,this.dType1,this.id1,this.ROIType,this.ROISubType,this.ROIVicinityFlag)...
+                this.visObj.fdt.getStudyHistogram(this.study2,this.condition2,this.ch2,this.dType2,this.id2,this.ROIType,this.ROISubType,this.ROIVicinityFlag)]);
             %now insert each histogram table at the correct position
             for j = 1:2
-                [grpCenters, histMerge, histTable, colDescr] = this.visObj.fdt.getStudyHistogram(eval(sprintf('this.study%d',j)),eval(sprintf('this.condition%d',j)),this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag);
+                [grpCenters, histMerge, histTable, colDescr] = this.visObj.fdt.getStudyHistogram(eval(sprintf('this.study%d',j)),eval(sprintf('this.condition%d',j)),eval(sprintf('this.ch%d',j)),eval(sprintf('this.dType%d',j)),eval(sprintf('this.id%d',j)),this.ROIType,this.ROISubType,this.ROIVicinityFlag);
                 if(~isempty(grpCenters))
                     tab = zeros(length(colDescr),length(centers)); %subjects x classes
                     start = find(centers == grpCenters(1));
@@ -1164,28 +1237,54 @@ classdef StatsGroupComparison < handle
             out = get(this.visHandles.popupDispStudy,'Value');
         end
         
-        function out = get.ch(this)
-            out = get(this.visHandles.popupSelCh,'String');
+        function out = get.ch1(this)
+            out = get(this.visHandles.popupSelCh1,'String');
             if(~ischar(out))
-                out = out{get(this.visHandles.popupSelCh,'Value')};
+                out = out{get(this.visHandles.popupSelCh1,'Value')};
             end
             out = str2double(out(isstrprop(out, 'digit')));
         end
         
-        function dType = get.dType(this)
-            dType = [];
-            out = get(this.visHandles.popupSelParam,'String');
+        function out = get.ch2(this)
+            out = get(this.visHandles.popupSelCh2,'String');
             if(~ischar(out))
-                [dType, ~] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam,'Value')});
-                dType = dType{1};
-            end            
+                out = out{get(this.visHandles.popupSelCh2,'Value')};
+            end
+            out = str2double(out(isstrprop(out, 'digit')));
         end
         
-        function dTypeNr = get.id(this)
-            dTypeNr = [];
-            out = get(this.visHandles.popupSelParam,'String');
+        function dType = get.dType1(this)
+            dType = [];
+            out = get(this.visHandles.popupSelParam1,'String');
             if(~ischar(out))
-                [~, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam,'Value')});
+                [dType, ~] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam1,'Value')});
+                dType = dType{1};
+            end
+        end
+        
+        function dType = get.dType2(this)
+            dType = [];
+            out = get(this.visHandles.popupSelParam2,'String');
+            if(~ischar(out))
+                [dType, ~] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam2,'Value')});
+                dType = dType{1};
+            end
+        end
+        
+        function dTypeNr = get.id1(this)
+            dTypeNr = [];
+            out = get(this.visHandles.popupSelParam1,'String');
+            if(~ischar(out))
+                [~, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam1,'Value')});
+                dTypeNr = dTypeNr(1);
+            end  
+        end
+        
+        function dTypeNr = get.id2(this)
+            dTypeNr = [];
+            out = get(this.visHandles.popupSelParam2,'String');
+            if(~ischar(out))
+                [~, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelParam2,'Value')});
                 dTypeNr = dTypeNr(1);
             end  
         end
