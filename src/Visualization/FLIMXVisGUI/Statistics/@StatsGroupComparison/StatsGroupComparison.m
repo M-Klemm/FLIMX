@@ -105,15 +105,17 @@ classdef StatsGroupComparison < handle
             set(this.visHandles.buttonStudyPColor,'Callback',@this.GUI_ColorButton_Callback);
             set(this.visHandles.buttonStudyCColor,'Callback',@this.GUI_ColorButton_Callback);
             set(this.visHandles.popupSelCh1,'Callback',@this.GUI_SelChPop_Callback);
-            set(this.visHandles.popupSelParam1,'Callback',@this.GUI_SelParamPop_Callback);                      
+            set(this.visHandles.popupSelCh2,'Callback',@this.GUI_SelChPop_Callback);
+            set(this.visHandles.popupSelParam1,'Callback',@this.GUI_SelParamPop_Callback);
+            set(this.visHandles.popupSelParam2,'Callback',@this.GUI_SelParamPop_Callback);
             set(this.visHandles.popupSelROIType,'Callback',@this.GUI_SelROITypePop_Callback);
             set(this.visHandles.popupSelROISubType,'Callback',@this.GUI_SelROITypePop_Callback);
             %test method
             set(this.visHandles.popupTestSel,'Callback',@this.GUI_TestSel_Callback);
-            set(this.visHandles.editAlpha,'Callback',@this.GUI_editAlpha_Callback);  
+            set(this.visHandles.editAlpha,'Callback',@this.GUI_editAlpha_Callback);
             %display
             set(this.visHandles.buttonUpdateGUI,'Callback',@this.GUI_buttonUpdateGUI_Callback);
-            set(this.visHandles.popupDispStudy,'Callback',@this.GUI_DispGrpPop_Callback);            
+            set(this.visHandles.popupDispStudy,'Callback',@this.GUI_DispGrpPop_Callback);
             %p values
             set(this.visHandles.checkNonZeroRowCnt,'Callback',@this.GUI_nonZeroRowCnt_Callback);
             set(this.visHandles.editNonZeroRowCnt,'Callback',@this.GUI_nonZeroRowCnt_Callback);
@@ -555,13 +557,13 @@ classdef StatsGroupComparison < handle
                 set(this.visHandles.ExtendedAnalysisPanel,'Title','ROC Analysis');
                 set(this.visHandles.menuSSRocCurve,'Label','ROC Curve');
                 set(this.visHandles.textExtPopup,'String','Histogram Class');
-                set(this.visHandles.popupExtAnalysis,'String','1','Value',1);
+                set(this.visHandles.popupExtAnalysis,'String','1','Value',1,'Tooltip','Select histgram class for ROC analysis / contingency table');
                 holmVisFlag = 'on';
             else
                 set(this.visHandles.ExtendedAnalysisPanel,'Title','Test Results');
                 set(this.visHandles.menuSSRocCurve,'Label','Box Plots');
                 set(this.visHandles.textExtPopup,'String','Data Source');
-                set(this.visHandles.popupExtAnalysis,'String',{'raw','mean','median'},'Value',min(get(this.visHandles.popupExtAnalysis,'Value'),3));
+                set(this.visHandles.popupExtAnalysis,'String',{'raw','mean','median'},'Value',min(get(this.visHandles.popupExtAnalysis,'Value'),3),'Tooltip','Select data used for statistical tests and boxplots: all data points (''raw''), mean of each subject or median of each subject (''raw'' may consume a lot of memory and can take a few moments to compute depending on the total number of data points)');
                 holmVisFlag = 'off';
             end
             if(get(this.visHandles.checkHighlightSigClass,'Value'))
@@ -601,8 +603,7 @@ classdef StatsGroupComparison < handle
                 drawnow;
             end
             tData = this.getCurrentTableData();
-            this.clearPlots();           
-            
+            this.clearPlots();
             if(isempty(tData))
                 set(this.visHandles.buttonUpdateGUI,'String','Update');
                 return
@@ -634,16 +635,7 @@ classdef StatsGroupComparison < handle
             histIdxEnd = find(~this.columnIgnore,1,'last');
             histData = histData(:,histIdxStart:histIdxEnd);
             grpStr = get(this.visHandles.popupDispStudy,'String');
-            if(~isempty(histData))                
-                xTicklbl = [];
-                %                 yTicklbl = [];
-                %                 if(size(histData,1) > 1)
-                %                     yTicklbl = this.currentRowHeaders;
-                %                 end
-                if(size(histData,2) > 1)
-                    xTicklbl = num2cell(this.histCenters);
-                    xTicklbl = xTicklbl(histIdxStart:histIdxEnd);
-                end
+            if(~isempty(histData))
                 %sum of histograms plot
                 if(this.settings.screenshot)
                     lw = this.visObj.exportParams.plotLinewidth;
@@ -671,7 +663,7 @@ classdef StatsGroupComparison < handle
                     [~,pMinIdx] = min(pV(:));
                     %highlight significant classes
                     for i = 1:length(sig)
-                        if(i==pMinIdx)
+                        if(i == pMinIdx)
                             color = this.settings.colorMostSigClass;
                         else
                             color = this.settings.colorSigClass;
@@ -680,46 +672,51 @@ classdef StatsGroupComparison < handle
                         rectangle('Position',[sig(i)-0.5,hDiffMin,1,abs(hDiffMin-hDiffMax)],'FaceColor',color,'Parent',this.visHandles.axesDiffGrps);
                     end
                 end
-                plot(this.visHandles.axesSumGrps,this.histogramSum{1}(histIdxStart:histIdxEnd),'Color',this.settings.colorPath,'Linewidth',lw);
-                plot(this.visHandles.axesSumGrps,this.histogramSum{2}(histIdxStart:histIdxEnd),'Color',this.settings.colorControls,'Linewidth',lw);
+                idxHist = true(1,length(this.histCenters));
+                idxHist(1:histIdxStart-1) = false;
+                idxHist(histIdxEnd+1:end) = false;
+                idx = this.histogramSum{1} ~= 0 & idxHist;
+                plot(this.visHandles.axesSumGrps,this.histCenters(idx),this.histogramSum{1}(idx),'Color',this.settings.colorPath,'Linewidth',lw);
+                idx = this.histogramSum{2} ~= 0 & idxHist;
+                plot(this.visHandles.axesSumGrps,this.histCenters(idx),this.histogramSum{2}(idx),'Color',this.settings.colorControls,'Linewidth',lw);
                 hold(this.visHandles.axesSumGrps,'off');
                 %diff grps
-                plot(this.visHandles.axesDiffGrps,this.histogramDiff(histIdxStart:histIdxEnd),'Linewidth',lw,'Color',[0 0 0]);
+                idx = this.histogramDiff ~= 0 & idxHist;
+                plot(this.visHandles.axesDiffGrps,this.histCenters(idx),this.histogramDiff(idx),'Linewidth',lw,'Color',[0 0 0]);
                 hold(this.visHandles.axesDiffGrps,'off');
                 if(histIdxEnd-histIdxStart < eps)
                     histIdxEnd = histIdxEnd+0.1;
                 end
-                xlim(this.visHandles.axesSumGrps,[1 histIdxEnd-histIdxStart+1]);%length(this.histogramSum{1})
-                xlim(this.visHandles.axesDiffGrps,[1 histIdxEnd-histIdxStart+1]);%length(this.histogramDiff)
+                xlim(this.visHandles.axesSumGrps,this.histCenters([histIdxStart histIdxEnd]));%length(this.histogramSum{1})
+                xlim(this.visHandles.axesDiffGrps,this.histCenters([histIdxStart histIdxEnd]));%length(this.histogramDiff)
                 ylim(this.visHandles.axesDiffGrps,[hDiffMin hDiffMax]);
                 ylim(this.visHandles.axesSumGrps,[hSumMin hSumMax]);
+                if(~strcmp(this.dType1,this.dType2) || this.id1 ~= this.id2)
+                    xlbl = sprintf('%s %d / %s %d',this.dType1,this.id1,this.dType2,this.id2);
+                else
+                    xlbl = sprintf('%s %d',this.dType1,this.id1);
+                end
                 if(this.settings.screenshot)
                     legend(this.visHandles.axesSumGrps,grpStr);
                     title(this.visHandles.axesSumGrps,'Normalized Group Histograms');
                     title(this.visHandles.axesDiffGrps,'Difference of Group Histograms');
-                    xlabel(this.visHandles.axesSumGrps,sprintf('%s %d',this.dType1,this.id1));
-                    xlabel(this.visHandles.axesDiffGrps,sprintf('%s %d',this.dType1,this.id1));
+                    xlabel(this.visHandles.axesSumGrps,xlbl);
+                    xlabel(this.visHandles.axesDiffGrps,xlbl);
                 else
                     legend(this.visHandles.axesSumGrps,'off');
                     legend(this.visHandles.axesDiffGrps,'off');
                     title(this.visHandles.axesSumGrps,'remove');
                     title(this.visHandles.axesDiffGrps,'remove');
-                    xlabel(this.visHandles.axesSumGrps,sprintf('%s %d',this.dType1,this.id1));
-                    xlabel(this.visHandles.axesDiffGrps,sprintf('%s %d',this.dType1,this.id1));
+                    xlabel(this.visHandles.axesSumGrps,xlbl);
+                    xlabel(this.visHandles.axesDiffGrps,xlbl);
                     %                     set(this.visHandles.sumGrpsText,'String',sprintf('Normalized sum of histograms of %s and %s',grpStr{1},grpStr{2}));
                     %                     set(this.visHandles.diffGrpsText,'String',sprintf('Difference of %s and %s',grpStr{1},grpStr{2}));
                 end
                 %labels
                 axis(this.visHandles.axesSumGrps,'on');
                 axis(this.visHandles.axesDiffGrps,'on');
-                set(this.visHandles.axesSumGrps,'XTickMode','auto');
-                set(this.visHandles.axesDiffGrps,'XTickMode','auto');
-                if(~isempty(xTicklbl))
-                    xtick = unique(fix(get(this.visHandles.axesSumGrps,'XTick')));
-                    set(this.visHandles.axesSumGrps,'XTick',xtick,'XTickLabel',xTicklbl(xtick));
-                    xtick = unique(fix(get(this.visHandles.axesDiffGrps,'XTick')));
-                    set(this.visHandles.axesDiffGrps,'XTick',xtick,'XTickLabel',xTicklbl(xtick));
-                end
+                set(this.visHandles.axesSumGrps,'XTickMode','auto','XTickLabelMode','auto');
+                set(this.visHandles.axesDiffGrps,'XTickMode','auto','XTickLabelMode','auto');                
                 if(get(this.visHandles.popupTestSel,'Value') ~= 5)
                     [h,p,ci,stats] = this.makeSimpleGroupStats();                    
                     tmp = cell(3,2);                    
@@ -754,7 +751,7 @@ classdef StatsGroupComparison < handle
                     end
                     tmp(end+1,1) = cell(1,1);
                     %some descriptive statistics
-                    vals = FLIMXFitGUI.num4disp([mean(this.grpData{1}),std(this.grpData{1}),mean(this.grpData{2}),std(this.grpData{2})]);
+                    vals = FLIMXFitGUI.num4disp([mean(this.grpData{1},'omitnan'),std(this.grpData{1},'omitnan'),mean(this.grpData{2},'omitnan'),std(this.grpData{2},'omitnan')]);
                     if(length(vals) == 4)
                         tmp{end+1,1} = 'Mean PATHOLOGIC';
                         tmp{end,2} = sprintf('%s %s %s',vals{1},char(177),vals{2});
@@ -991,27 +988,45 @@ classdef StatsGroupComparison < handle
         function makeHistTables(this)
             %make histogram tables
             %first get the centers for all groups
-            centers = unique([this.visObj.fdt.getStudyHistogram(this.study1,this.condition1,this.ch1,this.dType1,this.id1,this.ROIType,this.ROISubType,this.ROIVicinityFlag)...
-                this.visObj.fdt.getStudyHistogram(this.study2,this.condition2,this.ch2,this.dType2,this.id2,this.ROIType,this.ROISubType,this.ROIVicinityFlag)]);
+            c1 = this.visObj.fdt.getStudyHistogram(this.study1,this.condition1,this.ch1,this.dType1,this.id1,this.ROIType,this.ROISubType,this.ROIVicinityFlag);
+            c2 = this.visObj.fdt.getStudyHistogram(this.study2,this.condition2,this.ch2,this.dType2,this.id2,this.ROIType,this.ROISubType,this.ROIVicinityFlag);
+            if(~isempty(c1) && length(c1) >= 2)
+                cw1 = c1(2) - c1(1);
+            else
+                cw1 = [];
+            end
+            if(~isempty(c2) && length(c2) >= 2)
+                cw2 = c2(2) - c2(1);
+            else
+                cw2 = [];
+            end
+            if(cw1 == cw2)
+                centers = unique([c1, c2]);
+                equalCWFlag = true;
+            else
+                cw = min(cw1,cw2);
+                centers = min(c1(1),c2(1)) : cw : max(c1(end),c2(end));
+                equalCWFlag = false;
+            end            
             %now insert each histogram table at the correct position
             for j = 1:2
                 [grpCenters, histMerge, histTable, colDescr] = this.visObj.fdt.getStudyHistogram(eval(sprintf('this.study%d',j)),eval(sprintf('this.condition%d',j)),eval(sprintf('this.ch%d',j)),eval(sprintf('this.dType%d',j)),eval(sprintf('this.id%d',j)),this.ROIType,this.ROISubType,this.ROIVicinityFlag);
                 if(~isempty(grpCenters))
                     tab = zeros(length(colDescr),length(centers)); %subjects x classes
-                    start = find(centers == grpCenters(1));
                     if(get(this.visHandles.checkSubstractRowMax,'Value'))
-                        histTable = bsxfun(@minus,histTable,max(histTable,[],2) .* str2double(get(this.visHandles.editSubstractRowMax,'String'))/100);
+                        histTable = bsxfun(@minus,histTable,max(histTable,[],2,'omitnan') .* str2double(get(this.visHandles.editSubstractRowMax,'String'))/100);
                         histTable(histTable < 0) = 0;
                     end
-                    tab(:,start:start+length(grpCenters)-1) = histTable;
+                    [~, idx] = intersect(centers,grpCenters);
+                    tab(:,idx) = histTable;
                     this.histograms(j) = {tab};
                     this.grpNames(j) = {colDescr};
                     %normalized sum of group histogram                   
-                    tab = sum(this.histograms{j},1);
+                    tab = sum(tab,1);
                     %summenhist durch anzahl probanden teilen = mittleres
                     switch this.HistSumScale
                         case 1 %maximum
-                            tab = tab./max(tab(:));
+                            tab = tab./max(tab(:),[],'omitnan');
                         case 2 %number of subjects
                             tab = tab./length(colDescr);
                     end
@@ -1029,7 +1044,13 @@ classdef StatsGroupComparison < handle
                 this.histogramDiff = [];
             else
                 this.histCenters = centers;
-                this.histogramDiff = this.histogramSum{1} - this.histogramSum{2};
+                if(equalCWFlag)
+                    this.histogramDiff = this.histogramSum{1} - this.histogramSum{2};
+                else
+                    idx = this.histogramSum{1} ~= 0 & this.histogramSum{2} ~= 0;
+                    this.histogramDiff = zeros(1,length(centers));
+                    this.histogramDiff(idx) = this.histogramSum{1}(idx) - this.histogramSum{2}(idx);
+                end
             end
         end
         

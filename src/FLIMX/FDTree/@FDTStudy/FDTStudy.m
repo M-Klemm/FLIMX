@@ -1353,7 +1353,7 @@ classdef FDTStudy < FDTreeNode
             %get existing FLIMitems in channel + arithmetic images (which may have not been computed yet)
             str = this.getArithmeticImageDefinition();
             if(isempty(str{1}))
-                str = subject.getChObjStr(ch);
+                str = sort(subject.getChObjStr(ch));
             else
                 str = unique([subject.getChObjStr(ch);str]);
             end
@@ -1452,7 +1452,7 @@ classdef FDTStudy < FDTreeNode
                         return
                     end
                     ROICoordinates = this.getResultROICoordinates(hg{1}.subjectName,ROIType);
-                    [~, histMerge, centers]= hg{1}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
+                    [~, histMerge, centers] = hg{1}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
                     histTable = zeros(length(hg),length(centers));
                     colDescription = cell(length(hg),1);
                     for i = 1:length(hg)
