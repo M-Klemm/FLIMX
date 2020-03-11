@@ -102,23 +102,13 @@ end
 if(any(stretchedExpMask))
     idxSExp = repmat(stretchedExpMask(:),nVecs,1);
     betas = reshape(betas,[],1);
-    exponentialsLong(:,idxExponentialsLong & idxSExp) = exp(-bsxfun(@power,bsxfun(@times,t(:,1:sum(idxExponentialsLong & idxSExp)),taus(idxExponentialsLong & idxSExp)'),betas(idxSExp)'));
-    exponentialsLong(:,idxExponentialsLong & ~idxSExp) = exp(bsxfun(@times,-t(:,1:sum(idxExponentialsLong & ~idxSExp)),taus(idxExponentialsLong & ~idxSExp)'));
-%     for i = 1:length(stretchedExpMask)
-%         if(stretchedExpMask(i))
-%             %stretched exponentials
-%             exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@power,bsxfun(@times, t(:,1:nVecs), taus(i,:)), betas(i,:)));
-%         else
-%             %'normal' exponentials
-%             exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@times, t(:,1:nVecs), taus(i,:)));
-%         end
-%     end
+    exponentialsLong(:,idxExponentialsLong & idxSExp) = -t(:,1:sum(idxExponentialsLong & idxSExp)) .* (taus(idxExponentialsLong & idxSExp).^ betas(idxSExp))';
+    if(~all(idxSExp))
+        exponentialsLong(:,idxExponentialsLong & ~idxSExp) = -t(:,1:sum(idxExponentialsLong & ~idxSExp)) .* taus(idxExponentialsLong & ~idxSExp)';
+    end
 else
     exponentialsLong(:,idxExponentialsLong) = exp(bsxfun(@times,-t(:,1:nExp*nVecs),taus'));
 end
-% for i = find(~stretchedExpMask)
-%     exponentialsLong(:,i,1:nVecs) = exp(-bsxfun(@times, t(:,1:nVecs), taus(i,:)));
-% end
 % if(scatterEnable && scatterIRF)
 %     %irf as scatter data
 %     nExp = nExp+1;
