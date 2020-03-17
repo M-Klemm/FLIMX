@@ -268,7 +268,7 @@ classdef StatsDescriptive < handle
                 
         function GUI_buttonExcelExport_Callback(this,hObject,eventdata)
             %create xls file with current statistics data
-            [file,path] = uiputfile('*.xls','Export Data in Excel Fileformat...');
+            [file,path] = uiputfile({'*.xlsx','Excel file (*.xlsx)';'*.xls','Excel 97-2003 file (*.xls)'},'Export Data in Excel Fileformat...');
             if ~file ; return ; end
             fn = fullfile(path,file);
             %switch of GUI elements
@@ -756,7 +756,7 @@ classdef StatsDescriptive < handle
                 end
                 if(rt > 1000 && rt < 2000)
                     str = this.visHandles.popupSelROISubType.String;
-                    out = [out rtStr str{this.ROISubType} '_'];
+                    out = [out str{this.ROISubType} '_']; %[out rtStr str{this.ROISubType} '_']
                 else
                     out = [out rtStr '_'];
                 end

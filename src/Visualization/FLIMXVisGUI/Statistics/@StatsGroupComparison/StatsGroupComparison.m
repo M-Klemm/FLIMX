@@ -305,7 +305,7 @@ classdef StatsGroupComparison < handle
             if(isempty(this.histCenters))
                 return
             end
-            [file,path] = uiputfile('*.xls','Export Data in Excel Fileformat...');
+            [file,path] = uiputfile({'*.xlsx','Excel file (*.xlsx)';'*.xls','Excel 97-2003 file (*.xls)'},'Export Data in Excel Fileformat...');
             if ~file ; return ; end
             fn = fullfile(path,file);
             this.clearResults();
@@ -325,7 +325,7 @@ classdef StatsGroupComparison < handle
             if(isempty(this.histCenters))
                 return
             end
-            [file,path] = uiputfile('*.xls','Export Data in Excel Fileformat...');
+            [file,path] = uiputfile({'*.xlsx','Excel file (*.xlsx)';'*.xls','Excel 97-2003 file (*.xls)'},'Export Data in Excel Fileformat...');
             if ~file ; return ; end
             fn = fullfile(path,file);
             chObjStr1 = get(this.visHandles.popupSelParam1,'String');

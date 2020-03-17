@@ -33,11 +33,6 @@ function exportExcel(fn,data,columnHeader,rowHeader,sheetName,tableName)
 %
 %input arguments: filename, data, columnHeader, rowHeader, sheetName, tableName
 [pathstr, name, ext] = fileparts(fn);
-if(~(strcmp(ext,'.xls') || strcmp(ext,'.xlsx')))
-    name = [name ext];
-    ext = '.xls';
-    fn = fullfile(pathstr,[name ext]);
-end
 if(~iscell(data))
     data = num2cell(data);
 end
@@ -75,7 +70,8 @@ if(parts > 1)
 end
 warning('off','MATLAB:xlswrite:AddSheet');
 try
-    xlswrite(fn, ex,sheetName,'A1'); %, sheet, range) %write a sheet and to specific position in sheet
+    %xlswrite(fn, ex,sheetName,'A1'); %, sheet, range) %write a sheet and to specific position in sheet
+    writecell(ex,fn,'FileType','spreadsheet','Sheet',sheetName,'Range','A1'); %write a sheet and to specific position in sheet
 catch ME
     errordlg(sprintf('Exporting Excel file failed. Is the target file still opened in Excel?\n\nError Code: ''%s''',ME.message),'Error: Excel Export failed','modal');
 end

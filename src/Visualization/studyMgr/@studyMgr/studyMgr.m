@@ -1355,7 +1355,7 @@ classdef studyMgr < handle
                 return
             end
             
-            [file,path] = uiputfile('*.xls','Export Subject Data in Excel Fileformat...');
+            [file,path] = uiputfile({'*.xlsx','Excel file (*.xlsx)';'*.xls','Excel 97-2003 file (*.xls)'},'Export Data in Excel Fileformat...');
             if ~file ; return ; end
             fn = fullfile(path,file);
             

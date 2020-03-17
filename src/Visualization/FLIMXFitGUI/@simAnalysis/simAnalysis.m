@@ -1661,7 +1661,7 @@ classdef simAnalysis < handle
             end
             
             %get file name
-            [file path] = uiputfile({'*.xls','Excel file (*.xls)'},'Export to Excel file');
+            [file, path] = uiputfile({'*.xlsx','Excel file (*.xlsx)';'*.xls','Excel 97-2003 file (*.xls)'},'Export Data in Excel Fileformat...');
             if(file==0)
                 return;
             end
@@ -1691,7 +1691,7 @@ classdef simAnalysis < handle
                 return
             end
                        
-            [file, path] = uiputfile({'*.xls','Excel file (*.xls)'},'Export to Excel file');
+            [file, path] = uiputfile({'*.xlsx','Excel file (*.xlsx)';'*.xls','Excel 97-2003 file (*.xls)'},'Export Data in Excel Fileformat...');
             if(file==0)
                 return;
             end
