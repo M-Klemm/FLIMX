@@ -306,11 +306,12 @@ classdef FluoDecayFit < handle
                         'Multicore share Path not found!','modal');
                 end
                 if(folderGUI)
-                    new = GUI_compOptions(this.computationParams);
+                    new = GUI_compOptions(this.computationParams,'On');
                     if(~isempty(new)) %we possibly have a new folder - check in next iteration
                         this.FLIMXObj.paramMgr.setParamSection('computation',new.computation);
                         continue
                     else %user pressed cancel
+                        status = true;
                         return
                     end
                 end
