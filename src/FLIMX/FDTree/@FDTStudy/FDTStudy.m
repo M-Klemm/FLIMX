@@ -88,15 +88,22 @@ classdef FDTStudy < FDTreeNode
             if(isMultipleCall())
                 return
             end
+            matFile = fullfile(this.myDir,'studyData.mat');
             try
-                import = load(fullfile(this.myDir,'studyData.mat'));
+                import = load(matFile);
             catch
                 bakFile = fullfile(this.myDir,'studyData.bak');
                 if(~isempty(dir(bakFile)))
                     try
-                        import = load(bakFile);
+                        import = load(bakFile,'-mat');
+                        %import worked, save the backup as .mat file
+                        [status,msg,msgID] = copyfile(bakFile,matFile);
+%                         if(~status)
+%                             %todo: error / log message
+%                         end
                     catch
                         %file not found
+                        %todo: error / log message
                         return
                     end
                 else
