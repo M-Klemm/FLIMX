@@ -306,6 +306,9 @@ classdef FData < handle
         function out = getFullImage(this)
             %get raw image with respect to linear/log scaling
             out = this.rawImage;
+            if(isempty(out))
+                return
+            end
             imask = this.myParent.getIgnoredPixelsMask();
             scaling = this.sType;
             %scale to log
@@ -774,7 +777,7 @@ classdef FData < handle
                 ci = ci(ci >= c_min & ci <= c_max);               
             else
                 c_min = round((min(ci(:)))/cw)*cw;%min(ci(:));
-                c_max = round((max(ci(:)))/cw)*cw;%max(ci(:));                
+                c_max = round((max(ci(:)))/cw)*cw;%max(ci(:));
             end
             if(c_max - c_min < eps)
                 %flat data -> max = min, just leave it in one class
@@ -1120,9 +1123,9 @@ classdef FData < handle
             data = data(~isinf(data));
             switch param
                 case 1                    
-                    out = min(data(:));
+                    out = min(data(:),[],'omitnan');
                 case 2
-                    out = max(data(:));
+                    out = max(data(:),[],'omitnan');
             end
             if(isempty(out))
                 %all data is was zero

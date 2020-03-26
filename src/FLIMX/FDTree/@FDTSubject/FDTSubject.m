@@ -1045,7 +1045,7 @@ classdef FDTSubject < fluoSubject
                             out = fd.getFullImage();
                         end
                         if(aiParams.normalizeB)
-                            out = out ./ max(out(:));
+                            out = out ./ max(out(:),[],'omitnan');
                         end
                     case 'ROI'
                         lStr = sprintf('ROI%s',layer);
