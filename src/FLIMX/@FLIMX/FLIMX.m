@@ -44,7 +44,7 @@ classdef FLIMX < handle
         sDDMgrObj = [];     %only temporary: manage synthetic datasets
         batchJobMgrObj = [];%batch job manager
         hashEngineObj = []; %MD5 hash engine
-        
+
         %GUIs
         FLIMFitGUIObj = [];             %visualization of approximation
         FLIMVisGUIObj = [];             %extended visualization and statistics
@@ -347,7 +347,7 @@ classdef FLIMX < handle
             end
             out = this.importResultGUIObj;
         end
-        
+
         function out = get.hashEngine(this)
             %return FLIMX hash engine
             if(isempty(this.hashEngineObj))
@@ -586,7 +586,7 @@ classdef FLIMX < handle
                 web('www.flimx.de');
             end
         end
-        
+
         function out = now()
             %get current time
             try
@@ -1086,7 +1086,7 @@ classdef FLIMX < handle
                 '* Neither the names of the copyright holders nor the names of the contributors may be used to endorse or promote products derived from this software without specific prior written permission.';
                 char(13);
                 'This software is provided by the copyright holders and contributors �as is� and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall copyright holders or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.';
-                
+
                 newline;
                 'This software uses ''logging4matlab'' by Dominique Orban from https://https://github.com/optimizers/logging4matlab, which is covered by the following license:';
                 'MIT License'

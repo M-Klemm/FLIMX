@@ -1251,7 +1251,7 @@ classdef studyIS < handle
         
         function [aiNames, aiParams] = getArithmeticImageDefinition(this)
             %
-            if(isempty(this.arithmeticImageInfo))
+            if(isempty(this.arithmeticImageInfo) || isempty(this.arithmeticImageInfo{1,1}))
                 aiNames = {''}; aiParams = {''};
                 return
             end

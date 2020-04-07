@@ -33,24 +33,24 @@ classdef FData < handle
     %
     properties(SetAccess = protected,GetAccess = public)
         %uid = []; %unique object identifier
-        id = 0; %running number        
+        id = 0; %running number
         sType = [];
         rawImage = [];
         rawImgFilt = [];
         color_data = [];
         logColor_data = [];
         rawImgXSz = [];
-        rawImgYSz = [];  
+        rawImgYSz = [];
         rawImgZSz = [];
     end
-    properties(Dependent = true, SetAccess = protected, GetAccess = public) 
+    properties(Dependent = true, SetAccess = protected, GetAccess = public)
         name = '';
     end
-    properties(Dependent = true, SetAccess = public, GetAccess = public) 
+    properties(Dependent = true, SetAccess = public, GetAccess = public)
         dType = [];
-        globalScale = [];       
+        globalScale = [];
         subjectName = [];
-        channel = [];  
+        channel = [];
         isEmptyStat = true;
         FLIMXParamMgrObj = [];
     end
@@ -59,20 +59,20 @@ classdef FData < handle
         cachedImage = [];
         maxHistClasses = 5000;
     end
-    
+
     methods
         function this = FData(parent,nr,rawImage)
             %constructor of the FData class
             %this.uid = datenum(clock);
-            this.id = nr;            
+            this.id = nr;
             this.sType = 1; %default to linear data scaling
             this.myParent = parent;
-            this.setRawData(rawImage); 
+            this.setRawData(rawImage);
             this.clearCachedImage();
             this.color_data = [];
             this.logColor_data = [];
         end
-        
+
         function out = getMemorySize(this)
             %determine memory size of the FData
             props = properties(this);
@@ -87,7 +87,7 @@ classdef FData < handle
             end
             %fprintf(1, 'FData size %d bytes\n', out);
         end
-        
+
         function clearCachedImage(this)
             %reset all fields of the cached image
             ci.ROI.ROICoordinates = zeros(2,2,'int16');
@@ -100,7 +100,7 @@ classdef FData < handle
             ci.info.ZMax = [];
             ci.info.ZLblMin = [];
             ci.info.ZLblMax = [];
-            ci.info.XSz = [];            
+            ci.info.XSz = [];
             ci.info.YSz = [];
             ci.info.XLblStart = [];
             ci.info.XLblTick = [];
@@ -113,7 +113,7 @@ classdef FData < handle
             ci.statistics.histogramStrictCenters = [];
             this.cachedImage = ci;
         end
-        
+
 %         function flag = eq(obj1,obj2)
 %             %compare two FData objects
 %             if(obj1.uid - obj2.uid < eps('double'))
@@ -122,7 +122,7 @@ classdef FData < handle
 %                 flag = false;
 %             end
 %         end
-           
+
         %% input functions
         function setRawData(this,val)
             %set the raw data, clears cached data
@@ -144,39 +144,39 @@ classdef FData < handle
             %val = this.getFullImage(); %expensive but correct
             this.setRawDataZSz([FData.getNonInfMinMax(1,val) FData.getNonInfMinMax(2,val)]);
         end
-        
+
         function setColor_data(this,val,valLog)
             %
-            this.color_data = val;            
+            this.color_data = val;
             this.logColor_data = valLog;
             this.clearCachedImage();
         end
-            
+
         function setRawDataXSz(this,val)
             %set rawImgXSz property
-            this.rawImgXSz = val;  
+            this.rawImgXSz = val;
         end
-        
+
         function setRawDataYSz(this,val)
             %set rawImgYSz property
-            this.rawImgYSz = val;  
+            this.rawImgYSz = val;
         end
-        
+
         function setRawDataZSz(this,val)
             %set rawImgZSz property
-            this.rawImgZSz = val;  
+            this.rawImgZSz = val;
         end
-        
+
         function setCIROIType(this,val)
             %set type of cached ROI
             this.cachedImage.ROI.ROIType = val;
         end
-        
+
         function setCIROISubType(this,val)
             %set type of roi (number corresponding to type)
             this.cachedImage.ROI.ROISubType = val;
         end
-        
+
         function setupXLbl(this,start,tick)
             %set start value and tick (width) for custom x labels
             if(isempty(start) || isempty(tick))
@@ -187,7 +187,7 @@ classdef FData < handle
             this.cachedImage.info.XLblStart = start;
             this.cachedImage.info.XLblTick = tick;
         end
-        
+
         function setupYLbl(this,start,tick)
             %set start value and tick (width) for custom y labels
             if(isempty(start) || isempty(tick))
@@ -198,7 +198,7 @@ classdef FData < handle
             this.cachedImage.info.YLblStart = start;
             this.cachedImage.info.YLblTick = tick;
         end
-        
+
         function setSType(this,val)
             %set sType (lin=1,log=2)
             if(this.sType == val)
@@ -207,36 +207,36 @@ classdef FData < handle
             end
             this.sType = val;
             tmp = this.getFullImage();
-            this.rawImgZSz = [FData.getNonInfMinMax(1,tmp) FData.getNonInfMinMax(2,tmp)];                       
+            this.rawImgZSz = [FData.getNonInfMinMax(1,tmp) FData.getNonInfMinMax(2,tmp)];
             this.clearCachedImage();
-        end          
-        
+        end
+
         %% output functions
         function out = get.name(this)
             %return my ID as string
             out = num2str(this.id);
         end
-        
+
         function out = get.dType(this)
             %get current data type
             out = this.myParent.getDType();
         end
-        
+
         function out = get.globalScale(this)
             %get global scale flag
             out = this.myParent.getGlobalScale();
-        end        
-                
+        end
+
         function nr = get.channel(this)
             %get my channel number
             nr = this.myParent.getMyChannelNr();
         end
-        
+
         function nr = get.subjectName(this)
             %get my subject name
             nr = this.myParent.getMySubjectName();
         end
-        
+
         function [ROIlb, ROIub, stepSize] = getROIParameters(this,ROIType,dim,isMatrixPos)
             %get lower bound, upper bound and stepsize in x or y dimension for ROIType
             coord = this.getROICoordinates(ROIType);
@@ -251,7 +251,7 @@ classdef FData < handle
                     ROIlb = this.yPos2Lbl(ROIlb);
                     ROIub = this.yPos2Lbl(ROIub);
                     stepSize = this.cachedImage.info.YLblTick;
-                end                
+                end
             else %x
                 ROIlb = coord(2,1);
                 ROIub = coord(2,2);
@@ -262,7 +262,7 @@ classdef FData < handle
                 end
             end
         end
-        
+
         function out = isArithmeticImage(this)
             %return true, if dType is an arithmetic image
             out = this.myParent.isArithmeticImage();
@@ -272,37 +272,37 @@ classdef FData < handle
             %get z scaling parameters
             out = this.myParent.getZScaling(this.id);
         end
-        
+
         function out = getColorScaling(this)
             %get color scaling parameters
             out = this.myParent.getColorScaling(this.id);
         end
-        
+
         function out = get.isEmptyStat(this)
             %returns true, if descripte statistics of the cached data are empty (not yet computed)
             out = isempty(this.cachedImage.statistics.descriptive);
         end
-        
+
         function out = getSType(this)
             %get current/demanded scale type
             out = this.sType;
         end
-        
+
         function out = getStatsParams(this)
             %get statistics parameters
             out = this.FLIMXParamMgrObj.getParamSection('statistics');
         end
-        
+
         function out = getFileInfoStruct(this)
             %get fileinfo struct
             out = this.myParent.getFileInfoStruct();
         end
-        
+
         function out = getVicinityInfo(this)
             %get vicinity info
             out = this.myParent.getVicinityInfo();
         end
-        
+
         function out = getFullImage(this)
             %get raw image with respect to linear/log scaling
             out = this.rawImage;
@@ -328,37 +328,37 @@ classdef FData < handle
                 end
             end
         end
-        
+
         function out = getROICoordinates(this,ROIType)
             %get coordinates of ROI
             out = this.myParent.getROICoordinates(ROIType);
         end
-        
+
         function out = getROIType(this)
             %get type of ROI
             out = this.myParent.getROIType();
         end
-        
+
         function out = getROISubType(this)
             %get type of grid roi (number corresponding to type)
             out = this.myParent.getROISubType();
         end
-        
+
         function out = getCIROICoordinates(this)
             %get coordinates of cached ROI
             out = this.cachedImage.ROI.ROICoordinates;
         end
-        
+
         function out = getCIROIType(this)
             %get type of cached ROI
             out = this.cachedImage.ROI.ROIType;
         end
-        
+
         function out = getCIROISubType(this)
             %get type of grid roi (number corresponding to type)
             out = this.cachedImage.ROI.ROISubType;
         end
-        
+
         function [ROICoordinates, ROIType, ROISubType, ROIVicinity] = getCachedImageROIInfo(this)
             %get ROI info of cached image
             ROI = this.cachedImage.ROI;
@@ -367,7 +367,7 @@ classdef FData < handle
             ROISubType = ROI.ROISubType;
             ROIVicinity = ROI.ROIVicinity;
         end
-        
+
         function out = getROIImage(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get cached image
             %use whole image if we don't get ROI coordinates
@@ -380,7 +380,7 @@ classdef FData < handle
             end
             out = this.cachedImage.data;
         end
-        
+
         function out = getCIColor(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get current image colors
             if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity) || isempty(this.cachedImage.colors) && ~isempty(this.color_data))
@@ -389,7 +389,7 @@ classdef FData < handle
             end
             out = this.cachedImage.colors;
         end
-        
+
         function out = getCImin(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get minimum of current image
             if(ROIType == 0)
@@ -401,7 +401,7 @@ classdef FData < handle
                 out = this.cachedImage.info.ZMin;
             end
         end
-        
+
         function out = getCImax(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get maximum of current image
             if(ROIType == 0)
@@ -413,7 +413,7 @@ classdef FData < handle
                 out = this.cachedImage.info.ZMax;
             end
         end
-        
+
         function out = getCIminLbl(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get label for minimum of current image
             if(ROIType == 0)
@@ -430,7 +430,7 @@ classdef FData < handle
                 out = this.cachedImage.info.ZLblMin;
             end
         end
-        
+
         function out = getCImaxLbl(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get label for maximum of current image
             if(ROIType == 0)
@@ -447,7 +447,7 @@ classdef FData < handle
                 out = this.cachedImage.info.ZLblMax;
             end
         end
-        
+
         function out = getRIXLbl(this)
             %get x labels for raw image
             if(~isempty(this.cachedImage.info.XLblStart) && ~isempty(this.rawImgXSz))
@@ -457,24 +457,24 @@ classdef FData < handle
                 out = 1*step:step:this.rawImgXSz(2)*step;
             else
                 out = [];
-            end            
+            end
         end
-        
+
         function out = ROIIsCached(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %check if this ROI is in my cache
             out = false;
             if(isempty(ROICoordinates))
                 return
-            end            
+            end
             [cROICoordinates, cROIType, cROISubType, cROIVicinity] = this.getCachedImageROIInfo();
             if(isempty(cROICoordinates))
                 return
-            end  
+            end
             if(all(size(cROICoordinates) == size(ROICoordinates)) && all(cROICoordinates(:) == ROICoordinates(:)) && cROIType == ROIType && cROISubType == ROISubType && cROIVicinity == ROIVicinity && ~isempty(this.cachedImage.data))
                 out = true;
             end
         end
-        
+
         function out = getCIXLbl(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get x labels for current image
             if(isempty(this.rawImgXSz))
@@ -491,7 +491,7 @@ classdef FData < handle
                 XLblTick = this.getDefaultXLblTick();
             else
                 if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
-                   this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity); 
+                   this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
                 end
                 XSz = this.cachedImage.info.XSz;
                 XLblStart = this.cachedImage.info.XLblStart;
@@ -508,7 +508,7 @@ classdef FData < handle
                 out = this.xPos2Lbl(1+shift) : XLblTick : this.xPos2Lbl(XSz+shift);
             end
         end
-        
+
         function out = xPos2Lbl(this,pos)
             %convert absolut matrix position of x axis to label
             if(isempty(this.cachedImage.info.XLblStart))
@@ -517,7 +517,7 @@ classdef FData < handle
                 out = this.cachedImage.info.XLblStart + (pos-1)*this.cachedImage.info.XLblTick;
             end
         end
-        
+
         function out = xLbl2Pos(this,lbl)
             %convert label of x axis to absolut matrix position
             if(isempty(this.cachedImage.info.XLblStart))
@@ -526,7 +526,7 @@ classdef FData < handle
                 out = round((lbl - this.cachedImage.info.XLblStart)/this.cachedImage.info.XLblTick+1);
             end
         end
-        
+
         function out = getXLblTick(this)
             %get tick (step) size of x axis labels
             if(isempty(this.cachedImage.info.XLblTick))
@@ -534,8 +534,8 @@ classdef FData < handle
             else
                 out = this.cachedImage.info.XLblTick;
             end
-        end        
-        
+        end
+
         function out = getRIYLbl(this)
             %get y labels for raw image
             if(~isempty(this.cachedImage.info.YLblStart) && ~isempty(this.rawImgYSz))
@@ -547,7 +547,7 @@ classdef FData < handle
                 out = [];
             end
         end
-        
+
         function out = getCIYLbl(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get x labels for current image
             if(isempty(this.rawImgYSz))
@@ -564,7 +564,7 @@ classdef FData < handle
                 YLblTick = this.getDefaultYLblTick();
             else
                 if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
-                   this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity); 
+                   this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
                 end
                 YSz = this.cachedImage.info.YSz;
                 YLblStart = this.cachedImage.info.YLblStart;
@@ -581,7 +581,7 @@ classdef FData < handle
                 out = this.YPos2Lbl(1+shift) : YLblTick : this.YPos2Lbl(YSz+shift);
             end
         end
-        
+
         function out = yPos2Lbl(this,pos)
             %convert absolut matrix position of x axis to label
             if(isempty(this.cachedImage.info.YLblStart))
@@ -590,7 +590,7 @@ classdef FData < handle
                 out = this.cachedImage.info.YLblStart + (pos-1)*this.cachedImage.info.YLblTick;
             end
         end
-        
+
         function out = yLbl2Pos(this,lbl)
             %convert label of y axis to absolut matrix position
             if(isempty(this.cachedImage.info.YLblStart))
@@ -599,7 +599,7 @@ classdef FData < handle
                 out = round((lbl - this.cachedImage.info.YLblStart)/this.cachedImage.info.YLblTick+1);
             end
         end
-        
+
         function out = getYLblTick(this)
             %get tick (step) size of y axis labels
             if(isempty(this.cachedImage.info.YLblTick))
@@ -608,15 +608,15 @@ classdef FData < handle
                 out = this.cachedImage.info.YLblTick;
             end
         end
-        
+
         function out = zPos2Lbl(this,out)
             %dummy - no functioniality
         end
-        
+
         function out = zLbl2Pos(this,out)
             %dummy - no functioniality
         end
-        
+
         function out = getCIxSz(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get size in x of current image
             if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
@@ -624,75 +624,75 @@ classdef FData < handle
             end
             out = this.cachedImage.info.XSz;
         end
-        
+
         function out = getCIySz(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get size in y of current image
             if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
-                   this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity); 
+                   this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
             end
             out = this.cachedImage.info.YSz;
         end
-        
+
         function [hist,centers] = getCIHist(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get histogram of current image
             if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
                 this.clearCachedImage();
                 this.updateCIStats(ROICoordinates,ROIType,ROISubType,ROIVicinity);
-            elseif(this.isEmptyStat)               
+            elseif(this.isEmptyStat)
                 this.updateCIStats(ROICoordinates,ROIType,ROISubType,ROIVicinity);
             end
             hist = this.cachedImage.statistics.histogram;
             centers = this.cachedImage.statistics.histogramCenters;
         end
-        
+
         function [hist,centers] = getCIHistStrict(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
-            %get histogram of current image using strict rules            
+            %get histogram of current image using strict rules
             if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity) || isempty(this.cachedImage.statistics.histogramStrict))
                 [~, this.cachedImage.statistics.histogramStrict, this.cachedImage.statistics.histogramStrictCenters] = this.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
             end
             hist = this.cachedImage.statistics.histogramStrict;
             centers = this.cachedImage.statistics.histogramStrictCenters;
         end
-                
+
         function out = getROIStatistics(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get statistcs of current image
-            %check 
+            %check
             if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity) || this.isEmptyStat)
                 this.updateCIStats(ROICoordinates,ROIType,ROISubType,ROIVicinity);
             end
             out = this.cachedImage.statistics.descriptive;
         end
-        
+
         function out = getLinData(this)
             %set the data scaling to linear
             this.setSType(1);
             out = this;
         end
-        
+
         function out = getLogData(this)
             %set the data scaling to log10
             this.setSType(2);
             out = this;
         end
-                
+
         function [alg, params] = getDataSmoothFilter(this)
             %get filtering method to smooth data
             [alg, params] = this.myParent.getDataSmoothFilter();
-        end      
-        
+        end
+
         %% compute functions
         function clearRawImage(this)
             %clear raw image data
-            this.rawImage = [];            
+            this.rawImage = [];
         end
-        
+
         function clearFilteredImage(this)
             %clear filtered raw image data
             this.rawImgFilt = [];
             %now cached data is invalid
             this.clearCachedImage();
         end
-                
+
         function out = getROISubfieldStatistics(this,ROICoord,ROIType,statsType)
             %get statType (mean, SD) for all subfields of the ETDRS grid
             %with the following order:
@@ -732,10 +732,10 @@ classdef FData < handle
                 end
             end
         end
-        
+
         function [stats, histogram, histCenters] = makeStatistics(this,ROICoordinates,ROIType,ROISubType,ROIVicinity,strictFlag)
             %make statistics for a certain ROI
-%             if(~isempty(ROICoordinates))                
+%             if(~isempty(ROICoordinates))
                 ci = this.getROIImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
 %             else
 %                 ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
@@ -743,9 +743,9 @@ classdef FData < handle
 %             end
             ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
             [histogram, histCenters] = this.makeHist(ci,strictFlag);
-            stats = FData.computeDescriptiveStatistics(ci,histogram,histCenters);            
+            stats = FData.computeDescriptiveStatistics(ci,histogram,histCenters);
         end
-        
+
         function updateCIStats(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %make statistics
             if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity) || this.isEmptyStat)%calculate statistics only if necessary
@@ -762,8 +762,8 @@ classdef FData < handle
                 this.cachedImage.ROI.ROISubType = ROISubType;
                 this.cachedImage.ROI.ROIVicinity = ROIVicinity;
             end
-        end              
-        
+        end
+
         function [histogram, centers] = makeHist(this,imageData,strictFlag)
             %make histogram for display puposes
             ci = imageData(~(isnan(imageData(:)) | isinf(imageData(:))));
@@ -793,7 +793,7 @@ classdef FData < handle
                 cw = (c_max-c_min)/100;
                 %make centers vector
                 centers = c_min : cw : c_max;
-                %check if still too small (should not happen) 
+                %check if still too small (should not happen)
                 if(strictFlag || numel(centers) <= 1)
                     %give up
                     histogram = numel(ci);
@@ -807,17 +807,17 @@ classdef FData < handle
                 nc_old = numel(centers);
                 cw = (c_max-c_min)/this.maxHistClasses;
                 centers = c_min : cw : c_max;
-                warning('FLIMX:FData:Statistics','Classwidth (%.1f) for %s %d is too small. %d classes would be computed. Please increase classwidth to %.1f or more. Classwidth has been increased to that value temporarily.',cw_old,this.dType,this.id,nc_old,cw);  
+                warning('FLIMX:FData:Statistics','Classwidth (%.1f) for %s %d is too small. %d classes would be computed. Please increase classwidth to %.1f or more. Classwidth has been increased to that value temporarily.',cw_old,this.dType,this.id,nc_old,cw);
             end
             histogram = hist(ci,centers);
-        end  
-        
+        end
+
         function out = get.FLIMXParamMgrObj(this)
             %get handle to parameter manager object
             out = this.myParent.FLIMXParamMgrObj;
         end
     end %methods
-    
+
     methods (Access = protected)
         function zl_min = getZlimMin(this,cim)
             %get data minimum which is not -inf with respect to scaling
@@ -839,7 +839,7 @@ classdef FData < handle
                 zl_min = zVec(2);
             end
         end
-        
+
         function [lblMin, lblMax] = makeZlbls(this,dMin,dMax)
             %compute min and max labels for z axis with respect to scaling
             if(this.sType == 2)
@@ -850,12 +850,12 @@ classdef FData < handle
                 %linear scaling
                 lblMin = dMin;
                 lblMax = dMax;
-            end            
+            end
             if(abs(lblMin - lblMax) < eps)
                 lblMax = lblMin *1.1;
             end
         end
-        
+
         function data = filter(this,data)
             %smooth (filter) raw data if neccessary
             [alg, params] = this.getDataSmoothFilter();
@@ -870,18 +870,18 @@ classdef FData < handle
                     %dataSmooth = hmf(data,3);
                     data = sffilt(@var,data,[params params]);
                 case 5
-                    data = sffilt(@std,data,[params params]);    
+                    data = sffilt(@std,data,[params params]);
                 otherwise
                     %nothing to do (no filtering)
             end
         end
     end%methods(protected)
-    
+
     methods(Static)
         function [data,idx] = getImgSeg(data,ROICoord,ROIType,ROISubType,ROIVicinity,fileInfo,vicinityInfo)
             %make current data segment respecting x / y scaling
             %data can be 2- or 3- dimensional
-            idx = [];            
+            idx = [];
             if(isempty(data) || isempty(ROICoord))
                 return;
             end
@@ -1044,7 +1044,7 @@ classdef FData < handle
                 end
             end
         end
-        
+
         function [out,idx] = getCircleSegment(data,coord,r,thetaRange,ROISubType,rCenter,rInner,ROIVicinity,vicDist,vicDiameter)
             %get sircle or a segment of a circle from data at position coord
             if(ROIVicinity == 3)
@@ -1094,7 +1094,7 @@ classdef FData < handle
                 idx = idx(:);
             end
         end
-        
+
         function outerMask = computeVicinityMask(mask,vicDist,vicDiameter)
             %compute a vicinity mask from an ROI mask
             %             outerMask = mask;
@@ -1110,19 +1110,19 @@ classdef FData < handle
             innerMask = imdilate(mask,true(2*vicDist+1));
             outerMask(innerMask) = false;
         end
-        
+
         function data = removeNaNBoundingBox(data)
             %return only valid data, remove surrounding NaNs
             data(~any(~isnan(data),2),:) = [];
             data(: ,~any(~isnan(data),1)) = [];
         end
-        
+
         function out = getNonInfMinMax(param,data)
             %get minimum (param = 1) or maximum (param = 2) of data, in case of "inf" get next smallest value
             out = [];
             data = data(~isinf(data));
             switch param
-                case 1                    
+                case 1
                     out = min(data(:),[],'omitnan');
                 case 2
                     out = max(data(:),[],'omitnan');
@@ -1132,7 +1132,7 @@ classdef FData < handle
                 out = 0;
             end
         end
-        
+
         function stats = computeDescriptiveStatistics(imageData,imageHistogram,imageHistogramCenters)
             %compute descriptive statistics using imageData and imageHistogram and return it in a cell array; get description from getDescriptiveStatisticsDescription()
             [~, pos] = max(imageHistogram);
@@ -1156,12 +1156,12 @@ classdef FData < handle
             stats(11) = sum(imageData(:),'omitnan');
             stats(12) = numel(imageData);
         end
-        
+
         function out = getDescriptiveStatisticsDescription()
             %get statistcs descriptions of current image
             out = [{'Mode'}; {'Median'}; {'Mean'}; {'Variance'}; {'Standard Deviation'}; {'Coefficient of Variation'}; {'Skewness'}; {'Kurtosis'}; {'Confidence Interval (lower)'}; {'Confidence Interval (upper)'}; {'Total'}; {'Pixel'}];
         end
-        
+
         function out = getDescriptiveStatisticsDescriptionShort()
             %get statistcs descriptions of current image
             out = [{'Mode'}; {'Median'}; {'Mean'}; {'Var.'}; {'SD'}; {'CV'}; {'Skew.'}; {'Kurt.'}; {'CI low'}; {'CI high'}; {'Total'}; {'Pixel'}];

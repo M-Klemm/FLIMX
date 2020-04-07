@@ -886,8 +886,10 @@ classdef FDTSubject < fluoSubject
             if(~isempty(chObj))
                 cos = chObj.getChObjStr();
                 aid = this.myParent.getArithmeticImageDefinition();
-                idx = ismember(cos,aid);
-                cos(idx) = [];
+                if(~isempty(aid) && iscell(aid) && all(cellfun(@ischar,aid)))
+                    idx = ismember(cos,aid);
+                    cos(idx) = [];
+                end
                 idx = ismember(cos,'Intensity');
                 cos(idx) = [];
                 out = ~isempty(cos);
@@ -1043,7 +1045,7 @@ classdef FDTSubject < fluoSubject
                             out = fd.getFullImage();
                         end
                         if(aiParams.normalizeB)
-                            out = out ./ max(out(:));
+                            out = out ./ max(out(:),[],'omitnan');
                         end
                     case 'ROI'
                         lStr = sprintf('ROI%s',layer);
