@@ -439,7 +439,7 @@ classdef StatsDescriptive < handle
                 cla(this.visHandles.axesBar);
                 cla(this.visHandles.axesBoxplot);
                 set(this.visHandles.tableSubjectStats,'ColumnName','','RowName','','Data',[],'ColumnEditable',[]);
-                set(this.visHandles.tableGroupStats,'ColumnName','','RowName','','Data',[],'ColumnEditable',[]);
+                set(this.visHandles.tableGroupStats,'RowName','','Data',[],'ColumnEditable',[]);
                 set(this.visHandles.tableNormalTests,'Data',[]);
             end
         end
@@ -510,7 +510,7 @@ classdef StatsDescriptive < handle
                 end
             end
             set(this.visHandles.tableSubjectStats,'ColumnName',this.statsDesc,'RowName',this.subjectDesc,'Data',FLIMXFitGUI.num4disp(this.subjectStats));
-            set(this.visHandles.tableGroupStats,'ColumnName',this.statsDesc,'RowName','','Data',FLIMXFitGUI.num4disp(this.groupStats));
+            set(this.visHandles.tableGroupStats,'RowName','','Data',FLIMXFitGUI.num4disp(this.groupStats));
             %axes
             if(~isempty(this.statHist))
                 bar(this.visHandles.axesBar,this.statCenters,this.statHist);
@@ -684,11 +684,31 @@ classdef StatsDescriptive < handle
             if(isempty(this.subjectStats))
                 out = [];
             else
-                idx = isnan(this.subjectStats);
-                out = zeros(1,size(idx,2));
-                for i = 1:size(idx,2)
-                    out(i) = mean(this.subjectStats(~idx(:,i),i),1);
+                idx = isnan(this.subjectStats);                
+                subjectROIMeans = this.subjectStats(~idx(:,3),3);
+                [cw,lim,c_min,c_max] = getHistParams(this.visObj.statParams,this.ch,this.dType,this.id);
+                if(lim)
+                    subjectROIMeans = subjectROIMeans(subjectROIMeans >= c_min & subjectROIMeans <= c_max);
+                else
+                    c_min = round((min(subjectROIMeans(:)))/cw)*cw;
+                    c_max = round((max(subjectROIMeans(:)))/cw)*cw;
                 end
+                if(c_max - c_min < eps)
+                    %flat data -> max = min, just leave it in one class
+                    histogram = numel(subjectROIMeans);
+                    histCenters = c_min;
+                else
+                    %make centers vector
+                    histCenters = c_min : cw : c_max;
+                    histogram = hist(subjectROIMeans,histCenters);
+                end
+                out = FData.computeDescriptiveStatistics(subjectROIMeans,histogram,histCenters)';
+                out(1,end+1) = out(1,end);
+                out(1,end-1) = mean(this.subjectStats(~idx(:,end),end),1);
+%                 out = zeros(1,size(idx,2));
+%                 for i = 1:size(idx,2)
+%                     out(i) = mean(this.subjectStats(~idx(:,i),i),1);
+%                 end
             end
         end
         

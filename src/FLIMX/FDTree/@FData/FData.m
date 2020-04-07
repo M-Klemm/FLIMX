@@ -306,6 +306,9 @@ classdef FData < handle
         function out = getFullImage(this)
             %get raw image with respect to linear/log scaling
             out = this.rawImage;
+            if(isempty(out))
+                return
+            end
             imask = this.myParent.getIgnoredPixelsMask();
             scaling = this.sType;
             %scale to log
@@ -771,10 +774,10 @@ classdef FData < handle
             end
             [cw,lim,c_min,c_max] = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
             if(lim)
-                ci = ci(ci >= c_min & ci <= c_max);               
+                ci = ci(ci >= c_min & ci <= c_max);
             else
-                c_min = round((min(ci(:)))/cw)*cw;%min(ci(:));
-                c_max = round((max(ci(:)))/cw)*cw;%max(ci(:));                
+                c_min = round((min(ci(:)))/cw)*cw;
+                c_max = round((max(ci(:)))/cw)*cw;
             end
             if(c_max - c_min < eps)
                 %flat data -> max = min, just leave it in one class
@@ -783,28 +786,28 @@ classdef FData < handle
                 return
             end
             %make centers vector
-            centers = c_min : cw : c_max;            
+            centers = c_min : cw : c_max;
             %check over under-/overflows
             if(~lim && numel(centers) <= 1)
                 cw_old = cw;
                 cw = (c_max-c_min)/100;
                 %make centers vector
                 centers = c_min : cw : c_max;
-                %check if still to small (should not happen) 
-                if(numel(centers) <= 1 || strictFlag)
+                %check if still too small (should not happen) 
+                if(strictFlag || numel(centers) <= 1)
                     %give up
                     histogram = numel(ci);
                     centers = c_min;
                     return
                 end
-                warning('FLMVisM:FData:Statistics','Classwidth (%.1f) for %s %d is too big. Only one class would be computed. Please reduce classwidth to %.1f or less. Classwidth has been reduced to that value temporarily.',cw_old,this.dType,this.id,cw);
+                warning('FLIMX:FData:Statistics','Classwidth (%.1f) for %s %d is too big. Only one class would be computed. Please reduce classwidth to %.1f or less. Classwidth has been reduced to that value temporarily.',cw_old,this.dType,this.id,cw);
             end
-            if(~lim && numel(centers) > this.maxHistClasses && ~strictFlag)
+            if(~lim && ~strictFlag && numel(centers) > this.maxHistClasses)
                 cw_old = cw;
                 nc_old = numel(centers);
                 cw = (c_max-c_min)/this.maxHistClasses;
                 centers = c_min : cw : c_max;
-                warning('FLMVisM:FData:Statistics','Classwidth (%.1f) for %s %d is too small. %d classes would be computed. Please increase classwidth to %.1f or more. Classwidth has been increased to that value temporarily.',cw_old,this.dType,this.id,nc_old,cw);  
+                warning('FLIMX:FData:Statistics','Classwidth (%.1f) for %s %d is too small. %d classes would be computed. Please increase classwidth to %.1f or more. Classwidth has been increased to that value temporarily.',cw_old,this.dType,this.id,nc_old,cw);  
             end
             histogram = hist(ci,centers);
         end  
@@ -1120,9 +1123,9 @@ classdef FData < handle
             data = data(~isinf(data));
             switch param
                 case 1                    
-                    out = min(data(:));
+                    out = min(data(:),[],'omitnan');
                 case 2
-                    out = max(data(:));
+                    out = max(data(:),[],'omitnan');
             end
             if(isempty(out))
                 %all data is was zero
@@ -1131,7 +1134,7 @@ classdef FData < handle
         end
         
         function stats = computeDescriptiveStatistics(imageData,imageHistogram,imageHistogramCenters)
-            %compute descriptive statistics using imageData and imageHistogram and return it in a cell array; gete description from getDescriptiveStatisticsDescription()
+            %compute descriptive statistics using imageData and imageHistogram and return it in a cell array; get description from getDescriptiveStatisticsDescription()
             [~, pos] = max(imageHistogram);
             stats = zeros(10,1);
             if(isempty(imageHistogramCenters))

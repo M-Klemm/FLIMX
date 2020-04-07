@@ -405,8 +405,8 @@ classdef FLIMX < handle
                 %move to pixel with most photons
                 img = this.curSubject.getROIDataFlat(this.FLIMFitGUI.currentChannel,true);
                 if(~isempty(img))
-                    [tmp,yPos] = max(img,[],1);
-                    [~,xPos] = max(tmp);
+                    [tmp,yPos] = max(img,[],1,'omitnan');
+                    [~,xPos] = max(tmp,[],'omitnan');
                     yPos = yPos(xPos);
                     this.FLIMFitGUI.setCurrentPos(yPos,xPos);
                 else
@@ -508,7 +508,7 @@ classdef FLIMX < handle
             out.config_revision = 269;
             out.client_revision_major = 4;
             out.client_revision_minor = 15;
-            out.client_revision_fix = 6;
+            out.client_revision_fix = 9;
             out.core_revision = 420;
             out.results_revision = 256;
             out.measurement_revision = 205;
