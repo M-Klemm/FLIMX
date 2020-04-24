@@ -31,9 +31,10 @@ function result = runOpt(apObj,optimizationParams)
 %
 % @brief    A function which prepares model-objects, selects appropriate optimizers and loops over multiple data vetors (pixels) if necessary
 %
-hostname = gethostname();
+hostname = optimizationParams.hostname;
 prevXVec = [];
-t_start = clock;
+%t_start = clock;
+tic;
 chList = apObj.nonEmptyChannelList;
 pixelIDs = apObj.getPixelIDs(apObj.currentChannel);
 totalNrPIDs = length(pixelIDs);
@@ -150,6 +151,7 @@ else
                     [c, offset, A, tau, dc, dtau, irs, zz, t, chi] = Fluofit(apObj.getIRF(ch), double(apObj.getMeasurementData(ch)), apObj.fileInfo.tacRange, apObj.fileInfo.timeChannelWidth, iVec(1:3,1)', false);
                 case 1 %% DE
                     optParams(1).paramDefCell{4} = iVec(:,1);
+                    optParams(1).hostname = hostname;
                     [xVec, ~, ~, iter, feval] = differentialevolution(optParams(1), optParams(1).paramDefCell, @apObj.costFcn, [], [], pixelIDs(1), optParams(1).title);
                 case 2 %% MSimplexBnd
                     [xVec,~,~,output] = MSimplexBnd(@apObj.costFcn, iVec, optParams, pixelIDs);
@@ -215,7 +217,7 @@ else
             end
             optimIter = optimIter+1;
         end %for optimizer
-        dt = etime(clock,t_start);
+        dt = toc;%etime(clock,t_start);
         %% assemble result-structure
         lbCh = apObj.divideGlobalFitXVec([nonLinBounds(:).lb],true);
         ubCh = apObj.divideGlobalFitXVec([nonLinBounds(:).ub],true);

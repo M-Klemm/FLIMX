@@ -225,7 +225,7 @@ DEParamsDefault = getdefaultparams;
 
 % set text width for wrapping displayed information
 textWidth = 75;
-isNoWorker = ~isdeployed() && isempty(getCurrentTask);
+isNoWorker = false; %~isdeployed() ;% && isempty(getCurrentTask);
 
 % get DE parameters from input structure
 if nargin == 0 || isempty(DEParams)
@@ -318,7 +318,7 @@ end
 
 % initialize functions
 getparametername__(paramDefCell, parameterDimVector);
-displaybestmember__(paramDefCell);
+%displaybestmember__(paramDefCell);
 
 % get parameter bounds
 parameterBounds = cell2mat(paramDefCell(:,2));
@@ -573,11 +573,11 @@ if ~isempty(objFctHandle)
 else
     objFctName = 'test';
 end
-timeOverFileName = sprintf('%s_timeover_%s.mat', objFctName, gethostname);
-if isfolder('./data')
-    timeOverFileName = ['data/' timeOverFileName];
-end
-info = 'Delete this file to stop parameter optimization.'; %#ok
+% timeOverFileName = sprintf('%s_timeover_%s.mat', objFctName, gethostname);
+% if isfolder('./data')
+%     timeOverFileName = ['data/' timeOverFileName];
+% end
+% info = 'Delete this file to stop parameter optimization.'; %#ok
 %sem = setfilesemaphore(timeOverFileName);
 %save(timeOverFileName, 'info');
 %removefilesemaphore(sem);
@@ -615,7 +615,7 @@ clear displaybestmember__
 sendEmail = []; %sendmailblat([], [], emailParams);
 
 % save current time
-startTime           = mbtime;
+startTime           = tic; %mbtime;
 nextRefreshTime     = startTime + refreshtime;
 nextRefreshTime2    = startTime + refreshtime2;
 lastRefreshIterTime = -inf;
@@ -703,7 +703,7 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
             end
         end
         initialization = true;
-        startLoopTime = mbtime;
+        startLoopTime = tic; %mbtime;
         % initialize population members from istart to NP randomly
         pop = computerandominitialization__(2, pop, istart:NP, paramDefCell, ...
             objFctSettings, parameterDimVector, XVmax, XVmin, validChkHandle);
@@ -887,9 +887,9 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
     bestmem(reInitCnt,:) = pop(idx,:); %pop(1,:);
     
     % save and display current state
-    if mbtime - nextRefreshTime >= 0
+    if tic - nextRefreshTime >= 0
         nextRefreshTime = nextRefreshTime + refreshtime * ...
-            (1 + floor((mbtime - nextRefreshTime) / refreshtime));
+            (1 + floor((tic - nextRefreshTime) / refreshtime));
         if(isNoWorker)
             disp(state);
         end
@@ -1000,7 +1000,7 @@ if(isNoWorker)
         state = sprintf('''%s'' finished after all possible %d members have been tested.', ...
             optimInfo.title, nOfPossibleMembers);
     elseif timeOver
-        if ~isempty(maxtime) && mbtime - startTime > maxtime
+        if ~isempty(maxtime) && toc(startTime) > maxtime
             state = sprintf('''%s'' finished after given amount of time.', optimInfo.title);
         elseif ~isempty(maxclock) && etime(clock, maxclock) > 0
             state = sprintf('''%s'' finished at given end time.', optimInfo.title);
@@ -1072,14 +1072,14 @@ function timeOver = timeovercheck__(startTime, maxtime, maxclock, timeOverFile, 
 
 persistent lastCheckTime
 if isempty(lastCheckTime)
-    lastCheckTime = mbtime;
+    lastCheckTime = tic; %mbtime;
 end
 
 if timeOver
     return
 end
 
-curTime = mbtime;
+curTime = tic; %mbtime;
 if curTime - lastCheckTime > 1
     % only check once a second to save computation time
     timeOver = ...
@@ -1286,7 +1286,7 @@ function displayprogressinfo__(startLoopTime, state, refreshtime3, ...
 persistent nextRefreshTime3
 
 % elapsed time
-elapsedTime = mbtime - startLoopTime;
+elapsedTime = tic - startLoopTime; %mbtime
 str = sprintf('Elapsed time:                   %s\n', formattime(elapsedTime));
 
 % time left
@@ -1483,7 +1483,7 @@ if nargin == 1
     % initialize values
     lastbestmem   = NaN;
     lastEmailTime = -inf;
-    lastSoundTime = mbtime;
+    lastSoundTime = tic; %mbtime;
     hostname = gethostname;
     username = getusername;
     

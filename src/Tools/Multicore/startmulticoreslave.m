@@ -370,7 +370,7 @@ while 1
         end
         %MKlemm
         p = gcp('nocreate');
-        if(~isempty(p))
+        if(~isempty(p) && ~isa(p,'parallel.ThreadPool'))
             if(min(etime(clock, lastEvalEndClock), etime(clock, lastParPoolRefresh))/60 >= (p.IdleTimeout/2)) %waited at least half the idle timeout
                 %refresh idle timer of parpool by doing something stupid
                 parfor i = 1:10

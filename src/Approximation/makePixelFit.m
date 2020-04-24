@@ -57,7 +57,12 @@ if(isdeployed())
         %check if matlabpool is open
         if(isempty(gcp('nocreate')))
             try
-                parpool('local',min(apObjs{1}.computationParams.maxNrWorkersMatlabDistComp,feature('numCores')));
+%                 nr = version('-release');
+%                 if(str2double(nr(1:4)) >= 2020)
+%                     parpool('threads');
+%                 else
+                    parpool('local',min(apObjs{1}.computationParams.maxNrWorkersMatlabDistComp,feature('numCores')));
+%                 end
                 pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
             catch
                 parpool('local');
@@ -82,6 +87,7 @@ if(aboutInfo.core_revision ~= myAboutInfo.core_revision)
     return
 end
 %this is a compatible core
+optimizationParams.hostname = gethostname();
 if(nrPixels > 1 && (isdeployed() || apObjs{1}.computationParams.useMatlabDistComp > 0) && apObjs{1}.basicParams.optimizerInitStrategy ~= 3) %&& ~apObjs{i}.computationParams.useGPU 
     %run pixels in parallel
     parfor i = 1:nrPixels

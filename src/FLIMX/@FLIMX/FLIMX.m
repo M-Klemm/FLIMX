@@ -148,9 +148,16 @@ classdef FLIMX < handle
                         p = parpool('local',gpuDeviceCount);
                     else
                         %as many workers as CPU cores
-                        p = parpool('local',min(computationParams.maxNrWorkersMatlabDistComp,feature('numCores')));
+                        nr = version('-release');
+                        if(str2double(nr(1:4)) >= 2020)
+                            p = parpool('threads');
+                        else
+                            p = parpool('local',min(computationParams.maxNrWorkersMatlabDistComp,feature('numCores')));
+                        end
                     end
-                    pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
+                    if(~isa(p,'parallel.ThreadPool'))
+                        pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
+                    end
                     this.splashScreenGUIObj.updateShortProgress(1,'Open pool of MATLAB workers - done');
                     %p.IdleTimeout = 0;
                 catch ME
@@ -160,7 +167,7 @@ classdef FLIMX < handle
                     warning('FLIMX:openMatlabPool','Could not open MATLAB pool for parallel computations: %s',ME.message);
                 end
             end
-            if(~isempty(p))
+            if(~isempty(p) && ~isa(p,'parallel.ThreadPool'))
                 this.matlabPoolTimer = timer('ExecutionMode','fixedRate','Period',p.IdleTimeout/2*60,'TimerFcn','FLIMX.MatlabPoolIdleFcn','Tag','FLIMXMatlabPoolTimer');
                 start(this.matlabPoolTimer);
             end
@@ -177,7 +184,7 @@ classdef FLIMX < handle
         function closeMatlabPool(this)
             %try to close our matlab pool
             p = gcp('nocreate');
-            if(~isempty(p))
+            if(~isempty(p) && ~isa(p,'parallel.ThreadPool'))
                 %delete idle timer object
                 try
                     delete(this.matlabPoolTimer);
@@ -465,8 +472,15 @@ classdef FLIMX < handle
             %get names and path to images of color maps
             persistent cmNames cmPaths
             if(isempty(cmPaths))
+                dataDir = [FLIMX.getWorkingDir() filesep 'data'];
+                if(~isfolder(dataDir))
+                    [status, message, ~] = mkdir(dataDir);
+                    if(~status)
+                        error('FLIMX:getColormaps','Could not create color map data folder: %s\n%s',dataDir,message);
+                    end
+                end
                 cmNames = {'Autumn','Bone','Colorcube','Cool','Copper','Cividis','Flag','Gray','Hot','Hsv','Inferno','Jet','Lines','Magma','Parula','Pink','Plasma','Prism','Spring','Summer','Twilight','TwilightShifted','Viridis','White','Winter'};
-                cmPaths = strcat([FLIMX.getWorkingDir() filesep 'data' filesep 'colormap_'], cmNames', '.png');
+                cmPaths = strcat([dataDir filesep 'colormap_'], cmNames', '.png');
                 for i = length(cmPaths):-1:1
                     if(~isfile(cmPaths{i}))
                         %no color map icon found -> generate it
@@ -507,9 +521,9 @@ classdef FLIMX < handle
             %set current revisions HERE!
             out.config_revision = 269;
             out.client_revision_major = 4;
-            out.client_revision_minor = 15;
-            out.client_revision_fix = 9;
-            out.core_revision = 420;
+            out.client_revision_minor = 16;
+            out.client_revision_fix = 0;
+            out.core_revision = 419;
             out.results_revision = 256;
             out.measurement_revision = 205;
         end

@@ -43,8 +43,14 @@ classdef IRFMgr < handle
     methods
         function this = IRFMgr(flimX,IRFDir)
             %constructor for IRFMgr
-            this.FLIMXObj = flimX;
+            this.FLIMXObj = flimX;            
             this.setIRFDir(IRFDir);
+            if(~isfolder(this.myDir))
+                [status, message, ~] = mkdir(this.myDir);
+                if(~status)
+                    error('FLIMX:IRFMgr:createDataFolder','Could not create IRF data folder: %s\n%s',this.myDir,message);
+                end
+            end
             this.loadIRFs();
         end
         
