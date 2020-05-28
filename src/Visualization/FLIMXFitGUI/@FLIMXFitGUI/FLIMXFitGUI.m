@@ -835,7 +835,8 @@ classdef FLIMXFitGUI < handle
                 if(dMin < eps)
                     dMin = 1;
                 end
-                ylim(hAxMain,[10^floor(log10(dMin)) 10^ceil(log10(max(data)))]);
+                dMax = max(max(data),dMin+eps);
+                ylim(hAxMain,[10^floor(log10(dMin)) 10^ceil(log10(dMax))]);
             else
                 ylim(hAxMain,[this.dynVisParams.countsScalingStart this.dynVisParams.countsScalingEnd]);                
             end

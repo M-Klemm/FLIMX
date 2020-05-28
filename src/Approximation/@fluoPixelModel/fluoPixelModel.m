@@ -1378,7 +1378,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %amps,taus,tcis,tcisFine,betas,scAmps,scShifts,scShiftsFine,scOset,vShift,hShift,hShiftFine,oset,fitParams
             %reversal function: sliceXVec
             %re-combine sliced xVec
-            if(numel(varargin) == 9) %amps,taus,tcis,scAmps,scShifts,scOset,hShift,oset
+            if(numel(varargin) == 9) %amps,taus,tcis,betas,scAmps,scShifts,scOset,hShift,oset
                 if(length(varargin{5}) > 1)
                     scatter = [];
                     for i = 1:size(varargin{5},1)

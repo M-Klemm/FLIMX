@@ -496,23 +496,49 @@ classdef FluoDecayFit < handle
                     nTimeCh = size(t,1);
                     expModels = [];
                     oset = [];
-                    multiModelsFlag = this.FLIMXObj.curSubject.initFitParams.gridSize == 1;
+                    multiModelsFlag = this.FLIMXObj.curSubject.initFitParams.gridSize > 1;
                     fitOffsetFlag = false;
+                    tciList = find(bp.tciMask);
+                    nTci = length(tciList);
+                    betaList = find(bp.stretchedExpMask);
+                    nSE = length(betaList);
                     if(vcp.cMask(end) < 0)
                         fitOffsetFlag = true;
                     end
-                    if(~multiModelsFlag)
+                    tciOut = []; %dummy for parfor
+                    betaOut = []; %dummy for parfor
+                    if(multiModelsFlag)
                         tauOut = zeros(dataYSz,dataXSz,nParams,'single');
                         for i = 1:nParams
                             tauOut(:,:,i) = single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,sprintf('TauInit%d',i)));
                         end
                         tauOut = reshape(permute(tauOut,[3,1,2]),nParams,dataYSz*dataXSz);
+                        if(nSE > 0)
+                            betaOut = zeros(dataYSz,dataXSz,nSE,'single');
+                            for i = 1:nTci
+                                betaOut(:,:,i) = single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,sprintf('BetaInit%d',betaList(i))));
+                            end
+                            betaOut = reshape(permute(betaOut,[3,1,2]),nSE,dataYSz*dataXSz);
+                            %remove betas set to constant
+                            vcp.cMask(2*nParams+nTci+1:2*nParams+nTci+nSE) = 0;
+                            vcp.cVec(2*nParams+nTci+1:2*nParams+nTci+nSE) = [];
+                        end
+                        if(nTci > 0)
+                            tciOut = zeros(dataYSz,dataXSz,nTci,'single');
+                            for i = 1:nTci
+                                tciOut(:,:,i) = single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,sprintf('tcInit%d',tciList(i))));
+                            end
+                            tciOut = reshape(permute(tciOut,[3,1,2]),nTci,dataYSz*dataXSz);
+                            %remove tcis set to constant
+                            vcp.cMask(2*nParams+1:2*nParams+nTci) = 0;
+                            vcp.cVec(2*nParams+1:2*nParams+nTci) = [];
+                        end                                               
                         shiftOut = reshape(single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,'hShiftInit')),1,dataYSz*dataXSz);
-                        %remove taus and shift from fixed parameters
-                        vcp.cMask(nParams+1:2*nParams) = 0;
-                        vcp.cVec(nParams+1:2*nParams) = [];
-                        vcp.cMask(end-1) = 0;
-                        vcp.cVec(end-1) = [];
+                        %remove taus and shift from fixed parameters to set them to the values above instead later
+                        vcp.cMask(nParams+1:2*nParams) = 0; %taus
+                        vcp.cVec(nParams+1:2*nParams) = []; %taus
+                        vcp.cMask(end-1) = 0; %shift
+                        vcp.cVec(end-1) = []; %shift
                         apObj.setVolatileChannelParams(ch,vcp);
                         nrTiles = 256;                        
                     else
@@ -522,12 +548,28 @@ classdef FluoDecayFit < handle
                         vcp.cVec(1:nParams) = 1;
                         [amps, taus, tcis, betas, scAmps, scShifts, scOset, hShift, oset] = apObj.getXVecComponents([],true,ch,1);
                         shiftOut = ones(1,dataYSz*dataXSz).* hShift;
-                        tauOut = ones(apObj.basicParams.nExp,dataYSz*dataXSz).*taus;
+                        tauOut = ones(bp.nExp,dataYSz*dataXSz).*taus;
+                        if(nTci > 0)
+                            tciOut = ones(nTci,dataYSz*dataXSz).*tcis;
+                        end
+                        if(nSE > 0)
+                            betaOut = ones(nSE,dataYSz*dataXSz).*betas;
+                        end
                         apObj.setVolatileChannelParams(ch,vcp);
                         expModels = single(apObj.getExponentials(ch,[],1));
                         nrTiles = nWorkers;
                     end                                       
                     %create mask where data is not zero
+                    idxEnoughPhotons = sum(measData,1) >= bp.photonThreshold;
+                    measData = measData(:,idxEnoughPhotons);
+                    tauOut = tauOut(:,idxEnoughPhotons);
+                    if(nTci > 0)
+                        tciOut = tciOut(:,idxEnoughPhotons);
+                    end
+                    if(nSE > 0)
+                        betaOut = betaOut(:,idxEnoughPhotons);
+                    end
+                    shiftOut = shiftOut(:,idxEnoughPhotons);                    
                     dataNonZeroMask = measData ~= 0;                    
                     dataNonZeroMask(1:fi.StartPosition-1,:) = false;
                     dataNonZeroMask(fi.EndPosition+1:end,:) = false;
@@ -537,7 +579,7 @@ classdef FluoDecayFit < handle
                     bounds = zeros(nParams,2);
                     bounds(:,2) = inf;                    
                     %create tiles                    
-                    idxTiles = floor(linspace(0,dataYSz*dataXSz,nrTiles+1));
+                    idxTiles = floor(linspace(0,size(measData,2),nrTiles+1));
                     dataSlices = cell(nrTiles,1);
                     dataNZMaskSlices = cell(nrTiles,1);                    
                     for i = 1:nrTiles
@@ -563,9 +605,21 @@ classdef FluoDecayFit < handle
                         oTmp = [];
                         mTmp = [];
                         expMTmp = [];
-                        if(~multiModelsFlag)
+                        if(multiModelsFlag)
                             %different model for each pixel
-                            [~, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, offset, tciHShiftFine, nVecsTmp] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch,1);
+                            if(nTci < 1 && nSE < 1)
+                                %no tci or beta
+                                [~, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, offset, tciHShiftFine, nVecsTmp] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch,1);
+                            elseif(nTci > 0 && nSE < 1)
+                                %only tcis
+                                [~, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, offset, tciHShiftFine, nVecsTmp] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); tciOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch,1);                            
+                            elseif(nTci < 1 && nSE > 0)
+                                %only betas
+                                [~, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, offset, tciHShiftFine, nVecsTmp] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); betaOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch,1);                            
+                            else
+                                %tcis and betas
+                                [~, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, offset, tciHShiftFine, nVecsTmp] = apObj.getXVecComponents([tauOut(:,idxTiles(i)+1:idxTiles(i+1)); tciOut(:,idxTiles(i)+1:idxTiles(i+1)); betaOut(:,idxTiles(i)+1:idxTiles(i+1)); shiftOut(:,idxTiles(i)+1:idxTiles(i+1))],true,ch,1);                            
+                            end
                             myT = repmat(t(:,1),1,double(nExp)*nVecsTmp);                            
                             expMTmp = computeExponentials(nExp,incompleteDecayFactor,scatterEnable,scatterIRF,stretchedExpMask,...
                                 myT,apObj.myChannels{ch}.iMaxPos,irffft,[],taus, tcis, betas, scAmps, scShifts, [], scOset, hShift, tciHShiftFine,false);
@@ -584,24 +638,48 @@ classdef FluoDecayFit < handle
                         res(i,:) = tmp;
                     end
                     %collect results
-                    chi2 = cell2mat(res(:,1));
-                    ampsOut = cell2mat(res(:,2));
-                    osetOut = cell2mat(res(:,3));
+                    chi2 = zeros(dataYSz*dataXSz,1,'single');
+                    ampsOut = zeros(dataYSz*dataXSz,nParams,'single');
+                    osetOut = zeros(dataYSz*dataXSz,1,'single');
+                    chi2(idxEnoughPhotons,:) = cell2mat(res(:,1));
+                    ampsOut(idxEnoughPhotons,:) = cell2mat(res(:,2));
+                    osetOut(idxEnoughPhotons,:) = cell2mat(res(:,3));
                     chi2 = reshape(chi2,dataYSz,dataXSz);
                     ampsOut = reshape(ampsOut,dataYSz,dataXSz,nParams);
-                    tauOut = reshape(permute(tauOut,[2,1]),dataYSz,dataXSz,nParams);
-                    shiftOut = reshape(shiftOut,dataYSz,dataXSz);
+                    tauOut_ = zeros(nParams,dataYSz*dataXSz,'single');
+                    shiftOut_ = zeros(1,dataYSz*dataXSz,'single');
+                    tauOut_(:,idxEnoughPhotons) = tauOut;
+                    tauOut = reshape(permute(tauOut_,[2,1]),dataYSz,dataXSz,nParams);
+                    if(nTci > 0)
+                        tciOut_ = zeros(nTci,dataYSz*dataXSz,'single');
+                        tciOut_(:,idxEnoughPhotons) = tciOut;
+                        tciOut = reshape(permute(tciOut_,[2,1]),dataYSz,dataXSz,nTci);
+                    end
+                    if(nSE > 0)
+                        betaOut_ = zeros(nSE,dataYSz*dataXSz,'single');
+                        betaOut_(:,idxEnoughPhotons) = betaOut;
+                        betaOut = reshape(permute(betaOut_,[2,1]),dataYSz,dataXSz,nSE);
+                    end
+                    shiftOut_(:,idxEnoughPhotons) = shiftOut;
+                    shiftOut = reshape(shiftOut_,dataYSz,dataXSz);
                     osetOut = reshape(osetOut,dataYSz,dataXSz);
                     xVec = zeros(size(chi2,1),size(chi2,2),length(vcp.cMask));
-                    xVec(:,:,1:apObj.basicParams.nExp) = ampsOut;
-                    xVec(:,:,apObj.basicParams.nExp+1:2*apObj.basicParams.nExp) = tauOut;
+                    xVec(:,:,1:bp.nExp) = ampsOut;
+                    xVec(:,:,bp.nExp+1:2*bp.nExp) = tauOut;
+                    if(nTci > 0)
+                        xVec(:,:,2*bp.nExp+1:2*bp.nExp+nTci) = tciOut;
+                    end
+                    if(nSE > 0)
+                        i0 = 2*bp.nExp+nTci;
+                        xVec(:,:,i0:i0+nSE-1) = betaOut;
+                    end
                     xVec(:,:,end-1) = shiftOut;
                     xVec(:,:,end) = osetOut;
                     %store results
                     this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'chi2',chi2);                    
-                    for i = 1:apObj.basicParams.nExp
+                    for i = 1:bp.nExp
                         this.FLIMXObj.curSubject.setPixelFLIMItem(ch,sprintf('Amplitude%d',i),squeeze(ampsOut(:,:,i)));
-                        this.FLIMXObj.curSubject.setPixelFLIMItem(ch,sprintf('Tau%d',i),squeeze(tauOut(:,:,i)));
+                        this.FLIMXObj.curSubject.setPixelFLIMItem(ch,sprintf('Tau%d',i),squeeze(single(tauOut(:,:,i))));
                     end
                     this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'x_vec',xVec);
                     this.FLIMXObj.curSubject.setPixelFLIMItem(ch,'hShift',xVec(:,:,end-1));
@@ -756,7 +834,16 @@ classdef FluoDecayFit < handle
         function status = makeCleanUpFit(this,ch,initFit)
             %find outliers in current result and try to improve them
             status = false;
-            if(~this.cleanupFitParams.enable || (initFit && ~this.FLIMXObj.curSubject.isInitResult(ch)) || (~initFit && ~this.FLIMXObj.curSubject.isPixelResult(ch)) || isempty(this.cleanupFitParams.target))
+            %check if all non linear parameters are fixed
+            parameterCell = this.getApproxParamCell(ch,1,1,false);
+            if(~isempty(parameterCell))
+                apObj = parameterCell{1}{1};
+                vcp = apObj.getVolatileChannelParams(ch);
+                noNonLinOpt = vcp.nApproxParamsPerCh == 0;
+            else
+                noNonLinOpt = false;
+            end
+            if(noNonLinOpt || ~this.cleanupFitParams.enable || (initFit && ~this.FLIMXObj.curSubject.isInitResult(ch)) || (~initFit && ~this.FLIMXObj.curSubject.isPixelResult(ch)) || isempty(this.cleanupFitParams.target))
                 return
             end
             this.parameters.stopOptimization = false;            

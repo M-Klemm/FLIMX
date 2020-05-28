@@ -242,7 +242,7 @@ classdef paramMgr < handle
             def.basic_fit.lifetimeGap           =   2; %minimal gap/distance between lifetimes (relative factor, e.g. tau2 >= tau1 * factor)
             def.basic_fit.resultValidyCheckCnt  =   0; %retries for optimizer to get valid result (all amps & offset ~= zero)
             def.basic_fit.fitModel              =   0; %0: tail fit, 1: tci fit
-            def.basic_fit.tailFitPreMaxSteps    =   10; %number of time points prior to the maximum which are used additionally in case of tail fits
+            def.basic_fit.tailFitPreMaxSteps    =   5; %number of time points prior to the maximum which are used additionally in case of tail fits
             def.basic_fit.compMaxCorrTci        =	0;
             def.basic_fit.curIRFID              =   1;
             def.basic_fit.incompleteDecay       =	1;
@@ -287,7 +287,28 @@ classdef paramMgr < handle
             def.basic_fit.constMaskSaveValCh15  =   [1];
             def.basic_fit.constMaskSaveValCh16  =   [1];
             def.basic_fit.linOptXTol            =   1e-005;
-            def.basic_fit.fix2InitSmoothing     =   1;  
+            def.basic_fit.fix2InitSmoothing     =   1;
+            def.basic_fit.fixTausByAge          =   0;            
+            def.basic_fit.fixTau1ByAgeSlopeCh1  =   0.5548;
+            def.basic_fit.fixTau1ByAgeOffsetCh1 =   61.559;
+            def.basic_fit.fixTau1ByAgeSlopeCh2  =   0.7259;
+            def.basic_fit.fixTau1ByAgeOffsetCh2 =   82.48;            
+            def.basic_fit.fixTau2ByAgeSlopeCh1  =   1.6565;
+            def.basic_fit.fixTau2ByAgeOffsetCh1 =   495.43;
+            def.basic_fit.fixTau2ByAgeSlopeCh2  =   2.5189;
+            def.basic_fit.fixTau2ByAgeOffsetCh2 =   471.08;            
+            def.basic_fit.fixTau3ByAgeSlopeCh1  =   20.555;
+            def.basic_fit.fixTau3ByAgeOffsetCh1 =   2672.9;
+            def.basic_fit.fixTau3ByAgeSlopeCh2  =   12.157;
+            def.basic_fit.fixTau3ByAgeOffsetCh2 =   2176.1;            
+            def.basic_fit.fixTau4ByAgeSlopeCh1  =   1;
+            def.basic_fit.fixTau4ByAgeOffsetCh1 =   0;
+            def.basic_fit.fixTau4ByAgeSlopeCh2  =   1;
+            def.basic_fit.fixTau4ByAgeOffsetCh2 =   0;            
+            def.basic_fit.fixTau5ByAgeSlopeCh1  =   1;
+            def.basic_fit.fixTau5ByAgeOffsetCh1 =   0;
+            def.basic_fit.fixTau5ByAgeSlopeCh2  =   1;
+            def.basic_fit.fixTau5ByAgeOffsetCh2 =   0;            
             def.basic_fit.fix2InitTargets       =   '';
             def.basic_fit.optimizerInitStrategy =   2; %1: guess values, 2: global approximation, 3: previous pixel
             def.basic_fit.globalFitMaskSaveStr  =   ''; 

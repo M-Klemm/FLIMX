@@ -54,7 +54,7 @@ function varargout = GUI_fitOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_fitOptions
 
-% Last Modified by GUIDE v2.5 10-Feb-2020 17:09:15
+% Last Modified by GUIDE v2.5 30-Apr-2020 01:03:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -228,6 +228,7 @@ set(handles.popupAnisoR0Method,'Value',data.basic.anisotropyR0Method,'Enable',da
 set(handles.checkIDec,'Value',data.basic.incompleteDecay,'Enable',data.enableGUIControlsFlag);
 set(handles.editPhotons,'String',num2str(data.basic.photonThreshold),'Enable',data.enableGUIControlsFlag);
 set(handles.checkSmoothInitFix,'Value',data.basic.fix2InitSmoothing,'Enable',data.enableGUIControlsFlag);
+set(handles.checkFixTausByAge,'Value',data.basic.fixTausByAge,'Enable',data.enableGUIControlsFlag);
 set(handles.editRisingEdgeErrorMargin,'String',num2str(data.basic.risingEdgeErrorMargin),'Enable',data.enableGUIControlsFlag);
 switch data.basic.neighborFit
     case 0
@@ -436,6 +437,14 @@ updateGUI(handles,rdh);
 function checkSmoothInitFix_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
 rdh.basic.fix2InitSmoothing = get(hObject,'Value');
+rdh.isDirty(1) = 1;
+set(handles.fitOptionsFigure,'userdata',rdh);
+updateGUI(handles,rdh);
+
+% --- Executes on button press in checkFixTausByAge.
+function checkFixTausByAge_Callback(hObject, eventdata, handles)
+rdh = get(handles.fitOptionsFigure,'userdata');
+rdh.basic.fixTausByAge = get(hObject,'Value');
 rdh.isDirty(1) = 1;
 set(handles.fitOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);

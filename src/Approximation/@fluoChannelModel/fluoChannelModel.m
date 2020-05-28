@@ -948,33 +948,38 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         
         function compSmoothedMaxValues(this)
             %compute position and value of data maximum (smoothed data) and full width half maximum position
-            dSmooth = this.dataStorage.measurement.raw;
+            dSmooth = single(this.dataStorage.measurement.raw);
             dSmooth(isnan(dSmooth)) = 0;
             dSmooth = fastsmooth(dSmooth,5,2,0);
             dSmooth = flipud(fastsmooth(flipud(dSmooth),5,2,0));
-            [dMaxValTmp, dMaxPosTmp] = max(dSmooth(min(this.dLen,max(1,this.myStartPos)):min(floor(this.dLen/2),this.myEndPos),:));
-            %look for maximum in real data around the max of the smoothed data
-            dMaxPosTmp = dMaxPosTmp + this.myStartPos-1;
-            %[maxVal, dMaxPosTmp2] = max(this.dataStorage.measurement.raw(min(this.dLen,max(1,dMaxPosTmp-5)):min(this.dLen,dMaxPosTmp+5),1));
-            %this.dataStorage.measurement.maxPos = dMaxPosTmp-5+dMaxPosTmp2-1;
-            this.dataStorage.measurement.maxPos = dMaxPosTmp;
-            this.dataStorage.measurement.maxVal = double(dMaxValTmp);
-            if(this.basicParams.fitModel ~=1)
-                this.myStartPos = max(1,this.dataStorage.measurement.maxPos-this.basicParams.tailFitPreMaxSteps-1);
-            else
-                this.myStartPos = repmat(this.myStartPos,[1,this.dataStorage.measurement.nPixel]);
-            end            
             ids = (5:10:85)./100;
             this.dataStorage.measurement.risingIDs = zeros(this.dataStorage.measurement.nPixel,size(ids,1));
+            sp0 = this.myStartPos(1);
+            this.myStartPos = zeros(1,this.dataStorage.measurement.nPixel);
+            this.dataStorage.measurement.maxPos = zeros(1,this.dataStorage.measurement.nPixel);
+            this.dataStorage.measurement.maxVal = zeros(1,this.dataStorage.measurement.nPixel);
+            this.dataStorage.measurement.FWHMPos = zeros(1,this.dataStorage.measurement.nPixel);
             for p = 1:this.dataStorage.measurement.nPixel
-                tmp = max(1,find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p),dMaxValTmp(p)*0.6),1,'last'));
+                [dMaxValTmp, dMaxPosTmp] = max(dSmooth(min(this.dLen,max(1,sp0)):min(floor(this.dLen/2),this.myEndPos(1)),p));
+                %look for maximum in real data around the max of the smoothed data
+                dMaxPosTmp = uint16(dMaxPosTmp + sp0-1);
+                %[maxVal, dMaxPosTmp2] = max(this.dataStorage.measurement.raw(min(this.dLen,max(1,dMaxPosTmp-5)):min(this.dLen,dMaxPosTmp+5),1));
+                %this.dataStorage.measurement.maxPos = dMaxPosTmp-5+dMaxPosTmp2-1;
+                this.dataStorage.measurement.maxPos(p) = dMaxPosTmp;
+                this.dataStorage.measurement.maxVal(p) = double(dMaxValTmp);
+                if(this.basicParams.fitModel ~=1)
+                    this.myStartPos(p) = max(1,this.dataStorage.measurement.maxPos(p)-this.basicParams.tailFitPreMaxSteps-1);
+                else
+                    this.myStartPos(p) = repmat(this.myStartPos(p),[1,this.dataStorage.measurement.nPixel]);
+                end
+                tmp = max(1,find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p),dMaxValTmp*0.6),1,'last'));
                 if(isempty(tmp))
                     this.dataStorage.measurement.FWHMPos(p) = 1;
                 else
                     this.dataStorage.measurement.FWHMPos(p) = tmp;
                 end
-                minVal = min(this.dataStorage.measurement.raw(this.dRealStartPos:this.dataStorage.measurement.maxPos,p));
-                dataRange = dMaxValTmp(p) - minVal;
+                minVal = single(min(this.dataStorage.measurement.raw(this.dRealStartPos(p):this.dataStorage.measurement.maxPos(p),p)));
+                dataRange = dMaxValTmp - minVal;
                 for i = 1:length(ids)                    
                     if(ids(i) > 0.5)
                         this.dataStorage.measurement.risingIDs(p,i) = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p) >= double(minVal)+double(dataRange)*ids(i),1,'first');

@@ -922,6 +922,58 @@ classdef fluoSubject < FDTreeNode
                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(1,end+1) = 0;
                 end
             end
+            if(params.basicFit.fixTausByAge)
+                age = double(this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,'Age'));
+                if(~isempty(age) && ~isnan(age) && ~isinf(age))
+                    for i = 1:params.basicFit.nExp
+                        for c = 1:2
+                            t.(sprintf('t%d_c%d',i,c)) = params.basicFit.(sprintf('fixTau%dByAgeSlopeCh%d',i,c))*age + params.basicFit.(sprintf('fixTau%dByAgeOffsetCh%d',i,c));
+                        end
+                    end
+                    for i = 1:params.basicFit.nExp
+                        tStr = sprintf('Tau %d',i);
+                        idx1 = find(strcmp(params.basicFit.constMaskSaveStrCh1,tStr));
+                        idx2 = find(strcmp(params.basicFit.constMaskSaveStrCh2,tStr));
+                        if(i <= 3)
+                            if(isempty(idx1) || ~idx1)
+                                params.basicFit.constMaskSaveStrCh1{end+1} = tStr;
+                                params.basicFit.constMaskSaveValCh1(end+1) = t.(sprintf('t%d_c1',i));
+                            else
+                                params.basicFit.constMaskSaveValCh1(idx1) = t.(sprintf('t%d_c1',i));
+                            end
+                            if(isempty(idx2) || ~idx2)
+                                params.basicFit.constMaskSaveStrCh2{end+1} = tStr;
+                                params.basicFit.constMaskSaveValCh2(end+1) = t.(sprintf('t%d_c2',i));
+                            else
+                                params.basicFit.constMaskSaveValCh2(idx2) = t.(sprintf('t%d_c2',i));
+                            end
+                            %remove tau from fix2init
+                            idx3 = strcmp(params.basicFit.fix2InitTargets,tStr);
+                            params.basicFit.fix2InitTargets(idx3) = [];
+                        end
+                    end
+                    %ch1
+%                     [params.basicFit.constMaskSaveStrCh1, idx] = unique([params.basicFit.constMaskSaveStrCh1, compose('Tau %d',1:params.basicFit.nExp)]);
+%                     params.basicFit.constMaskSaveValCh1 = [params.basicFit.constMaskSaveValCh1, 1:params.basicFit.nExp];
+%                     params.basicFit.constMaskSaveValCh1 = params.basicFit.constMaskSaveValCh1(idx);
+%                     %ch2
+%                     [params.basicFit.constMaskSaveStrCh2, idx] = unique([params.basicFit.constMaskSaveStrCh2, compose('Tau %d',1:params.basicFit.nExp)]);
+%                     params.basicFit.constMaskSaveValCh2 = [params.basicFit.constMaskSaveValCh2, 1:params.basicFit.nExp];
+%                     params.basicFit.constMaskSaveValCh2 = params.basicFit.constMaskSaveValCh2(idx);
+%                     for i = 1:params.basicFit.nExp                        
+%                         tStr = sprintf('Tau %d',i);
+%                         idx1 = strcmp(params.basicFit.constMaskSaveStrCh1,tStr);
+%                         idx2 = strcmp(params.basicFit.constMaskSaveStrCh2,tStr);
+%                         if(i > 3)
+%                             params.basicFit.constMaskSaveValCh1(idx1) = 0;
+%                             params.basicFit.constMaskSaveValCh2(idx2) = 0;
+%                         else
+%                             params.basicFit.constMaskSaveValCh1(idx1) = t.(sprintf('t%d_c1',i));
+%                             params.basicFit.constMaskSaveValCh2(idx2) = t.(sprintf('t%d_c2',i));
+%                         end
+%                     end
+                end
+            end
             if(any(this.volatilePixelParams.globalFitMask))
                 allIRFs = cell(1,ad.fileInfo.nrSpectralChannels);
                 for ch = 1:ad.fileInfo.nrSpectralChannels
@@ -954,7 +1006,7 @@ classdef fluoSubject < FDTreeNode
                 idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Offset');
                 if(any(idx))
                     %fixed offset is usually for static binning 2; now scale it with the average number of pixels used for initialization
-                    params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx(1)) = params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(end) ./ params.pixelFit.gridSize^2 .* mean(nrPixels(:));
+                    params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx) = params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx) ./ params.pixelFit.gridSize^2 .* mean(nrPixels(:));
                 end
             end
             out = cell(params.pixelFit.gridSize^2,1);
@@ -1061,6 +1113,46 @@ classdef fluoSubject < FDTreeNode
                     end
                 end
             else
+                if(params.basicFit.fixTausByAge)
+                    age = double(this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,'Age'));
+                    if(~isempty(age) && ~isnan(age) && ~isinf(age))
+                        for i = 1:params.basicFit.nExp
+                            for c = 1:2
+                                t.(sprintf('t%d_c%d',i,c)) = params.basicFit.(sprintf('fixTau%dByAgeSlopeCh%d',i,c))*age + params.basicFit.(sprintf('fixTau%dByAgeOffsetCh%d',i,c));
+                            end
+                        end
+                        %ch1
+%                         [params.basicFit.constMaskSaveStrCh1, idx] = unique([params.basicFit.constMaskSaveStrCh1, compose('Tau %d',1:params.basicFit.nExp)]);
+%                         params.basicFit.constMaskSaveValCh1 = [params.basicFit.constMaskSaveValCh1, 1:params.basicFit.nExp];
+%                         params.basicFit.constMaskSaveValCh1 = params.basicFit.constMaskSaveValCh1(idx);
+%                         %ch2
+%                         [params.basicFit.constMaskSaveStrCh2, idx] = unique([params.basicFit.constMaskSaveStrCh2, compose('Tau %d',1:params.basicFit.nExp)]);
+%                         params.basicFit.constMaskSaveValCh2 = [params.basicFit.constMaskSaveValCh2, 1:params.basicFit.nExp];
+%                         params.basicFit.constMaskSaveValCh2 = params.basicFit.constMaskSaveValCh2(idx);
+                        for i = 1:params.basicFit.nExp
+                            tStr = sprintf('Tau %d',i);
+                            idx1 = find(strcmp(params.basicFit.constMaskSaveStrCh1,tStr));
+                            idx2 = find(strcmp(params.basicFit.constMaskSaveStrCh2,tStr));
+                            if(i <= 3)
+                                if(isempty(idx1) || ~idx1)
+                                    params.basicFit.constMaskSaveStrCh1{end+1} = tStr;
+                                    params.basicFit.constMaskSaveValCh1(end+1) = t.(sprintf('t%d_c1',i));
+                                else
+                                    params.basicFit.constMaskSaveValCh1(idx1) = t.(sprintf('t%d_c1',i));
+                                end
+                                if(isempty(idx2) || ~idx2)
+                                    params.basicFit.constMaskSaveStrCh2{end+1} = tStr;
+                                    params.basicFit.constMaskSaveValCh2(end+1) = t.(sprintf('t%d_c2',i));
+                                else
+                                    params.basicFit.constMaskSaveValCh2(idx2) = t.(sprintf('t%d_c2',i));
+                                end
+                                %remove tau from fix2init
+                                idx3 = strcmp(params.basicFit.fix2InitTargets,tStr);
+                                params.basicFit.fix2InitTargets(idx3) = [];
+                            end
+                        end
+                    end
+                end
                 params.basicFit.(sprintf('constMaskSaveValCh%d',ch)) = double(params.basicFit.(sprintf('constMaskSaveValCh%d',ch)));
                 for i = 1:length(params.basicFit.fix2InitTargets)
                     sStr = params.basicFit.(sprintf('constMaskSaveStrCh%d',ch));
@@ -1071,9 +1163,9 @@ classdef fluoSubject < FDTreeNode
                     sStr{idx} = params.basicFit.fix2InitTargets{i};
                     params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)) = sStr;
                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(idx) = 0;
-                end
+                end                
                 ad = this.myResult.getAuxiliaryData(ch);
-                if(isempty(ad) || ~isfield(ad,'fielInfo') || isempty(ad.fileInfo))
+                if(isempty(ad) || ~isfield(ad,'fileInfo') || isempty(ad.fileInfo))
                     this.updateAuxiliaryData(ch)
                     ad = this.myResult.getAuxiliaryData(ch);
                 end
@@ -1121,9 +1213,9 @@ classdef fluoSubject < FDTreeNode
             end
             %fix certain paramters to initialization values
             bp = out.basicParams;
-            if(~isempty(bp.fix2InitTargets))                
+            if(~isempty(bp.fix2InitTargets))
                 if(any(out.volatilePixelParams.globalFitMask))
-                    for chTmp = 1:out.nrChannels                        
+                    for chTmp = 1:out.nrChannels
                         bp.(sprintf('constMaskSaveValCh%d',chTmp)) = double(bp.(sprintf('constMaskSaveValCh%d',chTmp)));
                         vcp = out.getVolatileChannelParams(chTmp);
                         vcp = this.updateFixedTargets(chTmp,y,x,bp,vcp,out.volatilePixelParams.modelParamsString);
