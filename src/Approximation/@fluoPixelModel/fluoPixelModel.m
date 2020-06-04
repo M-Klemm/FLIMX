@@ -1212,12 +1212,18 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             if(isempty(xVec))
                 return
             end
+            if(isvector(xVec) && length(xVec) == length(pixelIDs))
+                %1 non-linear parameter, more than 1 pixel
+                xVec = xVec(:)';
+            end
             cMask = logical([vcp(:).cMask]);
             cVec = [vcp(:).cVec];
             if(isempty(cVec))
-                if(isvector(xVec))
+                if(isvector(xVec) && length(pixelIDs) == 1)
+                    %1 pixel and multiple non-linear parameters
                     x = xVec(:);
                 else
+                    %multiple pixels and multiple non-linear parameters
                     x = xVec;
                 end
             else
