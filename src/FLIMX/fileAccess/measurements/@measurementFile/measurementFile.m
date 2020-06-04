@@ -555,7 +555,7 @@ classdef measurementFile < handle
 
         function out = getReflectionMask(this,channel)
             %get reflection mask of channel
-            if(isempty(this.fileInfo.reflectionMask) || length(this.fileInfo.reflectionMask) < channel || isempty(this.fileInfo.reflectionMask{channel}))
+            if(isempty(this.fileInfo.reflectionMask) || length(this.fileInfo.reflectionMask) < channel || isempty(this.fileInfo.reflectionMask{channel}) || ~any(this.fileInfo.reflectionMask{channel}))
                 this.updateSEPosRM(channel);
             end
             out = this.fileInfo.reflectionMask{channel};
@@ -927,39 +927,37 @@ classdef measurementFile < handle
         function goOn = updateSEPosRM(this,channel)
             %get start-pos, end-pos and reflection mask
             goOn = true;
-            pParam = this.paramMgrObj.getParamSection('pre_processing');
+            pParam = this.paramMgrObj.preProcessParams;
+            mergeData = this.getROIMerged(channel);
             %1: auto, 0: manual, -1: fix
             if(pParam.autoStartPos == 1)
-                %run auto function
-                m = this.getROIMerged(channel);
-                if(isempty(m))
+                %run auto function                
+                if(isempty(mergeData))
                     this.fileInfo.StartPosition(channel) = {1};
                 else
-                    this.fileInfo.StartPosition(channel) = {fluoPixelModel.getStartPos(m)};
+                    this.fileInfo.StartPosition(channel) = {fluoPixelModel.getStartPos(mergeData)};
                 end
             elseif(pParam.autoStartPos == -1)
-                %fixed predifined value
+                %fixed predefined value
                 this.fileInfo.StartPosition(channel) = {pParam.fixStartPos};
             end
             if(pParam.autoEndPos == 1)
                 %run auto function
-                m = this.getROIMerged(channel);
-                if(isempty(m))
+                if(isempty(mergeData))
                     this.fileInfo.EndPosition(channel) = {1};
                 else
-                    this.fileInfo.EndPosition(channel) = {fluoPixelModel.getEndPos(m)};
+                    this.fileInfo.EndPosition(channel) = {fluoPixelModel.getEndPos(mergeData)};
                 end
             elseif(pParam.autoEndPos == -1)
-                %fixed predifined value
+                %fixed predefined value
                 this.fileInfo.EndPosition(channel) = {pParam.fixEndPos};
             end
             if(pParam.autoReflRem == 1)
                 %auto reflection removal
-                m = this.getROIMerged(channel);
-                if(isempty(m))
+                if(isempty(mergeData))
                     this.fileInfo.reflectionMask(channel) = {ones(this.fileInfo.nrTimeChannels,1)};
                 else
-                    this.fileInfo.reflectionMask(channel) = {measurementFile.compReflectionMask(m,pParam.ReflRemWinSz,pParam.ReflRemGrpSz)};
+                    this.fileInfo.reflectionMask(channel) = {measurementFile.compReflectionMask(mergeData,pParam.ReflRemWinSz,pParam.ReflRemGrpSz)};
                 end
             else %-1 disabled
                 this.fileInfo.reflectionMask(channel) = {ones(this.fileInfo.nrTimeChannels,1)};
@@ -1287,7 +1285,7 @@ classdef measurementFile < handle
         function setNrTimeChannels(this,val)
             %set nr of time channels
             this.fileInfo.nrTimeChannels = val;
-            this.fileInfo.reflectionMask = mat2cell(ones(this.fileInfo.nrTimeChannels,this.fileInfo.nrSpectralChannels),val,ones(this.fileInfo.nrSpectralChannels,1))';
+            this.fileInfo.reflectionMask = mat2cell(zeros(this.fileInfo.nrTimeChannels,this.fileInfo.nrSpectralChannels),val,ones(this.fileInfo.nrSpectralChannels,1))';
             this.setDirtyFlags([],2,true);
         end
 
@@ -1525,6 +1523,7 @@ classdef measurementFile < handle
             idx = [];
             %in_a = sWnd1DAvg(in,aWSz);
             in_a = fastsmooth(in,aWSz,3,0);
+            %in_a = flipud(fastsmooth(flipud(in_a),aWSz,3,0));
             [~, m_pos] = max(in_a(:));
             in_g = fastGrad(in_a);
             in_g(1:m_pos) = -inf;
@@ -1539,6 +1538,8 @@ classdef measurementFile < handle
                 return
             end
             idx(:,2) = idx(:,2) + round(4*idx_diff(idx_diff >= minGWSz)); %remove 4 times the slope of the reflection (in total)
+            idx(:,1) = idx(:,1) - idx_diff(idx_diff >= minGWSz);
+            idx(:,1) = max(idx(:,1),1);
             oLen = length(out);
             idx(idx(:,2) > oLen,2) = oLen;
             for i = 1:size(idx,1)

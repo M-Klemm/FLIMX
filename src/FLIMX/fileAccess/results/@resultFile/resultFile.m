@@ -517,6 +517,13 @@ classdef resultFile < handle
             if(~isempty(ch) && ~any(this.loadedChannelList == ch) && any(this.nonEmptyChannelList == ch))
                 %we have to load this channel first
                 this.openChannel(ch);
+            elseif(isempty(ch))
+                %open all channels and check if there is an init result in any channel
+                for c = this.nonEmptyChannelList
+                    this.openChannel(c);
+                end
+                out = any(this.initApproximated(:));
+                return
             end
             if(ch > length(this.initApproximated))
                 out = false;
@@ -530,6 +537,13 @@ classdef resultFile < handle
             if(~isempty(ch) && ~any(this.loadedChannelList == ch) && any(this.nonEmptyChannelList == ch))
                 %we have to load this channel first
                 this.openChannel(ch);
+            elseif(isempty(ch))
+                %open all channels and check if there is an pixel result in any channel
+                for c = this.nonEmptyChannelList
+                    this.openChannel(c);
+                end
+                out = any(this.pixelApproximated(:));
+                return
             end
             out = false;
             if(nargin == 2)

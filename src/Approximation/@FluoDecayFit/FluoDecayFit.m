@@ -318,15 +318,21 @@ classdef FluoDecayFit < handle
                 break
             end
             this.parameters.stopOptimization = false;
+            %check reflection mask
+            if(~this.FLIMXObj.curSubject.isInitResult([]) && ~this.FLIMXObj.curSubject.isPixelResult([]) ...
+                    && this.preProcessParams.autoReflRem ~= 0 && this.preProcessParams.autoStartPos ~= 0 && this.preProcessParams.autoEndPos ~= 0)
+                this.FLIMXObj.curSubject.updateSEPosRM([]);
+            end
             if(isempty(ch))
                 tStart = clock;
-                %fit all channels
+                %fit all channels                
                 if(this.FLIMXObj.curSubject.basicParams.approximationTarget == 2 && this.FLIMXObj.curSubject.basicFit.anisotropyR0Method == 2)
                     %in case of anisotropy compute channel 3 (sum of ch1 and ch2) first
                     chList = [3,1,2,4];
                 else
                     chList = 1:this.FLIMXObj.curSubject.nrSpectralChannels;
                 end
+                %run approximation per channel
                 for ch = 1:length(chList)
                     this.FLIMXObj.FLIMFitGUI.currentChannel = chList(ch); %switch GUI to current channel
                     status = this.startFitProcess(chList(ch),[],[]); %do the computation

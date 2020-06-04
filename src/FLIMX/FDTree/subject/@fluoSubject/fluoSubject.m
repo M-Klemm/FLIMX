@@ -124,6 +124,19 @@ classdef fluoSubject < FDTreeNode
 %             end
         end
         
+        function updateSEPosRM(this,ch)
+            %update starting point, end point and refelction mask for specific measurement channel of current subject
+            if(isempty(ch))
+                for ch = this.nonEmptyChannelList
+                    this.myMeasurement.updateSEPosRM(ch);
+                end
+                this.updateAuxiliaryData([]);
+            else
+                this.myMeasurement.updateSEPosRM(ch);
+                this.updateAuxiliaryData(ch);
+            end            
+        end
+        
         function initParamMgr(this)
             %reset parameter manager
             hp = this.getParentParamMgr();
