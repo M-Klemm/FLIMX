@@ -45,6 +45,13 @@ if isempty(hostNamePersistent)
   % allow upper case letters
   hostName = upper(hostName);
   
+  %hostname may include domain name or dots for other reasons
+  %remove everything after the first dot
+  dotIdx = strfind(hostName,'.');
+  if(~isempty(dotIdx) && dotIdx(1) > 1)
+  end
+  hostName = hostName(1:dotIdx(1)-1);
+  
 	% save string for next function call
 	hostNamePersistent = hostName;
 else

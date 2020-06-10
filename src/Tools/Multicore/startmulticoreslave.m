@@ -113,7 +113,7 @@ while 1
         % load and delete last parameter file
         %sem = setfilesemaphore(parameterFileName);
         % try to rename parameter file
-        parameterFileNameTmp = strrep(parameterFileName, '.mat', sprintf('.%s_%d',gethostname(),(round(rand*10^10))));
+        parameterFileNameTmp = strrep(parameterFileName, '.mat', sprintf('.%s_%d',gethostname(),round(rand*10^10)));
         loadSuccessful = false;
         parameters = [];
         parametersHash = 0;
@@ -122,6 +122,7 @@ while 1
             lastwarn('');
             lasterror('reset');
             workingFile = strrep(parameterFileName, 'parameters', 'working');
+            workingFile = strrep(workingFile, '.mat', sprintf('.%s_%d',gethostname(),round(rand*10^10)));
             try
                 %rename file to reserve it for this worker
                 moveStatus = movefile(parameterFileName,parameterFileNameTmp);
@@ -315,7 +316,7 @@ while 1
                 save(resultFileNameTmp, 'result'); %% file access %%
                 [renameStatus,renameMsg,renameMsgID] = movefile(resultFileNameTmp,resultFileName); %% file access %%
                 if(~renameStatus)
-                    disp(textwrap2(sprintf('Warning: Unable to rename file %s.\n%s', resultFileName,renameMsg)));
+                    disp(textwrap2(sprintf('Warning: Unable to rename file: %s.\nMsg: %s', resultFileName,renameMsg)));
                 end
                 if debugMode
                     fprintf('Result file nr %d generated.\n', fileNr);
