@@ -647,9 +647,11 @@ classdef StatsGroupComparison < handle
                 hSumMin = min([this.histogramSum{1}(histIdxStart:histIdxEnd), this.histogramSum{2}(histIdxStart:histIdxEnd)]);
                 hSumMax = max([this.histogramSum{1}(histIdxStart:histIdxEnd), this.histogramSum{2}(histIdxStart:histIdxEnd)]);
                 if(abs(hDiffMin - hDiffMax) < eps)
+                    hDiffMin = hDiffMin + eps - abs(hDiffMin)*0.1;
                     hDiffMax = hDiffMax + eps + abs(hDiffMax)*0.1;
                 end
                 if(abs(hSumMin - hSumMax) < eps)
+                    hSumMin = hSumMin - eps - abs(hSumMin)*0.1;
                     hSumMax = hSumMax + eps + abs(hSumMax)*0.1;
                 end
                 cla(this.visHandles.axesSumGrps);
@@ -676,19 +678,29 @@ classdef StatsGroupComparison < handle
                 idxHist(1:histIdxStart-1) = false;
                 idxHist(histIdxEnd+1:end) = false;
                 idx = this.histogramSum{1} ~= 0 & idxHist;
-                plot(this.visHandles.axesSumGrps,this.histCenters(idx),this.histogramSum{1}(idx),'Color',this.settings.colorPath,'Linewidth',lw);
+                if(sum(idx(:)) == 1)
+                    plot(this.visHandles.axesSumGrps,this.histCenters(idx),this.histogramSum{1}(idx),'Color',this.settings.colorPath,'Linewidth',lw,'Marker','*');
+                else
+                    plot(this.visHandles.axesSumGrps,this.histCenters(idx),this.histogramSum{1}(idx),'Color',this.settings.colorPath,'Linewidth',lw);
+                end
                 idx = this.histogramSum{2} ~= 0 & idxHist;
-                plot(this.visHandles.axesSumGrps,this.histCenters(idx),this.histogramSum{2}(idx),'Color',this.settings.colorControls,'Linewidth',lw);
+                if(sum(idx(:)) == 1)
+                    plot(this.visHandles.axesSumGrps,this.histCenters(idx),this.histogramSum{2}(idx),'Color',this.settings.colorControls,'Linewidth',lw,'Marker','o');
+                else
+                    plot(this.visHandles.axesSumGrps,this.histCenters(idx),this.histogramSum{2}(idx),'Color',this.settings.colorControls,'Linewidth',lw);
+                end
                 hold(this.visHandles.axesSumGrps,'off');
                 %diff grps
                 idx = this.histogramDiff ~= 0 & idxHist;
                 plot(this.visHandles.axesDiffGrps,this.histCenters(idx),this.histogramDiff(idx),'Linewidth',lw,'Color',[0 0 0]);
                 hold(this.visHandles.axesDiffGrps,'off');
                 if(histIdxEnd-histIdxStart < eps)
-                    histIdxEnd = histIdxEnd+0.1;
+                    xlim(this.visHandles.axesSumGrps,[this.histCenters(histIdxStart)-abs(this.histCenters(histIdxStart))*0.1 this.histCenters(histIdxStart)+abs(this.histCenters(histIdxStart))*0.1]);%length(this.histogramSum{1})
+                    xlim(this.visHandles.axesDiffGrps,[this.histCenters(histIdxStart)-abs(this.histCenters(histIdxStart))*0.1 this.histCenters(histIdxStart)+abs(this.histCenters(histIdxStart))*0.1]);%length(this.histogramDiff)                
+                else
+                    xlim(this.visHandles.axesSumGrps,this.histCenters([histIdxStart histIdxEnd]));%length(this.histogramSum{1})
+                    xlim(this.visHandles.axesDiffGrps,this.histCenters([histIdxStart histIdxEnd]));%length(this.histogramDiff)
                 end
-                xlim(this.visHandles.axesSumGrps,this.histCenters([histIdxStart histIdxEnd]));%length(this.histogramSum{1})
-                xlim(this.visHandles.axesDiffGrps,this.histCenters([histIdxStart histIdxEnd]));%length(this.histogramDiff)
                 ylim(this.visHandles.axesDiffGrps,[hDiffMin hDiffMax]);
                 ylim(this.visHandles.axesSumGrps,[hSumMin hSumMax]);
                 if(~strcmp(this.dType1,this.dType2) || this.id1 ~= this.id2)
@@ -993,18 +1005,18 @@ classdef StatsGroupComparison < handle
             if(~isempty(c1) && length(c1) >= 2)
                 cw1 = c1(2) - c1(1);
             else
-                cw1 = [];
+                cw1 = c1(1);
             end
             if(~isempty(c2) && length(c2) >= 2)
                 cw2 = c2(2) - c2(1);
             else
-                cw2 = [];
+                cw2 = c2(1);
             end
             if(cw1 == cw2)
                 centers = unique([c1, c2]);
                 equalCWFlag = true;
             else
-                cw = min(cw1,cw2);
+                cw = max(0.1,min(cw1,cw2));
                 centers = min(c1(1),c2(1)) : cw : max(c1(end),c2(end));
                 equalCWFlag = false;
             end            
