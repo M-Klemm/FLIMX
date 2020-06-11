@@ -1835,7 +1835,7 @@ classdef FLIMXVisGUI < handle
             if(isempty(ex))
                 return
             end
-            [file,path] = uiputfile({'*.xlsx','Excel File';'*.xls','Excel 97-2003 File'},'Export Data in Excel Fileformat...');
+            [file,path] = uiputfile({'*.xlsx','Excel file (*.xlsx)';'*.xls','Excel 97-2003 file (*.xls)'},'Export Data in Excel Fileformat...');
             if ~file ; return ; end
             fn = fullfile(path,file);            
 %             [y x] = size(ex);

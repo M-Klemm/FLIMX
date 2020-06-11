@@ -527,12 +527,18 @@ classdef FDTStudy < FDTreeNode
                 this.load();
             end
             %check file
-            [typ, desc] = xlsfinfo(file);
+            [~,~,ext] = fileparts(file);
+            if(~(strcmp(ext,'.xls') || strcmp(ext,'.xlsx')) || isempty(dir(file)))
+                %file not found
+                return
+            end
+            typ = xlsfinfo(file);
             if(isempty(typ))
                 %no excel file
                 errordlg('This is not an Excel file!','No Excel file','modal')
                 return;
             end
+            desc = sheetnames(file);
             idx = find(strcmp('Subjectinfo',desc),1);
             if(isempty(idx))
                 %no appropriate spreadsheet
