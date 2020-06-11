@@ -219,7 +219,7 @@ classdef StatsGroupComparison < handle
         
         function GUI_RocHistClass_Callback(this,hObject,eventdata)
             %
-            if(get(this.visHandles.popupTestSel,'Value') == 5)
+            if(get(this.visHandles.popupTestSel,'Value') == 6) %6 = Holm-Bonferroni method
                 this.rocData = [];
                 this.updateGUI();
             else
@@ -391,7 +391,7 @@ classdef StatsGroupComparison < handle
             %get patients
             set(this.visHandles.popupDispStudy,'Value',1);
             this.updateGUI();
-            if(get(this.visHandles.popupTestSel,'Value') == 5)
+            if(get(this.visHandles.popupTestSel,'Value') == 6) %6 = Holm-Bonferroni method
                 tmp = this.grpNames{1};
                 out = cell(length(tmp)+1,length(this.currentColumnHeaders)+1);
                 out(1,2:end) = this.currentColumnHeaders;
@@ -553,7 +553,7 @@ classdef StatsGroupComparison < handle
             set(this.visHandles.buttonMostSigClassColor,'Backgroundcolor',this.settings.colorMostSigClass);
             this.clearPlots();
             %statistics method selection
-            if(get(this.visHandles.popupTestSel,'Value') == 5)
+            if(get(this.visHandles.popupTestSel,'Value') == 6) %6 = Holm-Bonferroni method
                 set(this.visHandles.ExtendedAnalysisPanel,'Title','ROC Analysis');
                 set(this.visHandles.menuSSRocCurve,'Label','ROC Curve');
                 set(this.visHandles.textExtPopup,'String','Histogram Class');
@@ -658,7 +658,7 @@ classdef StatsGroupComparison < handle
                 cla(this.visHandles.axesDiffGrps);
                 hold(this.visHandles.axesSumGrps,'on');
                 hold(this.visHandles.axesDiffGrps,'on');
-                if(get(this.visHandles.checkHighlightSigClass,'Value') == 1 && get(this.visHandles.popupTestSel,'Value') == 5)
+                if(get(this.visHandles.checkHighlightSigClass,'Value') == 1 && get(this.visHandles.popupTestSel,'Value') == 6) %6 = Holm-Bonferroni method
                     sig = find(this.significance(histIdxStart:histIdxEnd) & ~this.columnIgnore(histIdxStart:histIdxEnd));
                     pV = this.pValues(histIdxStart:histIdxEnd);
                     pV = pV(sig);
@@ -728,19 +728,22 @@ classdef StatsGroupComparison < handle
                 axis(this.visHandles.axesSumGrps,'on');
                 axis(this.visHandles.axesDiffGrps,'on');
                 set(this.visHandles.axesSumGrps,'XTickMode','auto','XTickLabelMode','auto');
-                set(this.visHandles.axesDiffGrps,'XTickMode','auto','XTickLabelMode','auto');                
-                if(get(this.visHandles.popupTestSel,'Value') ~= 5)
+                set(this.visHandles.axesDiffGrps,'XTickMode','auto','XTickLabelMode','auto');
+                testSel = get(this.visHandles.popupTestSel,'Value');
+                if(testSel ~= 6) %6 = Holm-Bonferroni method
                     [h,p,ci,stats] = this.makeSimpleGroupStats();                    
                     tmp = cell(3,2);                    
                     tmp{1,1} = 'Null Hypothesis';
                     switch get(this.visHandles.popupTestSel,'Value')
                         case 1 %One-sample paired t-test
                             tmp{1,2} = 'PATHOLOGIC - CONTROLS comes from a normal distribution with mean equal to zero and unknown variance';
-                        case 2 %Two-sample paired t-test
+                        case 2 %Two-sample unpaired t-test
                             tmp{1,2} = 'PATHOLOGIC and CONTROLS come from independent random samples from normal distributions with equal means and equal but unknown variances';
-                        case 3 %Wilcoxon signed rank test
+                        case 3 %Welch's t-test
+                            tmp{1,2} = 'PATHOLOGIC and CONTROLS come from independent random samples from normal distributions with equal means and equal but unknown variances';                            
+                        case 4 %Wilcoxon signed rank test
                             tmp{1,2} = 'PATHOLOGIC - CONTROLS comes from a distribution with zero median';
-                        case 4 %Wilcoxon rank sum test  
+                        case 5 %Wilcoxon rank sum test  
                             tmp{1,2} = 'PATHOLOGIC and CONTROLS are samples from continuous distributions with equal medians';
                     end
                     tmp{2,1} = 'Decision';
@@ -763,12 +766,27 @@ classdef StatsGroupComparison < handle
                     end
                     tmp(end+1,1) = cell(1,1);
                     %some descriptive statistics
-                    vals = FLIMXFitGUI.num4disp([mean(this.grpData{1},'omitnan'),std(this.grpData{1},'omitnan'),mean(this.grpData{2},'omitnan'),std(this.grpData{2},'omitnan')]);
-                    if(length(vals) == 4)
+                    if((testSel == 1 || testSel == 4) && length(this.grpData{1}) == length(this.grpData{2}))
+                        %pairwise tests
+                        pairDiff = this.grpData{1} - this.grpData{2};
+                        meanPDVals = FLIMXFitGUI.num4disp([mean(pairDiff,'omitnan'),std(pairDiff,'omitnan')]);
+                        tmp{end+1,1} = 'Mean Pairwise Diff.';
+                        tmp{end,2} = sprintf('%s %s %s',meanPDVals{1},char(177),meanPDVals{2});
+                    end
+                    meanVals = FLIMXFitGUI.num4disp([mean(this.grpData{1},'omitnan'),std(this.grpData{1},'omitnan'),mean(this.grpData{2},'omitnan'),std(this.grpData{2},'omitnan')]);
+                    if(length(meanVals) == 4)
                         tmp{end+1,1} = 'Mean PATHOLOGIC';
-                        tmp{end,2} = sprintf('%s %s %s',vals{1},char(177),vals{2});
+                        tmp{end,2} = sprintf('%s %s %s',meanVals{1},char(177),meanVals{2});
                         tmp{end+1,1} = 'Mean CONTROLS';
-                        tmp{end,2} = sprintf('%s %s %s',vals{3},char(177),vals{4});
+                        tmp{end,2} = sprintf('%s %s %s',meanVals{3},char(177),meanVals{4});
+                        tmp(end+1,1) = cell(1,1);
+                    end
+                    medianVals = FLIMXFitGUI.num4disp([median(this.grpData{1},'omitnan'),median(this.grpData{2},'omitnan')]);
+                    if(length(medianVals) == 2)
+                        tmp{end+1,1} = 'Median PATHOLOGIC';
+                        tmp{end,2} = sprintf('%s',medianVals{1});
+                        tmp{end+1,1} = 'Median CONTROLS';
+                        tmp{end,2} = sprintf('%s',medianVals{2});
                         tmp(end+1,1) = cell(1,1);
                     end
                     %test for normal distribution
@@ -944,14 +962,25 @@ classdef StatsGroupComparison < handle
                         [h,p,ci,stats] = ttest(dataP,dataC,'Alpha',this.alpha);
                     case 2 %Two-sample t-test
                         [h,p,ci,stats] = ttest2(dataP,dataC,'Alpha',this.alpha);
-                    case 3 %Wilcoxon signed rank test
+                    case 3 %Welch's t-test
+                        %use Levene test to determine if variances are equal
+                        gv = [false(size(dataP));true(size(dataC))];
+                        p = vartestn([dataP;dataC],gv,'TestType','LeveneAbsolute','display','off');
+                        if(p > 0.1) %10% sig. level are common for this test
+                            %variances are equal -> use regular t-test                            
+                            [h,p,ci,stats] = ttest2(dataP,dataC,'Alpha',this.alpha);
+                        else
+                            %variances are not equal -> use Welch's test
+                            [h,p,ci,stats] = ttest2(dataP,dataC,'Alpha',this.alpha,'Vartype','unequal');
+                        end    
+                    case 4 %Wilcoxon signed rank test
                         if(length(dataP) ~= length(dataC))
                             stats.message = 'The data in a signed rank test must be the same size.';
                             return
                         end
                         [p,h,stats] = signrank(dataP,dataC,'Alpha',this.alpha);
                         ci = [];
-                    case 4 %Wilcoxon rank sum test
+                    case 5 %Wilcoxon rank sum test
                         [p,h,stats] = ranksum(dataP,dataC,'Alpha',this.alpha);
                         ci = [];
                 end
@@ -1114,7 +1143,7 @@ classdef StatsGroupComparison < handle
                 tData = cell(0,0);
             end
             tData(end+1,:) = cell(1,size(tData,2));
-            if(get(this.visHandles.popupTestSel,'Value') == 5)
+            if(get(this.visHandles.popupTestSel,'Value') == 6) %6 = Holm-Bonferroni method
                 %add ignored colums
                 %columnIgnore
                 if(isempty(this.columnIgnore))
@@ -1324,7 +1353,7 @@ classdef StatsGroupComparison < handle
         
         function out = get.sortP(this)
             %flag if group histograms should sorted by p values
-            if(get(this.visHandles.popupTestSel,'Value') ~= 5)
+            if(get(this.visHandles.popupTestSel,'Value') ~= 6) %6 = Holm-Bonferroni method
                 out = false;
             else
                 out = get(this.visHandles.checkSortP,'Value');
@@ -1337,7 +1366,7 @@ classdef StatsGroupComparison < handle
                 this.makeHistTables();
             end
             out = this.grpNames{this.currentGrpIdx};
-            if(get(this.visHandles.popupTestSel,'Value') == 5)
+            if(get(this.visHandles.popupTestSel,'Value') == 6) %6 = Holm-Bonferroni method
                 out(end+1) = cell(1,1);
                 out(end+1) = {'ignored'};
                 out(end+1) = {'pValue'};
