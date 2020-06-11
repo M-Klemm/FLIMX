@@ -1531,7 +1531,7 @@ classdef FDTStudy < FDTreeNode
             end
             nSubs = length(hg);
             statsDesc = FData.getDescriptiveStatisticsDescription();
-            stats = zeros(nSubs,length(statsDesc));
+            stats = NaN(nSubs,length(statsDesc));
             subjectDesc = cell(nSubs,1);
             for i = 1:nSubs
                 subjectDesc(i) = {hg{i}.subjectName};
@@ -1540,10 +1540,16 @@ classdef FDTStudy < FDTreeNode
                     if(ROIType > 0 && ~any(ROICoordinates(:)))
                         stats(i,:) = NaN;
                     else
-                        stats(i,:) = hg{i}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
+                        tmp = hg{i}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
+                        if(~isempty(tmp))
+                            stats(i,:) = tmp;
+                        end
                     end
                 else
-                    stats(i,:) = hg{i}.getROIStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity);
+                    tmp = hg{i}.getROIStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity);
+                    if(~isempty(tmp))
+                        stats(i,:) = tmp;
+                    end
                 end                
             end
         end
