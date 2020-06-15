@@ -49,8 +49,8 @@ if isempty(hostNamePersistent)
   %remove everything after the first dot
   dotIdx = strfind(hostName,'.');
   if(~isempty(dotIdx) && dotIdx(1) > 1)
-  end
-  hostName = hostName(1:dotIdx(1)-1);
+      hostName = hostName(1:dotIdx(1)-1);
+  end 
   
 	% save string for next function call
 	hostNamePersistent = hostName;
