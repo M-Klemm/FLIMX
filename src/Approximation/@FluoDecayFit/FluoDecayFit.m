@@ -733,15 +733,18 @@ classdef FluoDecayFit < handle
                 mcSettings.nrOfEvalsAtOnce   = 1;
                 %mcSettings.maxEvalTimeSingle = this.optimizationParams.options_de.maxiter*this.optimizationParams.options_de.NP*this.volatilePixelParams.nModelParamsPerCh*0.5;
                 mcSettings.useWaitbar        = 1;
-                mcSettings.computeJobHash    = this.computationParams.mcComputeJobHash;
-                pixelPerCore = 32;
+                mcSettings.computeJobHash    = this.computationParams.mcComputeJobHash;                
+                if(this.computationParams.useVectorApproximation && this.pixelFitParams.optimizer == 2)
+                    pixelPerCore = this.computationParams.vectorApproxLength;
+                else
+                    pixelPerCore = 1;
+                end
                 if(totalPixels <= 5*this.computationParams.mcTargetPixelPerWU) %at least 5 WUs
-                    pixelPerWU = 8*pixelPerCore; %max(1,floor(totalPixel/4)); %make 4 workunits
-                    %                 elseif(totalPixel > 32 && totalPixel <= 64)
-                    %                     atOncePixel = max(1,floor(totalPixel/8)); %make 8 workunits
-                else % > 4*24 = 96 pixel, = 24/48/96/... pixel/wu -> >= 8 wu
-                    %pixelPerCore = this.computationParams.mcTargetPixelPerWU*ceil(max(1,round(totalPixels/this.computationParams.mcTargetNrWUs))/this.computationParams.mcTargetPixelPerWU);                    
+                    pixelPerWU = 8*pixelPerCore; 
+                else                  
                     pixelPerWU = this.computationParams.mcTargetPixelPerWU * pixelPerCore;
+                    WUFactor = max(1,floor((totalPixels / pixelPerWU) ./ this.computationParams.mcTargetNrWUs));
+                    pixelPerWU = pixelPerWU * WUFactor;
                 end                
                 mcSettings.maxEvalTimeSingle = pixelPerWU*3/8; %= guess 3s per pixel, running on 8 cores in parallel; todo
                 iter = ceil(totalPixels/pixelPerWU);
@@ -756,7 +759,6 @@ classdef FluoDecayFit < handle
                     subPool = pixelPool(i:min(totalPixels,i+pixelPerWU-1));
                     nPixel = length(subPool);
                     parameterCell{iter} = {@this.getApproxParamCell,ch,subPool,pixelPerCore,initFit};
-                    %parameterCell{iter} = {@sub.getApproxParamCell,ch,subPool,fitDim,initFit,this.optimizationParams,this.aboutInfo};
                     idx = zeros(nPixel,2);
                     [idx(:,1), idx(:,2)] = ind2sub([y x],subPool);
                     idxCell(iter) = {idx};
@@ -780,24 +782,29 @@ classdef FluoDecayFit < handle
                 end
             else
                 %compute locally
-                if(this.computationParams.useMatlabDistComp > 0)
-                    %run on all cores locally, get number of cores
-                    pixelPerCore = nWorkers;
-                    if(any(ismember([1 4 6 7],this.pixelFitParams.optimizer)))
-                        %we have a stochastic optimizer
-                        pixelPerCore = 2*max(pixelPerCore,1); %make sure nPixel is at least 1 if something went wrong
-                    else
-                        %simplex or levenberg-marquardt
-                        pixelPerCore = max(16*pixelPerCore,1); %0.5*16*16  make sure nPixel is at least 1 if something went wrong
-                        if(this.computationParams.useGPU)
-                            pixelPerCore = pixelPerCore*16;
-                        end
-                    end
+                if(this.computationParams.useVectorApproximation && this.pixelFitParams.optimizer == 2)
+                    pixelPerCore = this.computationParams.vectorApproxLength;
                 else
-                    %oldstyle singlethreaded
                     pixelPerCore = 1;
                 end
-                pixelPerWU = nWorkers * pixelPerCore;
+                if(this.computationParams.useMatlabDistComp > 0)
+                    %run on all cores locally, get number of cores
+%                     pixelPerCore = nWorkers;
+%                     if(any(ismember([1 4 6 7],this.pixelFitParams.optimizer)))
+%                         %we have a stochastic optimizer
+%                         pixelPerCore = 2*max(pixelPerCore,1); %make sure nPixel is at least 1 if something went wrong
+%                     else
+%                         %simplex or levenberg-marquardt
+%                         pixelPerCore = max(16*pixelPerCore,1); %0.5*16*16  make sure nPixel is at least 1 if something went wrong
+%                         if(this.computationParams.useGPU)
+%                             pixelPerCore = pixelPerCore*16;
+%                         end
+%                     end
+                    pixelPerWU = nWorkers * pixelPerCore;
+                else
+                    %oldstyle singlethreaded
+                    pixelPerWU = 1;
+                end
                 for i = 1:pixelPerWU:totalPixels
                     if(this.parameters.stopOptimization)
                         %user wants to stop
@@ -881,8 +888,7 @@ classdef FluoDecayFit < handle
             if(noNonLinOpt || ~this.cleanupFitParams.enable || (initFit && ~this.FLIMXObj.curSubject.isInitResult(ch)) || (~initFit && ~this.FLIMXObj.curSubject.isPixelResult(ch)) || isempty(this.cleanupFitParams.target))
                 return
             end
-            this.parameters.stopOptimization = false;            
-            %[dStr, stratStr] = this.getOutlierSearchStr();
+            this.parameters.stopOptimization = false;
             if(any(this.volatilePixelParams.globalFitMask))
                 ch = 1:this.FLIMXObj.curSubject.nrSpectralChannels;
             end

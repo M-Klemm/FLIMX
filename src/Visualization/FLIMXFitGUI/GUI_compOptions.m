@@ -54,7 +54,7 @@ function varargout = GUI_compOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_compOptions
 
-% Last Modified by GUIDE v2.5 06-Feb-2018 19:47:41
+% Last Modified by GUIDE v2.5 18-Jun-2020 17:27:37
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -144,6 +144,19 @@ set(handles.textMCWUs,'Enable',flag);
 set(handles.checkMCWorkLocal,'Value',data.computation.mcWorkLocal,'Enable',flag);
 set(handles.checkMCComputeJobHash,'Value',data.computation.mcComputeJobHash,'Enable',flag);
 set(handles.editMCPath,'String',data.computation.mcShare,'Enable',flag);
+if(strcmp(data.enableGUIControlsFlag,'Off'))
+    flag = 'Off';
+else
+    switch data.computation.useVectorApproximation
+        case 0
+            flag = 'off';
+        case 1
+            flag = 'on';
+    end
+end
+set(handles.checkVectorComp,'Value',data.computation.useVectorApproximation,'Enable',data.enableGUIControlsFlag);
+set(handles.textVectorComp,'Enable',flag);
+set(handles.editVectorLength,'String',data.computation.vectorApproxLength,'Enable',flag);
 set(handles.checkMatlabDistComp,'Value',logical(data.computation.useMatlabDistComp),'Enable',data.enableGUIControlsFlag);
 set(handles.checkMatlabGPU,'Value',logical(data.computation.useGPU),'Enable',data.enableGUIControlsFlag);
 set(handles.buttonMCPath,'Enable',data.enableGUIControlsFlag);
@@ -163,6 +176,13 @@ updateGUI(handles, rdh);
 function checkMCComputeJobHash_Callback(hObject, eventdata, handles)
 rdh = get(handles.compOptionsFigure,'userdata');
 rdh.computation.mcComputeJobHash = get(hObject,'Value');
+set(handles.compOptionsFigure,'userdata',rdh);
+updateGUI(handles, rdh);
+
+% --- Executes on button press in checkVectorComp.
+function checkVectorComp_Callback(hObject, eventdata, handles)
+rdh = get(handles.compOptionsFigure,'userdata');
+rdh.computation.useVectorApproximation = get(hObject,'Value');
 set(handles.compOptionsFigure,'userdata',rdh);
 updateGUI(handles, rdh);
 
@@ -199,9 +219,17 @@ set(handles.compOptionsFigure,'userdata',rdh);
 function editMCPixelPerWU_Callback(hObject, eventdata, handles)
 %
 rdh = get(handles.compOptionsFigure,'userdata');
-rdh.computation.mcTargetPixelPerWU = round(abs(str2double(get(hObject,'String'))));
+rdh.computation.mcTargetPixelPerWU = max(1,round(abs(str2double(get(hObject,'String')))));
 set(handles.compOptionsFigure,'userdata',rdh);
 set(hObject,'String',num2str(rdh.computation.mcTargetPixelPerWU));
+
+function editVectorLength_Callback(hObject, eventdata, handles)
+%
+rdh = get(handles.compOptionsFigure,'userdata');
+rdh.computation.vectorApproxLength = max(1,round(abs(str2double(get(hObject,'String')))));
+set(handles.compOptionsFigure,'userdata',rdh);
+set(hObject,'String',num2str(rdh.computation.vectorApproxLength));
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %radio buttons
@@ -270,6 +298,11 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function editMCPixelPerWU_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editVectorLength_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

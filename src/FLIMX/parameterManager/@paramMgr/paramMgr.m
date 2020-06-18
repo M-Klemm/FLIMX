@@ -229,6 +229,8 @@ classdef paramMgr < handle
             def.computation.mcWorkLocal                 =	0;
             def.computation.mcComputeJobHash            =   0;
             def.computation.useGPU                      =	0; %use matlab gpu accelaration
+            def.computation.useVectorApproximation      =   1; %enable simultaneous fluo. lifetime approx. of multiple pixels (MSimplexBnd only)
+            def.computation.vectorApproxLength          =   64; %number of fluorescence lifetime model computations at once
             
             def.basic_fit.approximationTarget   =   1; %1: lifetime; 2: anisotropy
             def.basic_fit.anisotropyChannelShift=   0; %shift between channel 1 and 2 in time channels
