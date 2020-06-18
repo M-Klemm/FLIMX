@@ -261,7 +261,7 @@ end
    
 % now we can call fminsearch, but with our own
 % intra-objective function.
-[xu,fval,exitflag,output] = fminsearch(intrafun,x0u,options,varargin{:});
+[xu,fval,exitflag,output] = fminsearch(intrafun,double(x0u),options,varargin{:});
 output.algorithm = [output.algorithm ' bounded using fminsearchbnd'];
 
 % undo the variable transformations into the original space

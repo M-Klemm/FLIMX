@@ -158,13 +158,13 @@ else
                     iter = output.iterations;
                     feval = output.funcCount;
                 case 3 %% fminsearchbnd
-                    [xVec,~,~,output] = fminsearchbnd(@apObj.costFcn, iVec(:,1), optParams.lb, optParams.ub, optParams);
+                    [xVec,~,~,output] = fminsearchbnd(@apObj.costFcn, iVec(:,1), optParams.lb, optParams.ub, optParams, pixelIDs);
                     %                         [xVec,~,~,output] = fmincon(@apObj.costFcn, iVec, [],[],[],[],optParams.lb, optParams.ub,[], optParams);
                     iter = output.iterations;
                     feval = output.funcCount;
                 case 4 %% PSO
                     %optParams.InitialPopulation = iVec(:);
-                    [xVec,~,~,output] = pso(@apObj.costFcn,apObj.volatilePixelParams.nApproxParamsAllCh,[],[],[],[],nonLinBounds.lb',nonLinBounds.ub',[],optParams);
+                    [xVec,~,~,output] = pso(@apObj.costFcn,apObj.volatilePixelParams.nApproxParamsAllCh,[],[],[],[],nonLinBounds.lb',nonLinBounds.ub',[],optParams,pixelIDs);
                     xVec = xVec';
                     iter = output.generations;
                     feval = output.generations.*optParams.PopulationSize;

@@ -7,7 +7,7 @@ function state = evolutioncomplete(options,state,flag)
 
 if ispc && strcmp(flag,'done') && ~strcmp(options.Display,'off')
     sounddir = [getenv('ProgramFiles') '\Starcraft\Sound\Zerg\Advisor'] ;
-    if isfolder(sounddir) && isfile([sounddir '\ZAdUpd02.wav'])
+    if isdir(sounddir) && exist([sounddir '\ZAdUpd02.wav'],'file')
         [y, Fs, nbits] = audioread([sounddir '\ZAdUpd02.wav']) ;
         obj = audioplayer(y, Fs, nbits);
         playblocking(obj)

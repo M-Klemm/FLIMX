@@ -134,8 +134,7 @@ if ~nargin && ~nargout
         options.FitnessLimit) ;
     fprintf('        Generations: [Positive integer | {%g}]\n',...
         options.Generations) ;
-%     msg = sprintf('          HybridFcn: [@fminsearch | @patternsearch |'); %MKlemm
-    msg = '          HybridFcn:'; %MKlemm
+    msg = sprintf('          HybridFcn: [@fminsearch | @patternsearch |');
     fprintf('%s @fminunc | @fmincon | {[]}]\n',msg)
     fprintf('  InitialPopulation: [empty matrix | nxnvars matrix | {[]}]\n')
     fprintf('  InitialVelocities: [empty matrix | nxnvars matrix | {[]}]\n')

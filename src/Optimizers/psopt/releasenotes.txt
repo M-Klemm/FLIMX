@@ -15,8 +15,14 @@ Future plans (in no particular order):
 * Feature: New convergence criterion: isothermal equilibrium (Mikki 2008, Chapter 3).
 * Feature: Clerc's method: constriction factor chi to prevent explosive divergence of swarm.
 * Feature: Swarm coherence and collision-avoidance parameters?
+* Bug fix: "Red Flag" patch object not showing up in PSODEMO when run with surface plot demonstration.
 
-ver 20130330
+ver 1.31.2 (2016-02-25)
+* Bug fix: added appropriate "end" lines to nested functions in PSOITERATE (contributed by unknown user via Google Code)
+* Update: MATLABPOOL has been deprecated in recent versions of MATLAB. Updated distributed computing code as appropriate.
+* New version numbering scheme.
+
+ver 20130430
 * Bug fix: corrected typo in PSOCHECKPOPULATIONINITRANGE which was causing incorrect handling of initial particle distribution boundaries. Thanks to Erik from the MATLAB Central community.
 
 ver 20131220
@@ -26,7 +32,7 @@ ver 20131220
 * Minor bugfix: in psoboundspenalize, code for applying tolerances to equality constraints will now properly execute after checking for existence of equality constraints.
 
 ver 20130702:
-* Bug fix: multiple errors in variable name when checking for verbosity before warnings were thrown -- did not properly specify the options structure array. Thanks to Chrisitan Hansen of the University of Hannover for pointing this out.
+* Bug fix: multiple errors in variable name when checking for verbosity before warnings were thrown -- did not properly specify the options structure array. Thanks to Christian Hansen of the University of Hannover for pointing this out.
 * Documentation updated for PSOOPTIMSET function.
 
 ver 20130615:

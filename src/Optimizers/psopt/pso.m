@@ -1,5 +1,5 @@
 function [xOpt,fval,exitflag,output,population,scores] = ...
-    pso(fitnessfcn,nvars,Aineq,bineq,Aeq,beq,LB,UB,nonlcon,options)
+    pso(fitnessfcn,nvars,Aineq,bineq,Aeq,beq,LB,UB,nonlcon,options,varargin)
 % Find the minimum of a function using Particle Swarm Optimization.
 %
 % This is an implementation of Particle Swarm Optimization algorithm using
@@ -13,7 +13,7 @@ function [xOpt,fval,exitflag,output,population,scores] = ...
 % New features will be added regularly until this is made redundant by an
 % official MATLAB PSO toolbox.
 %
-% Author: S. Chen. Version 20140330.
+% Author: S. Samuel Chen. Version 1.31.4.
 % Available from http://www.mathworks.com/matlabcentral/fileexchange/25986
 % Distributed under BSD license. First published in 2009.
 %
@@ -298,9 +298,9 @@ if strcmpi(options.UseParallel,'always')
         options.UseParallel = 'never' ;
     else
         poolalreadyopen = false ;
-        if ~matlabpool('size')
-            matlabpool('open','AttachedFiles',...
-                which(func2str(fitnessfcn))) ;
+        if isempty(gcp('nocreate'))
+            poolobj = parpool ;
+            addAttachedFiles(poolobj,which(func2str(fitnessfcn))) ;
         else
             poolalreadyopen = true ;
         end
@@ -414,19 +414,19 @@ for k = 1:itr
     % Apply constraint violation penalties, if applicable
     if strcmpi(options.ConstrBoundary,'penalize') % EXPERIMENTAL
         if strcmpi(options.Vectorized,'on') % Vectorized fitness function
-            state.Score = fitnessfcn(state.Population')' ; %M.Klemm (transponse)
+            state.Score = fitnessfcn(state.Population',varargin{:}) ;
         elseif strcmpi(options.UseParallel,'always') % Parallel computing
             scoretmp = inf*ones(n,1) ;
             x = state.Population ;
 %             matlabpool('addattachedfiles',{[pwd '\testfcns\nonlinearconstrdemo.m']}) ;
             parfor i = 1:n
-                scoretmp(i) = fitnessfcn(x(i,:)) ;
+                scoretmp(i) = fitnessfcn(x(i,:)',varargin{:}) ;
             end % for i
             state.Score = scoretmp ;
             clear scoretmp x
         else % Default
             for i = 1:n
-                state.Score(i) = fitnessfcn(state.Population(i,:)') ;%M.Klemm (transponse)
+                state.Score(i) = fitnessfcn(state.Population(i,:)',varargin{:}) ;
             end % for i
         end % if strcmpi
         
@@ -439,7 +439,7 @@ for k = 1:itr
         % particles that are outside the search space constraints.
         if strcmpi(options.Vectorized,'on')  % Vectorized fitness function
             state.Score(not(state.OutOfBounds)) = ...
-                fitnessfcn(state.Population(not(state.OutOfBounds),:)')' ; %M.Klemm (transponse)
+                fitnessfcn(state.Population(not(state.OutOfBounds),:)',varargin{:}) ;
         elseif strcmpi(options.UseParallel,'always') % Parallel computing
             % Thanks to Oliver and Mike for contributing this code.
             validi = find(not(state.OutOfBounds))' ;
@@ -447,8 +447,8 @@ for k = 1:itr
             x = state.Population(validi,:);
             scoretmp = inf*ones(nvalid,1) ;
             
-            parfor i = 1:nvalid ;
-                scoretmp(i) = fitnessfcn(x(i,:)) ;
+            parfor i = 1:nvalid
+                scoretmp(i) = fitnessfcn(x(i,:)',varargin{:}) ;
             end % for i
             
             for i = 1:nvalid
@@ -457,7 +457,7 @@ for k = 1:itr
             clear scoretmp x
         else
             for i = find(not(state.OutOfBounds))'
-                state.Score(i) = fitnessfcn(state.Population(i,:)') ; %M.Klemm (transponse)
+                state.Score(i) = fitnessfcn(state.Population(i,:)',varargin{:}) ;
             end % for i
         end % if strcmpi
     end
@@ -595,7 +595,7 @@ if options.Verbosity > 0, fprintf('\n\n%s\n',output.message) ; end
 % -------------------------------------------------------------------------
 if ~isempty(options.HybridFcn) && exitflag ~= -1
     [xOpt,fval] = psorunhybridfcn(fitnessfcn,xOpt,Aineq,bineq,...
-        Aeq,beq,LB,UB,nonlcon,options) ;
+        Aeq,beq,LB,UB,nonlcon,options,varargin{:}) ;
 end
 % -------------------------------------------------------------------------
 
@@ -609,9 +609,9 @@ if options.Verbosity > 0
     end
 end % if options.Verbosity
 
-if strcmp(options.UseParallel,'always') && ~poolalreadyopen
-    matlabpool('close') ;
+if strcmpi(options.UseParallel,'always') && ~poolalreadyopen
+    delete(gcp('nocreate')) ;
 end
 
-if ~nargout, clear all, end
+if ~nargout, clearvars, end
 % -------------------------------------------------------------------------
