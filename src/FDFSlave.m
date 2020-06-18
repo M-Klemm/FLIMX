@@ -1,4 +1,5 @@
 function FDFSlave(varargin)
+datefmt = 'yyyy-mm-dd HH:MM:SS,FFF';
 if(~isdeployed())
     addpath(genpath(fullfile(cd)));
     p = gcp('nocreate');
@@ -19,5 +20,14 @@ end
 warning('off','MATLAB:rankDeficientMatrix');
 disp(path);
 pause(rand(1)/2+0.25);
-startmulticoreslave(path);
+while(true)
+    try
+        timestamp = datestr(now, datefmt);
+        fprintf('%s - starting FDFSlave...\n',timestamp);
+        startmulticoreslave(path);
+    catch ME
+        timestamp = datestr(now, datefmt);
+        fprintf('%s - FDFSlave caused an error: %s\n',timestamp,ME.message);
+    end
+end
 
