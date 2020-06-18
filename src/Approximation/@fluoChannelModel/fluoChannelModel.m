@@ -47,7 +47,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         tLen = []; %length of t vector
         neighborRez = []; %reziproke of neighbors
         neighborMaxPosCorrectRez = []; %reziproke of maximum position corrected neighbors
-        chi_weights = []; %weights for chi2 computation with neighbors
+        %chi_weights = []; %weights for chi2 computation with neighbors
         irfFFT = []; %fft transform of irf
         irfFFTGPU = []; %irf on GPU (for GPU computation)        
     end
@@ -66,6 +66,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         volatilePixelParams = [];
         volatileChannelParams = [];
         fileInfo = 0;
+        nPixel;
         useGPU = false; %flag to use Matlab GPU processing features
         useMex = false; %flag to use optimized mex file for linear optimizer
     end
@@ -139,6 +140,11 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         function out = get.volatileChannelParams(this)
             %return volatileChannelParams struct for my channel
             out = this.myParent.getVolatileChannelParams(this.myChannelNr);
+        end
+        
+        function out = get.nPixel(this)
+            %return number of pixels in vectorizes computation
+            out = this.dataStorage.measurement.nPixel;
         end
         
 %         function out = get.useGPU(this)
@@ -228,7 +234,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         function out = getMeasurementData(this,pixelIDs)
             %get measurement data
             if(any(pixelIDs > size(this.dataStorage.measurement.raw,2)))
-                error('FLIMX:flueChannelModel:getMeasurementData','Requested pixelIDs (%d) larger than available data (%d).',max(pixelIDs(:)),size(this.dataStorage.measurement.raw,2));
+                error('FLIMX:fluoChannelModel:getMeasurementData','Requested pixelIDs (%d) larger than available data (%d).',max(pixelIDs(:)),size(this.dataStorage.measurement.raw,2));
             end            
             out = single(this.dataStorage.measurement.raw(:,pixelIDs));
         end
@@ -241,23 +247,27 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             out = this.dataStorage.measurement.rez(:,pixelIDs);
         end
         
-        function out = getChiWeightData(this)
+        function out = getChiWeightData(this,pixelIDs)
             %get chi weights
-            out = double(this.dataStorage.chiWeights.raw);
-            if(isempty(out))
+            if(isempty(this.dataStorage.chiWeights.raw))
                 %we don't have weights, return data
-                out = double(max(this.getMeasurementData(),1));
-                %out = ones(this.dLen,1);
+                out = single(this.getMeasurementData(pixelIDs));
+                out = out ./ max(out,[],1);
+            else
+                if(any(pixelIDs > size(this.dataStorage.chiWeights.raw,2)))
+                    error('FLIMX:fluoChannelModel:getChiWeightData','Requested pixelIDs (%d) larger than available data (%d).',max(pixelIDs(:)),size(this.dataStorage.chiWeights.raw,2));
+                end
+                out = single(this.dataStorage.chiWeights.raw(:,pixelIDs)); %double(this.dataStorage.chiWeights.raw);
             end
         end
         
-        function out = getChiWeightDataRez(this)
-            %get reziproke of chi weights
-            if(isempty(this.dataStorage.chiWeights.rez))
-                this.dataStorage.chiWeights.rez = 1./this.getChiWeightData();
-            end
-            out = this.dataStorage.chiWeights.rez;
-        end
+%         function out = getChiWeightDataRez(this)
+%             %get reziproke of chi weights
+%             if(isempty(this.dataStorage.chiWeights.rez))
+%                 this.dataStorage.chiWeights.rez = 1./this.getChiWeightData();
+%             end
+%             out = this.dataStorage.chiWeights.rez;
+%         end
         
         function out = getDataNonZeroMask(this,pixelIDs)
             %return mask where measurement data is not zero
@@ -395,7 +405,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             this.dataStorage.measurement.FWHMPos = [];
             this.dataStorage.measurement.realStartPos = [];
             this.dLen = size(pixelData,1);
-            this.chi_weights = ones(1,size(pixelData,2));
+            %this.chi_weights = ones(1,this.nPixel);
             this.setLinearBounds([]);
 %             if(~isempty(neighborData))
 %                 this.chi_weights(1,2:end) = double(fitParams.neighbor_weight/(size(neighborData,1)));                
@@ -404,7 +414,13 @@ classdef fluoChannelModel < matlab.mixin.Copyable
         
         function setChiWeightData(this,weightData)
             %set chi weights data
-            this.dataStorage.chiWeights.raw = weightData;
+            if(size(weightData,1) == this.dLen && size(weightData,2) == this.nPixel)
+                %normalize weight data
+                weightData = weightData ./ max(weightData,[],1);
+                this.dataStorage.chiWeights.raw = weightData;
+            else
+                this.dataStorage.chiWeights.raw = [];
+            end
             this.dataStorage.chiWeights.rez = [];
         end
         
@@ -732,7 +748,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 dnzMask = this.getDataNonZeroMask(pixelIDs);
             end
             chiVec = computeFigureOfMerit(model,this.getMeasurementData(pixelIDs),dnzMask,this.volatileChannelParams(1).nApproxParamsPerCh,...
-                this.basicParams,figureOfMerit,chiWeightingMode,fomModifier);            
+                this.basicParams,figureOfMerit,chiWeightingMode,fomModifier,this.getChiWeightData(pixelIDs));            
         end
         
 %         function chiVec = compFigureOfMerit(this,model,tailFlag,figureOfMerit,chiWeightingMode,fomModifier)

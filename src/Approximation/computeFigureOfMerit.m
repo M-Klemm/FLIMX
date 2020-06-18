@@ -1,10 +1,10 @@
-function chiVec = computeFigureOfMerit(model,measData,dataNonZeroMask,nApproxParams,bp,figureOfMerit,chiWeightingMode,fomModifier)
+function chiVec = computeFigureOfMerit(model,measData,dataNonZeroMask,nApproxParams,bp,figureOfMerit,chiWeightingMode,fomModifier,chiWeightingData)
 %=============================================================================================================
 %
 % @file     computeFigureOfMerit.m
 % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
-% @version  1.0
-% @date     June, 2018
+% @version  1.1
+% @date     June, 2020
 %
 % @section  LICENSE
 %
@@ -32,6 +32,12 @@ function chiVec = computeFigureOfMerit(model,measData,dataNonZeroMask,nApproxPar
 % @brief    A function to compute the figure of merit (chi²) of the model function and the measurement data
 
 %compute the figure of merit (goodness of fit)
+if(nargin < 9)
+    if((nargin < 7 && bp.chiWeightingMode >= 3) || chiWeightingMode >= 3)
+        chiWeightingData = measData;
+        chiWeightingData = chiWeightingData ./ max(chiWeightingData,[],1);
+    end
+end
 if(nargin < 8)
     fomModifier = bp.figureOfMeritModifier;
 end
@@ -51,7 +57,7 @@ else
     multiModelsFlag = false;
 end
 %% get errors & least squares
-errLsq = bsxfun(@minus,model,measData).^2;
+errLsq = (model - measData).^2;
 errLsq(isnan(errLsq)) = 0;
 
 %% compute error measure
@@ -86,7 +92,7 @@ end
 %                     chiVec = t1 + t2;
 switch chiWeightingMode
     case 2 %person
-        modelNonZeroMask = model > 0 & repmat(dataNonZeroMask,1,nrModels);
+        modelNonZeroMask = model > 0 & dataNonZeroMask;
 %         modelNonZeroMask(1:this.fileInfo.StartPosition-1,:) = false;
 %         modelNonZeroMask(this.fileInfo.EndPosition+1:end,:) = false;
 %         if(isempty(this.fileInfo.reflectionMask))
@@ -97,13 +103,14 @@ switch chiWeightingMode
 %         modelNonZeroMask = modelNonZeroMask & repmat(reflectionMask,1,nrM);
         errLsq(modelNonZeroMask) = errLsq(modelNonZeroMask) .* (1./model(modelNonZeroMask));
         errLsq(~modelNonZeroMask) = 0;
-    case 3
-        errLsq = bsxfun(@times,errLsq,chiWeightData);
-    case 4
-        dMaxVal = max(measData(:));
-        errLsq = bsxfun(@times,errLsq,chiWeightData.*1./(dMaxVal*min(chiWeightData))); %normalize weight vector to data maximum
+    case {3,4} %weight by initial model
+         dMaxVal = max(measData,[],1);
+         errLsq = errLsq .* 1./(dMaxVal.*chiWeightingData);
+%     case 4 %weight by avg. measured data
+%         dMaxVal = max(measData,[],1);
+%         errLsq = bsxfun(@times,errLsq,chiWeightingData.*1./(dMaxVal.*min(chiWeightingData,[],2))); %normalize weight vector to data maximum
     otherwise %neyman
-        errLsq = bsxfun(@times,errLsq,1./measData);
+        errLsq = errLsq .* 1./measData;
 end
 %use only residuum of non-zero values in measurement data
 if(multiModelsFlag)
@@ -116,14 +123,14 @@ switch fomModifier
         chiVec = sum(errLsq,1) ./ (sum(dataNonZeroMask,1)-nApproxParams); 
     case 2 %boost chi2 around the 'peak'
         idx = false(size(errLsq));
-        idx(1:min(bp.ErrorMP2+bp.ErrorMP3+1,this.myEndPos),:) = true;
-        idx = circShiftArray(idx,repmat(max(this.dMaxPos-bp.ErrorMP2-1,0),1,nrModels));
+        idx(1:min(bp.ErrorMP2+bp.ErrorMP3+1,size(errLsq,1)),:) = true;
+        [~, maxPos] = max(measData,[],1);
+        idx = circShiftArrayNoLUT(idx,max(maxPos-bp.ErrorMP2-1,0));
         roi = errLsq(idx);
         %boost error only if model is too high
         roi(roi > 0) = (roi(roi > 0).*bp.ErrorMP1).^2;%boost
         errLsq(idx) = roi;
-        chiVec = sum(errLsq,1) ./ (sum(dataNonZeroMask,1)-nApproxParams);  %(numel(this.dataStorage.measurement.nonZeroMask)-nApproxParams);
-        
+        chiVec = sum(errLsq,1) ./ (sum(dataNonZeroMask,1)-nApproxParams);  %(numel(this.dataStorage.measurement.nonZeroMask)-nApproxParams);        
 end
 %chiVec = abs(1-chiVec); %the ideal value of chi² is 1
 chiVec(chiVec == 0) = inf;

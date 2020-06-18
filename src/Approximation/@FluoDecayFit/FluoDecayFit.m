@@ -502,6 +502,28 @@ classdef FluoDecayFit < handle
                     nTimeCh = size(t,1);
                     expModels = [];
                     oset = [];
+                    %prepare chi weights
+                    if(bp.figureOfMerit == 1 && bp.chiWeightingMode == 3)
+                        cw_tmp = single(this.FLIMXObj.curSubject.getPixelFLIMItem(ch,'iVec'));
+                        cw_tmp = reshape(cw_tmp,dataYSz*dataXSz,length(vcp.cMask))';
+                        vcpInit = vcp;
+                        vcpInit.cMask = zeros(size(vcp.cMask));
+                        vcpInit.cVec = [];
+                        apObj.setVolatileChannelParams(ch,vcpInit);
+                        cw = zeros(size(measData),'single');
+                        nrTiles = round(size(cw_tmp,2) / 4096); %compute 4096 at once
+                        idxTiles = floor(linspace(0,size(cw_tmp,2),nrTiles+1));
+                        for i = 1:nrTiles
+                            cw(:,idxTiles(i)+1:idxTiles(i+1)) = apObj.getModel(ch,cw_tmp(:,idxTiles(i)+1:idxTiles(i+1)),ones(1,idxTiles(i+1)-idxTiles(i)));
+                        end
+                        cw = cw ./ max(cw,[],1);
+                        apObj.setVolatileChannelParams(ch,vcp);
+                    elseif(bp.figureOfMerit == 1 && bp.chiWeightingMode == 4)
+                        cw = single(this.FLIMXObj.curSubject.getROIMerged(ch));
+                        cw = repmat(cw,1,dataYSz*dataXSz);
+                    else
+                        cw = [];
+                    end
                     multiModelsFlag = this.FLIMXObj.curSubject.initFitParams.gridSize > 1;
                     fitOffsetFlag = false;
                     tciList = find(bp.tciMask);
@@ -568,6 +590,9 @@ classdef FluoDecayFit < handle
                     %create mask where data is not zero
                     idxEnoughPhotons = sum(measData,1) >= bp.photonThreshold;
                     measData = measData(:,idxEnoughPhotons);
+                    if(~isempty(cw))
+                        cw = cw(:,idxEnoughPhotons);
+                    end
                     tauOut = tauOut(:,idxEnoughPhotons);
                     if(nTci > 0)
                         tciOut = tciOut(:,idxEnoughPhotons);
@@ -602,7 +627,7 @@ classdef FluoDecayFit < handle
                     incompleteDecayFactor = uint16(bp.incompleteDecayFactor);
                     scatterEnable = logical(bp.scatterEnable);
                     scatterIRF = logical(bp.scatterIRF);
-                    stretchedExpMask = logical(bp.stretchedExpMask);
+                    stretchedExpMask = logical(bp.stretchedExpMask);                    
                     parfor i = 1:nrTiles
                         tmp = cell(1,3);
                         md = single(dataSlices{i});
@@ -638,7 +663,11 @@ classdef FluoDecayFit < handle
                             mTmp = expModels * [aTmp; oTmp];
                         end
                         %compute chi²
-                        tmp{1,1} = computeFigureOfMerit(mTmp,md,dnzm,nParams,bp)';
+                        if(bp.figureOfMerit == 1 && bp.chiWeightingMode >= 3)
+                            tmp{1,1} = computeFigureOfMerit(mTmp,md,dnzm,nParams,bp,bp.figureOfMerit,bp.chiWeightingMode,bp.figureOfMeritModifier,cw(:,idxTiles(i)+1:idxTiles(i+1)))';
+                        else
+                            tmp{1,1} = computeFigureOfMerit(mTmp,md,dnzm,nParams,bp,bp.figureOfMerit,bp.chiWeightingMode,bp.figureOfMeritModifier)';
+                        end
                         tmp{1,2} = aTmp';
                         tmp{1,3} = oTmp';
                         res(i,:) = tmp;

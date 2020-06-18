@@ -43,6 +43,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
     end
     properties(Dependent = true)
         nrChannels = 0;
+        nPixel;
         nonEmptyChannelList = [];
         preProcessParams = [];
         boundsParams = [];
@@ -139,15 +140,15 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %set chi weights for this pixel
             chList = this.nonEmptyChannelList;
             %check data
-            [nrTimeCh, nrSpectralCh] = size(weights);
-            if(nrTimeCh ~= this.getFileInfoStruct(chList(1)).nrTimeChannels || nrSpectralCh ~= length(chList))
-                error('FLIMX:fluoPixelModel:setMeasurementData','Chi weights data not as expected');
+            [nrTimeCh, nrSpectralCh, nrPixel] = size(weights);
+            if(nrTimeCh ~= this.getFileInfoStruct(chList(1)).nrTimeChannels || nrSpectralCh ~= length(chList) || nrPixel ~= this.nPixel)
+                error('FLIMX:fluoPixelModel:setChiWeightData','Chi weights data not as expected');
             end
             %save data
             for chIdx = 1:length(chList)
-                w = [];
+                w = zeros(nrTimeCh,nrPixel);
                 if(~isempty(weights))
-                    w = weights(:,chIdx);
+                    w(:,:) = weights(:,chIdx,:);
                     if(sum(w(:)) == 0)
                         w = [];
                     end
@@ -225,6 +226,15 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 out = this.fileInfo(this.currentChannel).nrSpectralChannels;
             else
                 out = 0;
+            end
+        end
+        
+        function out = get.nPixel(this)
+            %return number of pixels in vectorizes computation for current channel
+            if(~isempty(this.myChannels) && length(this.myChannels) >= this.currentChannel && ~isempty(this.myChannels{this.currentChannel}))            
+                out = this.myChannels{this.currentChannel}.nPixel;
+            else
+               out = []; 
             end
         end
 
@@ -577,11 +587,19 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             curPIs = pixelIDs(~idxIgnored);
             [model(:,~idxIgnored), amps(:,~idxIgnored), scAmps(:,~idxIgnored), oset(~idxIgnored), exponentials(:,:,~idxIgnored)] = this.myChannels{ch}.compModel2(xVec(:,~idxIgnored),curPIs);
             %compute chi2
-            switch bp.fitModel
+            switch bp.fitModel                
                 case {0,2} %tail fit
-                    chi2(~idxIgnored) = this.myChannels{ch}.compFigureOfMerit2(model(:,~idxIgnored),true,curPIs);
+                    if(noChi2PenalityFlag)
+                        chi2(~idxIgnored) = this.myChannels{ch}.compFigureOfMerit2(model(:,~idxIgnored),true,curPIs,1,1);
+                    else
+                        chi2(~idxIgnored) = this.myChannels{ch}.compFigureOfMerit2(model(:,~idxIgnored),true,curPIs);
+                    end
                 case 1 %tci fit
-                    chi2(~idxIgnored) = this.myChannels{ch}.compFigureOfMerit2(model(:,~idxIgnored),false,curPIs);
+                    if(noChi2PenalityFlag)
+                        chi2(~idxIgnored) = this.myChannels{ch}.compFigureOfMerit2(model(:,~idxIgnored),false,curPIs,1,1);
+                    else
+                        chi2(~idxIgnored) = this.myChannels{ch}.compFigureOfMerit2(model(:,~idxIgnored),false,curPIs);
+                    end
             end
             if(isa(chi2,'gpuArray'))
                 chi2 = gather(chi2);

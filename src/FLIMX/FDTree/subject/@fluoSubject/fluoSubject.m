@@ -1188,18 +1188,16 @@ classdef fluoSubject < FDTreeNode
                 end
                 allIRFs{ch} = ad.IRF.vector;
                 scatterData = ad.scatter;
-                if(params.basicFit.chiWeightingMode == 4)
-                    cw = single(this.myMeasurement.getROIMerged(ch));
-                end
+                
             end
             out = fluoPixelModel(allIRFs,fileInfo,params,ch);
             %load scatter data into the object
             if(~isempty(scatterData))
                 out.setScatterData(scatterData);
             end   
-            if(params.basicFit.chiWeightingMode == 4 && ~isempty(cw))                
-                out.setChiWeightData(cw);
-            end            
+%             if(params.basicFit.chiWeightingMode == 4 && ~isempty(cw))                
+%                 out.setChiWeightData(cw);
+%             end            
         end
                 
         function out = getApproxObj(this,ch,y,x)
@@ -1208,6 +1206,7 @@ classdef fluoSubject < FDTreeNode
                 this.init();
             end
             out = this.getApproxObjCopy(ch);
+            bp = out.basicParams;
             %load measurement data into the object
             if(any(out.volatilePixelParams.globalFitMask))
                 %data = zeros(out.fileInfo(ch).nrTimeChannels,out.fileInfo(ch).nrSpectralChannels,this.myMeasurement.getROIInfo(ch).ROIDataType);
@@ -1224,8 +1223,11 @@ classdef fluoSubject < FDTreeNode
                     out.setMeasurementData(ch,data);
                 end
             end
+            if(bp.chiWeightingMode == 4)
+                cw = single(this.myMeasurement.getROIMerged(ch));
+                out.setChiWeightData(repmat(cw,[1,size(data,2)]));
+            end
             %fix certain paramters to initialization values
-            bp = out.basicParams;
             if(~isempty(bp.fix2InitTargets))
                 if(any(out.volatilePixelParams.globalFitMask))
                     for chTmp = 1:out.nrChannels
