@@ -648,7 +648,7 @@ classdef StatsGroupComparison < handle
                 hSumMax = max([this.histogramSum{1}(histIdxStart:histIdxEnd), this.histogramSum{2}(histIdxStart:histIdxEnd)]);
                 if(abs(hDiffMin - hDiffMax) < eps)
                     hDiffMin = hDiffMin + eps - abs(hDiffMin)*0.1;
-                    hDiffMax = hDiffMax + eps + abs(hDiffMax)*0.1;
+                    hDiffMax = max(hDiffMin+0.1,hDiffMax + eps + abs(hDiffMax)*0.1);
                 end
                 if(abs(hSumMin - hSumMax) < eps)
                     hSumMin = hSumMin - eps - abs(hSumMin)*0.1;
@@ -770,14 +770,14 @@ classdef StatsGroupComparison < handle
                         %pairwise tests
                         pairDiff = this.grpData{1} - this.grpData{2};
                         meanPDVals = FLIMXFitGUI.num4disp([mean(pairDiff,'omitnan'),std(pairDiff,'omitnan')]);
-                        tmp{end+1,1} = 'Mean Pairwise Diff.';
+                        tmp{end+1,1} = 'Mean Pairwise Difference';
                         tmp{end,2} = sprintf('%s %s %s',meanPDVals{1},char(177),meanPDVals{2});
                     end
                     meanVals = FLIMXFitGUI.num4disp([mean(this.grpData{1},'omitnan'),std(this.grpData{1},'omitnan'),mean(this.grpData{2},'omitnan'),std(this.grpData{2},'omitnan')]);
                     if(length(meanVals) == 4)
-                        tmp{end+1,1} = 'Mean PATHOLOGIC';
+                        tmp{end+1,1} = sprintf('Mean PATHOLOGIC (%d)',length(this.grpData{1}));
                         tmp{end,2} = sprintf('%s %s %s',meanVals{1},char(177),meanVals{2});
-                        tmp{end+1,1} = 'Mean CONTROLS';
+                        tmp{end+1,1} = sprintf('Mean CONTROLS (%d)',length(this.grpData{2}));
                         tmp{end,2} = sprintf('%s %s %s',meanVals{3},char(177),meanVals{4});
                         tmp(end+1,1) = cell(1,1);
                     end
@@ -860,7 +860,7 @@ classdef StatsGroupComparison < handle
                     tmp2{7,1} = ''; tmp2{7,2} = ''; 
                     tmp(end+1:end+7,:) = tmp2;
                     
-                    set(this.visHandles.tableExtAnalysis,'Data',tmp,'ColumnWidth',{120 700});
+                    set(this.visHandles.tableExtAnalysis,'Data',tmp,'ColumnWidth',{140 700});
                     if(~isempty(this.grpData))
                         boxplot(this.visHandles.axesExtAnalysis,[this.grpData{1}; this.grpData{2}],[zeros(length(this.grpData{1}),1); ones(length(this.grpData{2}),1)],'labels',{'PATHOLOGIC';'CONTROLS'});                        
                     end
