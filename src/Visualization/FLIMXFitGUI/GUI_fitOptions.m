@@ -54,7 +54,7 @@ function varargout = GUI_fitOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_fitOptions
 
-% Last Modified by GUIDE v2.5 30-Apr-2020 01:03:50
+% Last Modified by GUIDE v2.5 29-Jun-2020 16:14:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -185,12 +185,14 @@ switch data.basic.fitModel
     case 0 %tailfit
         set(handles.radioTciFit,'Value',0,'Enable',data.enableGUIControlsFlag);
         set(handles.radioTailFit,'Value',1,'Enable',data.enableGUIControlsFlag);
-        set(handles.textTailFitPreMax,'Visible','On','Enable',data.enableGUIControlsFlag);
+        set(handles.textTailFitPreMax1,'Visible','On','Enable',data.enableGUIControlsFlag);
+        set(handles.textTailFitPreMax2,'Visible','On','Enable',data.enableGUIControlsFlag);
         set(handles.editTailFitPreMax,'Visible','On','String',data.basic.tailFitPreMaxSteps,'Enable',data.enableGUIControlsFlag);
     case 1 %all time points
         set(handles.radioTciFit,'Value',1,'Enable',data.enableGUIControlsFlag);
         set(handles.radioTailFit,'Value',0,'Enable',data.enableGUIControlsFlag);
-        set(handles.textTailFitPreMax,'Visible','Off','Enable',data.enableGUIControlsFlag);
+        set(handles.textTailFitPreMax1,'Visible','Off','Enable',data.enableGUIControlsFlag);
+        set(handles.textTailFitPreMax2,'Visible','Off','Enable',data.enableGUIControlsFlag);
         set(handles.editTailFitPreMax,'Visible','Off','String',data.basic.tailFitPreMaxSteps,'Enable',data.enableGUIControlsFlag);
 end
 tcilen = length(data.basic.tciMask);

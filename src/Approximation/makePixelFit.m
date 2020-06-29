@@ -88,7 +88,7 @@ if(aboutInfo.core_revision ~= myAboutInfo.core_revision)
 end
 %this is a compatible core
 optimizationParams.hostname = gethostname();
-if(nrPixels > 1 && (isdeployed() || apObjs{1}.computationParams.useMatlabDistComp > 0) && apObjs{1}.basicParams.optimizerInitStrategy ~= 3) %&& ~apObjs{i}.computationParams.useGPU 
+if(nrPixels > 1 && (isdeployed() || apObjs{1}.computationParams.useMatlabDistComp > 0) && apObjs{1}.basicParams.optimizerInitStrategy ~= 3) %&& ~apObjs{i}.computationParams.useGPU
     %run pixels in parallel
     for retry = 1:10
         try

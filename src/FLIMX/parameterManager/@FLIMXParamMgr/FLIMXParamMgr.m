@@ -66,6 +66,7 @@ classdef FLIMXParamMgr < paramMgr
             end
             ini_isdirty = false;
             try
+                %update config, if necessary
                 if(ini.about.config_revision < 264)
                     if(isfield(ini,'flimvis_gui')) %rename cuts to crossSections
                         if(isfield(ini.flimvis_gui,'color_cuts'))
@@ -84,6 +85,14 @@ classdef FLIMXParamMgr < paramMgr
                             ini.flimvis_gui.show_crossSection = ini.flimvis_gui.show_cut;
                             ini_isdirty = true;
                         end
+                    end
+                end
+                
+                if(ini.about.config_revision < 272)
+                    %behavior of tailFitPreMaxSteps changed from time points to percentage of data maximum
+                    if(isfield(ini,'basic_fit'))
+                        ini.basic_fit.tailFitPreMaxSteps = 50;
+                        ini_isdirty = true;
                     end
                 end
                 

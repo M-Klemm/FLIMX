@@ -984,7 +984,8 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 this.dataStorage.measurement.maxPos(p) = dMaxPosTmp;
                 this.dataStorage.measurement.maxVal(p) = double(dMaxValTmp);
                 if(this.basicParams.fitModel ~=1)
-                    this.myStartPos(p) = max(1,this.dataStorage.measurement.maxPos(p)-this.basicParams.tailFitPreMaxSteps-1);
+                    this.myStartPos(p) = max(1,find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p),dMaxValTmp*this.basicParams.tailFitPreMaxSteps/100),1,'last'));
+                    %this.myStartPos(p) = max(1,this.dataStorage.measurement.maxPos(p)-this.basicParams.tailFitPreMaxSteps-1);
                 else
                     this.myStartPos(p) = sp0;
                 end

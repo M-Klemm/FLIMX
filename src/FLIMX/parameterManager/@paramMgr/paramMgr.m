@@ -244,7 +244,7 @@ classdef paramMgr < handle
             def.basic_fit.lifetimeGap           =   2; %minimal gap/distance between lifetimes (relative factor, e.g. tau2 >= tau1 * factor)
             def.basic_fit.resultValidyCheckCnt  =   0; %retries for optimizer to get valid result (all amps & offset ~= zero)
             def.basic_fit.fitModel              =   0; %0: tail fit, 1: tci fit
-            def.basic_fit.tailFitPreMaxSteps    =   5; %number of time points prior to the maximum which are used additionally in case of tail fits
+            def.basic_fit.tailFitPreMaxSteps    =   50; %start position on rising edge (percentage of the data maximum) to use for the approximation in addition to the tail (for tail fits only)
             def.basic_fit.compMaxCorrTci        =	0;
             def.basic_fit.curIRFID              =   1;
             def.basic_fit.incompleteDecay       =	1;
