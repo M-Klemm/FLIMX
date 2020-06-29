@@ -658,10 +658,10 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                     %compare them to the data rising edge positions, add penalty to chi2 if average difference is more than user defined margin
                     if(size(measurementRisingIDs,1) == 1)
                         %one pixel, multiple models
-                        d = max(abs(risingIDs(usedRisingIDs) - measurementRisingIDs(usedRisingIDs)));
+                        d = mean(abs(risingIDs(usedRisingIDs) - measurementRisingIDs(usedRisingIDs))); %max
                     else
                         %multiple pixels, one model each
-                        d = max(abs(risingIDs(usedRisingIDs) - measurementRisingIDs(pixelIDs(m),usedRisingIDs)));
+                        d = mean(abs(risingIDs(usedRisingIDs) - measurementRisingIDs(pixelIDs(m),usedRisingIDs))); %max
                     end                    
                     if(d > bp.risingEdgeErrorMargin)
                         idxIgnored(modelIDs(m)) = true;
