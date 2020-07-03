@@ -307,7 +307,7 @@ while k <= size(paramDefCell, 1)
             paramDefCell{k+d-1, 1} = sprintf('%s_%d', parameterName, d);
             for col = 2:size(paramDefCell,2)
                 paramDefCell{k+d-1,col} = paramDefCell{k, col}(d,:);
-                if col == 4 && isnan(paramDefCell{k+d-1,col}) % initial value = NaN
+                if col == 4 && any(isnan(paramDefCell{k+d-1,col})) % initial value = NaN
                     paramDefCell{k+d-1,col} = [];
                 end
             end
@@ -398,7 +398,7 @@ end
 
 % get initial parameter vector
 if DEParams.useInitParams
-    initialMem = zeros(1,D);
+    initialMem = zeros(length(paramDefCell{1,4}),D);
     if size(paramDefCell, 2) == 4
         % use initial parameters from fourth column of paramDefCell
         parNr = 1;
@@ -407,7 +407,7 @@ if DEParams.useInitParams
                 % check if objFctParams also contains initial value
                 parameterName = getparametername__(parNr, 2);
                 index = parNr:parNr+parameterDimVector(parNr)-1;
-                initialMem(index) = cell2mat(paramDefCell(index,4))';
+                initialMem(:,index) = cell2mat(paramDefCell(index,4))';
                 
                 if(isNoWorker)
                     % warn if overwriting intial values in objFctParams
@@ -435,13 +435,13 @@ if DEParams.useInitParams
             
             for d=1:parameterDimVector(parNr)
                 index = parNr+d-1;
-                if isnan(initialMem(index))
+                if any(isnan(initialMem(:,index)))
                     parameterName = getparametername__(index, 1);
                     if(isNoWorker)
                         disp(textwrap2(sprintf(['Warning: No initial value for parameter %s given. ', ...
                             'Using center of range interval as initial value.'], parameterName), textWidth));
                     end
-                    initialMem(index) = 0.5*(XVmin(index) + XVmax(index));
+                    initialMem(:,index) = 0.5*(XVmin(index) + XVmax(index));
                 end
             end
             parNr = parNr + parameterDimVector(parNr);
@@ -496,12 +496,14 @@ if DEParams.useInitParams
         %         [ignore, quantInitialMem] = considerparametercontraints__(...
         %             objFctParams, paramDefCell, parameterDimVector, initialMem); %#ok
         quantInitialMem = checkBounds(initialMem',parameterBounds(:,1),parameterBounds(:,2))';
-        for parNr = 1:D
-            if ~isnan(initialMem(parNr)) && paramDefCell{parNr,3} > 0 && abs(initialMem(parNr) - quantInitialMem(parNr)) > eps
-                if(isNoWorker)
-                    disp(textwrap2(sprintf(['Warning: Initial value of parameter %s (%g) ', ...
-                        'not on quantization grid (next grid value: %g).'], getparametername__(parNr, 1), ...
-                        initialMem(parNr), quantInitialMem(parNr)), textWidth));
+        for i=1:size(quantInitialMem,1)
+            for parNr = 1:D
+                if ~isnan(initialMem(i,parNr)) && paramDefCell{parNr,3} > 0 && abs(initialMem(i,parNr) - quantInitialMem(i,parNr)) > eps
+                    if(isNoWorker)
+                        disp(textwrap2(sprintf(['Warning: Initial value of parameter %s (%g) ', ...
+                            'not on quantization grid (next grid value: %g).'], getparametername__(parNr, 1), ...
+                            initialMem(i,parNr), quantInitialMem(i,parNr)), textWidth));
+                    end
                 end
             end
         end
@@ -660,8 +662,8 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
         % initialization
         if DEParams.useInitParams > 0
             % first population member: current parameters
-            pop(1,:) = initialMem;
-            istart = 2;
+            pop(1:size(initialMem,1),:) = initialMem;
+            istart = size(initialMem,1)+1;
         else
             % initialize all population members randomly
             istart = 1;
@@ -1145,10 +1147,10 @@ for k = 1:size(paramDefCell, 1)
             'of paramDefCell have to have the same number of rows.']);
     end
     if size(paramDefCell, 2) == 4
-        if ~isempty(paramDefCell{k,4}) && size(paramDefCell{k,4}, 2) ~= 1
-            error(['All cells in the fourth column of paramDefCell have to be ', ...
-                'empty or contain scalars or column vectors (the initial values).']);
-        end
+%         if ~isempty(paramDefCell{k,4}) && size(paramDefCell{k,4}, 2) ~= 1
+%             error(['All cells in the fourth column of paramDefCell have to be ', ...
+%                 'empty or contain scalars or column vectors (the initial values).']);
+%         end
         if size(paramDefCell{k,2}, 1) ~= size(paramDefCell{k,4}, 1)
             error(['All vectors or matrices in the second, third and fourth row ', ...
                 'of paramDefCell have to have the same number of rows.']);
