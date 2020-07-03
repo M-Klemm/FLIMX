@@ -39,6 +39,7 @@ chList = apObj.nonEmptyChannelList;
 pixelIDs = apObj.getPixelIDs(apObj.currentChannel);
 totalNrPIDs = length(pixelIDs);
 nrChannels = length(chList);%nrChannels = nr global fit channels!
+prevXVec = apObj.getInitializationData(apObj.currentChannel,pixelIDs); %todo: global fit
 %preprocess data
 [result, nonLinBounds] = apObj.makeDataPreProcessing([],pixelIDs);
 if(apObj.basicParams.approximationTarget == 1)
@@ -114,6 +115,9 @@ else
                     iVec = apObj.joinGlobalFitXVec(apObj.getNonConstantXVec(apObj.currentChannel,tmp),true);
                 else
                     iVec = apObj.getInitializationData(apObj.currentChannel,pixelIDs);
+                    if(any(prevXVec(:)))
+                        iVec = cat(2,iVec,prevXVec);
+                    end
                 end
             end
             %prepare fitted weighting
@@ -150,7 +154,7 @@ else
                     %removed 10.03.2009 
                     [c, offset, A, tau, dc, dtau, irs, zz, t, chi] = Fluofit(apObj.getIRF(ch), double(apObj.getMeasurementData(ch)), apObj.fileInfo.tacRange, apObj.fileInfo.timeChannelWidth, iVec(1:3,1)', false);
                 case 1 %% DE
-                    optParams(1).paramDefCell{4} = iVec(:,1);
+                    optParams(1).paramDefCell{4} = iVec; %(:,1);
                     optParams(1).hostname = hostname;
                     [xVec, ~, ~, iter, feval] = differentialevolution(optParams(1), optParams(1).paramDefCell, @apObj.costFcn, [], [], pixelIDs(1), optParams(1).title);
                 case 2 %% MSimplexBnd

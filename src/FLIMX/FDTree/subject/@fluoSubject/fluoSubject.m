@@ -319,7 +319,7 @@ classdef fluoSubject < FDTreeNode
                                             curScatterFile.preProcessParams.autoReflRem = -1;
                                             curScatterFile.preProcessParams.roiAdaptiveBinMax = 10;
                                         end
-                                        apObj = curScatterFile.getInitApproxObjs(chList);
+                                        apObj = curScatterFile.getInitApproxObjs(chList,false);
                                         resultStruct = makePixelFit(apObj,this.optimizationParams,this.aboutInfo);
                                         if(isstruct(resultStruct))
                                             if(resultStruct.chi2 > 2)
@@ -894,21 +894,21 @@ classdef fluoSubject < FDTreeNode
             end
         end
         
-        function [apObj, xVec, hShift, oset, chi2, chi2Tail, TotalPhotons, iterations, time, slopeStart, iVec] = getVisParams(this,ch,y,x,initFit)
+        function [apObj, xVec, hShift, oset, chi2, chi2Tail, TotalPhotons, iterations, time, slopeStart, iVec] = getVisParams(this,ch,y,x,isInitFit)
             %get parameters for visualization of current fit in channel ch
             if(~this.isInitialized)
                 this.init();
             end
-            if(initFit)
-                apObjs = this.getInitApproxObjs(ch);
+            if(isInitFit)
+                apObjs = this.getInitApproxObjs(ch,false);
                 apObj = apObjs{sub2ind([this.initFitParams.gridSize this.initFitParams.gridSize],y,x)};
             else
                 apObj = this.getApproxObj(ch,y,x);
             end
-            [apObj, xVec, hShift, oset, chi2, chi2Tail, TotalPhotons, iterations, time, slopeStart, iVec] = this.myResult.getVisParams(apObj,ch,y,x,initFit);
+            [apObj, xVec, hShift, oset, chi2, chi2Tail, TotalPhotons, iterations, time, slopeStart, iVec] = this.myResult.getVisParams(apObj,ch,y,x,isInitFit);
         end
         
-        function out = getInitApproxObjs(this,ch)
+        function out = getInitApproxObjs(this,ch,isCleanUpFit)
             %make parameter structure needed for approximation of initialization
             if(~this.isInitialized)
                 this.init();
@@ -920,6 +920,10 @@ classdef fluoSubject < FDTreeNode
             params.computation = this.computationParams;
             params.bounds = this.boundsParams;
             params.pixelFit = this.initFitParams;
+            if(isCleanUpFit)
+                %use only MSimplexBnd optimizer for cleanup
+                params.pixelFit.optimizer = 2;
+            end
             %set optimizerInitStrategy for init fits to 1 (use guess values)
             params.basicFit.optimizerInitStrategy = 1;
             ad = this.myResult.getAuxiliaryData(ch);
@@ -935,6 +939,20 @@ classdef fluoSubject < FDTreeNode
                     params.basicFit.(sprintf('constMaskSaveValCh%d',ch))(1,end+1) = 0;
                 end
             end
+            for i = 1 : length(params.basicFit.fix2InitTargets)
+                %remove all fix 2 init targets (e.g. for init cleanup fit)
+                idx1 = find(strcmp(params.basicFit.constMaskSaveStrCh1,params.basicFit.fix2InitTargets{i}));
+                idx2 = find(strcmp(params.basicFit.constMaskSaveStrCh2,params.basicFit.fix2InitTargets{i}));
+                if(~isempty(idx1))
+                    params.basicFit.constMaskSaveStrCh1(idx1) = [];
+                    params.basicFit.constMaskSaveValCh1(idx1) = [];
+                end
+                if(~isempty(idx2))
+                    params.basicFit.constMaskSaveStrCh2(idx2) = [];
+                    params.basicFit.constMaskSaveValCh2(idx2) = [];
+                end
+            end
+            params.basicFit.fix2InitTargets = cell(0,0);
             if(params.basicFit.fixTausByAge)
                 age = double(this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,'Age'));
                 if(~isempty(age) && ~isnan(age) && ~isinf(age))

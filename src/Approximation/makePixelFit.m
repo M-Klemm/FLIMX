@@ -88,9 +88,11 @@ if(aboutInfo.core_revision ~= myAboutInfo.core_revision)
 end
 %this is a compatible core
 optimizationParams.hostname = gethostname();
+parCalcFlag = true;
 if(nrPixels > 1 && (isdeployed() || apObjs{1}.computationParams.useMatlabDistComp > 0) && apObjs{1}.basicParams.optimizerInitStrategy ~= 3) %&& ~apObjs{i}.computationParams.useGPU
     %run pixels in parallel
-    for retry = 1:10
+    maxRetries = 3;
+    for retry = 1:maxRetries
         try
             parfor i = 1:nrPixels
                 tmp(i,:) = runOpt(apObjs{i},optimizationParams);
@@ -99,11 +101,19 @@ if(nrPixels > 1 && (isdeployed() || apObjs{1}.computationParams.useMatlabDistCom
             break
         catch ME
             fprintf('FLIMX:makePixelFit parfor failed try %d: %s',retry,ME.message);
-            pause(10); %sleep for 10 seconds, parpool might recover
+            if(retry < maxRetries)
+                pause(10); %sleep for 10 seconds, parpool might recover
+            else
+                %retry without parallelization
+                parCalcFlag = false;
+            end
         end
     end
 else
     %no parallelization
+    parCalcFlag = false;
+end
+if(~parCalcFlag)
     for i = 1:nrPixels
         tmp(i,:) = runOpt(apObjs{i},optimizationParams);
     end

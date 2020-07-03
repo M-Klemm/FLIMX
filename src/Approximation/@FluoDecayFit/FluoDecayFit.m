@@ -90,16 +90,17 @@ classdef FluoDecayFit < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % output methods
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
-        function [parameterCell, idx] = getApproxParamCell(this,ch,pixelPool,pixelPerCore,initFit)
+        function [parameterCell, idx] = getApproxParamCell(this,ch,pixelPool,pixelPerCore,fitModeFlag)
             %put all data needed for approximation in a cell array (corresponds to makePixelFit interface)
-            if(initFit)
+            %fitType 0: pixel fit; 1: init fit; 2: init fit cleanup
+            if(fitModeFlag > 0)
                 %initialization fit                
                 if(any(pixelPool > this.initFitParams.gridSize^2))
                     parameterCell = [];
                     idx = [];
                     return
                 end
-                apObjs = this.FLIMXObj.curSubject.getInitApproxObjs(ch);
+                apObjs = this.FLIMXObj.curSubject.getInitApproxObjs(ch,fitModeFlag == 2);
                 apObjs = apObjs(pixelPool);
                 idx = zeros(length(pixelPool),2);
                 [idx(:,1), idx(:,2)] = ind2sub([this.initFitParams.gridSize this.initFitParams.gridSize],pixelPool);
@@ -357,7 +358,7 @@ classdef FluoDecayFit < handle
             %% initialization fit
             if((this.basicParams.optimizerInitStrategy == 2 || ~isempty(this.basicParams.fix2InitTargets)) && ~this.FLIMXObj.curSubject.isInitResult(ch))                
                 this.updateLongProgress(0.01,'Approximate Initialization...');
-                status = this.computeMultipleFits(ch,1:this.initFitParams.gridSize^2,true);
+                status = this.computeMultipleFits(ch,1:this.initFitParams.gridSize^2,1);
                 this.updateLongProgress(0.25,'Cleanup Initialization Approximation...');
                 this.makeCleanUpFit(ch,true);
                 if(~isempty(xPos) && ~isempty(yPos) && xPos == 0 && yPos == 0)
@@ -401,7 +402,7 @@ classdef FluoDecayFit < handle
             %make ROI first
             this.FLIMXObj.curSubject.getROIData(ch,[],[]);
             this.updateLongProgress(0.5,'Approximate Pixels...');
-            status = this.computeMultipleFits(ch,totalPixelIDs,false); %user aborted if status is true
+            status = this.computeMultipleFits(ch,totalPixelIDs,0); %user aborted if status is true
             if(this.parameters.stopOptimization)
                 %user wants to stop
                 this.parameters.stopOptimization = false;
@@ -437,8 +438,9 @@ classdef FluoDecayFit < handle
             end
         end
         
-        function status = computeMultipleFits(this,ch,pixelPool,initFit)
+        function status = computeMultipleFits(this,ch,pixelPool,fitModeFlag)
             %compute approximations of multiple pixels
+            %fitType 0: pixel fit; 1: init fit; 2: init fit cleanup
             persistent lastUpdate
             totalPixels = length(pixelPool);
             status = false;
@@ -455,7 +457,7 @@ classdef FluoDecayFit < handle
                 end
             end
             %fit dimension
-            if(initFit)
+            if(fitModeFlag)
                 y = this.initFitParams.gridSize;
                 x = y;
 %                 fitDim = 3;
@@ -477,7 +479,7 @@ classdef FluoDecayFit < handle
             tStart = clock;
             this.updateShortProgress(0.001,'0.0% - Time left: n/a');
             %check if all non linear parameters are fixed
-            if(~initFit)
+            if(~fitModeFlag)
                 parameterCell = this.getApproxParamCell(ch,1,1,false);
                 if(~isempty(parameterCell))
                     apObj = parameterCell{1}{1};
@@ -758,7 +760,7 @@ classdef FluoDecayFit < handle
                     iter = iter+1;
                     subPool = pixelPool(i:min(totalPixels,i+pixelPerWU-1));
                     nPixel = length(subPool);
-                    parameterCell{iter} = {@this.getApproxParamCell,ch,subPool,pixelPerCore,initFit};
+                    parameterCell{iter} = {@this.getApproxParamCell,ch,subPool,pixelPerCore,fitModeFlag};
                     idx = zeros(nPixel,2);
                     [idx(:,1), idx(:,2)] = ind2sub([y x],subPool);
                     idxCell(iter) = {idx};
@@ -766,7 +768,7 @@ classdef FluoDecayFit < handle
                 postProcessParams.idxCell = idxCell;
                 postProcessParams.ch = ch;
                 postProcessParams.dataSize = [y x];
-                postProcessParams.initFit = initFit;
+                postProcessParams.initFit = fitModeFlag;
                 mcSettings.postProcessParams = postProcessParams;
                 mcSettings.postProcessHandle = @this.mcPostProcess;
                 %distribute work
@@ -813,7 +815,7 @@ classdef FluoDecayFit < handle
                         break;
                     end
                     curIdx = min(totalPixels,i+pixelPerWU-1);
-                    [parameterCell, idx] = this.getApproxParamCell(ch,pixelPool(i:curIdx),pixelPerCore,initFit);
+                    [parameterCell, idx] = this.getApproxParamCell(ch,pixelPool(i:curIdx),pixelPerCore,fitModeFlag);
                     if(isempty(parameterCell) || isempty(idx))
                         status = true;
                         break
@@ -828,7 +830,7 @@ classdef FluoDecayFit < handle
                         break
                     end
                     %store results
-                    if(initFit)
+                    if(fitModeFlag)
                         this.FLIMXObj.curSubject.addInitResult(ch,idx,resultStruct);
                         %update waitbar
                         this.updateShortProgress(curIdx/totalPixels,sprintf('Initialization: %02.1f%%',curIdx/totalPixels*100));
@@ -873,11 +875,11 @@ classdef FluoDecayFit < handle
             this.updateShortProgress(0,'');
         end
         
-        function status = makeCleanUpFit(this,ch,initFit)
+        function status = makeCleanUpFit(this,ch,initFitFlag)
             %find outliers in current result and try to improve them
             status = false;
             %check if all non linear parameters are fixed
-            parameterCell = this.getApproxParamCell(ch,1,1,false);
+            parameterCell = this.getApproxParamCell(ch,1,1,initFitFlag);
             if(~isempty(parameterCell))
                 apObj = parameterCell{1}{1};
                 vcp = apObj.getVolatileChannelParams(ch);
@@ -885,7 +887,7 @@ classdef FluoDecayFit < handle
             else
                 noNonLinOpt = false;
             end
-            if(noNonLinOpt || ~this.cleanupFitParams.enable || (initFit && ~this.FLIMXObj.curSubject.isInitResult(ch)) || (~initFit && ~this.FLIMXObj.curSubject.isPixelResult(ch)) || isempty(this.cleanupFitParams.target))
+            if(noNonLinOpt || ~this.cleanupFitParams.enable || (initFitFlag && ~this.FLIMXObj.curSubject.isInitResult(ch)) || (~initFitFlag && ~this.FLIMXObj.curSubject.isPixelResult(ch)) || isempty(this.cleanupFitParams.target))
                 return
             end
             this.parameters.stopOptimization = false;
@@ -898,13 +900,13 @@ classdef FluoDecayFit < handle
                     for i = 1:length(this.cleanupFitParams.target)
                         dStr = this.cleanupFitParams.target{i};
                         dStr(isstrprop(dStr,'wspace')) = '';
-                        if(initFit)
+                        if(initFitFlag)
                             data{i,chIdx} = this.FLIMXObj.curSubject.getInitFLIMItem(chIdx,dStr);
                         else
                             data{i,chIdx} = this.FLIMXObj.curSubject.getPixelFLIMItem(chIdx,dStr);
                         end
                     end
-                    if(initFit)
+                    if(initFitFlag)
                         chi2Tmp =  this.FLIMXObj.curSubject.getInitFLIMItem(chIdx,'chi2');
                         xVec{chIdx} = this.FLIMXObj.curSubject.getInitFLIMItem(chIdx,'x_vec');
                     else
@@ -917,11 +919,13 @@ classdef FluoDecayFit < handle
                         chi2 = chi2 + chi2Tmp.^2;
                     end
                 end
-                if(initFit)
-                    apObj = this.FLIMXObj.curSubject.getInitApproxObjs(ch(1));
+                if(initFitFlag)
+                    apObj = this.FLIMXObj.curSubject.getInitApproxObjs(ch(1),true);
                     apObj = apObj{1,1};
+                    fitModeFlag = 2;
                 else
                     apObj = this.FLIMXObj.curSubject.getApproxObj(ch(1),1,1);
+                    fitModeFlag = 0;
                 end
                 secStageParams = this.prepareSecondStage(apObj,data,chi2,xVec,ch);
                 %secStageParams.stratStr = stratStr;
@@ -930,7 +934,7 @@ classdef FluoDecayFit < handle
                 hit(secStageParams.pixelPool) = true;
                 %save hit mask in result
                 for chIdx = ch
-                    if(initFit)
+                    if(initFitFlag)
                         iVec = this.FLIMXObj.curSubject.getInitFLIMItem(chIdx,'iVec');
                     else
                         iVec = this.FLIMXObj.curSubject.getPixelFLIMItem(chIdx,'iVec');
@@ -940,7 +944,7 @@ classdef FluoDecayFit < handle
                         [yi, xi] = ind2sub([y x],secStageParams.pixelPool(i));
                         iVec(yi,xi,:) = apObj.getFullXVec(chIdx,1,secStageParams.iVec(:,i));
                     end
-                    if(initFit)
+                    if(initFitFlag)
                         this.FLIMXObj.curSubject.setInitFLIMItem(chIdx,'iVec',iVec);
                         this.FLIMXObj.curSubject.setInitFLIMItem(chIdx,'CleanupHitMask',hit);
                     else
@@ -948,7 +952,7 @@ classdef FluoDecayFit < handle
                         this.FLIMXObj.curSubject.setPixelFLIMItem(chIdx,'iVec',iVec);
                     end
                 end
-                this.computeMultipleFits(chIdx,secStageParams.pixelPool,initFit);
+                this.computeMultipleFits(chIdx,secStageParams.pixelPool,fitModeFlag);
             end
         end
         
