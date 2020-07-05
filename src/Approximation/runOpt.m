@@ -39,7 +39,6 @@ chList = apObj.nonEmptyChannelList;
 pixelIDs = apObj.getPixelIDs(apObj.currentChannel);
 totalNrPIDs = length(pixelIDs);
 nrChannels = length(chList);%nrChannels = nr global fit channels!
-prevXVec = apObj.getInitializationData(apObj.currentChannel,pixelIDs); %todo: global fit
 %preprocess data
 [result, nonLinBounds] = apObj.makeDataPreProcessing([],pixelIDs);
 if(apObj.basicParams.approximationTarget == 1)
@@ -56,6 +55,7 @@ end
 if(isempty(pixelIDs))
     return
 else
+    prevXVec = apObj.getInitializationData(apObj.currentChannel,pixelIDs); %todo: global fit
     %restrict tci & hShift to >= starting point
     for ch = 1:nrChannels
         vcp = apObj.getVolatileChannelParams(chList(ch));

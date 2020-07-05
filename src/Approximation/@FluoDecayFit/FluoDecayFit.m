@@ -457,7 +457,7 @@ classdef FluoDecayFit < handle
                 end
             end
             %fit dimension
-            if(fitModeFlag)
+            if(fitModeFlag > 0)
                 y = this.initFitParams.gridSize;
                 x = y;
 %                 fitDim = 3;
@@ -479,7 +479,7 @@ classdef FluoDecayFit < handle
             tStart = clock;
             this.updateShortProgress(0.001,'0.0% - Time left: n/a');
             %check if all non linear parameters are fixed
-            if(~fitModeFlag)
+            if(~fitModeFlag) %fitModeFlag = 0
                 parameterCell = this.getApproxParamCell(ch,1,1,false);
                 if(~isempty(parameterCell))
                     apObj = parameterCell{1}{1};
@@ -768,7 +768,7 @@ classdef FluoDecayFit < handle
                 postProcessParams.idxCell = idxCell;
                 postProcessParams.ch = ch;
                 postProcessParams.dataSize = [y x];
-                postProcessParams.initFit = fitModeFlag;
+                postProcessParams.initFit = fitModeFlag > 0;
                 mcSettings.postProcessParams = postProcessParams;
                 mcSettings.postProcessHandle = @this.mcPostProcess;
                 %distribute work
@@ -830,7 +830,7 @@ classdef FluoDecayFit < handle
                         break
                     end
                     %store results
-                    if(fitModeFlag)
+                    if(fitModeFlag > 0)
                         this.FLIMXObj.curSubject.addInitResult(ch,idx,resultStruct);
                         %update waitbar
                         this.updateShortProgress(curIdx/totalPixels,sprintf('Initialization: %02.1f%%',curIdx/totalPixels*100));
