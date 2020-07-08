@@ -495,7 +495,8 @@ if DEParams.useInitParams
     if checkInitialMem
         %         [ignore, quantInitialMem] = considerparametercontraints__(...
         %             objFctParams, paramDefCell, parameterDimVector, initialMem); %#ok
-        quantInitialMem = checkBounds(initialMem',parameterBounds(:,1),parameterBounds(:,2))';
+        %quantInitialMem = checkBounds(initialMem',parameterBounds(:,1),parameterBounds(:,2))';
+        quantInitialMem = checkBounds(initialMem',repmat(parameterBounds(:,1),[1,size(initialMem,1)]),repmat(parameterBounds(:,2),[1,size(initialMem,1)]))';
         for i=1:size(quantInitialMem,1)
             for parNr = 1:D
                 if ~isnan(initialMem(i,parNr)) && paramDefCell{parNr,3} > 0 && abs(initialMem(i,parNr) - quantInitialMem(i,parNr)) > eps
@@ -779,7 +780,8 @@ while ~timeOver && (iterationNr < DEParams.maxiter) && all(bestval > DEParams.st
     if initialization || reinitialization
         % startLoopTime = mbtime;
         % hard bound constraint
-        pop = checkBounds(pop',parameterBounds(:,1),parameterBounds(:,2))';
+        %pop = checkBounds(pop',parameterBounds(:,1),parameterBounds(:,2))';
+        pop = checkBounds(pop',repmat(parameterBounds(:,1),[1,size(pop,1)]),repmat(parameterBounds(:,2),[1,size(pop,1)]))';
         %save constrained parameters, do not save grided parameters
         %val = objFctHandle(checkQuantization(pop',parGridVector,parameterBounds(:,1)));
         %         popq = checkBounds(checkQuantization(pop',parGridVector,parameterBounds(:,1)),parameterBounds(:,1),parameterBounds(:,2));
