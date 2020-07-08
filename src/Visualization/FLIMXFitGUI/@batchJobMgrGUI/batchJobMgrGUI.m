@@ -37,6 +37,9 @@ classdef batchJobMgrGUI < handle
         mySelJobs = 1; %ids of selected jobs
         axesRawMgr = [];
         axesROIMgr = [];
+        defaultStrRunSelected = '';
+        defaultStrRunAll = '';
+        defaultStrStop = '';
     end
     properties (Dependent = true)
         batchJobMgr %handle of the job manager
@@ -52,6 +55,7 @@ classdef batchJobMgrGUI < handle
         %% GUI & menu callbacks
         function menuExit_Callback(this,hObject,eventdata)
             %executes on figure close
+            this.GUI_buttonStop_Callback(this.visHandles.buttonStop,[]);
             %close batchJobMgr
             if(~isempty(this.visHandles) && ishandle(this.visHandles.batchJobMgrFigure))
                 delete(this.visHandles.batchJobMgrFigure);
@@ -162,16 +166,17 @@ classdef batchJobMgrGUI < handle
             if(isempty(this.mySelJobs))
                 return
             end
-            oldStr = hObject.String;
             try
                 hObject.String = sprintf('<html><img src="file:/%s"/> Running</html>',FLIMX.getAnimationPath());
                 drawnow;
             end
+            this.enDisableGUICtrls('Off');
             this.batchJobMgr.runSelectedJobs(this.mySelJobs,true);
             this.updateGUI();
             this.updateProgressbar(0,'');
-            hObject.String = oldStr;
-            this.visHandles.buttonStop.String = 'Stop';
+            hObject.String = this.defaultStrRunSelected;
+            this.visHandles.buttonStop.String = this.defaultStrStop;
+            this.enDisableGUICtrls('On');
         end
         
         function GUI_buttonRunAll_Callback(this,hObject,eventdata)
@@ -180,16 +185,17 @@ classdef batchJobMgrGUI < handle
             if(nrJobs == 0)
                 return
             end
-            oldStr = hObject.String;
             try
                 hObject.String = sprintf('<html><img src="file:/%s"/> Running</html>',FLIMX.getAnimationPath());
                 drawnow;
             end
+            this.enDisableGUICtrls('Off');
             this.batchJobMgr.runAllJobs(true);
             this.updateGUI();
             this.updateProgressbar(0,'');
-            hObject.String = oldStr;
-            this.visHandles.buttonStop.String = 'Stop';
+            hObject.String = this.defaultStrRunAll;
+            this.visHandles.buttonStop.String = this.defaultStrStop;  
+            this.enDisableGUICtrls('On');
         end
         
         function GUI_buttonStop_Callback(this,hObject,eventdata)
@@ -252,6 +258,10 @@ classdef batchJobMgrGUI < handle
             this.axesROIMgr = axesWithROI(this.visHandles.axesROI,this.visHandles.axesCbROI,this.visHandles.textCbROIBottom,this.visHandles.textCbROITop,[],cm);
             this.axesROIMgr.setColorMapPercentiles(this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileLB,this.FLIMXObj.FLIMFitGUI.generalParams.cmIntensityPercentileUB);
             this.axesROIMgr.setROILineColor('r');
+            %save default button strings
+            this.defaultStrRunSelected = this.visHandles.buttonRunSelected.String;
+            this.defaultStrRunAll = this.visHandles.buttonRunAll.String;
+            this.defaultStrStop = this.visHandles.buttonStop.String;
         end
         
         function checkVisWnd(this)
@@ -361,6 +371,22 @@ classdef batchJobMgrGUI < handle
                 set(this.visHandles.textWait,'Position',[1,yl(2)/2,0],'String',text,'Parent',this.visHandles.axesProgress);
             end
             drawnow;
+        end
+        
+        function enDisableGUICtrls(this,flag)
+            %enables or disables all GUI controls except for the stop button
+            if(~strcmpi(flag,'Off'))
+                flag = 'On';
+            end                
+            this.visHandles.buttonRunSelected.Enable = flag;
+            this.visHandles.buttonRunAll.Enable = flag;
+            this.visHandles.buttonUp.Enable = flag;
+            this.visHandles.buttonDown.Enable = flag;
+            this.visHandles.buttonTop.Enable = flag;
+            this.visHandles.buttonBottom.Enable = flag;
+            this.visHandles.buttonLoadJob.Enable = flag;
+            this.visHandles.buttonRemove.Enable = flag;
+            this.visHandles.buttonRemoveAll.Enable = flag;            
         end
         
     end %methods
