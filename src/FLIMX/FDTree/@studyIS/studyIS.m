@@ -375,7 +375,7 @@ classdef studyIS < handle
             for i = 1:this.nrSubjects
                 tmp = this.resultROICoordinates{i};
                 if(isempty(tmp))
-                    continue
+                    tmp = ROICtrl.getDefaultROIStruct();
                 end
                 [val,idx] = min(abs(tmp(:,1,1) - ROIType));
                 if(val > 0)
