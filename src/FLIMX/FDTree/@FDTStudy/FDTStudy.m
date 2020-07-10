@@ -1477,36 +1477,41 @@ classdef FDTStudy < FDTreeNode
                         if(isempty(cTemp))
                             continue
                         end
-                        start = find(centers == cTemp(1));
-                        if(isempty(start))
-                            start = find(cTemp == centers(1));                            
-                            if(isempty(start))
-                                cw = getHistParams(this.getStatsParams(),chan,dType,id);
-                                if(min(cTemp(:)) > max(centers(:)))
-                                    centers = centers(1):cw:cTemp(end);
-                                    start = find(centers == cTemp(1));
-                                    histTemp2 = zeros(length(hg),length(centers));
-                                    histTemp2(:,1:size(histTable,2)) = histTable;
-                                    histTemp2(i,start:start+length(histTemp)-1) = histTemp;
-                                else
-                                    centers = cTemp(1):cw:centers(end);
-                                    histTemp2 = zeros(length(hg),length(centers));
-                                    histTemp2(:,end-size(histTable,2)+1:end) = histTable;
-                                    histTemp2(i,1:length(histTemp)) = histTemp;
-                                end                                
-                                histTable = histTemp2; 
-                            else
-                                cTemp(start:start+length(centers)-1) = centers;
-                                centers = cTemp;
-                                histTemp2 = zeros(length(hg),length(centers));
-                                histTemp2(:,start:start+size(histTable,2)-1) = histTable;
-                                histTemp2(i,1:length(histTemp)) = histTemp;
-                                histTable = histTemp2;                                
-                            end                            
+                        if(isempty(centers))
+                            centers = cTemp;
+                            histTable(i,1:length(histTemp)) = histTemp;
                         else
-                            histTable(i,start:start+length(cTemp)-1) = histTemp;
-                            centers(start:start+length(cTemp)-1) = cTemp;                            
-                        end                        
+                            start = find(centers == cTemp(1));
+                            if(isempty(start))
+                                start = find(cTemp == centers(1));
+                                if(isempty(start))
+                                    cw = getHistParams(this.getStatsParams(),chan,dType,id);
+                                    if(min(cTemp(:)) > max(centers(:)))
+                                        centers = centers(1):cw:cTemp(end);
+                                        start = find(centers == cTemp(1));
+                                        histTemp2 = zeros(length(hg),length(centers));
+                                        histTemp2(:,1:size(histTable,2)) = histTable;
+                                        histTemp2(i,start:start+length(histTemp)-1) = histTemp;
+                                    else
+                                        centers = cTemp(1):cw:centers(end);
+                                        histTemp2 = zeros(length(hg),length(centers));
+                                        histTemp2(:,end-size(histTable,2)+1:end) = histTable;
+                                        histTemp2(i,1:length(histTemp)) = histTemp;
+                                    end
+                                    histTable = histTemp2;
+                                else
+                                    cTemp(start:start+length(centers)-1) = centers;
+                                    centers = cTemp;
+                                    histTemp2 = zeros(length(hg),length(centers));
+                                    histTemp2(:,start:start+size(histTable,2)-1) = histTable;
+                                    histTemp2(i,1:length(histTemp)) = histTemp;
+                                    histTable = histTemp2;
+                                end
+                            else
+                                histTable(i,start:start+length(cTemp)-1) = histTemp;
+                                centers(start:start+length(cTemp)-1) = cTemp;
+                            end
+                        end
                     end
                 else
                     %2 output arguments -> non-strict version

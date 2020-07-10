@@ -1033,22 +1033,32 @@ classdef StatsGroupComparison < handle
             c2 = this.visObj.fdt.getStudyHistogram(this.study2,this.condition2,this.ch2,this.dType2,this.id2,this.ROIType,this.ROISubType,this.ROIVicinityFlag);
             if(~isempty(c1) && length(c1) >= 2)
                 cw1 = c1(2) - c1(1);
-            else
+            elseif(~isempty(c1) && length(c1) == 1)
                 cw1 = c1(1);
+            else
+                cw1 = [];
             end
             if(~isempty(c2) && length(c2) >= 2)
                 cw2 = c2(2) - c2(1);
-            else
+            elseif(~isempty(c2) && length(c2) == 1)
                 cw2 = c2(1);
+            else
+                cw2 = [];
             end
             if(cw1 == cw2)
                 centers = unique([c1, c2]);
                 equalCWFlag = true;
+            elseif(isempty(cw1))
+                centers = c2;
+                equalCWFlag = false;
+            elseif(isempty(cw2))
+                centers = c1;
+                equalCWFlag = false;
             else
                 cw = max(0.1,min(cw1,cw2));
                 centers = min(c1(1),c2(1)) : cw : max(c1(end),c2(end));
                 equalCWFlag = false;
-            end            
+            end
             %now insert each histogram table at the correct position
             for j = 1:2
                 [grpCenters, histMerge, histTable, colDescr] = this.visObj.fdt.getStudyHistogram(eval(sprintf('this.study%d',j)),eval(sprintf('this.condition%d',j)),eval(sprintf('this.ch%d',j)),eval(sprintf('this.dType%d',j)),eval(sprintf('this.id%d',j)),this.ROIType,this.ROISubType,this.ROIVicinityFlag);
