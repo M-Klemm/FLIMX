@@ -1434,18 +1434,25 @@ classdef FDTStudy < FDTreeNode
             if(isempty(hg))
                 return
             end
-            data = [];
+            if(any(strcmp(dataProc,{'mean','median'})))
+                data = zeros(length(hg),1);
+            else
+                %ne pre-allocation for raw data export
+                data = [];
+            end
             for i = 1:length(hg)
                 %tmp = hg{i}.getFullImage();
-                ROICoordinates = this.getResultROICoordinates(hg{1}.subjectName,ROIType);
-                tmp = hg{i}.getImgSeg(hg{i}.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,hg{1}.getFileInfoStruct(),this.getVicinityInfo());
+                ROICoordinates = this.getResultROICoordinates(hg{i}.subjectName,ROIType);
+                tmp = hg{i}.getImgSeg(hg{i}.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,hg{i}.getFileInfoStruct(),this.getVicinityInfo());
                 switch dataProc
                     case 'mean'
-                        tmp = mean(tmp(~isnan(tmp) & ~isinf(tmp)));
+                        data(i) = mean(tmp(~isinf(tmp)),'omitnan'); %tmp(~isnan(tmp) & ~isinf(tmp))
                     case 'median'
-                        tmp = median(tmp(~isnan(tmp) & ~isinf(tmp)));
+                        data(i) = median(tmp(~isinf(tmp)),'omitnan'); %tmp(~isnan(tmp) & ~isinf(tmp))
+                    otherwise
+                        data = [data; tmp(:)]; 
                 end
-                data = [data; tmp(:)];        
+                       
             end
         end
         

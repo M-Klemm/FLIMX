@@ -703,10 +703,20 @@ classdef StatsGroupComparison < handle
                 end
                 ylim(this.visHandles.axesDiffGrps,[hDiffMin hDiffMax]);
                 ylim(this.visHandles.axesSumGrps,[hSumMin hSumMax]);
-                if(~strcmp(this.dType1,this.dType2) || this.id1 ~= this.id2)
-                    xlbl = sprintf('%s %d / %s %d',this.dType1,this.id1,this.dType2,this.id2);
+                if(this.id1 < 1)
+                    id1Txt = [];
                 else
-                    xlbl = sprintf('%s %d',this.dType1,this.id1);
+                    id1Txt = this.id1;
+                end
+                if(this.id2 < 1)
+                    id2Txt = [];
+                else
+                    id2Txt = this.id2;
+                end
+                if(~strcmp(this.dType1,this.dType2) || this.id1 ~= this.id2)
+                    xlbl = sprintf('%s %d / %s %d',this.dType1,id1Txt,this.dType2,id2Txt);
+                else                    
+                    xlbl = sprintf('%s %d',this.dType1,id1Txt);
                 end
                 if(this.settings.screenshot)
                     legend(this.visHandles.axesSumGrps,grpStr);
@@ -746,23 +756,28 @@ classdef StatsGroupComparison < handle
                         case 5 %Wilcoxon rank sum test  
                             tmp{1,2} = 'PATHOLOGIC and CONTROLS are samples from continuous distributions with equal medians';
                     end
-                    tmp{2,1} = 'Decision';
-                    if(h)
-                        tmp{2,2} = 'null hypothesis rejected';
+                    if(isempty(stats))
+                        tmp{2,1} = 'Error';
+                        tmp{2,2} = 'Test could not be computed. At least one group is too small';
                     else
-                        tmp{2,2} = 'null hypothesis NOT rejected';
-                    end
-                    tmp{3,1} = 'p Value';
-                    tmp{3,2} = num2str(p,5);
-                    if(~isempty(ci))
-                        tmp{4,1} = 'Confidence Interval';
-                        tmp{4,2} = num2str(ci(:)');
-                    end
-                    tmp(end+1,1) = cell(1,1);
-                    fn = fieldnames(stats);
-                    for i = 1:length(fn)
-                        tmp(end+1,1) = fn(i);
-                        tmp{end,2} = num2str(stats.(fn{i}));
+                        tmp{2,1} = 'Decision';
+                        if(h)
+                            tmp{2,2} = 'null hypothesis rejected';
+                        else
+                            tmp{2,2} = 'null hypothesis NOT rejected';
+                        end
+                        tmp{3,1} = 'p Value';
+                        tmp{3,2} = num2str(p,5);
+                        if(~isempty(ci))
+                            tmp{4,1} = 'Confidence Interval';
+                            tmp{4,2} = num2str(ci(:)');
+                        end
+                        tmp(end+1,1) = cell(1,1);
+                        fn = fieldnames(stats);
+                        for i = 1:length(fn)
+                            tmp(end+1,1) = fn(i);
+                            tmp{end,2} = num2str(stats.(fn{i}));
+                        end
                     end
                     tmp(end+1,1) = cell(1,1);
                     %some descriptive statistics
@@ -775,9 +790,9 @@ classdef StatsGroupComparison < handle
                     end
                     meanVals = FLIMXFitGUI.num4disp([mean(this.grpData{1},'omitnan'),std(this.grpData{1},'omitnan'),mean(this.grpData{2},'omitnan'),std(this.grpData{2},'omitnan')]);
                     if(length(meanVals) == 4)
-                        tmp{end+1,1} = sprintf('Mean PATHOLOGIC (%d)',length(this.grpData{1}));
+                        tmp{end+1,1} = sprintf('Mean PATHOLOGIC (%d)',sum(~isnan(this.grpData{1})));
                         tmp{end,2} = sprintf('%s %s %s',meanVals{1},char(177),meanVals{2});
-                        tmp{end+1,1} = sprintf('Mean CONTROLS (%d)',length(this.grpData{2}));
+                        tmp{end+1,1} = sprintf('Mean CONTROLS (%d)',sum(~isnan(this.grpData{2})));
                         tmp{end,2} = sprintf('%s %s %s',meanVals{3},char(177),meanVals{4});
                         tmp(end+1,1) = cell(1,1);
                     end
