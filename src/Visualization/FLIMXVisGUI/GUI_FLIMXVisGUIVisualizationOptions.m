@@ -192,6 +192,7 @@ if(isempty(val))
 end
 set(handles.popupROILinestyle,'Value',lineStyle2id(data.flimvis.ROILinestyle));
 set(handles.editROILinewidth,'String',data.flimvis.ROILinewidth);
+set(handles.checkROIDrawAllOfType,'Value',data.flimvis.ROIDrawAllOfType);
 set(handles.popupETDRSSubfieldValues,'Value',val);
 if(val > 1 && data.flimvis.ETDRS_subfield_bg_enable) %sum(data.flimvis.ETDRS_subfield_bg_color(:)) < 1)
     set(handles.checkEDTRSSubfieldBg,'Value',1,'Visible','on');
