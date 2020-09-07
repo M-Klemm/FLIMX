@@ -110,7 +110,8 @@ classdef FDTree < FDTreeNode
         function checkLRUCacheTableSize(this,threshold)
             %check size of cached data and remove objects from RAM if necessary
             %check total size
-            if(isempty(this.LRUTableInfo))
+            if(isempty(this.LRUTableInfo) || size(this.LRUTableInfo,1) == 1)
+                %nothing to do if table is empty and don't clear last element
                 return
             end
             while(sum(this.LRUTableInfo(:,3)) > threshold)
