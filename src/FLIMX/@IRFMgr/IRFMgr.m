@@ -76,7 +76,7 @@ classdef IRFMgr < handle
             end
             if(nVec == 1)
                 %no time vector, build one
-                timeChs = 2^ceil(log2(timeChs));
+                timeChs = ceil(timeChs);
                 tacRange = this.FLIMXObj.curSubject.tacRange;
                 timeVec = linspace(0,tacRange,timeChs);
             else
@@ -125,7 +125,7 @@ classdef IRFMgr < handle
             this.IRFNames = unique(IDs);
             u_tChs = unique(timeChs);
             u_sChs = unique(specChs);
-            this.IRFStorage = cell(log2(max(u_tChs)),length(this.IRFNames),80,max(u_sChs)); %time channels (log2), names, laser repetition rate, spectral channels
+            this.IRFStorage = cell(max(u_tChs),length(this.IRFNames),80,max(u_sChs)); %time channels, names, laser repetition rate, spectral channels
             %find all channels belonging to an IRF and load them
             for i=1:length(this.IRFNames)
                 idx = find(strcmp(this.IRFNames{i},IDs));
@@ -134,7 +134,7 @@ classdef IRFMgr < handle
                     try
                         tmp = load(fullfile(this.myDir,sprintf('IRF_%d_ch%d_%s.asc',timeChs(idx(j)),specChs(idx(j)),this.IRFNames{i})),'-ASCII');
                         repRate = round(1000./tmp(end,1));
-                        this.IRFStorage{log2(timeChs(idx(j))),i,repRate,specChs(idx(j))} = tmp(:,2);
+                        this.IRFStorage{timeChs(idx(j)),i,repRate,specChs(idx(j))} = tmp(:,2);
                     end
                 end
             end
@@ -151,7 +151,7 @@ classdef IRFMgr < handle
         
         function [irf, irfName] = getIRF(this,timeChans,id,tacRange,specChannel)
             %get the irf for spectral channel and time channels with id and tacRange in ns
-            timeRes = log2(timeChans);
+            timeRes = timeChans;
             repRate = round(1000/tacRange);
             [a, b, c, d] = size(this.IRFStorage);
             if(isempty(id))
@@ -189,17 +189,17 @@ classdef IRFMgr < handle
             %get possible IRF time resolutions
             tmp = ~cellfun(@isempty,this.IRFStorage);
             tmp = squeeze(sum(sum(sum(tmp,2),3),4));
-            out = 2.^find(tmp);
+            out = find(tmp);
         end
         
         function [str, mask] = getIRFNames(this,timeChans)
             %get possible irf names for current time resolution
-            if(isempty(timeChans))
+            if(isempty(timeChans) || timeChans > size(this.IRFStorage,1))
                 str = '';
                 mask = [];
                 return
             end
-            p = log2(timeChans);
+            p = timeChans;
             b = false(size(this.IRFStorage,2),1);
             for i=1:length(b)
                 tmp = squeeze(~cellfun(@isempty,this.IRFStorage(p,i,:,:)));
@@ -214,7 +214,7 @@ classdef IRFMgr < handle
         
         function out = getRepRates(this,timeChans,id)
             %get possible repetition rates (1 / tac range)
-            timeRes = log2(timeChans);
+            timeRes = timeChans;
             [a, b, c, d] = size(this.IRFStorage);
             if(ischar(id))
                 id = this.name2Id(id);
@@ -240,7 +240,7 @@ classdef IRFMgr < handle
                 if(ischar(id))
                     id = this.name2Id(id);
                 end
-                timeRes = log2(timeChans);
+                timeRes = timeChans;
                 [a, b, c, d] = size(this.IRFStorage);
                 if(isempty(id) || id > b || timeRes > a || repRate > c)
                     out = [];
