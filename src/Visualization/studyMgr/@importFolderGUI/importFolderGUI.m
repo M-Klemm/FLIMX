@@ -29,7 +29,7 @@ classdef importFolderGUI < handle
     % POSSIBILITY OF SUCH DAMAGE.
     %
     %
-    % @brief    A class to represent a GUI to import a folder of SDT files
+    % @brief    A class to represent a GUI to import a folder of SDT / PTU files
     %
     properties(GetAccess = public, SetAccess = private)
         FLIMXObj = [];
@@ -151,7 +151,8 @@ classdef importFolderGUI < handle
             end
             set(this.visHandles.tableSubjects,'Data',[]);
             set(this.visHandles.editFolder,'String',path);
-            this.currentFiles = rdir(sprintf('%s%s**%s*.sdt',path,filesep,filesep));
+            this.currentFiles = [rdir(sprintf('%s%s**%s*.sdt',path,filesep,filesep));...
+                rdir(sprintf('%s%s**%s*.ptu',path,filesep,filesep));];
             %save path
             this.FLIMXObj.importGUI.lastImportPath = path;
             this.setupGUI();
@@ -238,9 +239,13 @@ classdef importFolderGUI < handle
                         if(x < 256)
                             x = 150;
                         end
-                        this.measurementObj.pixelResolution = 1000*8.8/x;
-                        %guess position of the eye
-                        this.measurementObj.guessEyePosition();
+                        %todo: add checkbox for FLIO data to GUI
+                        if((x == 256 || x == 150) && this.measurementObj.isSDTFile)
+                            %only for FLIO data
+                            this.measurementObj.pixelResolution = 1000*8.8/x;
+                            %guess position of the eye
+                            this.measurementObj.guessEyePosition();
+                        end
                         subject = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudy,mask{i,2},true);
                         subject.importMeasurementObj(this.measurementObj);
                     end

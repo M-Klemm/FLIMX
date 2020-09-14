@@ -37,8 +37,9 @@ classdef measurementReadRawData < measurementFile
     end
     
     properties (Dependent = true)
-        isSDTFile = true;
-        isASCIIFile = true;
+        isPTUFile;
+        isSDTFile;
+        isASCIIFile;
     end
     
     methods
@@ -75,9 +76,19 @@ classdef measurementReadRawData < measurementFile
 %             %return a list of channels in memory
 %             
 %         end
-        
+        function out = get.isPTUFile(this)
+            %true if current file is a PicoQuant .ptu file
+            [~, ~, ext] = fileparts(this.sourceFile);
+            if(strcmpi(ext,'.ptu'))
+                out = true;
+            else
+                out = false;
+            end
+        end
+
+
         function out = get.isSDTFile(this)
-            %
+            %true if current file is a Becker & Hickl .sdt file
             [~, ~, ext] = fileparts(this.sourceFile);
             if(strcmpi(ext,'.sdt'))
                 out = true;
@@ -87,7 +98,7 @@ classdef measurementReadRawData < measurementFile
         end
         
         function out = get.isASCIIFile(this)
-            %
+            %true if current file is an ASCII file
             [~, ~, ext] = fileparts(this.sourceFile);
             if(strcmpi(ext,'.txt') || strcmpi(ext,'.asc'))
                 out = true;
@@ -110,6 +121,48 @@ classdef measurementReadRawData < measurementFile
                 if(adc_res == 0)
                     adc_res = 10;
                 end
+                fileInfo.nrTimeChannels = 2^adc_res; 
+            elseif(this.isPTUFile)
+                myWaitbar = [];
+                hWaitbar = []; %todo: supply waitbar handle
+                [~,fname,fext] = fileparts(this.sourceFile);
+                if(~isa(hWaitbar,'function_handle'))
+                    myWaitbar = waitbar(0,'');
+                    hWaitbar = @(x,txt) waitbar(x,myWaitbar,sprintf('%s%s\n%s',fname,fext,txt));
+                    %hWaitbar = @this.updateProgress;
+                end
+                hWaitbar(0,'Reading header...');
+                [head, im_tcspc, im_chan, im_line, im_col] = PTU_ScanRead(this.sourceFile,hWaitbar);
+                if(~isempty(im_tcspc))
+                    idx = im_tcspc > head.nrTimeChannels;
+                    if(any(idx))
+                        im_tcspc = im_tcspc(~idx);
+                        im_chan = im_chan(~idx);
+                        im_line = im_line(~idx);
+                        im_col = im_col(~idx);
+                    end
+                    chs = unique(im_chan)';
+                    hWaitbar(0.5,'Building photon histogram');
+                    for ch = chs
+                        raw = make3DPhHist(uint16(head.ImgHdr_PixY), uint16(head.ImgHdr_PixX), im_tcspc, im_chan, im_line, im_col, head.nrTimeChannels, ch, hWaitbar);
+                        this.rawFluoData(ch) = {raw};
+                        this.rawFluoDataFlat(ch) = cell(1,1);
+                        this.setDirtyFlags(ch,1,true);
+                    end
+                    fileInfo.tacRange = head.tacRange; %head.MeasDesc_GlobalResolution*1e9;
+                    fileInfo.nrSpectralChannels = double(head.nrSpectralChannels);
+                    fileInfo.rawXSz = head.ImgHdr_PixX;
+                    fileInfo.rawYSz = head.ImgHdr_PixY;
+                    this.setNrTimeChannels(head.nrTimeChannels);
+                    fileInfo.nrTimeChannels = double(head.nrTimeChannels);
+                    if(isfield(head,'ReqHdr_SpatialResolution'))
+                        fileInfo.pixelResolution = head.ReqHdr_SpatialResolution;%head.MeasDesc_Resolution*1e6; %resolution in micro meter
+                    end
+                end
+                hWaitbar(0,'');
+                if(~isempty(myWaitbar))
+                    close(myWaitbar);
+                end                
             elseif(this.isASCIIFile)
                 %ascii file
                 try
@@ -141,25 +194,26 @@ classdef measurementReadRawData < measurementFile
                     return
                 end
                 fileInfo.nrSpectralChannels = 1;
+                fileInfo.nrTimeChannels = 2^adc_res;                
             else
                 return
             end
-            this.setNrTimeChannels(2^adc_res);
-            fileInfo.nrTimeChannels = 2^adc_res;
+            this.setNrTimeChannels(fileInfo.nrTimeChannels);            
             fileInfo.reflectionMask = cell(fileInfo.nrSpectralChannels,1);
             fileInfo.startPosition = num2cell(ones(fileInfo.nrSpectralChannels,1));
             fileInfo.endPosition = num2cell(fileInfo.nrTimeChannels.*ones(fileInfo.nrSpectralChannels,1));
             fileInfo.mergeMaxPos = zeros(fileInfo.nrSpectralChannels,1);
             this.setFileInfoStruct(fileInfo);
-        end
+        end        
+        
     end
     
     methods (Sealed = true)
         %%output methods
-        function out = getNonEmptyChannelList(this)
-            %return list of channel with measurement data
-            out = ones(1,this.nrSpectralChannels);
-        end
+%         function out = getNonEmptyChannelList(this)
+%             %return list of channel with measurement data
+%             out = ones(1,this.nrSpectralChannels);
+%         end
         
         function out = getRawData(this,channel,useMaskFlag)
             %get raw data for channel
@@ -209,6 +263,18 @@ classdef measurementReadRawData < measurementFile
                         end
                     end
                     this.updateProgress(1,'Loading SDT File');
+                elseif(this.isPTUFile)
+                    if(this.fileInfoLoaded)
+                        %check if all raw data is loaded
+                        for ch = this.nonEmptyChannelList
+                            if(length(this.rawFluoData) < ch || isempty(this.rawFluoData))
+                                this.updateProgress(0,'Loading PTU File');
+                                this.readFluoFileInfo();
+                                this.updateProgress(1,'Loading PTU File');
+                                break
+                            end
+                        end
+                    end
                 elseif(this.isASCIIFile)
                     try
                         raw = load(this.sourceFile,'-ASCII');

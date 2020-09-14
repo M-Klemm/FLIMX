@@ -80,7 +80,7 @@ classdef importWizard < handle
         function openFileByGUI(this,study,subject)
             %reads a fluorescence (measurement) file from disk
             path = this.lastImportPath;
-            if(this.openFileByStr(importWizard.loadFile({'*.sdt','Becker & Hickl file (*.sdt)';'*.txt;*.dat;*.asc','Single Decay (ASCII) file (*.txt,*.dat,*.asc)'},'Load Fluorescence Decay Data',path)))
+            if(this.openFileByStr(importWizard.loadFile({'*.sdt','Becker & Hickl file (*.sdt)';'*.ptu','PicoQuant file (*.ptu)';'*.txt;*.dat;*.asc','Single Decay (ASCII) file (*.txt,*.dat,*.asc)'},'Load Fluorescence Decay Data',path)))
                 this.checkVisWnd();
                 pathstr = this.measurementObj.sourcePath;
                 if(isempty(subject))
@@ -109,10 +109,15 @@ classdef importWizard < handle
             end
             this.measurementObj = measurementReadRawData(this.FLIMXObj.paramMgr);
             this.measurementObj.setSourceFile(fn);
+            chs = this.measurementObj.nonEmptyChannelList;
+            if(isempty(chs))
+                success = false;
+                return
+            end
             if(this.isOpenVisWnd())
                 ch = this.currentChannel;
             else
-                ch = 1;
+                ch = this.measurementObj.nonEmptyChannelList(1);
             end
             if(ch <= this.measurementObj.nrSpectralChannels)
                 %get full roi
@@ -127,10 +132,13 @@ classdef importWizard < handle
                 if(x < 256)
                     x = 150;
                 end
-                this.myMeasurement.pixelResolution = 1000*8.8/x;
-            end
-            %guess position of the eye            
-            this.myMeasurement.guessEyePosition();
+                if((x == 256 || x == 150) && this.myMeasurement.isSDTFile)
+                    %only for FLIO data
+                    this.myMeasurement.pixelResolution = 1000*8.8/x;
+                    %guess position of the eye            
+                    this.myMeasurement.guessEyePosition();
+                end
+            end            
             this.lastImportPath = fileparts(fn);
             success = true;
         end
@@ -184,7 +192,11 @@ classdef importWizard < handle
         
         function out = get.currentChannel(this)
             %return current channel nr
-            out = get(this.visHandles.popupChannel,'Value');
+            out = get(this.visHandles.popupChannel,'String');
+            if(~ischar(out))
+                out = out{get(this.visHandles.popupChannel,'Value')};
+            end
+            out = str2double(out(isstrprop(out, 'digit')));
         end
         
         function out = get.resolution(this)
@@ -203,7 +215,7 @@ classdef importWizard < handle
             if(this.isNewMeasurement)
                 this.myMeasurement.pixelResolution = val;
             end
-            set(this.visHandles.editResolution,'String',val);
+            set(this.visHandles.editResolution,'String',sprintf('%.3f',val));
         end
                 
         function out = get.roiMode(this)
@@ -458,8 +470,12 @@ classdef importWizard < handle
             set(this.visHandles.editFile,'enable',flag);
             set(this.visHandles.buttonImport,'enable',flag);
             %channel popup
-            cStr = sprintfc('Ch %d',1:this.myMeasurement.nrSpectralChannels);
-            set(this.visHandles.popupChannel,'String',cStr,'Value',min(this.myMeasurement.nrSpectralChannels,this.currentChannel));
+            cStr = sprintfc('Ch %d',this.myMeasurement.nonEmptyChannelList);
+            cPos = find(this.myMeasurement.nonEmptyChannelList == this.currentChannel);
+            if(isempty(cPos))
+                cPos = 1;
+            end
+            set(this.visHandles.popupChannel,'String',cStr,'Value',cPos);
             %fileInfo
             set(this.visHandles.editTACRange,'String',this.myMeasurement.tacRange);
             set(this.visHandles.editNrTimeCh,'String',this.myMeasurement.nrTimeChannels);            
