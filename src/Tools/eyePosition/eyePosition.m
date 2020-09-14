@@ -34,6 +34,12 @@ function [eyePos, confidence, imgVessels] = eyePosition(fluoIntImg)
 %           Computer Assisted Retinal Blood Vessel Segmentation Algorithm Developed and Copyrighted by Tyler L. Coye (2015)
 %
 
+if(isempty(fluoIntImg))
+    eyePos = 'OS';
+    confidence = NaN;
+    imgVessels = [];
+    return
+end
 fluoIntImg = double(fluoIntImg);
 fluoIntImg = fluoIntImg./max(double(fluoIntImg(:)));
 % Contrast Enhancment of gray image using CLAHE
