@@ -83,10 +83,10 @@ classdef IRFMgrGUI < handle
                 
             end
             [nTime, c] = size(data);
-            %todo: check if nTime is power of 2
-            if(c ~= 2)
+            if(nTime < 2 || c ~= 2)
                 %show some error / warning info
                 %try to use data of only one column?
+                return
             end
             overwrite = false;
             while true
@@ -94,7 +94,7 @@ classdef IRFMgrGUI < handle
                     'Description', sprintf('Please enter some info about the IRF file to be imported.\n\nThe number of time channels is %d.',nTime),...
                     'title' , 'IRF Import',...
                     {'IRF Name';'iName'},name ,...
-                    {'TAC Range';'iTAC'},data(end,1),...
+                    {'TAC Range';'iTAC'},data(end,1) + data(2,1) - data(1,1),...
                     {'Spectral Channel';'iCh'},1);
                 %check user inputs
                 if(~strcmpi(button, 'ok') || isempty(settings.iName))

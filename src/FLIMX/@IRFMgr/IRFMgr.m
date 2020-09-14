@@ -85,7 +85,7 @@ classdef IRFMgr < handle
             if((~isempty(this.getIRF(timeChs,IRFName,timeVec(end),specCh)) && ~overWriteFlag) || nVec > 2)
                 return
             end            
-            if(specCh > 0 && timeChs >= 256 && ~isempty(data) && ~isempty(timeVec))
+            if(specCh > 0 && ~isempty(data) && ~isempty(timeVec)) %&& timeChs >= 256 
                 export = zeros(timeChs,2);
                 export(:,1) = timeVec;
                 export(1:size(data,1),2) = data(1:size(data,1),end);
@@ -133,7 +133,7 @@ classdef IRFMgr < handle
                 for j = 1:length(idx)                    
                     try
                         tmp = load(fullfile(this.myDir,sprintf('IRF_%d_ch%d_%s.asc',timeChs(idx(j)),specChs(idx(j)),this.IRFNames{i})),'-ASCII');
-                        repRate = round(1000./tmp(end,1));
+                        repRate = round(1000./(tmp(end,1)+tmp(2,1)));
                         this.IRFStorage{timeChs(idx(j)),i,repRate,specChs(idx(j))} = tmp(:,2);
                     end
                 end
