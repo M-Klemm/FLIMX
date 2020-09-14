@@ -127,7 +127,7 @@ fn = fieldnames(tmp(1,1));
 fn = fn(~strcmpi(fn,'ROI_merge_result'));
 %fn = fn(~strcmpi(fn,'Message'));
 for i = 2:nrPixels
-    for ch = 1:length(apObjs{1}.nonEmptyChannelList)
+    for ch = apObjs{1}.nonEmptyChannelList
         for j = 1:length(fn)
             result(ch).(fn{j}) = [result(ch).(fn{j}) tmp(i,ch).(fn{j})];
         end

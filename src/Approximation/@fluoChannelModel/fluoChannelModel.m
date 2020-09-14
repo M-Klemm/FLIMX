@@ -969,7 +969,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             dSmooth = fastsmooth(dSmooth,5,2,0);
             dSmooth = flipud(fastsmooth(flipud(dSmooth),5,2,0));
             ids = (5:10:85)./100;
-            this.dataStorage.measurement.risingIDs = zeros(this.dataStorage.measurement.nPixel,size(ids,1));
+            this.dataStorage.measurement.risingIDs = NaN(this.dataStorage.measurement.nPixel,length(ids));
             sp0 = this.myStartPos(1);
             this.myStartPos = zeros(1,this.dataStorage.measurement.nPixel);
             this.dataStorage.measurement.maxPos = zeros(1,this.dataStorage.measurement.nPixel);
@@ -999,9 +999,12 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 dataRange = dMaxValTmp - minVal;
                 for i = 1:length(ids)                    
                     if(ids(i) > 0.5)
-                        this.dataStorage.measurement.risingIDs(p,i) = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p) >= double(minVal)+double(dataRange)*ids(i),1,'first');
+                        tmp = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p) >= double(minVal)+double(dataRange)*ids(i),1,'first');
                     else
-                        this.dataStorage.measurement.risingIDs(p,i) = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p) <= double(minVal)+double(dataRange)*ids(i),1,'last');
+                        tmp = find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p) <= double(minVal)+double(dataRange)*ids(i),1,'last');
+                    end
+                    if(~isempty(tmp))
+                        this.dataStorage.measurement.risingIDs(p,i) = tmp;
                     end
                 end
             end

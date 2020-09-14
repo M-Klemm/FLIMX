@@ -339,7 +339,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 [this.params.volatilePixel, vcp] = paramMgr.makeVolatileParams(this.params.basicFit,this.nrChannels);
                 this.params.volatileChannel = cell(0,0);
                 if(isempty(this.nonEmptyChannelList))
-                    chList = this.nrChannels;
+                    chList = 1:this.nrChannels;
                 else
                     chList = this.nonEmptyChannelList;
                 end

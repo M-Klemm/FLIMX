@@ -118,8 +118,8 @@ end
 %% reconvolute
 if(~isempty(irfFFT))
     %determine reconv model length
-    [~, p] = log2(size(exponentialsLong,1)-1);
-    len_model_2 = pow2(p);    % smallest power of 2 > len_model
+%     [~, p] = log2(size(exponentialsLong,1)-1);
+%     len_model_2 = pow2(p);    % smallest power of 2 > len_model
     %                 if(this.useGPU && nVecs > 1) %uses matlab gpu support
     %                     if(isempty(this.irfFFTGPU) || length(this.irfFFTGPU) ~= len_model_2)
     %                         this.irfFFTGPU = fft(gpuArray(this.getIRF()),len_model_2);
@@ -129,7 +129,7 @@ if(~isempty(irfFFT))
 %     if(isempty(this.irfFFT) || length(this.irfFFT) ~= len_model_2)
 %         this.irfFFT = fft(this.getIRF(), len_model_2);
 %     end
-    exponentialsLong(:,idxExponentialsLong) = real(ifft(bsxfun(@times,fft(exponentialsLong(:,idxExponentialsLong), len_model_2, 1),irfFFT), len_model_2, 1));
+    exponentialsLong(:,idxExponentialsLong) = real(ifft(bsxfun(@times,fft(exponentialsLong(:,idxExponentialsLong)),irfFFT)));
     %                 end
 %     if(bp.approximationTarget == 2 && this.myChannelNr <= 2) %only in anisotropy mode
 %         %correct for shift caused by reconvolution
