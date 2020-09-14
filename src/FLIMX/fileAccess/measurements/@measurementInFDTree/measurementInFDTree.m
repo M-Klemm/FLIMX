@@ -56,8 +56,7 @@ classdef measurementInFDTree < measurementFile
             %destructor
             if(~isempty(this.myParent) && this.myParent.isvalid)
                 %remove me from FDTree memory cache
-                this.rawFluoData = [];
-                this.roiFluoData = [];
+                this.clearCacheMemory();
                 this.myParent.pingLRUCacheTable(this);
             end
         end
@@ -329,7 +328,7 @@ classdef measurementInFDTree < measurementFile
             %return a list of channel numbers "with data"
             nec1 = getNonEmptyChannelList@measurementFile(this);
             nec2 = find(this.filesOnHDD);
-            out = unique([nec1(:);nec2(:)]);
+            out = unique([nec1(:);nec2(:)])';
         end
         
         function out = getLoadedChannelList(this)

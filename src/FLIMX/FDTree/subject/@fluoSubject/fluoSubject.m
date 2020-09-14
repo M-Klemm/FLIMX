@@ -97,7 +97,7 @@ classdef fluoSubject < FDTreeNode
         
         function  pingLRUCacheTable(this,obj)
             %ping LRU table for object obj
-            if(~isempty(this.myParent) && this.myParent.isvalid)
+            if(~isempty(this.myParent) && this.myParent.isvalid && ~isMultipleCall())
                 this.myParent.pingLRUCacheTable(obj);
             end
         end
@@ -614,7 +614,9 @@ classdef fluoSubject < FDTreeNode
             fi = this.getFileInfoStruct([]);
             out = [];
             if(~isempty(fi))
-                out = linspace(0,fi.tacRange,fi.nrTimeChannels)';
+                %out = linspace(0,fi.tacRange,fi.nrTimeChannels)'; %this leads to a slightly wrong time channel width
+                out = (0:fi.nrTimeChannels-1)'.*fi.timeChannelWidth/1000;
+                %out = linspace(0,(fi.nrTimeChannels-1)*fi.timeChannelWidth/1000,fi.nrTimeChannels)';
             end
         end
         
@@ -927,6 +929,10 @@ classdef fluoSubject < FDTreeNode
             %set optimizerInitStrategy for init fits to 1 (use guess values)
             params.basicFit.optimizerInitStrategy = 1;
             ad = this.myResult.getAuxiliaryData(ch);
+            if(isempty(ad) || ~isfield(ad,'fileInfo') || isempty(ad.fileInfo))
+                this.updateAuxiliaryData(ch)
+                ad = this.myResult.getAuxiliaryData(ch);
+            end
             %fix certain parameters to values from initialization
             if(params.basicFit.approximationTarget == 2 && params.basicFit.anisotropyR0Method == 2 && ch < 3)
                 idx = strcmp(params.basicFit.(sprintf('constMaskSaveStrCh%d',ch)),'Tau 2');

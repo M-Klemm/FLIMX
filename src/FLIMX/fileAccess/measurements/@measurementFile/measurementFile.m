@@ -1005,8 +1005,8 @@ classdef measurementFile < handle
             if(isempty(ch))
                 %save all channels
                 chList = this.nonEmptyChannelList;
-                for ch = 1:length(chList)
-                    this.exportMatFile(chList(ch),'');
+                for ch = chList
+                    this.exportMatFile(ch,'');
                     %this.filesOnHDD(1,chList(ch)) = true;
                 end
             else
@@ -1030,7 +1030,7 @@ classdef measurementFile < handle
             end
             %saveVars = {'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'};
             df = this.getDirtyFlags(ch,1:4);
-            if(all(df) || ~isfile(fn))
+            if(all(df(:)) || ~isfile(fn))
                 rawData = this.getRawData(ch,false);
                 rawDataFlat = this.getRawDataFlat(ch);
                 rawMaskData = this.getRawMaskData(ch);
