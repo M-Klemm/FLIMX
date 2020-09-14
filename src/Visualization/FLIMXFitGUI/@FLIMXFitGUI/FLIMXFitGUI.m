@@ -220,11 +220,12 @@ classdef FLIMXFitGUI < handle
             end
             pstr{1} = 'Intensity';
             %make channel popup menu string
-            cStr(1) = {sprintf('%d',1)};
-            for i = 2:this.FLIMXObj.curSubject.nrSpectralChannels
-                cStr(i) = {sprintf('%d',i)};
+            cStr = sprintfc('%d',this.FLIMXObj.curSubject.nonEmptyMeasurementChannelList);
+            cPos = find(this.FLIMXObj.curSubject.nonEmptyMeasurementChannelList == this.currentChannel);
+            if(isempty(cPos))
+                cPos = 1;
             end
-            set(this.visHandles.popupChannel,'String',cStr,'Value',min(this.currentChannel,length(cStr)));
+            set(this.visHandles.popupChannel,'String',cStr,'Value',cPos);
             try
                 this.dynVisParams.cm = eval(sprintf('%s(256)',lower(this.generalParams.cmType)));
             catch
@@ -478,7 +479,6 @@ classdef FLIMXFitGUI < handle
             else
                 data = double(this.FLIMXObj.curSubject.getROIData(this.currentChannel,this.currentY,this.currentX));
             end
-            %data = data + 50;
         end
 
         function out = get.currentStudy(this)
@@ -529,7 +529,11 @@ classdef FLIMXFitGUI < handle
             if(~this.isOpenVisWnd())
                 return;
             end
-            out = get(this.visHandles.popupChannel,'Value');
+            out = get(this.visHandles.popupChannel,'String');
+            if(~ischar(out))
+                out = out{get(this.visHandles.popupChannel,'Value')};
+            end
+            out = str2double(out(isstrprop(out, 'digit')));
             if(isempty(out))
                 out = 1;
             end
@@ -543,8 +547,12 @@ classdef FLIMXFitGUI < handle
             if(isempty(val))
                 val = 1;
             end
-            if(this.isOpenVisWnd())
-                set(this.visHandles.popupChannel,'Value',min(val,length(get(this.visHandles.popupChannel,'String'))));
+            if(this.isOpenVisWnd())                
+                cPos = find(this.FLIMXObj.curSubject.nonEmptyMeasurementChannelList == val);
+                if(isempty(cPos))
+                    cPos = 1;
+                end
+                set(this.visHandles.popupChannel,'Value',cPos);
                 %set(this.visHandles.popupChannel,'Value',val);
                 this.setupGUI();
                 this.updateGUI(true);
@@ -783,9 +791,9 @@ classdef FLIMXFitGUI < handle
                 yLbl = 'Anisotropy';
             else
                 %fluorescence lifetime
-                dMin = min(oset,max(1e-2,min(data(data>0))));
+                dMin = 1;%min(oset,max(1e-0,min(data(data>0))));
                 if(isempty(dMin))
-                    dMin = 1e-2;
+                    dMin = 1e-0;
                 end
                 yScaleStr = 'log';
                 yLbl = 'Photon-Frequency (counts)';
@@ -943,9 +951,13 @@ classdef FLIMXFitGUI < handle
             if(this.visualizationParams.plotResTrend)
                 %e_vec_smooth(ds:de) = fastsmooth(e_vec(ds:de),15,2,1);
                 %e_vec_smooth(ds:de) = smooth(e_vec(ds:de),31);
-                e_vec_smooth(ds:de) = filtfilt(zeros(21,1)+1/21,1,e_vec(ds:de));
-                e_vec_smooth(1:ds) = 0; %e_vec_smooth(ds);
-                e_vec_smooth(de:end) = 0; %e_vec_smooth(de);
+                if((de-ds+1) > 60) %filtfilt needs at least 61 elements
+                    e_vec_smooth(ds:de) = filtfilt(zeros(21,1)+1/21,1,e_vec(ds:de));
+                else
+                    e_vec_smooth(ds:de) = fastsmooth(e_vec(ds:de),15,2,1);
+                end
+                e_vec_smooth(1:ds-1) = 0; %e_vec_smooth(ds);
+                e_vec_smooth(de+1:end) = 0; %e_vec_smooth(de);
             end
             if(~this.dynVisParams.timeScalingAuto)
                 e_vec = e_vec(this.dynVisParams.timeScalingStart:this.dynVisParams.timeScalingEnd);
@@ -1437,7 +1449,7 @@ classdef FLIMXFitGUI < handle
                             end
                             if(xPos > 0 && xPos <= length(yVal) && ~isempty(yVal))
                                 %this.mouseOverlayBoxMain.setVerticalBoxPositionMode(0);
-                                this.mouseOverlayBoxMain.draw(cp,{sprintf('Time: %04.2fns',xPos.*this.FLIMXObj.curSubject.timeChannelWidth/1000), sprintf('Counts: %d',yVal(xPos))},yVal(xPos));
+                                this.mouseOverlayBoxMain.draw(cp,{sprintf('Time: %04.2fns',(xPos-1).*this.FLIMXObj.curSubject.timeChannelWidth/1000), sprintf('Counts: %d',yVal(xPos))},yVal(xPos));
                             end
                             %draw zoom area when mouse button down
                             if(ishghandle(this.visHandles.scaleZoomRectangle))
@@ -1761,7 +1773,7 @@ classdef FLIMXFitGUI < handle
             this.volatilePixelParams,...
             this.FLIMXObj.curSubject.getVolatileChannelParams(0),...%todo
             this.FLIMXObj.curSubject.boundsParams,...
-            str,mask,{this.FLIMXObj.curSubject.basicParams.scatterStudy},this.currentChannel,'Off');
+            str,mask,{this.FLIMXObj.curSubject.basicParams.scatterStudy},this.visHandles.popupChannel.String,this.currentChannel,'Off');
         end
 
         function menuInfoOptOpt_Callback(this,hObject,eventdata)
@@ -1803,7 +1815,7 @@ classdef FLIMXFitGUI < handle
                 this.FLIMXObj.curSubject.getVolatileChannelParams(0),...
                 this.FLIMXObj.paramMgr.getParamSection('bounds'),...
                 str,mask,this.FLIMXObj.fdt.getAllStudyNames(),...
-                this.currentChannel,'On');
+                this.visHandles.popupChannel.String,this.visHandles.popupChannel.Value,'On');
             if(~isempty(new))
                 if(new.isDirty(1) == 1)
                     this.FLIMXObj.paramMgr.setParamSection('basic_fit',new.basic);
@@ -1986,7 +1998,7 @@ classdef FLIMXFitGUI < handle
             this.setButtonStopSpinning(true);
             this.FLIMXObj.FLIMFit.setInitFitOnly(false);
             %load all channels incase user has to specify borders, reflection mask, ...
-            for ch = 1:this.FLIMXObj.curSubject.nrSpectralChannels
+            for ch = this.FLIMXObj.curSubject.nonEmptyMeasurementChannelList
                 this.currentChannel = ch;
             end
             [status, msg] = this.FLIMXObj.FLIMFit.startFitProcess([],[],[]);

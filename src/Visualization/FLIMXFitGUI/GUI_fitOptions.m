@@ -112,7 +112,7 @@ else
 end
 updateGUI(handles, rdh);
 set(handles.fitOptionsFigure,'userdata',rdh);
-set(handles.popupChannel,'Value',min(varargin{10},length(get(handles.popupChannel,'String'))));
+set(handles.popupChannel,'String',varargin{10},'Value',varargin{11});
 
 updateGUI(handles, rdh);
 % UIWAIT makes GUI_fitOptions wait for user response (see UIRESUME)
@@ -148,12 +148,12 @@ if(data.basic.approximationTarget == 2)
     %anisotropy
     set(handles.panelApproxModel,'Visible','Off','Enable',data.enableGUIControlsFlag);
     set(handles.panelAnisotropy,'Visible','On','Enable',data.enableGUIControlsFlag);
-    set(handles.popupChannel,'String',num2cell(1:4)','Enable',data.enableGUIControlsFlag);
+    %set(handles.popupChannel,'String',num2cell(1:4)','Enable',data.enableGUIControlsFlag);
 else
     %lifetime
     set(handles.panelApproxModel,'Visible','On');
     set(handles.panelAnisotropy,'Visible','Off');
-    set(handles.popupChannel,'String',num2cell(1:2)','Value',min(2,get(handles.popupChannel,'Value')));
+    %set(handles.popupChannel,'String',num2cell(1:2)','Value',min(2,get(handles.popupChannel,'Value')));
 end
 set(handles.checkReconvolute,'Value',data.basic.reconvoluteWithIRF,'Enable',data.enableGUIControlsFlag);
 if(data.basic.reconvoluteWithIRF)
@@ -296,7 +296,7 @@ set(handles.popupPPDimension,'Value',data.pixel.fitDimension,'Enable',data.enabl
 set(handles.tableConstParams,'ColumnName',{'Parameter','Value','manual','Init.'});
 set(handles.tableConstParams,'ColumnWidth',{80,50,55,55});
 set(handles.tableConstParams,'ColumnEditable',[false,true,true,true]);
-dstr = getTableData(get(handles.popupChannel,'Value'),data.basic,data.bounds,data.volatilePixel);
+dstr = getTableData(getCurrentChannel(handles),data.basic,data.bounds,data.volatilePixel);
 set(handles.tableConstParams,'Data',dstr,'Enable',data.enableGUIControlsFlag);
 %init fit panel
 if(any([dstr{:,4}]) || data.basic.optimizerInitStrategy == 2)
@@ -323,6 +323,15 @@ if(isempty(data.basic.scatterStudy) || isempty(scatterTarget))
 else    
     set(handles.popupScatterStudy,'String',str,'Value',scatterTarget+1,'enable',scatterEn);    
 end
+
+function out = getCurrentChannel(handles)
+%get currently selected channel
+out = get(handles.popupChannel,'String');
+if(~ischar(out))
+    out = out{min(get(handles.popupChannel,'Value'),length(out))};
+end
+out = str2double(out(isstrprop(out, 'digit')));
+
 
 function dstr = getTableData(ch,basicParams,bounds,volatilePixelParams)
 %make cell array for table
@@ -627,7 +636,7 @@ if(rdh.basic.scatterEnable && ~isempty(rdh.basic.scatterStudy))
     rdh.basic.fitModel = 1;
 end
 rdh.isDirty(1) = 1;
-[rdh.volatilePixel, rdh.volatileChannel{get(handles.popupChannel,'Value')}] = paramMgr.makeVolatileParams(rdh.basic,2);
+[rdh.volatilePixel, rdh.volatileChannel{getCurrentChannel(handles)}] = paramMgr.makeVolatileParams(rdh.basic,2);
 set(handles.fitOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
@@ -636,7 +645,7 @@ function checkScatterIRF_Callback(hObject, eventdata, handles)
 rdh = get(handles.fitOptionsFigure,'userdata');
 rdh.basic.scatterIRF = get(hObject,'Value');
 rdh.isDirty(1) = 1;
-[rdh.volatilePixel, rdh.volatileChannel{get(handles.popupChannel,'Value')}] = paramMgr.makeVolatileParams(rdh.basic,2);
+[rdh.volatilePixel, rdh.volatileChannel{getCurrentChannel(handles)}] = paramMgr.makeVolatileParams(rdh.basic,2);
 set(handles.fitOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
@@ -762,7 +771,7 @@ rdh.basic.fitModel = 0;
 rdh.basic.tciMask = zeros(size(rdh.basic.tciMask));
 if(~isempty(rdh.basic.scatterStudy))
     rdh.basic.scatterEnable = 0;
-    [rdh.volatilePixel, rdh.volatileChannel{get(handles.popupChannel,'Value')}] = paramMgr.makeVolatileParams(rdh.basic,2);
+    [rdh.volatilePixel, rdh.volatileChannel{getCurrentChannel(handles)}] = paramMgr.makeVolatileParams(rdh.basic,2);
 end
 %rdh.basic.stretchedExpMask = zeros(size(rdh.basic.stretchedExpMask));
 rdh.isDirty(1) = 1;
@@ -982,7 +991,7 @@ elseif(~isempty(str) && iscell(str))
 end
 rdh.basic.scatterStudy = str;
 rdh.isDirty(1) = 1;
-[rdh.volatilePixel, rdh.volatileChannel{get(handles.popupChannel,'Value')}] = paramMgr.makeVolatileParams(rdh.basic,2);
+[rdh.volatilePixel, rdh.volatileChannel{getCurrentChannel(handles)}] = paramMgr.makeVolatileParams(rdh.basic,2);
 set(handles.fitOptionsFigure,'userdata',rdh);
 updateGUI(handles, rdh);
 
@@ -1048,7 +1057,7 @@ idx = [data{:,3}] == [data{:,4}] & [data{:,3}] > 0;
 if(~isempty(idx) && any(idx))
     data{idx,3} = false;
 end
-ch = get(handles.popupChannel,'Value');
+ch = getCurrentChannel(handles);
 rdh.basic.(sprintf('constMaskSaveStrCh%d',ch)) = data([data{:,3}],1);%;
 %rdh.basic.(sprintf('constMaskSaveStrCh%d',2)) = data([data{:,3}],1);
 rdh.basic.(sprintf('constMaskSaveValCh%d',ch)) = [data{[data{:,3}],2}];

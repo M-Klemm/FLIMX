@@ -331,7 +331,7 @@ classdef FluoDecayFit < handle
                     %in case of anisotropy compute channel 3 (sum of ch1 and ch2) first
                     chList = [3,1,2,4];
                 else
-                    chList = 1:this.FLIMXObj.curSubject.nrSpectralChannels;
+                    chList = this.FLIMXObj.curSubject.nonEmptyMeasurementChannelList;
                 end
                 %run approximation per channel
                 for ch = 1:length(chList)
@@ -423,7 +423,7 @@ classdef FluoDecayFit < handle
                 %if channels exists delete old result
                 studyName = this.FLIMXObj.curSubject.getStudyName();
                 if(any(this.volatilePixelParams.globalFitMask))
-                    for ch = 1:this.FLIMXObj.curSubject.nrSpectralChannels
+                    for ch = this.FLIMXObj.curSubject.nonEmptyMeasurementChannelList
                         this.FLIMXObj.curSubject.updateSubjectChannel(ch,'result');
                     end
                 else
@@ -612,7 +612,7 @@ classdef FluoDecayFit < handle
                     bounds = zeros(nParams,2);
                     bounds(:,2) = inf;                    
                     %create tiles                    
-                    idxTiles = floor(linspace(0,size(measData,2),nrTiles+1));
+                    idxTiles = unique(floor(linspace(0,size(measData,2),nrTiles+1)));
                     dataSlices = cell(nrTiles,1);
                     dataNZMaskSlices = cell(nrTiles,1);                    
                     for i = 1:nrTiles
@@ -892,7 +892,7 @@ classdef FluoDecayFit < handle
             end
             this.parameters.stopOptimization = false;
             if(any(this.volatilePixelParams.globalFitMask))
-                ch = 1:this.FLIMXObj.curSubject.nrSpectralChannels;
+                ch = this.FLIMXObj.curSubject.nonEmptyMeasurementChannelList;
             end
             chi2 = [];
             for ci = 1:this.cleanupFitParams.iterations
