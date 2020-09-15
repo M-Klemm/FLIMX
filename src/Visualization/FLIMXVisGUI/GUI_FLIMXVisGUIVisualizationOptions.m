@@ -35,7 +35,7 @@ function varargout = GUI_FLIMXVisGUIVisualizationOptions(varargin)
 % vargin - structure with preferences and defaults
 %output: same as input, but altered according to user input
 
-% Last Modified by GUIDE v2.5 28-May-2019 15:29:13
+% Last Modified by GUIDE v2.5 15-Sep-2020 15:19:14
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -66,9 +66,10 @@ function GUI_FLIMXVisGUIVisualizationOptions_OpeningFcn(hObject, eventdata, hand
 movegui(handles.FLIMXVisVisualizationOptionsFigure,'center');
 rdh.flimvis = varargin{1};
 rdh.general = varargin{2};
-rdh.defaults = varargin{3};
-rdh.fdt = varargin{4};
-rdh.isDirty = [0 0]; %1: flimvis, 2: general
+rdh.region_of_interest = varargin{3};
+rdh.defaults = varargin{4};
+rdh.fdt = varargin{5};
+rdh.isDirty = [0 0 0]; %1: flimvis, 2: general 3: region_of_interest
 [mapNames, iconPaths] = FLIMX.getColormaps();
 if(~isempty(iconPaths))
     %thanks to Yair Altman
@@ -141,7 +142,7 @@ set(handles.editSuppLinewidth,'String',num2str(data.flimvis.supp_plot_linewidth)
 set(handles.checkPaddZero,'Value',data.flimvis.padd);
 set(handles.checkGrid3D,'Value',data.flimvis.grid);
 set(handles.checkSuppGrid,'Value',data.flimvis.grid);
-set(handles.EditTrans3D,'String',num2str(data.flimvis.alpha,'%03.2f'));
+set(handles.editTrans3D,'String',num2str(data.flimvis.alpha,'%03.2f'));
 set(handles.editFontsize,'String',num2str(data.flimvis.fontsize,'%2d'));
 set(handles.checkReverseYDir,'Value',data.general.reverseYDir);
 if(strcmp(data.flimvis.shading,'flat'))
@@ -208,6 +209,8 @@ else
     %set(handles.editETDRSBgTrans,'Visible','off');
 end
 set(handles.editETDRSBgTrans,'Visible','on','String',data.flimvis.ETDRS_subfield_bg_color(4));
+set(handles.editROIVicinityDistance,'String',data.region_of_interest.vicinityDistance);
+set(handles.editROIVicinityWidth,'String',data.region_of_interest.vicinityDiameter);
 set(handles.checkOffsetM3D,'Value',data.flimvis.offset_m3d);
 set(handles.checkColorCrossSections,'Value',data.flimvis.color_crossSections);
 set(handles.checkSuppShowCrossSectionPos,'Value',data.flimvis.show_crossSection);
@@ -502,7 +505,7 @@ set(hObject,'String',rdh.flimvis.ETDRS_subfield_bg_color(4));
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 
-function EditTrans3D_Callback(hObject, eventdata, handles)
+function editTrans3D_Callback(hObject, eventdata, handles)
 current = abs(str2double(get(hObject,'String')));
 if(current > 1)
     current = 1;
@@ -561,6 +564,22 @@ rdh.general.cmIntensityPercentileLB = current;
 rdh.isDirty(2) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 
+
+function editROIVicinityDistance_Callback(hObject, eventdata, handles)
+current = abs(str2double(get(hObject,'String')));
+set(hObject,'String',current);
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+rdh.region_of_interest.vicinityDistance = current;
+rdh.isDirty(3) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+
+function editROIVicinityWidth_Callback(hObject, eventdata, handles)
+current = max(1,abs(str2double(get(hObject,'String'))));
+set(hObject,'String',current);
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+rdh.region_of_interest.vicinityDiameter = current;
+rdh.isDirty(3) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %push buttons
@@ -682,7 +701,7 @@ delete(handles.FLIMXVisVisualizationOptionsFigure);
 % create functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % --- Executes during object creation, after setting all properties.
-function EditTrans3D_CreateFcn(hObject, eventdata, handles)
+function editTrans3D_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
@@ -761,6 +780,13 @@ function editLowerBoundColormapIntensity_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
-
+% --- Executes during object creation, after setting all properties.
+function editROIVicinityDistance_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editROIVicinityWidth_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

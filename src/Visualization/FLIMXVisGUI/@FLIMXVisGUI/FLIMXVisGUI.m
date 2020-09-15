@@ -524,9 +524,10 @@ classdef FLIMXVisGUI < handle
             %Open GUI to configure FLIMXVis visualization options
             defaults.flimvis = this.visParams;
             defaults.general = this.generalParams; %todo
-            new = GUI_FLIMXVisGUIVisualizationOptions(defaults.flimvis,defaults.general,defaults,this.FLIMXObj.fdt);
+            defaults.region_of_interest = this.FLIMXObj.paramMgr.getParamSection('region_of_interest');
+            new = GUI_FLIMXVisGUIVisualizationOptions(defaults.flimvis,defaults.general,defaults.region_of_interest,defaults,this.FLIMXObj.fdt);
             if(~isempty(new))
-                %save to disc
+                %save to disk
                 if(new.isDirty(1) == 1)
                     this.FLIMXObj.paramMgr.setParamSection('flimvis_gui',new.flimvis);
                 end
@@ -542,6 +543,10 @@ classdef FLIMXVisGUI < handle
 %                         this.objHandles.ldo.myColorScaleObj.checkCallback();
 %                         this.objHandles.rdo.myColorScaleObj.checkCallback();
 %                     end
+                end
+                if(new.isDirty(3) == 1) 
+                    this.FLIMXObj.paramMgr.setParamSection('region_of_interest',new.region_of_interest);
+                    this.FLIMXObj.FLIMFitGUI.updateGUI(1);
                 end
                 this.setupGUI();
                 this.updateGUI([]);
