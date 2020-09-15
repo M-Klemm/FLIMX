@@ -530,12 +530,13 @@ classdef FLIMXFitGUI < handle
                 return;
             end
             out = get(this.visHandles.popupChannel,'String');
-            if(~ischar(out))
-                out = out{get(this.visHandles.popupChannel,'Value')};
-            end
-            out = str2double(out(isstrprop(out, 'digit')));
             if(isempty(out))
                 out = 1;
+            elseif(~ischar(out))
+                out = out{get(this.visHandles.popupChannel,'Value')};
+                out = str2double(out(isstrprop(out, 'digit')));
+            else
+                out = str2double(out(isstrprop(out, 'digit')));
             end
         end
 
