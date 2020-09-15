@@ -1021,11 +1021,15 @@ classdef FData < handle
                 [~,vertices] = size(ROICoord);
                 if(vertices > 2)
                     %create mask out of polygon
+                    mask0 = false(y,x);
+                    mask0(sub2ind([y,x],ROICoord(1,:),ROICoord(2,:))) = true;
                     [minY, posY] = min(ROICoord(1,:));
                     [minX, posX] = min(ROICoord(2,:));
                     ROICoord(1,posY) = minY-0.5; %workaround for specific poly2mask behavior
                     ROICoord(2,posX) = minX-0.5; %workaround for specific poly2mask behavior
                     mask = poly2mask(ROICoord(2,:),ROICoord(1,:),y,x);
+                    %make sure ROI coordinates are part of mask (buggy poly2mask behavior)
+                    mask = mask | mask0;
                     %apply mask to data, delete all rows and columns which
                     %are unneeded(outside of the Polygon)
                     if(ROIVicinity == 1)
