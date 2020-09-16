@@ -378,7 +378,7 @@ classdef FDisplay < handle
             cp(idx) = cp(idx) + widths(idx);
             widths = abs(widths);
             if(length(this.h_Rectangle) >= ROINumber)
-                isHG = ishghandle(this.h_Rectangle(ROINumber));
+                isHG = ishghandle(this.h_Rectangle(ROINumber)) & this.h_Rectangle(ROINumber) > 0;
             else
                 isHG = false;
             end
@@ -406,7 +406,7 @@ classdef FDisplay < handle
             lw = this.staticVisParams.ROILinewidth;
             ls = this.staticVisParams.ROILinestyle;
             if(length(this.h_Circle) >= ROINumber)
-                isHG = ishghandle(this.h_Circle(ROINumber));
+                isHG = ishghandle(this.h_Circle(ROINumber)) & this.h_Circle(ROINumber) > 0;
             else
                 isHG = false;
             end            
@@ -431,7 +431,7 @@ classdef FDisplay < handle
             lw = this.staticVisParams.ROILinewidth;
             ls = this.staticVisParams.ROILinestyle;
             if(length(this.h_Polygon) >= ROINumber)
-                isHG = ishghandle(this.h_Polygon(ROINumber));
+                isHG = ishghandle(this.h_Polygon(ROINumber)) & this.h_Polygon(ROINumber) > 0;
             else
                 isHG = false;
             end            
@@ -453,12 +453,12 @@ classdef FDisplay < handle
             %draw ETDRS grid into 2D plot
             if isMultipleCall();  return;  end
             if(size(this.h_ETDRSGrid,2) >= ROINumber)
-                idxG = ishghandle(this.h_ETDRSGrid(:,ROINumber));
+                idxG = ishghandle(this.h_ETDRSGrid(:,ROINumber)) & this.h_ETDRSGrid > 0;
             else
                 idxG = [];
             end
             if(size(this.h_ETDRSGridText,2) >= ROINumber)
-                idxT = ishghandle(this.h_ETDRSGridText(:,ROINumber));
+                idxT = ishghandle(this.h_ETDRSGridText(:,ROINumber)) & this.h_ETDRSGridText > 0;
             else
                 idxT = [];
             end
@@ -669,17 +669,17 @@ classdef FDisplay < handle
         
         function clearROIs(this)
             %delete ROI handles
-            isHG = ishghandle(this.h_ROIArea);
+            isHG = ishghandle(this.h_ROIArea) & this.h_ROIArea > 0;
             delete(this.h_ROIArea(isHG));
-            isHG = ishghandle(this.h_ETDRSGrid);
+            isHG = ishghandle(this.h_ETDRSGrid) & this.h_ETDRSGrid > 0;
             delete(this.h_ETDRSGrid(isHG));
-            isHG = ishghandle(this.h_ETDRSGridText);            
+            isHG = ishghandle(this.h_ETDRSGridText) & this.h_ETDRSGridText > 0;            
             delete(this.h_ETDRSGridText(isHG));            
-            isHG = ishghandle(this.h_Rectangle);
+            isHG = ishghandle(this.h_Rectangle) & this.h_Rectangle > 0;
             delete(this.h_Rectangle(isHG));
-            isHG = ishghandle(this.h_Circle);
+            isHG = ishghandle(this.h_Circle) & this.h_Circle > 0;
             delete(this.h_Circle(isHG));
-            isHG = ishghandle(this.h_Polygon);
+            isHG = ishghandle(this.h_Polygon) & this.h_Polygon > 0;
             delete(this.h_Polygon(isHG));            
         end
         
@@ -1229,7 +1229,7 @@ classdef FDisplay < handle
                 temp = zeros(1,length(this.dynVisParams.cm), 3);
                 temp(1,:,:) = this.dynVisParams.cm;
             end
-            if(ishghandle(this.h_cmImage))
+            if(~isempty(this.h_cmImage) && ishghandle(this.h_cmImage) && this.h_cmImage > 0)
                 try
                     delete(this.h_cmImage);
                     this.h_cmImage = [];
