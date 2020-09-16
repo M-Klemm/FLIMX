@@ -546,6 +546,7 @@ classdef FLIMXVisGUI < handle
                 end
                 if(new.isDirty(3) == 1) 
                     this.FLIMXObj.paramMgr.setParamSection('region_of_interest',new.region_of_interest);
+                    this.fdt.clearAllCIs(''); %can be more efficient
                     this.FLIMXObj.FLIMFitGUI.updateGUI(1);
                 end
                 this.setupGUI();
@@ -1715,6 +1716,7 @@ classdef FLIMXVisGUI < handle
             if(contains(tag,'edit'))
                 if(strcmp(dim,'z'))
                     this.objHandles.(sprintf('%sZScale',thisSide)).editCallback(dim,bnd);
+                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.checkCallback(this.getROIDisplayMode(thisSide) > 1); 
                 else
                     this.objHandles.(sprintf('%sROI',thisSide)).editCallback(dim,bnd);
                 end
@@ -1735,6 +1737,7 @@ classdef FLIMXVisGUI < handle
                 end
                 if(strcmp(dim,'z'))
                     this.objHandles.(sprintf('%sZScale',thisSide)).buttonCallback(dim,bnd,target);
+                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.checkCallback(this.getROIDisplayMode(thisSide) > 1);
                 else
                     this.objHandles.(sprintf('%sROI',thisSide)).buttonCallback(dim,bnd,target);
                 end
@@ -1768,6 +1771,7 @@ classdef FLIMXVisGUI < handle
                 this.objHandles.(sprintf('%sROI',thisSide)).popupCallback(type);
             else %check
                 this.objHandles.(sprintf('%sZScale',thisSide)).checkCallback(dim);
+                this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.checkCallback(this.getROIDisplayMode(thisSide) > 1);
             end
             if(this.getROIDisplayMode(thisSide) > 1 && this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.check)
                 this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.forceAutoScale(true);
