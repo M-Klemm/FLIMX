@@ -108,16 +108,24 @@ classdef importWizard < handle
                 return;
             end
             this.measurementObj = measurementReadRawData(this.FLIMXObj.paramMgr);
-            this.measurementObj.setSourceFile(fn);
-            chs = this.measurementObj.nonEmptyChannelList;
-            if(isempty(chs))
+            this.measurementObj.setSourceFile(fn); %this also reads the file info (header)
+            if(~this.measurementObj.fileInfoLoaded)
                 success = false;
                 return
             end
             if(this.isOpenVisWnd())
                 ch = this.currentChannel;
             else
-                ch = this.measurementObj.nonEmptyChannelList(1);
+                for ch = 1:this.measurementObj.nrSpectralChannels
+                    raw = this.measurementObj.getRawData(ch);
+                    if(~isempty(raw))
+                        break
+                    elseif(isempty(raw) && ch == this.measurementObj.nrSpectralChannels)
+                        %found no usable data
+                        success = false;
+                        return
+                    end
+                end
             end
             if(ch <= this.measurementObj.nrSpectralChannels)
                 %get full roi
