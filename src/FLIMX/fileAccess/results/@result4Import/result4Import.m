@@ -373,13 +373,17 @@ classdef result4Import < resultFile
                                     %there is no structure in the RGB channels, try to use the transparency channel
                                     data_temp = ~(transparency < max(transparency(:)));
                                 end
-                            elseif(zm == 4)
+                            elseif(zm >= 4)
                                 %convert image to binary image
                                 transparency = squeeze(data_temp(:,:,4));
                                 data_temp = rgb2ind(data_temp(:,:,1:3),0.01,'nodither');
-                                if(~any(data_temp(:)) || all(data_temp(:)))
+                                if(~any(data_temp(:)))
                                     %there is no structure in the RGB channels, try to use the transparency channel
-                                    %this is the transparency mask, we use its inverted version
+                                    %background color is black -> use the transparency mask
+                                    data_temp = (transparency < max(transparency(:)));
+                                elseif(all(data_temp(:)))
+                                    %there is no structure in the RGB channels, try to use the transparency channel
+                                    %background color is not black -> use the inverted version of the transparency mask
                                     data_temp = ~(transparency < max(transparency(:)));
                                 end
                             end
