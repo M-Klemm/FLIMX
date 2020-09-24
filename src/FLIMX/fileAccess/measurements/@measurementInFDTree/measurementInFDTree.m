@@ -464,6 +464,7 @@ classdef measurementInFDTree < measurementFile
                 %load aux info
                 ai = this.myFiles{1,ch}.auxInfo;
                 this.sourceFile = ai.sourceFile;
+                %this.nativeFileInfo = ai.nativeFileInfo;
 %                 %load the fileinfo for all channels
 %                 for i = 2:length(chList)
 %                     ch = chList(i);
@@ -560,6 +561,7 @@ classdef measurementInFDTree < measurementFile
             end
             if(rev == 206)
                 %add nativeFileInfo field
+                auxInfo = hMatFile.auxInfo;
                 auxInfo.nativeFileInfo = [];
                 auxInfo.revision = rev;
                 %enable write access
