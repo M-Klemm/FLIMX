@@ -277,8 +277,10 @@ classdef FLIMXFitResultImport < handle
                     img = flipud(img);
                 end
                 if(islogical(img))
+                    this.axesMgr.setColorMap(gray(256));
                     this.axesMgr.setMainData(img,0,1);
                 else
+                    this.axesMgr.setColorMap(this.cm);
                     this.axesMgr.setMainData(img);
                 end
             else

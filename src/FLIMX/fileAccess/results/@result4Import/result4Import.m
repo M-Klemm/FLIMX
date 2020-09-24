@@ -387,6 +387,14 @@ classdef result4Import < resultFile
                                     data_temp = ~(transparency < max(transparency(:)));
                                 end
                             end
+                            if(~islogical(data_temp))
+                                %check if there are only 2 colors in the image
+                                h = unique(data_temp(:));
+                                if(length(h) == 2)
+                                    %convert to logical
+                                    data_temp = logical(data_temp);
+                                end
+                            end
                             %flip the image by default
                             data_temp = flipud(data_temp);
                         catch
