@@ -112,16 +112,18 @@ classdef measurementReadRawData < measurementFile
             if(isempty(this.sourceFile))
                 return
             end
-            fileInfo = measurementFile.getDefaultFileInfo();
+            fileInfo = measurementFile.getDefaultFileInfo();            
             if(this.isSDTFile) %sdt file
-                [fileInfo.tacRange, adc_res, fileInfo.nrSpectralChannels, fileInfo.rawXSz, fileInfo.rawYSz] = this.SDTIOObj.ReadHeader;
+                [fileInfo.tacRange, adc_res, fileInfo.nrSpectralChannels, fileInfo.rawXSz, fileInfo.rawYSz] = this.SDTIOObj.readHeader();
                 if(fileInfo.tacRange == 0)
                     fileInfo.tacRange = 12.5084;
                 end
                 if(adc_res == 0)
                     adc_res = 10;
                 end
-                fileInfo.nrTimeChannels = 2^adc_res; 
+                fileInfo.nrTimeChannels = 2^adc_res;
+                this.nativeFileInfo = this.SDTIOObj.getNativHeader();
+                this.nativeFileInfo.fileType = 'SDT';
             elseif(this.isPTUFile)
                 myWaitbar = [];
                 hWaitbar = []; %todo: supply waitbar handle
@@ -133,6 +135,8 @@ classdef measurementReadRawData < measurementFile
                 end
                 hWaitbar(0,'Reading header...');
                 [head, im_tcspc, im_chan, im_line, im_col] = PTU_ScanRead(this.sourceFile,hWaitbar);
+                this.nativeFileInfo = head;
+                this.nativeFileInfo.fileType = 'PTU';
                 if(~isempty(im_tcspc))
                     idx = im_tcspc > head.nrTimeChannels;
                     if(any(idx))
@@ -167,6 +171,7 @@ classdef measurementReadRawData < measurementFile
                 %ascii file
                 try
                     raw = load(this.sourceFile,'-ASCII');
+                    this.nativeFileInfo.fileType = 'TXT';                    
                     if(~isvector(raw))
                         %BH ascii export file
                         if(size(raw,2) > size(raw,1))
@@ -198,6 +203,8 @@ classdef measurementReadRawData < measurementFile
             else
                 return
             end
+            file = dir(this.sourceFile);
+            this.nativeFileInfo.lastChange = file.datenum;
             this.setNrTimeChannels(fileInfo.nrTimeChannels);            
             fileInfo.reflectionMask = cell(fileInfo.nrSpectralChannels,1);
             fileInfo.startPosition = num2cell(ones(fileInfo.nrSpectralChannels,1));
@@ -232,7 +239,7 @@ classdef measurementReadRawData < measurementFile
                 %try to load this channel
                 this.updateProgress(0,'Loading SDT File');
                 if(this.isSDTFile)
-                    this.rawFluoData(channel) = this.SDTIOObj.ReadData(channel);
+                    this.rawFluoData{channel} = this.SDTIOObj.ReadData(channel);
                     this.updateProgress(0.5,'Loading SDT File');
                     this.rawFluoDataFlat(channel) = cell(1,1);
                     this.rawMaskData(channel) = cell(1,1);

@@ -39,6 +39,7 @@ classdef measurementFile < handle
         rawXSz = 0;
         rawYSz = 0;
         fileInfo = []; %struct with timing related parameters
+        nativeFileInfo = [];
         ROIDataType = 'uint16';
         fileStub = 'measurement_';
         fileExt = '.mat';
@@ -158,6 +159,7 @@ classdef measurementFile < handle
             this.rawXSz = obj.rawXSz;
             this.rawYSz = obj.rawYSz;
             this.fileInfo = obj.fileInfo;
+            this.nativeFileInfo = obj.nativeFileInfo;
             this.fileInfoLoaded = obj.fileInfoLoaded;
             this.ROIDataType = obj.ROIDataType;
             this.rawFluoData = obj.rawFluoData;
@@ -1038,6 +1040,7 @@ classdef measurementFile < handle
                 auxInfo.revision = this.FLIMXAboutInfo.measurement_revision;
                 [~, name, ext] = fileparts(this.getSourceFile());
                 auxInfo.sourceFile = [name ext];
+                auxInfo.nativeFileInfo = this.nativeFileInfo;
                 ROIInfo = this.getROIInfo(ch);
                 save(fn,'rawData','rawMaskData','rawDataFlat','fluoFileInfo','auxInfo','ROIInfo','-v7.3');
             else

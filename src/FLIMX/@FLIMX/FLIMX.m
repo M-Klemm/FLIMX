@@ -522,10 +522,10 @@ classdef FLIMX < handle
             out.config_revision = 272;
             out.client_revision_major = 5;
             out.client_revision_minor = 1;
-            out.client_revision_fix = 5;
+            out.client_revision_fix = 6;
             out.core_revision = 432;
             out.results_revision = 256;
-            out.measurement_revision = 205;
+            out.measurement_revision = 206;
         end
 
         function out = getAutoWindowSize()

@@ -160,6 +160,16 @@ classdef measurementInFDTree < measurementFile
                     warning('Updating measurement file failed: %s\n%s',fn,ME.message);
                 end
             end
+            if(auxInfo.revision < 206)
+                try
+                    %the whole update procedure in one try block to make
+                    %sure it either works completely or not at all
+                    this.updateMatfile(this.myFiles{1,ch},206);
+                catch ME
+                    %todo: error handling
+                    warning('Updating measurement file failed: %s\n%s',fn,ME.message);
+                end
+            end
             if(sum(ismember(who(this.myFiles{1,ch}),{'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'})) < 4)
                 %something went wrong
                 this.myFiles(1,ch) = cell(1,1);
@@ -216,6 +226,7 @@ classdef measurementInFDTree < measurementFile
             success = false;
             if(this.openChannel(ch))
                 this.sourceFile = this.myFiles{1,ch}.auxInfo.sourceFile;
+                this.nativeFileInfo = this.myFiles{1,ch}.auxInfo.nativeFileInfo;
                 this.setDirtyFlags(ch,3,false);
                 success = true;
             end
@@ -545,6 +556,14 @@ classdef measurementInFDTree < measurementFile
                     hMatFile.rawMaskData = [];
                 end
                 hMatFile.ROIInfo = ROIInfo;
+                hMatFile.auxInfo = auxInfo;
+            end
+            if(rev == 206)
+                %add nativeFileInfo field
+                auxInfo.nativeFileInfo = [];
+                auxInfo.revision = rev;
+                %enable write access
+                hMatFile.Properties.Writable = true;
                 hMatFile.auxInfo = auxInfo;
             end
         end    

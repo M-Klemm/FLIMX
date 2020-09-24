@@ -596,7 +596,7 @@ classdef importWizard < handle
                     for ch = 1:m.nrSpectralChannels
                         m.getRawDataFlat(ch);
                     end
-                    this.myMeasurement.setROICoord(this.finalROIVec);
+                    m.setROICoord(this.finalROIVec);
                 end
             end
             if(this.isDirty(5)) %1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo                

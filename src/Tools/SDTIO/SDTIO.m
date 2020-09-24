@@ -60,8 +60,8 @@ classdef SDTIO < handle
     end
     
     methods (Access = public)
-        function [tacRange, adc_res, nrSpectralChannels, rawXSz, rawYSz] = ReadHeader(obj)
-            if obj.FileInformation.RefreshHeader == 1
+        function [tacRange, adc_res, nrSpectralChannels, rawXSz, rawYSz] = readHeader(obj)
+            if(obj.FileInformation.RefreshHeader == 1)
                 try
                     if(obj.ReadInfo())
                         %To-Do: Prüfen ob Res, Height, Width >0
@@ -96,15 +96,26 @@ classdef SDTIO < handle
             end
         end
         
+        function out = getNativHeader(obj)
+            %get all header info from file
+            out = [];
+            %make sure info is read from file
+            if(~obj.readHeader())
+                return
+            end
+            out.SDTInfo = obj.m_SDTReadInfo;
+            out.SDTFH = obj.sdtFH;
+        end
+        
         function raw = ReadData(obj, iDataBlock, pfProgress)
             %Update the file if there was any change or maybe it doesnt
             %exists anylonger
-            if ~(obj.UpdateFile())
+            if(~obj.UpdateFile())
                 error('File does not exist anylonger');
             end
             %If there is a new version of the file, we need to read the
             %header again
-            if obj.FileInformation.RefreshHeader == 1
+            if(obj.FileInformation.RefreshHeader == 1)
                 try
                     obj.ReadInfo();
                 catch
@@ -223,17 +234,17 @@ classdef SDTIO < handle
                 otherwise
             end
             %Convert from uint... to cell for measurementReadRawData.m
-            raw = {permute(raw,[3 2 1])};
+            raw = permute(raw,[3 2 1]);
         end
     end
     
     methods (Access = private)
         function info = ReadInfo(obj)
-            %sdtFH = obj.SDT_FILEHEADER();
-            
+            %read the info header from the file
+            %sdtFH = obj.SDT_FILEHEADER();            
             %Update the file if there was any change or maybe it doesnt
             %exists anylonger
-            if ~(obj.UpdateFile())
+            if(~obj.UpdateFile())
                 info = 0;
                 return;
             end
@@ -300,31 +311,29 @@ classdef SDTIO < handle
             catch
                 info = 0;
                 return;
-            end
-            
+            end            
             info = 1;
             obj.FileInformation.RefreshHeader = 0;
         end
         
         function info = ReadMeasurmentDescBlocks(obj, iNumBlocksToRead, offset)
-            obj.m_SDTReadInfo.iNumSPCData = iNumBlocksToRead;
             %read in measurement description blocks
+            obj.m_SDTReadInfo.iNumSPCData = iNumBlocksToRead;            
             StructureSDT_MEASUREMENTDESCBLOCK = fieldnames(obj.SDT_MEASUREMENTDESCBLOCK());
             for iNum=1:iNumBlocksToRead
                 sdtMDescBlk = obj.SDT_MEASUREMENTDESCBLOCK();
-                %read current block
-                
+                %read current block                
                 %Check Software Revision for Data (that u dont take too
                 %much
-                if obj.FileInformation.Software_Revision <= 789
+                if(obj.FileInformation.Software_Revision <= 789)
                     MeasDescLength = 53;
-                elseif obj.FileInformation.Software_Revision <= 809
+                elseif(obj.FileInformation.Software_Revision <= 809)
                     MeasDescLength = 58;
-                elseif obj.FileInformation.Software_Revision <= 839
+                elseif(obj.FileInformation.Software_Revision <= 839)
                     MeasDescLength = 68;
-                else MeasDescLength = numel(StructureSDT_MEASUREMENTDESCBLOCK);
-                end
-                
+                else
+                    MeasDescLength = numel(StructureSDT_MEASUREMENTDESCBLOCK);
+                end                
                 for i=1:MeasDescLength
                     %check if you have a struct in a struct
                     if ~isstruct(sdtMDescBlk.(StructureSDT_MEASUREMENTDESCBLOCK{i}))
@@ -339,39 +348,34 @@ classdef SDTIO < handle
                     end
                 end
                 %transform into SPCDATA struct
-                if sdtMDescBlk.scan_x ~= 0
+                if(sdtMDescBlk.scan_x ~= 0)
                     obj.m_SDTReadInfo.pSPCData(iNum).img_size_x = sdtMDescBlk.scan_x;
                 else
                     obj.m_SDTReadInfo.pSPCData(iNum).img_size_x = sdtMDescBlk.image_x;
                 end
-                if sdtMDescBlk.scan_y ~= 0
+                if(sdtMDescBlk.scan_y ~= 0)
                     obj.m_SDTReadInfo.pSPCData(iNum).img_size_y = sdtMDescBlk.scan_y;
                 else
                     obj.m_SDTReadInfo.pSPCData(iNum).img_size_y = sdtMDescBlk.image_y;
                 end
-                obj.m_SDTReadInfo.pSPCData(iNum).adc_resolution = int16(log2(sdtMDescBlk.adc_re));
-                
+                obj.m_SDTReadInfo.pSPCData(iNum).adc_resolution = int16(log2(sdtMDescBlk.adc_re));                
                 obj.m_SDTReadInfo.pSPCData(iNum).cfd_zc_level = sdtMDescBlk.cfd_zc;
                 obj.m_SDTReadInfo.pSPCData(iNum).cfd_limit_low = sdtMDescBlk.cfd_ll;
                 obj.m_SDTReadInfo.pSPCData(iNum).cfd_limit_high = sdtMDescBlk.cfd_lh;
-                obj.m_SDTReadInfo.pSPCData(iNum).cfd_holdoff = sdtMDescBlk.cfd_hf;
-                
+                obj.m_SDTReadInfo.pSPCData(iNum).cfd_holdoff = sdtMDescBlk.cfd_hf;                
                 obj.m_SDTReadInfo.pSPCData(iNum).sync_freq_div = sdtMDescBlk.syn_fd;
                 obj.m_SDTReadInfo.pSPCData(iNum).sync_holdoff = sdtMDescBlk.syn_hf;
                 obj.m_SDTReadInfo.pSPCData(iNum).sync_threshold = sdtMDescBlk.syn_th;
-                obj.m_SDTReadInfo.pSPCData(iNum).sync_zc_level = sdtMDescBlk.syn_zc;
-                
+                obj.m_SDTReadInfo.pSPCData(iNum).sync_zc_level = sdtMDescBlk.syn_zc;                
                 obj.m_SDTReadInfo.pSPCData(iNum).tac_gain = sdtMDescBlk.tac_g;
                 obj.m_SDTReadInfo.pSPCData(iNum).tac_limit_high = sdtMDescBlk.tac_lh;
                 obj.m_SDTReadInfo.pSPCData(iNum).tac_limit_low = sdtMDescBlk.tac_ll;
                 obj.m_SDTReadInfo.pSPCData(iNum).tac_offset = sdtMDescBlk.tac_of;
-                obj.m_SDTReadInfo.pSPCData(iNum).tac_range = sdtMDescBlk.tac_r * 1.0e9;
-                
+                obj.m_SDTReadInfo.pSPCData(iNum).tac_range = sdtMDescBlk.tac_r * 1.0e9;                
                 % scan in image?
-                if (sdtMDescBlk.meas_mode == 9)
+                if(sdtMDescBlk.meas_mode == 9)
                     obj.m_SDTReadInfo.pSPCData(iNum).mode = 2;
-                end
-                
+                end                
                 %To-Do: new way
                 obj.m_SDTReadInfo.MeasurmentDescBlocks(iNum) = sdtMDescBlk;
                 
@@ -379,7 +383,7 @@ classdef SDTIO < handle
                 %position in the file, if its a normal header. the header
                 %used by tu ilmenau has an other point (if there would be
                 %any change in the head so it needs to be changes here)
-                if obj.FileInformation.Software_Revision ~= 0
+                if(obj.FileInformation.Software_Revision ~= 0)
                     fseek(obj.m_hInFile, offset+512*iNum, 'bof');
                 else
                     fread(obj.m_hInFile,2,'char=>char');
@@ -389,9 +393,9 @@ classdef SDTIO < handle
         end
         
         function info = ReadDataBlockHeaders(obj, iNumDataBlocksToRead)
-            obj.m_SDTReadInfo.iNumSPCData = iNumDataBlocksToRead;
-            StructureSDT_DATABLOCKHEADER = fieldnames(obj.SDT_DATABLOCKHEADER());
             %read in all available data block headers
+            obj.m_SDTReadInfo.iNumSPCData = iNumDataBlocksToRead;
+            StructureSDT_DATABLOCKHEADER = fieldnames(obj.SDT_DATABLOCKHEADER());            
             for iNum=1:iNumDataBlocksToRead
                 sdtDBH = obj.SDT_DATABLOCKHEADER();
                 %read all the single data block header
@@ -411,12 +415,12 @@ classdef SDTIO < handle
                 
                 %To-Do: New Way
                 obj.m_SDTReadInfo.DataBlockInfo(iNum) = sdtDBH;
-            end
-            
+            end            
             info = 1;
         end
         
         function out = ReadStructInMeasBlock(obj, StructName)
+            %read a structure in the measurement block
             out = obj.(['SDT_' StructName]);
             Values = fieldnames(out);
             for i=1:numel(Values)
@@ -429,12 +433,13 @@ classdef SDTIO < handle
         end
         
         function info = UpdateFile(obj)
+            %open file and gather some general information
             try
                 fopen(obj.m_hInFile);
                 %fopen on 'ID' give us the path or a failure if its not
                 %already open. To get the last change we need to use 'dir'
                 file = dir(obj.FileInformation.Name);
-                if file.date ~= obj.FileInformation.LastChange;
+                if(file.date ~= obj.FileInformation.LastChange)
                     obj.m_hInFile = fopen(obj.FileInformation.Name,'r');
                     file = dir(obj.FileInformation.Name);
                     obj.FileInformation.LastChange = file.date;
