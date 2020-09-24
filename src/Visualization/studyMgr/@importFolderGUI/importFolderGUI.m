@@ -63,7 +63,7 @@ classdef importFolderGUI < handle
                 %no window - open one
                 this.createVisWnd();
             end
-            this.setupGUI();
+            this.setupGUI(false);
             figure(this.visHandles.importFolderFigure);
         end
         
@@ -74,44 +74,55 @@ classdef importFolderGUI < handle
             end
         end
         
-        function setupGUI(this)
+        function setupGUI(this,rebuildTableFlag)
             %setup GUI controls
             %study selection
-            set(this.visHandles.popupStudySel,'String',this.FLIMXObj.fdt.getAllStudyNames());
-            if(get(this.visHandles.radioExistingStudy,'Value'))
-                set(this.visHandles.popupStudySel,'Visible','on');
-                set(this.visHandles.editStudyName,'Visible','off');
+            this.visHandles.popupStudySel.String = this.FLIMXObj.fdt.getAllStudyNames();
+            if(this.visHandles.radioExistingStudy.Value)
+                this.visHandles.popupStudySel.Visible = 'on';
+                this.visHandles.editStudyName.Visible = 'off';
             else
-                set(this.visHandles.popupStudySel,'Visible','off');
-                set(this.visHandles.editStudyName,'Visible','on');
-                str = get(this.visHandles.popupStudySel,'String');
+                this.visHandles.popupStudySel.Visible = 'off';
+                this.visHandles.editStudyName.Visible = 'on';
+                str = this.visHandles.popupStudySel.String;
                 if(~isempty(str) && iscell(str))
-                    set(this.visHandles.editStudyName,'String',str{get(this.visHandles.popupStudySel,'Value')});
+                    this.visHandles.editStudyName.String = str{this.visHandles.popupStudySel.Value};
                 end
             end
+            if(this.visHandles.radioSubjectNamePopup.Value)
+                this.visHandles.popupSubjectNameGuess.Enable = 'On';
+                this.visHandles.editSubjectName.Enable = 'Off';
+            else
+                this.visHandles.popupSubjectNameGuess.Enable = 'Off';
+                this.visHandles.editSubjectName.Enable = 'On';
+            end
             %table            
-            set(this.visHandles.tableSubjects,'Data',this.buildTableData(false));
+            this.visHandles.tableSubjects.Data = this.buildTableData(rebuildTableFlag);
         end
         
-        function out = buildTableData(this,askUserFlag)
+        function out = buildTableData(this,rebuildTableFlag)
             %build content of the table, based on current values or from scratch
             out = get(this.visHandles.tableSubjects,'Data');
-            if(isempty(out))
+            if(isempty(out) || rebuildTableFlag)
                 out = cell(length(this.currentFiles),4);                
                 for i = 1:length(this.currentFiles)                    
                     out{i,1} = this.currentFiles(i,1).name;
                     idx = strfind(out{i,1},filesep);
-                    if(get(this.visHandles.popupSubjectNameGuess,'Value') == 1 && length(idx) > 1)
-                        %proposal for subject name from folder
-                        out{i,2} = out{i,1}(idx(end-1)+1:idx(end)-1);
-                    elseif(get(this.visHandles.popupSubjectNameGuess,'Value') == 2 || length(idx) <= 1)
-                        %proposal for subject name from file
-                        [~, out{i,2}, ~] = fileparts(out{i,1});
+                    if(this.visHandles.radioSubjectNamePopup.Value)
+                        if(get(this.visHandles.popupSubjectNameGuess,'Value') == 1 && length(idx) > 1)
+                            %proposal for subject name from folder
+                            out{i,2} = out{i,1}(idx(end-1)+1:idx(end)-1);
+                        elseif(get(this.visHandles.popupSubjectNameGuess,'Value') == 2 || length(idx) <= 1)
+                            %proposal for subject name from file
+                            [~, out{i,2}, ~] = fileparts(out{i,1});
+                        else
+                            %proposal for subject name from folder + file
+                            folderN = out{i,1}(idx(end-1)+1:idx(end)-1);
+                            [~,fileN,~] = fileparts(out{i,1});
+                            out{i,2} = [folderN '_' fileN];
+                        end
                     else
-                        %proposal for subject name from folder + file
-                        folderN = out{i,1}(idx(end-1)+1:idx(end)-1);
-                        [~,fileN,~] = fileparts(out{i,1});
-                        out{i,2} = [folderN '_' fileN];
+                        out{i,2} = [this.visHandles.editSubjectName.String '_01'];
                     end
                 end
             end
@@ -122,7 +133,8 @@ classdef importFolderGUI < handle
                     out{i,2} = importFolderGUI.getNewSubjectName(out{i,2},out(1:i-1,2));
                 end
                 %set flags
-                if(any(strcmp(out{i,2},subjects)))
+                if(any(strcmp(out{i,2},subjects)) && ~isempty(this.FLIMXObj.fdt.getSubjectFilesStatus(this.currentStudy,out{i,2})))
+                    %subject name exists and has measurement data
                     out{i,3} = true;
                     out{i,4} = false;
                 else
@@ -155,7 +167,7 @@ classdef importFolderGUI < handle
                 rdir(sprintf('%s%s**%s*.ptu',path,filesep,filesep));];
             %save path
             this.FLIMXObj.importGUI.lastImportPath = path;
-            this.setupGUI();
+            this.setupGUI(true);
         end
         
         %GUI callbacks
@@ -168,30 +180,45 @@ classdef importFolderGUI < handle
         
         function GUI_popupStudySel_Callback(this,hObject, eventdata)
             %user changed existing study
-            this.setupGUI();
+            this.setupGUI(false);
         end
         
         function GUI_popupSubjectNameGuess_Callback(this,hObject, eventdata)
             %user changed subject name proposal source
             set(this.visHandles.tableSubjects,'Data',[]);
-            this.setupGUI();
+            this.setupGUI(true);
         end
         
         function GUI_radioStudy_Callback(this,hObject, eventdata)
-            %user changed study source
-            this.setupGUI();
+            %user changed traget study source
+            this.setupGUI(false);
+        end
+        
+        function GUI_radioSubject_Callback(this,hObject, eventdata)
+            %user changed subject name source
+            this.setupGUI(true);
         end
         
         function GUI_editStudyName_Callback(this,hObject, eventdata)
             %user enters name for a new study
-            newOrg = get(hObject,'String');
+            newOrg = studyMgr.checkFolderName(hObject.String);
             i = 1;
             new = newOrg;
             while(any(strcmpi(new,this.FLIMXObj.fdt.getAllStudyNames())))
                 new = sprintf('%s%d',newOrg,i);
                 i=i+1;
             end
-            set(hObject,'String',new);
+            hObject.String = new;
+        end
+        
+        function GUI_editSubjectName_Callback(this,hObject, eventdata)
+            %user enters name for subject name generation
+            new = studyMgr.checkFolderName(hObject.String);
+            if(isempty(new))
+                new = 'subject';
+            end
+            hObject.String = new;
+            this.setupGUI(true);
         end
         
         function GUI_editFolder_Callback(this,hObject, eventdata)
@@ -387,11 +414,14 @@ classdef importFolderGUI < handle
             set(this.visHandles.popupStudySel,'Callback',@this.GUI_popupStudySel_Callback);
             set(this.visHandles.popupSubjectNameGuess,'Callback',@this.GUI_popupSubjectNameGuess_Callback);
             %radio buttons
-            set(this.visHandles.radioExistingStudy,'Callback',@this.GUI_radioStudy_Callback);
-            set(this.visHandles.radioNewStudy,'Callback',@this.GUI_radioStudy_Callback);
+            this.visHandles.radioExistingStudy.Callback = @this.GUI_radioStudy_Callback;
+            this.visHandles.radioNewStudy.Callback = @this.GUI_radioStudy_Callback;
+            this.visHandles.radioSubjectNamePopup.Callback = @this.GUI_radioSubject_Callback;
+            this.visHandles.radioSubjectNameEdit.Callback = @this.GUI_radioSubject_Callback;
             %edit fields
-            set(this.visHandles.editFolder,'Callback',@this.GUI_editFolder_Callback);
-            set(this.visHandles.editStudyName,'Callback',@this.GUI_editStudyName_Callback);
+            this.visHandles.editFolder.Callback = @this.GUI_editFolder_Callback;
+            this.visHandles.editStudyName.Callback = @this.GUI_editStudyName_Callback;
+            this.visHandles.editSubjectName.Callback = @this.GUI_editSubjectName_Callback;
             %table
             set(this.visHandles.tableSubjects,'CellEditCallback',@this.GUI_tableSubjects_Callback);
             %set initial study
