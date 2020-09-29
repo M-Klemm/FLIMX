@@ -815,7 +815,7 @@ classdef FData < handle
                 return
             end
             [classWidth,limitFlag,classMin,classMax] = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
-            [histogram, centers] = FData.computeHistogram(imageData,classWidth,limitFlag,classMin,classMax,this.maxHistClasses,strictFlag);            
+            [histogram, centers] = FData.computeHistogram(imageData,classWidth,limitFlag,classMin,classMax,this.maxHistClasses,this.dType,this.id,strictFlag);            
         end
 
         function out = get.FLIMXParamMgrObj(this)
@@ -1143,7 +1143,7 @@ classdef FData < handle
             end
         end
         
-        function [histogram, centers] = computeHistogram(imageData,classWidth,limitFlag,classMin,classMax,maxHistClasses,strictFlag)
+        function [histogram, centers] = computeHistogram(imageData,classWidth,limitFlag,classMin,classMax,maxHistClasses,dType,id,strictFlag)
             %make histogram for display puposes
             ci = imageData(~(isnan(imageData(:)) | isinf(imageData(:))));
             if(isempty(ci))
@@ -1179,14 +1179,14 @@ classdef FData < handle
                     centers = classMin;
                     return
                 end
-                warning('FLIMX:FData:computeHistogram','Classwidth (%.1f) for %s %d is too big. Only one class would be computed. Please reduce classwidth to %.1f or less. Classwidth has been reduced to that value temporarily.',cw_old,this.dType,this.id,classWidth);
+                warning('FLIMX:FData:computeHistogram','Classwidth (%.1f) for %s %d is too big. Only one class would be computed. Please reduce classwidth to %.1f or less. Classwidth has been reduced to that value temporarily.',cw_old,dType,id,classWidth);
             end
             if(~limitFlag && ~strictFlag && numel(centers) > maxHistClasses)
                 cw_old = classWidth;
                 nc_old = numel(centers);
                 classWidth = (classMax-classMin)/maxHistClasses;
                 centers = classMin : classWidth : classMax;
-                warning('FLIMX:FData:computeHistogram','Classwidth (%.1f) for %s %d is too small. %d classes would be computed. Please increase classwidth to %.1f or more. Classwidth has been increased to that value temporarily.',cw_old,this.dType,this.id,nc_old,classWidth);
+                warning('FLIMX:FData:computeHistogram','Classwidth (%.1f) for %s %d is too small. %d classes would be computed. Please increase classwidth to %.1f or more. Classwidth has been increased to that value temporarily.',cw_old,dType,id,nc_old,classWidth);
             end
             histogram = hist(ci,centers);
         end
