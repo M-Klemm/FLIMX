@@ -42,7 +42,8 @@ classdef studyIS < handle
         measurementFileChs = cell(0,0); %measurement channels of each subject
         MVGroupTargets = cell(0,0); %cluster parameters for this study
         resultCrossSection = cell(0,0); %cross sections for each subject
-        resultROICoordinates = cell(0,0); %rois for each subject  
+        resultROICoordinates = cell(0,0); %rois for each subject
+        resultROIGroups = cell(0,0); %groups of rois defined per study
         resultZScaling = cell(0,0); %z scaling for each subject
         resultColorScaling = cell(0,0); %color scaling for each subject
         allFLIMItems = cell(0,0); %selected FLIM parameters, for each subject and channel
@@ -80,6 +81,7 @@ classdef studyIS < handle
             this.resultFileChs = import.resultFileChs;
             this.measurementFileChs = import.measurementFileChs;
             this.MVGroupTargets = import.MVGroupTargets;
+            this.resultROIGroups = import.resultROIGroups;
             this.resultROICoordinates = import.resultROICoordinates;
             this.resultZScaling = import.resultZScaling;
             this.resultColorScaling = import.resultColorScaling;
@@ -296,6 +298,35 @@ classdef studyIS < handle
             end
             this.subjectInfo(irow,icol) = {newData};
             this.checkConditionRef([]);
+            this.setDirty(true);
+        end
+        
+        function setResultROIGroup(this,grpName,grpMembers)
+            %set the ROI group members for this study
+            if(isempty(grpName))
+                if(isempty(grpMembers))
+                    %deleted last group
+                    this.resultROIGroups = [];
+                elseif(size(grpMembers,2) == 2)
+                    %set all groups at once
+                    this.resultROIGroups = grpMembers;
+                end
+            else
+                if(isempty(this.resultROIGroups))
+                    this.resultROIGroups = cell(1,2);
+                    this.resultROIGroups{1,1} = grpName;
+                    this.resultROIGroups(1,2) = grpMembers;
+                else
+                    idx = find(strcmp(this.resultROIGroups(:,1),grpName),1,'first');
+                    if(isempty(idx))
+                        this.resultROIGroups{end+1,1} = grpName;
+                        idx = size(this.resultROIGroups,1);
+                    end
+                    this.resultROIGroups(idx,2) = grpMembers;
+                    [~,i] = sort(this.resultROIGroups(:,1));
+                    this.resultROIGroups = this.resultROIGroups(i,:);
+                end
+            end
             this.setDirty(true);
         end
         
@@ -783,6 +814,7 @@ classdef studyIS < handle
             export.resultFileChs = this.resultFileChs(idx,:);
             export.measurementFileChs = this.measurementFileChs(idx,:);
             export.MVGroupTargets = this.MVGroupTargets;
+            export.resultROIGroups = this.resultROIGroups;
             export.resultROICoordinates = this.resultROICoordinates(idx);
             export.resultZScaling = this.resultZScaling(idx);
             export.resultColorScaling = this.resultColorScaling(idx);
@@ -969,6 +1001,31 @@ classdef studyIS < handle
         function out = getSubjectInfoConditionalColumnDefinitions(this)
             %return definitions of all conditional columns
             out = this.subjectInfoConditionDefinition;
+        end
+        
+        function out = getResultROIGroup(this,grpName)
+            %return the ROI group names and members for this study  
+            if(isempty(grpName))
+                out = this.resultROIGroups;
+            else
+                idx = find(strcmp(this.resultROIGroups(:,1),grpName),1,'first');
+                if(isempty(idx))
+                    out = [];
+                else
+                    out = this.resultROIGroups(idx,2);
+                end
+            end
+        end
+        
+        function [ids, str] = getResultROITypes(this)
+            %return the different ROI types for this study            
+            idx = find(~arrayfun(@isempty,this.resultROICoordinates),1,'first');
+            if(isempty(idx))
+                ids = [];
+                str = '';
+            end
+            ids = this.resultROICoordinates{idx,1}(:,1,1);
+            str = arrayfun(@ROICtrl.ROIType2ROIItem,ids,'UniformOutput',false);            
         end
         
         function out = getResultROICoordinates(this,subName,ROIType)
@@ -2045,6 +2102,11 @@ classdef studyIS < handle
                         end
                     end
                 end
+            end
+            
+            if(oldStudy.revision < 32)
+                %add ROI groups
+                oldStudy.resultROIGroups = cell(0,0);                
             end
             
             this.setDirty(true);

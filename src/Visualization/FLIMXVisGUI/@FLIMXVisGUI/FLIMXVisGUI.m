@@ -1720,6 +1720,12 @@ classdef FLIMXVisGUI < handle
                 else
                     this.objHandles.(sprintf('%sROI',thisSide)).editCallback(dim,bnd);
                 end
+            elseif(contains(tag,'roi_group'))
+                if(isempty(this.objHandles.ROIGM) || ~isprop(this.objHandles.ROIGM,'FLIMXROIGroupManagerUIFigure') || ~isgraphics(this.objHandles.ROIGM.FLIMXROIGroupManagerUIFigure)) 
+                    this.objHandles.ROIGM = GUI_ROIGroups(this,this.getStudy(thisSide));
+                else
+                    this.objHandles.ROIGM.myStartupFcn(this,this.getStudy(thisSide));
+                end                
             elseif(length(tag) == 11 && contains(tag,'table'))
                 this.objHandles.(sprintf('%sROI',thisSide)).tableEditCallback(eventdata);
                 this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
@@ -1984,6 +1990,7 @@ classdef FLIMXVisGUI < handle
                 set(this.visHandles.(sprintf('roi_table_clearAll_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Clear all nodes of current polygon ROI');  
                 set(this.visHandles.(sprintf('roi_add_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Add new ROI');
                 set(this.visHandles.(sprintf('roi_delete_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Delete / clear ROI');
+                set(this.visHandles.(sprintf('roi_group_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Manage ROI groups');
                 %color scaling controls
                 set(this.visHandles.(sprintf('colormap_auto_%s_check',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Enable or disable automatic color scaling');
                 set(this.visHandles.(sprintf('colormap_low_%s_edit',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Enter lower border for color scaling');
@@ -2067,6 +2074,7 @@ classdef FLIMXVisGUI < handle
             this.objHandles.rdo.drawCPMain([]);
             this.objHandles.lZScale.updateGUI([]);
             this.objHandles.rZScale.updateGUI([]);
+            this.objHandles.ROIGM = []; %ROI group manager
             set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
             %enable mouse button callbacks although 3d rotation is enabled
             %thanks to http://undocumentedmatlab.com/blog/enabling-user-callbacks-during-zoom-pan

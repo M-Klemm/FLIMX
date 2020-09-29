@@ -32,25 +32,25 @@ classdef FDTStudy < FDTreeNode
     % @brief    A class to represent a study (contains subjectDataSets)
     %
     properties(SetAccess = protected,GetAccess = public)        
-        revision = [];          %revision of the study code/dataformat
-        myStudyInfoSet = [];    %subject info in study
-        myConditionStatistics = [];  %merged objects to save statistics
-        IRFInfo = [];           %struct to save information on the used IRF
-        dirtyFlag = false;        %flag is true if something of the study was changed
-        isLoaded = false;       %flag is true if study was loaded from disk        
+        revision = [];              %revision of the study code/dataformat
+        myStudyInfoSet = [];        %subject info in study
+        myConditionStatistics = []; %merged objects to save statistics
+        IRFInfo = [];               %struct to save information on the used IRF
+        dirtyFlag = false;          %flag is true if something of the study was changed
+        isLoaded = false;           %flag is true if study was loaded from disk        
     end
     properties (Dependent = true)
-        hashEngine = [];        %engine for md5 hash
-        myDir = '';             %study's working directory
+        hashEngine = [];            %engine for md5 hash
+        myDir = '';                 %study's working directory
         FLIMXParamMgrObj = [];
-        isDirty = false;        %flag is true if something of the study was changed
+        isDirty = false;            %flag is true if something of the study was changed
     end
     
     methods
         function this = FDTStudy(parent,name)
             % Constructor for FDTStudy
             this = this@FDTreeNode(parent,name);
-            this.revision = 31;
+            this.revision = 32;
             %check my directory
             sDir = this.myDir;
             if(~isfolder(sDir))
@@ -377,6 +377,15 @@ classdef FDTStudy < FDTreeNode
         function setStudyDir(this,sDir)
             %set the working directory for this study object
             this.myDir = sDir;
+        end
+        
+        function setResultROIGroup(this,grpName,grpMembers)
+            %set the ROI group members for this study  
+            if(~this.isLoaded)
+                this.load();
+            end
+            this.myStudyInfoSet.setResultROIGroup(grpName,grpMembers);
+            %clear results?!
         end
         
         function setResultROICoordinates(this,subjectID,dType,dTypeNr,ROIType,ROICoord)
@@ -1548,21 +1557,19 @@ classdef FDTStudy < FDTreeNode
             for i = 1:nSubs
                 subjectDesc(i) = {hg{i}.subjectName};
                 ROICoordinates = this.getResultROICoordinates(subjectDesc{i},ROIType);
-                if(strictFlag)
-                    if(ROIType > 0 && ~any(ROICoordinates(:)))
-                        stats(i,:) = NaN;
-                    else
-                        tmp = hg{i}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
-                        if(~isempty(tmp))
-                            stats(i,:) = tmp;
-                        end
-                    end
+                if(ROIType < 0)
+                    %ROI group
+                    [tmp, ~, ~] = hg{i}.makeROIGroupStatistics(ROIType,ROISubType,ROIVicinity,strictFlag);
                 else
-                    tmp = hg{i}.getROIStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity);
-                    if(~isempty(tmp))
-                        stats(i,:) = tmp;
+                    if(ROIType > 0 && ~any(ROICoordinates(:)))
+                        tmp = NaN;
+                    else
+                        tmp = hg{i}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,strictFlag);                        
                     end
-                end                
+                end 
+                if(~isempty(tmp))
+                    stats(i,:) = tmp;
+                end
             end
         end
         
@@ -1611,6 +1618,22 @@ classdef FDTStudy < FDTreeNode
                 this.load();
             end
             out = this.myStudyInfoSet.getSubjectInfoConditionalColumnDefinitions();
+        end
+        
+        function out = getResultROIGroup(this,grpName)
+            %return the ROI group names and members for this study 
+            if(~this.isLoaded)
+                this.load();
+            end
+            out = this.myStudyInfoSet.getResultROIGroup(grpName);
+        end        
+        
+        function [ids, str] = getResultROITypes(this)
+            %return the different ROI types for a study
+            if(~this.isLoaded)
+                this.load();
+            end
+            [ids, str] = this.myStudyInfoSet.getResultROITypes();
         end
         
         function out = getResultROICoordinates(this,subName,ROIType)

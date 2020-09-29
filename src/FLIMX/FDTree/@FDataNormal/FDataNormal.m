@@ -161,22 +161,22 @@ classdef FDataNormal < FData
         end
 
         %% compute functions         
-        function out = updateCurrentImage(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
-            %make current image segment from this.rawImage using x,y and z limits
+        function [ci,idx] = updateCurrentImage(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
+            %make current image segment from this.rawImage using x, y and z limits
             %compute minimum and maximum of this segment, also for labels (linear)
             if(isempty(this.rawImage))
-                out = [];                                
+                ci = [];                                
                 return
             end
             this.clearCachedImage();
             %cut ROI
-            ci = this.getImgSeg(this.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
+            [ci,idx] = this.getImgSeg(this.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
             if(this.sType == 2)
                 this.cachedImage.colors = this.getImgSeg(this.logColor_data,ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
             else
                 this.cachedImage.colors = this.getImgSeg(this.color_data,ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
             end            
-            cim = FData.getNonInfMinMax(1,ci);
+            cim = FData.getNonInfMinMax(1,ci); %current image minimum
             %set possible "-inf" in ci to "cim"
             %ci(ci < cim) = cim;            
             %limit z
@@ -184,8 +184,12 @@ classdef FDataNormal < FData
             if(length(zVec) == 3 && zVec(1))
                 zlim_min = this.getZlimMin(cim);
                 zlim_max = zVec(3);
-                ci(ci < zlim_min) = NaN;%zlim_min;
-                ci(ci > zlim_max) = NaN;%zlim_max;
+                iz = find(ci < zlim_min);
+                ci(iz) = NaN;%zlim_min;
+                idx(ismember(idx,iz)) = []; %remove deleted elements due to z scaling from index vector
+                iz = ci > zlim_max;
+                ci(iz) = NaN;%zlim_max;
+                idx(ismember(idx,iz)) = []; %remove deleted elements due to z scaling from index vector
                 info.ZMin = zlim_min;
                 info.ZMax = FData.getNonInfMinMax(2,ci);
                 %labels
@@ -206,12 +210,12 @@ classdef FDataNormal < FData
             this.crossSectionY = min(this.crossSectionY,info.YSz);
             this.cachedImage.info = info;
             this.cachedImage.data = ci;
+            this.cachedImage.indicesInRawImage = idx;
             ROI.ROICoordinates = ROICoordinates;
             ROI.ROIType = ROIType;
             ROI.ROISubType = ROISubType;
             ROI.ROIVicinity = ROIVicinity;
             this.cachedImage.ROI = ROI;
-            out = ci;
         end
  
         function out = checkClasswidth(this,currentImage)

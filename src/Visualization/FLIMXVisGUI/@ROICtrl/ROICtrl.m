@@ -40,6 +40,9 @@ classdef ROICtrl < handle
         myFDisplayL = [];
         myFDisplayR = [];
         
+        roi_add_button = [];
+        roi_del_button = [];
+        
         roi_type_popup = [];
         roi_subtype_popup = []
         roi_vicinity_popup = [];
@@ -135,8 +138,14 @@ classdef ROICtrl < handle
             else
                 %should not happen
             end
-            out = ROICtrl.ROIItem2ROIType(str);
-            %out = get(this.roi_type_popup,'Value')-1;
+            if(strncmp(str,'Group: ',7))
+                %this is a group
+                idx = strncmp(this.roi_type_popup.String,'Group: ',7);
+                grps = this.roi_type_popup.String(idx);
+                out = -1*find(strcmp(grps,str),1,'first');
+            else
+                out = ROICtrl.ROIItem2ROIType(str);
+            end
         end
         
         function set.ROIType(this,val)
@@ -463,11 +472,17 @@ classdef ROICtrl < handle
                     allROT = ROICtrl.getDefaultROIStruct();
                 end
                 allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
+                grps = hfd.getROIGroup([]);
+                if(~isempty(grps) && ~isempty(grps{1,1}))
+                    allROIStr = [allROIStr; sprintfc('Group: %s',string(grps(:,1)))];
+                end
             end
             set(this.roi_type_popup,'String',allROIStr,'Value',min(this.roi_type_popup.Value,length(allROIStr)));
             rt = this.ROIType;
             if(rt > 1000 && rt < 2000)
                 %ETDRS grid
+                set(this.roi_add_button,'Visible','on');
+                set(this.roi_del_button,'Visible','on');
                 set(this.roi_vicinity_popup,'Visible','on');
                 set(this.roi_subtype_popup,'Visible','on');
                 this.enDisAble('off','off');
@@ -484,6 +499,8 @@ classdef ROICtrl < handle
                 set(this.roi_table_clearAll_button,'Visible','off');
             elseif(rt > 2000 && rt < 3000)
                 %rectangle
+                set(this.roi_add_button,'Visible','on');
+                set(this.roi_del_button,'Visible','on');
                 set(this.roi_vicinity_popup,'Visible','on');
                 set(this.roi_subtype_popup,'Visible','off');
                 this.enDisAble('on','on');
@@ -492,6 +509,8 @@ classdef ROICtrl < handle
                 set(this.roi_table_clearAll_button,'Visible','off');
             elseif(rt > 3000 && rt < 4000)
                 %circle
+                set(this.roi_add_button,'Visible','on');
+                set(this.roi_del_button,'Visible','on');
                 set(this.roi_vicinity_popup,'Visible','on');
                 set(this.roi_subtype_popup,'Visible','off');
                 this.enDisAble('on','on');
@@ -505,14 +524,33 @@ classdef ROICtrl < handle
                 set(this.roi_table_clearAll_button,'Visible','off');
             elseif(rt > 4000 && rt < 5000)
                 %polygon
+                set(this.roi_add_button,'Visible','on');
+                set(this.roi_del_button,'Visible','on');
                 set(this.roi_vicinity_popup,'Visible','on');
                 set(this.roi_subtype_popup,'Visible','off');
                 set(this.roi_table,'Visible','on');
                 set(this.roi_table_clearLast_button,'Visible','on');
                 set(this.roi_table_clearAll_button,'Visible','on');
                 this.enDisAble('off','off');
+            elseif(rt < 0)
+                %ROI group
+                set(this.roi_add_button,'Visible','off');
+                set(this.roi_del_button,'Visible','off');
+                set(this.roi_vicinity_popup,'Visible','on');
+                if(abs(rt) <= size(grps,1) && any(grps{abs(rt),2} < 2000))
+                    %current ROI groups contains an ETDRS grid
+                    set(this.roi_subtype_popup,'Visible','on');
+                else
+                    set(this.roi_subtype_popup,'Visible','off');
+                end
+                this.enDisAble('off','off');
+                set(this.roi_table,'Visible','off');
+                set(this.roi_table_clearLast_button,'Visible','off');
+                set(this.roi_table_clearAll_button,'Visible','off');
             else
                 %switch to 'none'
+                set(this.roi_add_button,'Visible','off');
+                set(this.roi_del_button,'Visible','off');
                 set(this.roi_vicinity_popup,'Visible','off');
                 set(this.roi_subtype_popup,'Visible','off');
                 this.enDisAble('off','off');
@@ -761,6 +799,8 @@ classdef ROICtrl < handle
         function setUIHandles(this)
             %builds the uicontrol handles for the ROICtrl object for axis ax
             s = this.mySide;
+            this.roi_add_button = this.visObj.visHandles.(sprintf('roi_add_%s_button',s));
+            this.roi_del_button = this.visObj.visHandles.(sprintf('roi_delete_%s_button',s));
             dims =['x','y','z'];
             this.roi_type_popup = this.visObj.visHandles.(sprintf('roi_type_%s_popup',s));
             this.roi_subtype_popup = this.visObj.visHandles.(sprintf('roi_subtype_%s_popup',s));

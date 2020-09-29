@@ -47,7 +47,7 @@ classdef FDataMerge < FData
             this = this@FData(parent,id,data);
             this.ROICoordinates = ROICtrl.getDefaultROIStruct();
             this.updateCIStats([],0,0,0);
-            [this.cachedImage.statistics.histogramStrict, this.cachedImage.statistics.histogramStrictCenters] = this.makeHist(this.rawImage,true);
+            [this.cachedImage.statistics.histogramStrict, this.cachedImage.statistics.histogramStrictCenters] = this.makeHistogram(this.rawImage,true);
             %this.makeStrictHist(this.rawImage);
             this.rawImage = [];
         end

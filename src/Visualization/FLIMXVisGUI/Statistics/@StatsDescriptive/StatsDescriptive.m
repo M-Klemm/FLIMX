@@ -398,9 +398,9 @@ classdef StatsDescriptive < handle
                                 subjects = this.visObj.fdt.getAllSubjectNames(this.study,this.condition);
                                 for s = 1:length(subjects)
                                     fdt = this.visObj.fdt.getFDataObj(this.study,subjects{s},this.ch,this.dType,this.id,1);
-                                    rc = fdt.getROICoordinates(this.ROIType);
-                                    data = fdt.getROIImage(rc,this.ROIType,this.ROISubType,this.ROIVicinityFlag);
                                     rt = this.ROIType;
+                                    rc = fdt.getROICoordinates(rt);
+                                    data = fdt.getROIImage(rc,rt,this.ROISubType,this.ROIVicinityFlag);                                    
                                     if(rt > 1000 && rt < 2000)
                                         txt = {'C','IS','IN','II','IT','OS','ON','OI','OT','IR','OR','FC'}';
                                         rStr = txt{this.ROISubType};
@@ -466,22 +466,28 @@ classdef StatsDescriptive < handle
             else
                 chStr = [];
                 coStr = 'param';
-            end
-            allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,this.allROITypes,'UniformOutput',false);
+            end            
             if(isempty(chStr))
                 chStr = 'Ch 1';
             end
             set(this.visHandles.popupSelCh,'String',chStr,'Value',min(length(chStr),get(this.visHandles.popupSelCh,'Value')));
             %ROI
+            allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,this.allROITypes,'UniformOutput',false);
+            grps = this.visObj.fdt.getResultROIGroup(this.study,[]);
+            if(~isempty(grps) && ~isempty(grps{1,1}))
+                allROIStr = [allROIStr; sprintfc('Group: %s',string(grps(:,1)))];
+            else
+                grps = [];
+            end
             set(this.visHandles.popupSelROIType,'String',allROIStr,'Value',min(this.visHandles.popupSelROIType.Value,length(allROIStr)));
             rt = this.ROIType;
-            if(rt == 0 || rt > 2000)
+            if(rt == 0 || rt > 2000 || rt < 0 && ~isempty(grps) && size(grps,2) == 2 && all([grps{abs(rt),2}] >= 2000))
                 flag = 'off';
             else
                 flag = 'on';
             end
             set(this.visHandles.popupSelROISubType,'Visible',flag);
-            if(rt > 1000)
+            if(rt > 1000 || rt < 0)
                 flag = 'on';
             end
             set(this.visHandles.popupSelROIVicinity,'Visible',flag);
@@ -539,7 +545,8 @@ classdef StatsDescriptive < handle
         function makeStats(this)
             %collect stats info from FDTree
             [this.subjectStats, this.statsDesc, this.subjectDesc] = this.visObj.fdt.getStudyStatistics(this.study,this.condition,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag,true);
-            if(this.visHandles.checkDisplayAllROIs.Value)
+            if(this.visHandles.checkDisplayAllROIs.Value && this.ROIType > 0)
+                %show all ROIs of the current type; ROI groups are excluded
                 allROT = this.allROITypes;
                 idx = find(floor(allROT/1000) - floor(this.ROIType/1000) == 0);
                 nSubs = size(this.subjectStats,1);
@@ -805,8 +812,14 @@ classdef StatsDescriptive < handle
             else
                 %should not happen
             end
-            out = ROICtrl.ROIItem2ROIType(str);
-            %out = get(this.visHandles.popupSelROIType,'Value')-1;
+            if(strncmp(str,'Group: ',7))
+                %this is a group
+                idx = strncmp(this.visHandles.popupSelROIType.String,'Group: ',7);
+                grps = this.visHandles.popupSelROIType.String(idx);
+                out = -1*find(strcmp(grps,str),1,'first');
+            else
+                out = ROICtrl.ROIItem2ROIType(str);
+            end
         end
         
         function out = get.ROISubType(this)

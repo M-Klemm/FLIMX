@@ -854,6 +854,11 @@ classdef FDTSubject < fluoSubject
             %get filtering method to smooth data
             [alg, params] = this.myParent.getDataSmoothFilter();
         end
+        
+        function out = getROIGroup(this,grpName)
+            %get the ROI group names and members
+            out = this.myParent.getResultROIGroup(grpName);
+        end
 
         function out = getROICoordinates(this,ROIType)
             %get coordinates of ROI

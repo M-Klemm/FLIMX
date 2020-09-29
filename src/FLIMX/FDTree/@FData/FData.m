@@ -31,7 +31,7 @@ classdef FData < handle
     %
     % @brief    A class to represent a base class of a fluorescence lifetime parameter
     %
-    properties(SetAccess = protected,GetAccess = public)
+    properties(SetAccess = protected, GetAccess = public)
         %uid = []; %unique object identifier
         id = 0; %running number
         sType = [];
@@ -54,7 +54,7 @@ classdef FData < handle
         isEmptyStat = true;
         FLIMXParamMgrObj = [];
     end
-    properties(SetAccess = protected,GetAccess = protected)
+    properties(SetAccess = protected, GetAccess = protected)
         myParent = [];
         cachedImage = [];
         maxHistClasses = 5000;
@@ -328,6 +328,11 @@ classdef FData < handle
                 end
             end
         end
+        
+        function out = getROIGroup(this,grpName)
+            %get the ROI group names and members
+            out = this.myParent.getROIGroup(grpName);
+        end
 
         function out = getROICoordinates(this,ROIType)
             %get coordinates of ROI
@@ -368,7 +373,7 @@ classdef FData < handle
             ROIVicinity = ROI.ROIVicinity;
         end
 
-        function out = getROIImage(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
+        function [ci,idx] = getROIImage(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get cached image
             %use whole image if we don't get ROI coordinates
             if(isempty(ROICoordinates))
@@ -376,9 +381,11 @@ classdef FData < handle
             end
             if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity))
                 %we've got this image segment already
-                this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
+                [ci,idx] = this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
+            else
+                ci = this.cachedImage.data;
+                idx = this.cachedImage.indicesInRawImage;
             end
-            out = this.cachedImage.data;
         end
 
         function out = getCIColor(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
@@ -732,17 +739,52 @@ classdef FData < handle
                 end
             end
         end
+        
+        function [stats, histogram, histCenters] = makeROIGroupStatistics(this,ROIType,ROISubType,ROIVicinity,strictFlag)
+            %make statistics for a group of ROIs
+            allGrps = this.getROIGroup([]);
+            if(isempty(allGrps) || size(allGrps,2) ~= 2 || isempty(allGrps{1,1}) || abs(ROIType) > size(allGrps,1))
+                stats = [];
+                histogram = [];
+                histCenters = [];
+                return
+            end
+            gROIs = allGrps{abs(ROIType),2};
+            idx = [];
+            outsideFlag = false;
+            if(ROIVicinity == 2)
+                %areas outside ROI are requested
+                outsideFlag = true;
+                ROIVicinity = 1;
+            end
+            for i = 1:length(gROIs)
+                ROICoordinates = this.getROICoordinates(gROIs(i));
+                %ROI in group may have been deleted (-> ROICoordinates is empty)
+                if(~isempty(ROICoordinates))
+                    [~,tmp] = this.getROIImage(ROICoordinates,gROIs(i),ROISubType,ROIVicinity);
+                    idx = [idx; tmp(:)];
+                end
+            end
+            %idx are the indices of the ROI pixels in the raw image
+            idx = unique(idx); %remove redundant pixels from overlapping ROIs
+            raw = this.getFullImage();
+            if(outsideFlag)
+                %areas outside ROI are requested but we got the indices of inside the ROIs (on purpose)               
+                raw(idx) = NaN;
+                ci = raw;
+            else
+                ci = raw(idx);
+            end
+            ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
+            [histogram, histCenters] = this.makeHistogram(ci,strictFlag);
+            stats = FData.computeDescriptiveStatistics(ci,histogram,histCenters);
+        end
 
         function [stats, histogram, histCenters] = makeStatistics(this,ROICoordinates,ROIType,ROISubType,ROIVicinity,strictFlag)
             %make statistics for a certain ROI
-%             if(~isempty(ROICoordinates))
-                ci = this.getROIImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
-%             else
-%                 ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
-%                 ci = this.getImgSeg(this.getFullImage(),ROICoordinates,2,0,0,this.getFileInfoStruct());
-%             end
+            ci = this.getROIImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
             ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
-            [histogram, histCenters] = this.makeHist(ci,strictFlag);
+            [histogram, histCenters] = this.makeHistogram(ci,strictFlag);
             stats = FData.computeDescriptiveStatistics(ci,histogram,histCenters);
         end
 
@@ -764,7 +806,7 @@ classdef FData < handle
             end
         end
 
-        function [histogram, centers] = makeHist(this,imageData,strictFlag)
+        function [histogram, centers] = makeHistogram(this,imageData,strictFlag)
             %make histogram for display puposes
             ci = imageData(~(isnan(imageData(:)) | isinf(imageData(:))));
             if(isempty(ci))
@@ -772,44 +814,8 @@ classdef FData < handle
                 centers = [];
                 return
             end
-            [cw,lim,c_min,c_max] = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
-            if(lim)
-                ci = ci(ci >= c_min & ci <= c_max);
-            else
-                c_min = round((min(ci(:)))/cw)*cw;
-                c_max = round((max(ci(:)))/cw)*cw;
-            end
-            if(c_max - c_min < eps)
-                %flat data -> max = min, just leave it in one class
-                histogram = numel(ci);
-                centers = c_min;
-                return
-            end
-            %make centers vector
-            centers = c_min : cw : c_max;
-            %check over under-/overflows
-            if(~lim && numel(centers) <= 1)
-                cw_old = cw;
-                cw = (c_max-c_min)/100;
-                %make centers vector
-                centers = c_min : cw : c_max;
-                %check if still too small (should not happen)
-                if(strictFlag || numel(centers) <= 1)
-                    %give up
-                    histogram = numel(ci);
-                    centers = c_min;
-                    return
-                end
-                warning('FLIMX:FData:Statistics','Classwidth (%.1f) for %s %d is too big. Only one class would be computed. Please reduce classwidth to %.1f or less. Classwidth has been reduced to that value temporarily.',cw_old,this.dType,this.id,cw);
-            end
-            if(~lim && ~strictFlag && numel(centers) > this.maxHistClasses)
-                cw_old = cw;
-                nc_old = numel(centers);
-                cw = (c_max-c_min)/this.maxHistClasses;
-                centers = c_min : cw : c_max;
-                warning('FLIMX:FData:Statistics','Classwidth (%.1f) for %s %d is too small. %d classes would be computed. Please increase classwidth to %.1f or more. Classwidth has been increased to that value temporarily.',cw_old,this.dType,this.id,nc_old,cw);
-            end
-            histogram = hist(ci,centers);
+            [classWidth,limitFlag,classMin,classMax] = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
+            [histogram, centers] = FData.computeHistogram(imageData,classWidth,limitFlag,classMin,classMax,this.maxHistClasses,strictFlag);            
         end
 
         function out = get.FLIMXParamMgrObj(this)
@@ -881,6 +887,7 @@ classdef FData < handle
         function [data,idx] = getImgSeg(data,ROICoord,ROIType,ROISubType,ROIVicinity,fileInfo,vicinityInfo)
             %make current data segment respecting x / y scaling
             %data can be 2- or 3- dimensional
+            %also returns indices of data in full image
             idx = [];
             if(isempty(data) || isempty(ROICoord))
                 return;
@@ -999,17 +1006,15 @@ classdef FData < handle
                 if(ROIVicinity == 1)
                     data(~mask) = NaN;
                     idx = find(mask);
-                    data = FData.removeNaNBoundingBox(data);
                 elseif(ROIVicinity == 2)
                     data(mask) = NaN;
                     idx = find(~mask);
-                    data = FData.removeNaNBoundingBox(data);
                 elseif(ROIVicinity == 3)
                     outerMask = FData.computeVicinityMask(mask,vicDist,vicDiameter);
                     data(~outerMask) = NaN;
-                    idx = find(outerMask);
-                    data = FData.removeNaNBoundingBox(data);
+                    idx = find(outerMask);                    
                 end
+                data = FData.removeNaNBoundingBox(data);
             elseif(ROIType > 3000 && ROIType < 4000)
                 %circle
                 r = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
@@ -1034,9 +1039,9 @@ classdef FData < handle
                     %are unneeded(outside of the Polygon)
                     if(ROIVicinity == 1)
                         data(~mask) = NaN;
-                        data(~any(~isnan(data),2),:) = [];
-                        data(: ,~any(~isnan(data),1)) = [];
                         idx = find(~isnan(data));
+                        data(~any(~isnan(data),2),:) = [];
+                        data(: ,~any(~isnan(data),1)) = [];                        
                     elseif(ROIVicinity == 2)
                         data(mask) = NaN;
                         idx = find(~mask);
@@ -1047,6 +1052,7 @@ classdef FData < handle
                     end
                 end
             end
+            idx = uint32(idx);
         end
 
         function [out,idx] = getCircleSegment(data,coord,r,thetaRange,ROISubType,rCenter,rInner,ROIVicinity,vicDist,vicDiameter)
@@ -1135,6 +1141,54 @@ classdef FData < handle
                 %all data is was zero
                 out = 0;
             end
+        end
+        
+        function [histogram, centers] = computeHistogram(imageData,classWidth,limitFlag,classMin,classMax,maxHistClasses,strictFlag)
+            %make histogram for display puposes
+            ci = imageData(~(isnan(imageData(:)) | isinf(imageData(:))));
+            if(isempty(ci))
+                histogram = [];
+                centers = [];
+                return
+            end
+            %[classWidth,limitFlag,classMin,classMax] = getHistParams(this.getStatsParams(),this.channel,this.dType,this.id);
+            if(limitFlag)
+                ci = ci(ci >= classMin & ci <= classMax);
+            else
+                classMin = round((min(ci(:)))/classWidth)*classWidth;
+                classMax = round((max(ci(:)))/classWidth)*classWidth;
+            end
+            if(classMax - classMin < eps)
+                %flat data -> max = min, just leave it in one class
+                histogram = numel(ci);
+                centers = classMin;
+                return
+            end
+            %make centers vector
+            centers = classMin : classWidth : classMax;
+            %check over under-/overflows
+            if(~limitFlag && numel(centers) <= 1)
+                cw_old = classWidth;
+                classWidth = (classMax-classMin)/100;
+                %make centers vector
+                centers = classMin : classWidth : classMax;
+                %check if still too small (should not happen)
+                if(strictFlag || numel(centers) <= 1)
+                    %give up
+                    histogram = numel(ci);
+                    centers = classMin;
+                    return
+                end
+                warning('FLIMX:FData:computeHistogram','Classwidth (%.1f) for %s %d is too big. Only one class would be computed. Please reduce classwidth to %.1f or less. Classwidth has been reduced to that value temporarily.',cw_old,this.dType,this.id,classWidth);
+            end
+            if(~limitFlag && ~strictFlag && numel(centers) > maxHistClasses)
+                cw_old = classWidth;
+                nc_old = numel(centers);
+                classWidth = (classMax-classMin)/maxHistClasses;
+                centers = classMin : classWidth : classMax;
+                warning('FLIMX:FData:computeHistogram','Classwidth (%.1f) for %s %d is too small. %d classes would be computed. Please increase classwidth to %.1f or more. Classwidth has been increased to that value temporarily.',cw_old,this.dType,this.id,nc_old,classWidth);
+            end
+            histogram = hist(ci,centers);
         end
 
         function stats = computeDescriptiveStatistics(imageData,imageHistogram,imageHistogramCenters)

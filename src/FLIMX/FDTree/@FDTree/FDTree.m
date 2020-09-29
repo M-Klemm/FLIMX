@@ -89,7 +89,7 @@ classdef FDTree < FDTreeNode
                 this.LRUTableObjs(1,1) = {obj};
                 this.LRUTableInfo(1,1:3) = [obj.uid,t,obj.getCacheMemorySize()];
             else
-                id = obj.uid == this.LRUTableInfo(:,1);
+                id = obj.uid - this.LRUTableInfo(:,1) < eps;
                 if(any(id))
                     %there should be only one hit in the list
                     this.LRUTableInfo(id,2:3) = [t,obj.getCacheMemorySize()];
@@ -422,6 +422,14 @@ classdef FDTree < FDTreeNode
             study = this.getChild(studyID);
             if(~isempty(study))
                 study.clearMVGroups(subjectID,dType,dTypeNr);
+            end
+        end
+        
+        function setResultROIGroup(this,studyName,grpName,grpMembers)
+            %set the ROI group members for this study  
+            study = this.getChild(studyName);
+            if(~isempty(study))
+                study.setResultROIGroup(grpName,grpMembers);
             end
         end
                 
@@ -1022,6 +1030,27 @@ classdef FDTree < FDTreeNode
                 out = study.getWidth(subjectID);
             else
                 out = [];
+            end
+        end
+        
+        function out = getResultROIGroup(this,studyID,grpName)
+            %return the ROI group names and members for this study 
+            study = this.getChild(studyID);
+            if(~isempty(study))
+                out = study.getResultROIGroup(grpName);
+            else
+                out = [];
+            end
+        end
+        
+        function [ids, str] = getResultROITypes(this,studyID)
+            %return the different ROI types for a study 
+            study = this.getChild(studyID);
+            if(~isempty(study))
+                [ids, str] = study.getResultROITypes();
+            else
+                ids = [];
+                str = '';
             end
         end
         

@@ -240,6 +240,11 @@ classdef FDTChannel < FDTreeNode
             h = chunk.getFDataObj(nr,sType);
         end
         
+        function out = getROIGroup(this,grpName)
+            %get the ROI group names and members
+            out = this.myParent.getROIGroup(grpName);
+        end
+        
         function out = getROICoordinates(this,ROIType)
             %get coordinates of ROI
             out = this.myParent.getROICoordinates(ROIType);
