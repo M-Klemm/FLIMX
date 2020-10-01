@@ -89,7 +89,7 @@ classdef FDTree < FDTreeNode
                 this.LRUTableObjs(1,1) = {obj};
                 this.LRUTableInfo(1,1:3) = [obj.uid,t,obj.getCacheMemorySize()];
             else
-                id = obj.uid - this.LRUTableInfo(:,1) < eps;
+                id = abs(obj.uid - this.LRUTableInfo(:,1)) < eps;
                 if(any(id))
                     %there should be only one hit in the list
                     this.LRUTableInfo(id,2:3) = [t,obj.getCacheMemorySize()];
