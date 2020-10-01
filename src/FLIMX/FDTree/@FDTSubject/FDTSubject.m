@@ -988,6 +988,9 @@ classdef FDTSubject < fluoSubject
                     %now run opA
                     data = FDTSubject.calculateArithmeticImage(dataA,data,opA,negA);
                 end
+                if(isempty(data))
+                    continue
+                end
                 %save arithmetic image
                 this.addObjID(0,chAList(chIdx),aiName,1,data);
             end
@@ -1093,6 +1096,10 @@ classdef FDTSubject < fluoSubject
                 idxA(idxA) = logical(dataA(idxA));
                 idxB = ~isnan(dataB);
                 idxB(idxB) = logical(dataB(idxB));
+                if(isempty(idxA) || isempty(idxB))
+                    out = [];
+                    return
+                end
                 switch op
                     case '&'
                         eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
