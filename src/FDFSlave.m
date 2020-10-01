@@ -5,10 +5,11 @@ if(~isdeployed())
     p = gcp('nocreate');
     if(isempty(p))
         nr = version('-release');
-        if(str2double(nr(1:4)) >= 2020)
+        if(str2double(nr(1:4)) >= 2020 && ~isdeployed())
             parpool('threads');
         else
             parpool('local',feature('numCores'));
+            pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
         end
     end
 end

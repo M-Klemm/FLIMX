@@ -118,18 +118,19 @@ if(~parCalcFlag)
         tmp(i,:) = runOpt(apObjs{i},optimizationParams);
     end
 end
-if(isempty(tmp))    
+if(isempty(tmp))
     return
 end
 %rebuild results structure
+chList = apObjs{1}.nonEmptyChannelList;
 result = tmp(1,:);
 fn = fieldnames(tmp(1,1));
 fn = fn(~strcmpi(fn,'ROI_merge_result'));
 %fn = fn(~strcmpi(fn,'Message'));
 for i = 2:nrPixels
-    for ch = apObjs{1}.nonEmptyChannelList
+    for chIdx = 1:length(chList)
         for j = 1:length(fn)
-            result(ch).(fn{j}) = [result(ch).(fn{j}) tmp(i,ch).(fn{j})];
+            result(chIdx).(fn{j}) = [result(chIdx).(fn{j}) tmp(i,chIdx).(fn{j})];
         end
     end
 end

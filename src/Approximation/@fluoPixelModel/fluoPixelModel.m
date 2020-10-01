@@ -1704,12 +1704,16 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             %get max & offset
             data_vec(isnan(data_vec)) = 0;
             [~, d1_pos] = max(data_vec(:));
-            avg = fastsmooth(data_vec(1:d1_pos+5),3,3,0);
+            avg = fastsmooth(data_vec(1:min(d1_pos+5,length(data_vec))),3,3,0);
             %avg = sWnd1DAvg(data_vec(1:d1_pos+5),3); %use 5 points after max as well (smoother max), sliding window: 3x2+1=7
+            if(isempty(avg) || length(avg) < 6)
+                start_pos = 1;
+                return
+            end
             %look for the rising egde only before the signal rose to 1/8th of the maximum
             fwemAPos = find(bsxfun(@lt,avg(1:end-5),max(avg(:),[],1)/6),1,'last')+1;
             p1 = find(avg,1);
-            if(p1 >= fwemAPos || isempty(avg) || length(avg) < 2)
+            if(p1 >= fwemAPos)
                 start_pos = 1;
             else
                 start_pos = find(fastGrad(avg(p1:fwemAPos)) <= 0,1, 'last')+p1; %start 5 points prior to max
