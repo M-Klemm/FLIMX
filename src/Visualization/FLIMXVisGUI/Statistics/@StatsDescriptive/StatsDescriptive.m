@@ -453,10 +453,10 @@ classdef StatsDescriptive < handle
             this.clearResults();
             %update studies and conditions
             sStr = this.visObj.fdt.getAllStudyNames();
-            set(this.visHandles.popupSelStudy,'String',sStr,'Value',min(length(sStr),get(this.visHandles.popupSelStudy,'Value')));
+            set(this.visHandles.popupSelStudy,'String',sStr,'Value',min(length(sStr),this.visHandles.popupSelStudy.Value));
             %get conditions for the selected studies
             cStr = this.visObj.fdt.getStudyConditionsStr(this.study);
-            set(this.visHandles.popupSelCondition,'String',cStr,'Value',min(length(cStr),get(this.visHandles.popupSelCondition,'Value')));
+            set(this.visHandles.popupSelCondition,'String',cStr,'Value',min(length(cStr),this.visHandles.popupSelCondition.Value));
             %update channels and parameters
             ds1 = this.visObj.fdt.getAllSubjectNames(this.study,this.condition);
             if(~isempty(ds1))
@@ -466,11 +466,11 @@ classdef StatsDescriptive < handle
             else
                 chStr = [];
                 coStr = 'param';
-            end            
+            end
             if(isempty(chStr))
                 chStr = 'Ch 1';
             end
-            set(this.visHandles.popupSelCh,'String',chStr,'Value',min(length(chStr),get(this.visHandles.popupSelCh,'Value')));
+            set(this.visHandles.popupSelCh,'String',chStr,'Value',min(length(chStr),this.visHandles.popupSelCh.Value));
             %ROI
             allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,this.allROITypes,'UniformOutput',false);
             grps = this.visObj.fdt.getResultROIGroup(this.study,[]);
@@ -481,30 +481,41 @@ classdef StatsDescriptive < handle
             end
             set(this.visHandles.popupSelROIType,'String',allROIStr,'Value',min(this.visHandles.popupSelROIType.Value,length(allROIStr)));
             rt = this.ROIType;
+            if(rt < 0)
+                this.visHandles.checkDisplayAllROIs.String = 'Display all ROIs of the current ROI group';
+                this.visHandles.checkDisplayAllROIs.Tooltip = 'Display all ROIs of the current ROI group in the subject statistics (this will also influence exported data)';
+            else
+                this.visHandles.checkDisplayAllROIs.String = 'Display all ROIs of the current type';
+                this.visHandles.checkDisplayAllROIs.Tooltip = 'Display all ROIs of the current type in the subject statistics (this will also influence exported data)';
+            end
             if(rt == 0 || rt > 2000 || rt < 0 && ~isempty(grps) && size(grps,2) == 2 && all([grps{abs(rt),2}] >= 2000))
                 flag = 'off';
             else
                 flag = 'on';
             end
-            set(this.visHandles.popupSelROISubType,'Visible',flag);
+            this.visHandles.popupSelROISubType.Visible = flag;
             if(rt > 1000 || rt < 0)
                 flag = 'on';
             end
-            set(this.visHandles.popupSelROIVicinity,'Visible',flag);
+            this.visHandles.popupSelROIVicinity.Visible = flag;
             %params
-            oldPStr = get(this.visHandles.popupSelFLIMParam,'String');
+            oldPStr = this.visHandles.popupSelFLIMParam.String;
             if(iscell(oldPStr) && length(oldPStr) > 1)
-                oldPStr = oldPStr(min(length(oldPStr),get(this.visHandles.popupSelFLIMParam,'Value')));
+                oldPStr = oldPStr(min(length(oldPStr),this.visHandles.popupSelFLIMParam.Value));
             end
-            %try to find oldPStr in new pstr
-            idx = find(strcmp(oldPStr,coStr),1);
-            if(isempty(idx))
-                idx = min(get(this.visHandles.popupSelFLIMParam,'Value'),length(coStr));
-            end            
+            if(isempty(oldPStr))
+                idx = 1;
+            else
+                %try to find oldPStr in new pstr
+                idx = find(strcmp(oldPStr,coStr),1);
+                if(isempty(idx))
+                    idx = min(this.visHandles.popupSelFLIMParam.Value,length(coStr));
+                end
+            end
             set(this.visHandles.popupSelFLIMParam,'String',coStr,'Value',idx);
             this.clearPlots();
             %excel export sheet name preview
-            set(this.visHandles.editSNPreview,'String',this.currentSheetName);
+            this.visHandles.editSNPreview.String = this.currentSheetName;
         end
         
         function updateGUI(this)
@@ -525,7 +536,7 @@ classdef StatsDescriptive < handle
                     tmp = this.normDistTestsLegend;
                     tmp(:,2) = sprintfc('%1.4f',this.normDistTests(:,1));
                     tmp(:,3) = num2cell(logical(this.normDistTests(:,2)));
-                    set(this.visHandles.tableNormalTests,'Data',tmp);
+                    this.visHandles.tableNormalTests.Data = tmp;
                 end
             end
         end
@@ -545,12 +556,20 @@ classdef StatsDescriptive < handle
         function makeStats(this)
             %collect stats info from FDTree
             [this.subjectStats, this.statsDesc, this.subjectDesc] = this.visObj.fdt.getStudyStatistics(this.study,this.condition,this.ch,this.dType,this.id,this.ROIType,this.ROISubType,this.ROIVicinityFlag,true);
-            if(this.visHandles.checkDisplayAllROIs.Value && this.ROIType > 0)
-                %show all ROIs of the current type; ROI groups are excluded
-                allROT = this.allROITypes;
-                idx = find(floor(allROT/1000) - floor(this.ROIType/1000) == 0);
+            if(this.visHandles.checkDisplayAllROIs.Value)
                 nSubs = size(this.subjectStats,1);
-                nROIs = length(idx);
+                if(this.ROIType > 0)
+                    %show all ROIs of the current type
+                    allROT = this.allROITypes;
+                    idx = find(floor(allROT/1000) - floor(this.ROIType/1000) == 0);                    
+                    nROIs = length(idx);
+                elseif(this.ROIType < 0)
+                    %show all members of the current ROI group
+                    grps = this.visObj.fdt.getResultROIGroup(this.study,[]);
+                    allROT = grps{abs(this.ROIType),2};
+                    nROIs = length(allROT);
+                    idx = 1:nROIs;                    
+                end
                 if(~isempty(idx) && nROIs > 1)
                     statsTmp = zeros(nSubs*nROIs,size(this.subjectStats,2));
                     subDescTmp = cell(nSubs*nROIs,1);
@@ -829,6 +848,7 @@ classdef StatsDescriptive < handle
         function out = get.ROIVicinityFlag(this)
             out = get(this.visHandles.popupSelROIVicinity,'Value');
         end
+        
         function allROT = get.allROITypes(this)
             ds1 = this.visObj.fdt.getAllSubjectNames(this.study,this.condition);
             if(~isempty(ds1))
@@ -840,8 +860,7 @@ classdef StatsDescriptive < handle
             else
                 allROT = 0;
             end
-        end
-        
+        end        
         
         function out = get.alpha(this)
             %get current alpha value
