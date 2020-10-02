@@ -1019,13 +1019,15 @@ classdef studyIS < handle
         
         function [ids, str] = getResultROITypes(this)
             %return the different ROI types for this study            
-            idx = find(~arrayfun(@isempty,this.resultROICoordinates),1,'first');
+            idx = find(~cellfun(@isempty,this.resultROICoordinates),1,'first');
             if(isempty(idx))
-                ids = [];
-                str = '';
-            end
-            ids = this.resultROICoordinates{idx,1}(:,1,1);
-            str = arrayfun(@ROICtrl.ROIType2ROIItem,ids,'UniformOutput',false);            
+                allROT = ROICtrl.getDefaultROIStruct();
+                ids = allROT(:,1,1);
+                str = arrayfun(@ROICtrl.ROIType2ROIItem,ids,'UniformOutput',false);
+            else
+                ids = this.resultROICoordinates{idx,1}(:,1,1);
+                str = arrayfun(@ROICtrl.ROIType2ROIItem,ids,'UniformOutput',false);
+            end                     
         end
         
         function out = getResultROICoordinates(this,subName,ROIType)
