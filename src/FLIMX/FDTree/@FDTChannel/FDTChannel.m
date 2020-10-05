@@ -252,12 +252,12 @@ classdef FDTChannel < FDTreeNode
         
         function out = getZScaling(this,dType,dTypeNr)
             %get z scaling
-            out = this.myParent.getZScaling(dType,this.getMyPositionInParent(),dTypeNr);
+            out = this.myParent.getZScaling(double(this.getMyIDInParent()),dType,dTypeNr);
         end
         
         function out = getColorScaling(this,dType,dTypeNr)
             %get color scaling
-            out = this.myParent.getColorScaling(dType,this.getMyPositionInParent(),dTypeNr);
+            out = this.myParent.getColorScaling(double(this.getMyIDInParent()),dType,dTypeNr);
         end
         
         function out = getStatsParams(this)
@@ -267,7 +267,7 @@ classdef FDTChannel < FDTreeNode
         
         function out = getFileInfoStruct(this)
             %get fileinfo struct
-            out = this.myParent.getFileInfoStruct(this.getMyPositionInParent());
+            out = this.myParent.getFileInfoStruct(double(this.getMyIDInParent()));
         end
         
         function out = getVicinityInfo(this)
@@ -391,7 +391,7 @@ classdef FDTChannel < FDTreeNode
                 CImaxs(1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
                 CImins(1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
                 %get reference classwidth
-                cw = getHistParams(this.getStatsParams(),this.getMyPositionInParent(),dType{1},dTypeNr(1));
+                cw = getHistParams(this.getStatsParams(),double(this.getMyIDInParent()),dType{1},dTypeNr(1));
             end
             %get FLIM items for y-axis
             if(~isempty(cMVs.y))
@@ -422,12 +422,12 @@ classdef FDTChannel < FDTreeNode
         
         function [cimg, lblx, lbly, cw] = makeConditionMVGroupObj(this,MVGroupID)
             %make condition MVGroup for current channel
-            [cimg, lblx, lbly, cw] = this.myParent.makeConditionMVGroupObj(this.getMyPositionInParent(),MVGroupID);
+            [cimg, lblx, lbly, cw] = this.myParent.makeConditionMVGroupObj(double(this.getMyIDInParent()),MVGroupID);
         end        
         
         function [cimg, lblx, lbly, cw, colors, logColors] = makeGlobalMVGroupObj(this,MVGroupID)
             %make global MVGroup for current channel
-            [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalMVGroupObj(this.getMyPositionInParent(),MVGroupID);
+            [cimg, lblx, lbly, cw, colors, logColors] = this.myParent.makeGlobalMVGroupObj(double(this.getMyIDInParent()),MVGroupID);
         end        
         
     end %methods

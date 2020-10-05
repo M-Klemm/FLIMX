@@ -1649,7 +1649,7 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getResultZScaling(subName,dType,ch,dTypeNr);
+            out = this.myStudyInfoSet.getResultZScaling(subName,ch,dType,dTypeNr);
         end
         
         function out = getResultColorScaling(this,subName,ch,dType,dTypeNr)
@@ -1657,7 +1657,7 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getResultColorScaling(subName,dType,ch,dTypeNr);
+            out = this.myStudyInfoSet.getResultColorScaling(subName,ch,dType,dTypeNr);
         end
                 
         function out = getResultCrossSection(this,subName)

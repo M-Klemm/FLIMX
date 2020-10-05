@@ -174,11 +174,32 @@ classdef FDTreeNode < handle
             end
         end
         
-        function out = getChildPositionNr(this,callingChildObj) %old: getMyChannelNr
+        function out = getChildPositionNr(this,callingChildObj)
             %return the running number of a child
             for out = 1:this.myChildren.queueLen
                 childObj = this.myChildren.getDataByPos(out);
                 if(~isempty(childObj) && childObj == callingChildObj)
+                    return
+                end
+            end
+            out = [];
+        end
+        
+        function out = getMyIDInParent(this)
+            %return the current running number from my parent
+            if(~isempty(this.myParent))
+                out = this.myParent.getChildID(this);
+            else
+                out = [];
+            end
+        end
+        
+        function out = getChildID(this,callingChildObj) %old: getMyChannelNr
+            %return the running number of a child
+            for i = 1:this.myChildren.queueLen
+                childObj = this.myChildren.getDataByPos(i);
+                if(~isempty(childObj) && childObj == callingChildObj)
+                    out = this.myChildren.getIDByPos(i);
                     return
                 end
             end
