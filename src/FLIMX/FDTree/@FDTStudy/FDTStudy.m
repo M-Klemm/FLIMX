@@ -791,6 +791,7 @@ classdef FDTStudy < FDTreeNode
             end
             [subject, subjectPos] = this.getChild(subjectID);
             if(~isempty(subject))
+                subject.delete();
                 this.deleteChildByPos(subjectPos);
                 this.myStudyInfoSet.removeSubject(subjectID);                
                 this.clearObjMerged();

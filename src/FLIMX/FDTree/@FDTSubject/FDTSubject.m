@@ -54,6 +54,12 @@ classdef FDTSubject < fluoSubject
             %reset measurement and result objects
             this.removeResultChannelFromMemory([]);
             this.initMode = true;
+            if(~isempty(this.myMeasurement) && this.myMeasurement.isvalid)
+                this.myMeasurement.delete();
+            end
+            if(~isempty(this.myResult) && this.myResult.isvalid)
+                this.myResult.delete();
+            end
             this.myMeasurement = measurement4Approx(this);
             this.myMeasurement.setProgressCallback(@this.updateProgress);
             this.myResult = result4Approx(this);
@@ -312,6 +318,16 @@ classdef FDTSubject < fluoSubject
                 this.saveMatFile2Disk([]);
             end
         end
+        
+        function delete(this)
+            %remove me from FDTree memory cache
+            if(~isempty(this.myMeasurement) && this.myMeasurement.isvalid)
+                this.myMeasurement.delete();
+            end
+            if(~isempty(this.myResult) && this.myResult.isvalid)
+                this.myResult.delete();
+            end
+        end
 
         %% output
         function out = getApproximationPixelIDs(this,ch)
@@ -492,7 +508,7 @@ classdef FDTSubject < fluoSubject
 %                 this.YSz = [];
 %             end
         end
-
+        
         function deleteChannel(this,ch,type)
             %delete channel of a subject from memory and disk; type decides if measurement, result or both
             if(isempty(type))

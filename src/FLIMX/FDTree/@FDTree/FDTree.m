@@ -119,7 +119,9 @@ classdef FDTree < FDTreeNode
                 %find oldest entry
                 [~, id] = min([this.LRUTableInfo(:,2)]);
                 obj = this.LRUTableObjs{id,1};
-                obj.clearCacheMemory(); %free RAM
+                if(obj.isvalid)
+                    obj.clearCacheMemory(); %free RAM
+                end
                 this.LRUTableObjs(id,:) = []; %remove obj from table
                 this.LRUTableInfo(id,:) = []; %remove objs info from table
                 if(size(this.LRUTableInfo,1) == 1)
