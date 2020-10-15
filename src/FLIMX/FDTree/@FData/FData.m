@@ -867,16 +867,16 @@ classdef FData < handle
             [alg, params] = this.getDataSmoothFilter();
             switch alg
                 case 1
-                    data = sffilt(@meanOmitNaN,data,[params params]);
+                    data = sffilt(@meanOmitNaN,data,[params params],NaN);
                 case 2
-                    data = sffilt(@medianOmitNaN,data,[params params]);
+                    data = sffilt(@medianOmitNaN,data,[params params],NaN);
                 case 3
                     data = smoothn(data,'robust');
                 case 4
                     %dataSmooth = hmf(data,3);
-                    data = sffilt(@var,data,[params params]);
+                    data = sffilt(@varOmitNaN,data,[params params],NaN);
                 case 5
-                    data = sffilt(@std,data,[params params]);
+                    data = sffilt(@stdOmitNaN,data,[params params],NaN);
                 otherwise
                     %nothing to do (no filtering)
             end

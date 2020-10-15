@@ -959,9 +959,9 @@ classdef FluoDecayFit < handle
         function secStageParams = prepareSecondStage(this,apObj,data,chi2,xVec,chList)
             %make parameters structure for second approximation stage
             secStageParams.pixelPool = [];
-            kernel = @median;
+            kernel = @medianOmitNaN;
             if(this.cleanupFitParams.filterType == 1)
-                kernel = @mean;
+                kernel = @meanOmitNaN;
             end
             fs = this.cleanupFitParams.filterSize;
             for chIdx = chList
@@ -969,7 +969,7 @@ classdef FluoDecayFit < handle
                     th = this.cleanupFitParams.threshold(i);
                     if(~isempty(data))
                         rawImg = abs(data{i,chIdx});
-                        medImg = sffilt(kernel,rawImg,[fs fs]);
+                        medImg = sffilt(kernel,rawImg,[fs fs],NaN);
                         hit = medImg ~= 0 & (rawImg >= medImg*(1+th) | rawImg <= medImg*(1-th));
                         secStageParams.pixelPool = [secStageParams.pixelPool; find(hit)];
                     end

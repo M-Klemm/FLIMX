@@ -647,7 +647,13 @@ classdef measurementFile < handle
                     elseif(bin == 0)
                         out = int32(rawDataFlat(roi(3):roi(4),roi(1):roi(2)));
                     else
-                        out = sffilt(@sum,rawDataFlat(roi(3):roi(4),roi(1):roi(2)),[2*bin+1 2*bin+1]);
+                        try
+                            out = imfilter(rawDataFlat,ones([2*bin+1 2*bin+1]));                            
+                        catch ME
+                            %no license for image processing toolbox?
+                            out = sffilt(@sum,rawDataFlat,[2*bin+1 2*bin+1],0);
+                        end
+                        out = out(roi(3):roi(4),roi(1):roi(2));
                     end
                     this.roiFluoDataFlat(channel) = {out};
                 end
@@ -1015,13 +1021,17 @@ classdef measurementFile < handle
                 this.exportMatFile(ch,'');
                 %this.filesOnHDD(1,ch) = true;
             end
-            if(length(this.filesOnHDD) < ch || ~this.filesOnHDD(ch))
+            if(~isempty(this.filesOnHDD) && (length(this.filesOnHDD) < ch || ~this.filesOnHDD(ch)))
                 this.checkMyFiles();
             end
         end
 
         function exportMatFile(this,ch,folder)
             %save measurement data to disk
+            df = this.getDirtyFlags(ch,1:4);
+            if(~any(df(:)))
+                return
+            end
             fn = this.getMeasurementFileName(ch,folder);
             [pathstr, ~, ~]= fileparts(fn);
             if(~isfolder(pathstr))
@@ -1030,8 +1040,7 @@ classdef measurementFile < handle
                     error('FLIMX:measurementFile:exportMatFile','Could not create path for measurement file export: %s\n%s',pathstr,message);
                 end
             end
-            %saveVars = {'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'};
-            df = this.getDirtyFlags(ch,1:4);
+            %saveVars = {'rawData', 'fluoFileInfo', 'auxInfo', 'ROIInfo'};            
             if(all(df(:)) || ~isfile(fn))
                 rawData = this.getRawData(ch,false);
                 rawDataFlat = this.getRawDataFlat(ch);

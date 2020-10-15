@@ -488,7 +488,7 @@ classdef result4Approx < resultFile
                         pData = interp2(X,Y,iData,XI,YI,'linear');
                     end  
                     if(bp.fix2InitSmoothing && any(strcmp(vp.modelParamsString{i},bp.fix2InitTargets)))
-                        pData = sffilt(@mean,pData,[3 3]);
+                        pData = sffilt(@meanOmitNaN,pData,[3 3],NaN);                        
                     end
                     this.results.pixel{ch,1}.(sprintf('%sInit%s',dTypeStr{1},dTypeNrStr)) = pData;
                 end
