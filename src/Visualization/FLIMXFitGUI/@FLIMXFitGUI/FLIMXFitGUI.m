@@ -1437,6 +1437,12 @@ classdef FLIMXFitGUI < handle
                         %xPos = mouse coordinates transformed to dimension of YData
                         tVec = abs(this.FLIMXObj.curSubject.timeVector - cp(1));
                         [~,xPos] = min(tVec(:));
+                        if(isempty(xPos))
+                            %clear other mouse overs
+                            this.mouseOverlayBoxSupp.clear();
+                            this.mouseOverlayBoxRaw.clear();
+                            return
+                        end
                         %cursorline for axesres
                         if(~ishghandle(this.visHandles.cursorLineResiduum))
                             this.visHandles.cursorLineResiduum = line([NaN NaN], ylim(this.visHandles.axesRes),'Color' , this.visualizationParams.plotCurLinesColor, 'Parent', this.visHandles.axesRes, 'LineStyle' , this.visualizationParams.plotCurLinesStyle, 'LineWidth' , this.visualizationParams.plotCurlineswidth);
@@ -1472,8 +1478,8 @@ classdef FLIMXFitGUI < handle
                         end
                     end
                     %clear other mouse overs
-                        this.mouseOverlayBoxSupp.clear();
-                        this.mouseOverlayBoxRaw.clear();
+                    this.mouseOverlayBoxSupp.clear();
+                    this.mouseOverlayBoxRaw.clear();
                 case 'axesSupp'
                     %% supplemental (ROI) axes
                     cp = round(cp);
