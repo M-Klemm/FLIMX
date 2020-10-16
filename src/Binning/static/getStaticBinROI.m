@@ -81,8 +81,8 @@ else
         end
     end
     %try to use parallel for loop
-%     pool = gcp('nocreate');
-%     if(isempty(pool))
+    pool = gcp('nocreate');
+    if(isempty(pool))
         %no pool available -> use single core
         out = zeros(size(dataTmp),'like',data);
         for i = 1:roiYLen
@@ -94,33 +94,33 @@ else
             out(:,i+binFactor,:) = sum(dataTmp(:,i:i+2*binFactor,:),2,'native','omitnan');
         end
         out = out(binFactor+1:binFactor+roiYLen,binFactor+1:binFactor+roiXLen,:);
-%     else
-%         %use the pool, use as many tiles as there are workers
-%         nrTiles = pool.NumWorkers;
-%         idxTiles = binFactor+uint16(floor(linspace(0,single(siz(1)),nrTiles+1)));
-%         dataSlices = cell(nrTiles,1);
-%         for i = 1:nrTiles
-%             dataSlices{i} = dataTmp(idxTiles(i)+1-binFactor:idxTiles(i+1)+binFactor,:,:);
-%         end
-%         res = cell(nrTiles,1);
-%         parfor j = 1:nrTiles
-%             myData = dataSlices{j};
-%             mySizY = uint16(size(myData,1)-2*binFactor);
-%             mySizX = uint16(size(myData,2)-2*binFactor);
-%             myOut = zeros(size(myData),'like',myData);
-%             for i = 1:mySizY
-%                 myOut(i+binFactor,:,:) = sum(myData(i:i+2*binFactor,:,:),1,'native');
-%             end
-%             myData = myOut;
-%             myOut = zeros(size(myData),'like',myData);
-%             for i = 1:mySizX
-%                 myOut(:,i+binFactor,:) = sum(myData(:,i:i+2*binFactor,:),2,'native');
-%             end
-%             myOut = myOut(binFactor+1:binFactor+mySizY,binFactor+1:binFactor+mySizX,:);
-%             res{j} = myOut;
-%         end
-%         out = cell2mat(res);
-%     end
+    else
+        %use the pool, use as many tiles as there are workers
+        nrTiles = pool.NumWorkers;
+        idxTiles = binFactor+uint16(floor(linspace(0,single(siz(1)),nrTiles+1)));
+        dataSlices = cell(nrTiles,1);
+        for i = 1:nrTiles
+            dataSlices{i} = dataTmp(idxTiles(i)+1-binFactor:idxTiles(i+1)+binFactor,:,:);
+        end
+        res = cell(nrTiles,1);
+        parfor j = 1:nrTiles
+            myData = dataSlices{j};
+            mySizY = uint16(size(myData,1)-2*binFactor);
+            mySizX = uint16(size(myData,2)-2*binFactor);
+            myOut = zeros(size(myData),'like',myData);
+            for i = 1:mySizY
+                myOut(i+binFactor,:,:) = sum(myData(i:i+2*binFactor,:,:),1,'native');
+            end
+            myData = myOut;
+            myOut = zeros(size(myData),'like',myData);
+            for i = 1:mySizX
+                myOut(:,i+binFactor,:) = sum(myData(:,i:i+2*binFactor,:),2,'native');
+            end
+            myOut = myOut(binFactor+1:binFactor+mySizY,binFactor+1:binFactor+mySizX,:);
+            res{j} = myOut;
+        end
+        out = cell2mat(res);
+    end
 end
 
 
