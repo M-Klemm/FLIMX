@@ -38,9 +38,9 @@ result = [];
 if(nrPixels < 1 || ~iscell(apObjs) || isempty(apObjs{1}) || ~isa(apObjs{1},'fluoPixelModel'))
     return
 end
-if(isdeployed())
-    %check GPU support
-    warning('off','parallel:gpu:DeviceCapability');
+% if(isdeployed())
+%     %check GPU support
+%     warning('off','parallel:gpu:DeviceCapability');
 %     GPUList = [];
 %     if(apObjs{1}.computationParams.useGPU && isGpuAvailable())
 %         for i = 1:gpuDeviceCount
@@ -53,23 +53,25 @@ if(isdeployed())
 %     for i = 1:nrPixels
 %         apObjs{i}.volatilePixelParams.compatibleGPUs = GPUList;
 %     end 
-    if(apObjs{1}.computationParams.useMatlabDistComp > 0)
-        %check if matlabpool is open
-        if(isempty(gcp('nocreate')))
-            try
+%     if(apObjs{1}.computationParams.useMatlabDistComp > 0)
+%         %check if matlabpool is open
+%         if(isempty(gcp('nocreate')))
+%             try
 %                 nr = version('-release');
 %                 if(str2double(nr(1:4)) >= 2020)
 %                     parpool('threads');
 %                 else
-                    parpool('local',min(apObjs{1}.computationParams.maxNrWorkersMatlabDistComp,feature('numCores')));
+%                     p = parpool('local',min(apObjs{1}.computationParams.maxNrWorkersMatlabDistComp,feature('numCores')));
 %                 end
-                pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
-            catch
-                parpool('local');
-            end
-        end
-    end
-end
+%             catch
+%                 p = parpool('local');
+%             end
+%             if(~isempty(p))
+%                 parfevalOnAll(p, @warning, 0, 'off', 'MATLAB:rankDeficientMatrix');
+%             end
+%         end
+%     end
+% end
 % for i = 1:nrPixels
 % %     apObjs{i}.checkGPU;
 %     apObjs{i}.checkMexFiles();

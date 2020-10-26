@@ -155,9 +155,12 @@ classdef FLIMX < handle
                             p = parpool('local',min(computationParams.maxNrWorkersMatlabDistComp,feature('numCores')));
                         end
                     end
-                    if(~isa(p,'parallel.ThreadPool'))
-                        pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
+                    if(~isempty(p))
+                        parfevalOnAll(p, @warning, 0, 'off', 'MATLAB:rankDeficientMatrix');
                     end
+%                     if(~isa(p,'parallel.ThreadPool'))
+%                         pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
+%                     end
                     this.splashScreenGUIObj.updateShortProgress(1,'Open pool of MATLAB workers - done');
                     %p.IdleTimeout = 0;
                 catch ME
@@ -234,19 +237,19 @@ classdef FLIMX < handle
                     end
                 end
                 %close remaining GUIs
-                if(~isempty(this.studyMgrGUIObj))
+                if(~isempty(this.studyMgrGUIObj) && this.studyMgrGUIObj.isvalid)
                     this.studyMgrGUIObj.menuExit_Callback();
                 end
-                if(~isempty(this.batchJobMgrGUIObj))
+                if(~isempty(this.batchJobMgrGUIObj) && this.batchJobMgrGUIObj.isvalid)
                     this.batchJobMgrGUIObj.menuExit_Callback();
                 end
-                if(~isempty(this.irfMgrGUIObj))
+                if(~isempty(this.irfMgrGUIObj) && this.irfMgrGUIObj.isvalid)
                     this.irfMgrGUIObj.menuExit_Callback();
                 end
-                if(~isempty(this.irfMgrGUIObj))
+                if(~isempty(this.irfMgrGUIObj) && this.irfMgrGUIObj.isvalid)
                     this.irfMgrGUIObj.menuExit_Callback();
                 end
-                if(~isempty(this.matlabPoolTimer))
+                if(~isempty(this.matlabPoolTimer) && this.matlabPoolTimer.isvalid)
                     stop(this.matlabPoolTimer);
                     delete(this.matlabPoolTimer);
                     this.matlabPoolTimer = [];
@@ -522,8 +525,8 @@ classdef FLIMX < handle
             out.config_revision = 272;
             out.client_revision_major = 5;
             out.client_revision_minor = 2;
-            out.client_revision_fix = 11;
-            out.core_revision = 500;
+            out.client_revision_fix = 12;
+            out.core_revision = 501;
             out.results_revision = 256;
             out.measurement_revision = 206;
         end

@@ -6,10 +6,13 @@ if(~isdeployed())
     if(isempty(p))
         nr = version('-release');
         if(str2double(nr(1:4)) >= 2020 && ~isdeployed())
-            parpool('threads');
+            p = parpool('threads');
         else
-            parpool('local',feature('numCores'));
-            pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
+            p = parpool('local',feature('numCores'));
+            %pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
+        end
+        if(~isempty(p))
+            parfevalOnAll(p, @warning, 0, 'off', 'MATLAB:rankDeficientMatrix');
         end
     end
 end
