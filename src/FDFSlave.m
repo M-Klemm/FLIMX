@@ -2,18 +2,17 @@ function FDFSlave(varargin)
 datefmt = 'yyyy-mm-dd HH:MM:SS,FFF';
 if(~isdeployed())
     addpath(genpath(fullfile(cd)));
-    p = gcp('nocreate');
-    if(isempty(p))
-        nr = version('-release');
-        if(str2double(nr(1:4)) >= 2020 && ~isdeployed())
-            p = parpool('threads');
-        else
-            p = parpool('local',feature('numCores'));
-            %pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
-        end
-        if(~isempty(p))
-            parfevalOnAll(p, @warning, 0, 'off', 'MATLAB:rankDeficientMatrix');
-        end
+end
+p = gcp('nocreate');
+if(isempty(p))
+    nr = version('-release');
+    if(str2double(nr(1:4)) >= 2020 && ~isdeployed())
+        p = parpool('threads');
+    else
+        p = parpool('local',min(32,feature('numCores')));
+    end
+    if(~isempty(p))
+        parfevalOnAll(p, @warning, 0, 'off', 'MATLAB:rankDeficientMatrix');
     end
 end
 if(nargin == 0)

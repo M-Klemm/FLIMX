@@ -90,8 +90,9 @@ if(aboutInfo.core_revision ~= myAboutInfo.core_revision)
 end
 %this is a compatible core
 optimizationParams.hostname = gethostname();
+p = gcp('nocreate');
 parCalcFlag = true;
-if(nrPixels > 1 && (isdeployed() || apObjs{1}.computationParams.useMatlabDistComp > 0) && apObjs{1}.basicParams.optimizerInitStrategy ~= 3) %&& ~apObjs{i}.computationParams.useGPU
+if(~isempty(p) && nrPixels > 1 && (isdeployed() || apObjs{1}.computationParams.useMatlabDistComp > 0) && apObjs{1}.basicParams.optimizerInitStrategy ~= 3) %&& ~apObjs{i}.computationParams.useGPU
     %run pixels in parallel
     maxRetries = 3;
     for retry = 1:maxRetries
