@@ -227,11 +227,17 @@ classdef FLIMXVisGUI < handle
                 end
                 this.myStatsGroupComp.setupGUI();
                 curSubject = this.getSubject(s);
-                str = this.fdt.getChStr(curStudy,curSubject);                
-                if(~isempty(str))                    
+                [chStr, chNrs] = this.fdt.getChStr(curStudy,curSubject);
+                if(~isempty(chStr))
                     %channel popups
-                    set(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'String',str,'Value',...
-                        min(length(str),get(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'Value')));                                                                                
+                    oldCh = this.getChannel(s);
+                    chPos = find(chNrs == oldCh,1);
+                    if(isempty(chPos))
+                        set(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'String',chStr,'Value',...
+                            min(length(chStr),get(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'Value')));
+                    else
+                        set(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'String',chStr,'Value',chPos);                        
+                    end
                     %setup main popup menus
                     chObj = this.fdt.getChObjStr(curStudy,curSubject,this.getChannel(s));
                     if(~isempty(chObj))
@@ -244,7 +250,7 @@ classdef FLIMXVisGUI < handle
                         MVGroupNames = [];
                     end
                     %determine if variation selection can be activated
-                    if(~isempty(MVGroupNames))                        
+                    if(~isempty(MVGroupNames))
                         set(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Enable','On');
                     else
                         set(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Enable','Off');
@@ -657,7 +663,7 @@ classdef FLIMXVisGUI < handle
                     imwrite(uint16(ssObj.mainExportXls),fn);
                 case 10
                     imwrite(uint16(ssObj.mainExportXls),fn,'BitDepth',16,'Mode','lossless');
-                otherwise                    
+                otherwise
                     if(this.exportParams.resampleImage)
                         %resample image to desired resolution, add color bar, box, lines, ...
                         print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
@@ -668,7 +674,7 @@ classdef FLIMXVisGUI < handle
             end
             if(ishandle(hFig))
                 close(hFig);
-            end   
+            end
         end
         
         function menuExportMovie_Callback(this,hObject,eventdata)

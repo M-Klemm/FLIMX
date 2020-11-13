@@ -205,7 +205,7 @@ classdef resultFile < handle
             end            
             if(isfield(rs.results,'init'))
                 this.results.init{rs.channel,1} = rs.results.init;
-                this.initApproximated = true(rs.channel,1);
+                this.initApproximated(rs.channel,1) = true;
             else
                 this.results.init(rs.channel,1) = cell(1,1);
             end
@@ -393,7 +393,7 @@ classdef resultFile < handle
             else
                 error('fluoDecayFitResult:setPixelFLIMItem','Size of pixelFLIMItem (%d, %d) does not match ROI size (%d, %d)',y,x,this.resultSize(1),this.resultSize(2));
             end
-            this.pixelApproximated(ch) = true;
+            this.pixelApproximated(ch,1) = true;
             this.loadedChannels(ch,1) = true;
             this.setDirty(ch,true);
         end        
