@@ -566,7 +566,13 @@ classdef FDTree < FDTreeNode
         function copySubjectROI(this,originStudy,destinationStudy,subjectID)
             %copy ROI corrdinates of a subject from one study to another (if subject exists there)
             orgStudy = this.getChild(originStudy);
-            destStudy = this.getChild(destinationStudy);            
+            if(~orgStudy.isLoaded)
+                orgStudy.load();
+            end
+            destStudy = this.getChild(destinationStudy);
+            if(~destStudy.isLoaded)
+                destStudy.load();
+            end
             if(~isempty(destStudy) && ~isempty(orgStudy))
                 %check if subjects exist in studies 
                 orgSubject = orgStudy.getChild(subjectID);
