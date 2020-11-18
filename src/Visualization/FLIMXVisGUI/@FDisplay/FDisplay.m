@@ -303,11 +303,13 @@ classdef FDisplay < handle
             end
             op = double(op);
             cp = double(cp);
-            try
-                delete(this.h_ROIArea);
-                this.h_ROIArea = [];
-            end
             [~, ROIMinor] = ROICtrl.decodeROIType(ROIType);
+            if(length(this.h_ROIArea) >= ROIMinor)
+                try
+                    delete(this.h_ROIArea(ROIMinor));
+                end
+                this.h_ROIArea(ROIMinor) = [];
+            end
             if(this.staticVisParams.ROI_fill_enable && (this.ROIVicinity ~= 1 || ROIType > 1000 && ROIType < 2000 && this.ROIVicinity == 1))
                 %draw ETDRS grid segments or inverted / vicinity ROI areas
                 gc = this.staticVisParams.ROIColor;
