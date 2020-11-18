@@ -889,7 +889,7 @@ classdef FData < handle
             %data can be 2- or 3- dimensional
             %also returns indices of data in full image
             idx = [];
-            if(isempty(data) || isempty(ROICoord))
+            if(isempty(data) || isempty(ROICoord) || ~any(ROICoord(:)))
                 return;
             end
             if(~isempty(vicinityInfo))

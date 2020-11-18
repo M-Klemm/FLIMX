@@ -305,6 +305,7 @@ classdef FDisplay < handle
             cp = double(cp);
             try
                 delete(this.h_ROIArea);
+                this.h_ROIArea = [];
             end
             [~, ROIMinor] = ROICtrl.decodeROIType(ROIType);
             if(this.staticVisParams.ROI_fill_enable && (this.ROIVicinity ~= 1 || ROIType > 1000 && ROIType < 2000 && this.ROIVicinity == 1))
