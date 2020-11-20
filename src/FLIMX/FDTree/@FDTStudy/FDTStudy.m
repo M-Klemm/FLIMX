@@ -386,6 +386,9 @@ classdef FDTStudy < FDTreeNode
             end
             this.myStudyInfoSet.setResultROIGroup(grpName,grpMembers);
             %clear results?!
+            this.clearAllCIs([]);
+            this.clearArithmeticRIs(); %todo: check if an AI uses an ROI
+            this.clearObjMerged();            
         end
         
         function setResultROICoordinates(this,subjectID,dType,dTypeNr,ROIType,ROICoord)
@@ -1558,16 +1561,16 @@ classdef FDTStudy < FDTreeNode
             for i = 1:nSubs
                 subjectDesc(i) = {hg{i}.subjectName};
                 ROICoordinates = this.getResultROICoordinates(subjectDesc{i},ROIType);
-                if(ROIType < 0)
-                    %ROI group
-                    [tmp, ~, ~] = hg{i}.makeROIGroupStatistics(ROIType,ROISubType,ROIVicinity,strictFlag);
-                else
+%                 if(ROIType < 0)
+%                     %ROI group
+%                     [tmp, ~, ~] = hg{i}.makeROIGroupStatistics(ROIType,ROISubType,ROIVicinity,strictFlag);
+%                 else
                     if(ROIType > 0 && ~any(ROICoordinates(:)))
                         tmp = NaN;
                     else
                         tmp = hg{i}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,strictFlag);                        
                     end
-                end 
+%                 end 
                 if(~isempty(tmp))
                     stats(i,:) = tmp;
                 end

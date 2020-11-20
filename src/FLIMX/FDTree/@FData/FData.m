@@ -374,7 +374,7 @@ classdef FData < handle
         end
 
         function [ci,idx] = getROIImage(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
-            %get cached image
+            %get cached image            
             %use whole image if we don't get ROI coordinates
             if(isempty(ROICoordinates))
                 ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
@@ -740,45 +740,41 @@ classdef FData < handle
             end
         end
         
-        function [stats, histogram, histCenters] = makeROIGroupStatistics(this,ROIType,ROISubType,ROIVicinity,strictFlag)
-            %make statistics for a group of ROIs
-            allGrps = this.getROIGroup([]);
-            if(isempty(allGrps) || size(allGrps,2) ~= 2 || isempty(allGrps{1,1}) || abs(ROIType) > size(allGrps,1))
-                stats = [];
-                histogram = [];
-                histCenters = [];
-                return
-            end
-            gROIs = allGrps{abs(ROIType),2};
-            idx = [];
-            outsideFlag = false;
-            if(ROIVicinity == 2)
-                %areas outside ROI are requested
-                outsideFlag = true;
-                ROIVicinity = 1;
-            end
-            for i = 1:length(gROIs)
-                ROICoordinates = this.getROICoordinates(gROIs(i));
-                %ROI in group may have been deleted (-> ROICoordinates is empty)
-                if(~isempty(ROICoordinates))
-                    [~,tmp] = this.getROIImage(ROICoordinates,gROIs(i),ROISubType,ROIVicinity);
-                    idx = [idx; tmp(:)];
-                end
-            end
-            %idx are the indices of the ROI pixels in the raw image
-            idx = unique(idx); %remove redundant pixels from overlapping ROIs
-            raw = this.getFullImage();
-            if(outsideFlag)
-                %areas outside ROI are requested but we got the indices of inside the ROIs (on purpose)               
-                raw(idx) = NaN;
-                ci = raw;
-            else
-                ci = raw(idx);
-            end
-            ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
-            [histogram, histCenters] = this.makeHistogram(ci,strictFlag);
-            stats = FData.computeDescriptiveStatistics(ci,histogram,histCenters);
-        end
+%         function [stats, histogram, histCenters] = makeROIGroupStatistics(this,ROIType,ROISubType,ROIVicinity,strictFlag)
+%             %make statistics for a group of ROIs
+%             allGrps = this.getROIGroup([]);
+%             if(isempty(allGrps) || size(allGrps,2) ~= 2 || isempty(allGrps{1,1}) || abs(ROIType) > size(allGrps,1))
+%                 stats = [];
+%                 histogram = [];
+%                 histCenters = [];
+%                 return
+%             end
+%             gROIs = allGrps{abs(ROIType),2};
+%             idx = [];
+%             outsideFlag = false;
+%             if(ROIVicinity == 2)
+%                 %areas outside ROI are requested
+%                 outsideFlag = true;
+%                 ROIVicinity = 1;
+%             end
+%             for i = 1:length(gROIs)
+%                 [~,tmp] = this.getROIImage(this.getROICoordinates(gROIs(i)),gROIs(i),ROISubType,ROIVicinity);
+%                 idx = [idx; tmp(:)];
+%             end
+%             %idx are the indices of the ROI pixels in the raw image
+%             idx = unique(idx); %remove redundant pixels from overlapping ROIs
+%             raw = this.getFullImage();
+%             if(outsideFlag)
+%                 %areas outside ROI are requested but we got the indices of inside the ROIs (on purpose)               
+%                 raw(idx) = NaN;
+%                 ci = raw;
+%             else
+%                 ci = raw(idx);
+%             end
+%             ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
+%             [histogram, histCenters] = this.makeHistogram(ci,strictFlag);
+%             stats = FData.computeDescriptiveStatistics(ci,histogram,histCenters);
+%         end
 
         function [stats, histogram, histCenters] = makeStatistics(this,ROICoordinates,ROIType,ROISubType,ROIVicinity,strictFlag)
             %make statistics for a certain ROI
@@ -1048,8 +1044,9 @@ classdef FData < handle
                     elseif(ROIVicinity == 3)
                         outerMask = FData.computeVicinityMask(mask,vicDist,vicDiameter);
                         data(~outerMask) = NaN;
-                        idx = find(outerMask);
+                        idx = find(outerMask);                        
                     end
+                    data = FData.removeNaNBoundingBox(data);
                 end
             end
             idx = uint32(idx);
@@ -1123,8 +1120,10 @@ classdef FData < handle
 
         function data = removeNaNBoundingBox(data)
             %return only valid data, remove surrounding NaNs
-            data(~any(~isnan(data),2),:) = [];
-            data(: ,~any(~isnan(data),1)) = [];
+            idx = any(~isnan(data),2);
+            data = data(find(idx,1,'first'):find(idx,1,'last'),:);
+            idx = any(~isnan(data),1);
+            data = data(:,find(idx,1,'first'):find(idx,1,'last'));
         end
 
         function out = getNonInfMinMax(param,data)

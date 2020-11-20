@@ -164,21 +164,69 @@ classdef FDataNormal < FData
         function [ci,idx] = updateCurrentImage(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %make current image segment from this.rawImage using x, y and z limits
             %compute minimum and maximum of this segment, also for labels (linear)
-            if(isempty(this.rawImage))
-                ci = [];                                
+            ci = [];
+            if(isempty(this.rawImage))                                                
                 return
             end
             this.clearCachedImage();
-            %cut ROI
-            [ci,idx] = this.getImgSeg(this.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
-            if(this.sType == 2)
-                this.cachedImage.colors = this.getImgSeg(this.logColor_data,ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
+            if(ROIType < 0)
+                allGrps = this.getROIGroup([]);
+                outsideFlag = false;
+                if(ROIVicinity == 2)
+                    %areas outside ROI are requested
+                    outsideFlag = true;
+                    ROIVicinity = 1;
+                end
+                if(abs(ROIType) <= size(allGrps,1))
+                    ci = this.getFullImage();
+                    if(this.sType == 2)
+                        colors = this.logColor_data;
+                    else
+                        colors = this.color_data;
+                    end
+                    gRT = allGrps{abs(ROIType),2}; %list of roi types in this group
+                    idx = [];
+                    for j = 1:length(gRT)
+                        %get indices of all rois of the group
+                        [~,idxTmp] = this.updateCurrentImage(this.getROICoordinates(gRT(j)),gRT(j),ROISubType,ROIVicinity);
+                        idx = unique([idxTmp;idx]);
+                    end
+                    tmpI = NaN(size(ci));
+                    if(outsideFlag)
+                        %areas outside ROI are requested but we got the indices of inside the ROIs (on purpose)
+                        ci(idx) = NaN;
+                        tmpI = ci;
+                    else
+                        tmpI(idx) = ci(idx);
+                    end
+                    ci = FData.removeNaNBoundingBox(tmpI);
+                    if(~isempty(colors))
+                        tmpC = NaN(size(colors));
+                        if(outsideFlag)
+                            %areas outside ROI are requested but we got the indices of inside the ROIs (on purpose)
+                            colors(idx) = NaN;
+                            tmpC = colors;
+                        else
+                            tmpC(idx) = colors(idx);
+                        end
+                        colors = FData.removeNaNBoundingBox(tmpC);
+                    end
+                    this.cachedImage.colors = colors;
+                else
+                    return
+                end
             else
-                this.cachedImage.colors = this.getImgSeg(this.color_data,ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
-            end            
+                %cut ROI
+                [ci,idx] = this.getImgSeg(this.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
+                if(this.sType == 2)
+                    this.cachedImage.colors = this.getImgSeg(this.logColor_data,ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
+                else
+                    this.cachedImage.colors = this.getImgSeg(this.color_data,ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
+                end
+            end
             cim = FData.getNonInfMinMax(1,ci); %current image minimum
             %set possible "-inf" in ci to "cim"
-            %ci(ci < cim) = cim;            
+            %ci(ci < cim) = cim;
             %limit z
             zVec = this.getZScaling();
             if(length(zVec) == 3 && zVec(1))
@@ -204,7 +252,7 @@ classdef FDataNormal < FData
             info.XLblStart = [];
             info.XLblTick = this.getDefaultXLblTick();
             info.YLblStart = [];
-            info.YLblTick = this.getDefaultYLblTick();            
+            info.YLblTick = this.getDefaultYLblTick();
             %make sure current crossSections are not beyond current image
             this.crossSectionX = min(this.crossSectionX,info.XSz);
             this.crossSectionY = min(this.crossSectionY,info.YSz);

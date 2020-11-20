@@ -304,11 +304,11 @@ classdef FDisplay < handle
             op = double(op);
             cp = double(cp);
             [~, ROIMinor] = ROICtrl.decodeROIType(ROIType);
-            if(length(this.h_ROIArea) >= ROIMinor)
+            if(length(this.h_ROIArea) >= ROIType)
                 try
-                    delete(this.h_ROIArea(ROIMinor));
+                    delete(this.h_ROIArea(ROIType));
                 end
-                this.h_ROIArea(ROIMinor) = [];
+                this.h_ROIArea(ROIType) = [];
             end
             if(this.staticVisParams.ROI_fill_enable && (this.ROIVicinity ~= 1 || ROIType > 1000 && ROIType < 2000 && this.ROIVicinity == 1))
                 %draw ETDRS grid segments or inverted / vicinity ROI areas
@@ -316,7 +316,7 @@ classdef FDisplay < handle
                 fileInfo.pixelResolution = this.pixelResolution;
                 fileInfo.position = this.measurementPosition;
                 mask = zeros(size(this.mainExportXls),'single');
-                [~,idx] = FData.getImgSeg(zeros(size(this.mainExportXls)),[op cp],this.ROIType,this.ROISubType,this.ROIVicinity,fileInfo,this.visObj.fdt.getVicinityInfo());
+                [~,idx] = FData.getImgSeg(zeros(size(this.mainExportXls)),[op cp],ROIType,this.ROISubType,this.ROIVicinity,fileInfo,this.visObj.fdt.getVicinityInfo());
                 if(~isempty(idx))
                     mask(idx) = 1;
                     mask = repmat(mask,1,1,4);
@@ -325,7 +325,7 @@ classdef FDisplay < handle
                     mask(:,:,3) = mask(:,:,3) .* gc(3);
                     mask(:,:,4) = mask(:,:,4) .* this.staticVisParams.ETDRS_subfield_bg_color(end);
                     hold(this.h_m_ax,'on');
-                    this.h_ROIArea(ROIMinor) = image(this.h_m_ax,mask(:,:,1:3),'AlphaData',mask(:,:,4));
+                    this.h_ROIArea(ROIType) = image(this.h_m_ax,mask(:,:,1:3),'AlphaData',mask(:,:,4));
                     hold(this.h_m_ax,'off');
                 end
             end
@@ -677,16 +677,22 @@ classdef FDisplay < handle
             %delete ROI handles
             isHG = ishghandle(this.h_ROIArea) & this.h_ROIArea > 0;
             delete(this.h_ROIArea(isHG));
+            this.h_ROIArea = [];
             isHG = ishghandle(this.h_ETDRSGrid) & this.h_ETDRSGrid > 0;
             delete(this.h_ETDRSGrid(isHG));
+            this.h_ETDRSGrid = [];
             isHG = ishghandle(this.h_ETDRSGridText) & this.h_ETDRSGridText > 0;            
-            delete(this.h_ETDRSGridText(isHG));            
+            delete(this.h_ETDRSGridText(isHG));
+            this.h_ETDRSGridText = [];
             isHG = ishghandle(this.h_Rectangle) & this.h_Rectangle > 0;
             delete(this.h_Rectangle(isHG));
+            this.h_Rectangle = [];
             isHG = ishghandle(this.h_Circle) & this.h_Circle > 0;
             delete(this.h_Circle(isHG));
+            this.h_Circle = [];
             isHG = ishghandle(this.h_Polygon) & this.h_Polygon > 0;
-            delete(this.h_Polygon(isHG));            
+            delete(this.h_Polygon(isHG));
+            this.h_Polygon = [];
         end
         
         function makeMainPlot(this)
@@ -723,7 +729,26 @@ classdef FDisplay < handle
                     current_img = hfd{i}.getFullImage();
                 else
                     %ROI in 2D / 3D
-                    current_img = hfd{i}.getROIImage(rc,max(0,rt),rs,ri); %ignore ROI groups
+%                     if(rt < 0)
+%                         %ROI group
+%                         current_img = hfd{i}.getROIImage(rc,0,rs,ri);
+%                         allGrps = this.visObj.fdt.getResultROIGroup(this.visObj.getStudy(this.mySide),[]);
+%                         if(abs(rt) <= size(allGrps,1))
+%                             grt = allGrps{abs(rt),2}; %list of roi types in this group
+%                             idx = [];
+%                             for j = 1:length(grt)
+%                                 %draw all rois of the group
+%                                 ROICoord = hfd{i}.getROICoordinates(grt(j));
+%                                 [~,idxTmp] = hfd{i}.getROIImage(ROICoord,grt(j),rs,ri);
+%                                 idx = unique([idxTmp;idx]);
+%                             end
+%                             ci = NaN(size(current_img));
+%                             ci(idx) = current_img(idx);
+%                             current_img = FData.removeNaNBoundingBox(ci);
+%                         end
+%                     else
+                        current_img = hfd{i}.getROIImage(rc,rt,rs,ri);
+%                     end
                 end
                 if(isempty(current_img) || all(isnan(current_img(:))) || all(isinf(current_img(:))))
                     return
@@ -746,15 +771,15 @@ classdef FDisplay < handle
                         zMax(i) = FData.getNonInfMinMax(2,current_img);
                         zMin(i) = FData.getNonInfMinMax(1,current_img);                       
                     else
-                        zMax(i) = single(hfd{i}.getCImax(rc,max(0,rt),rs,ri)); %ignore ROI groups
-                        zMin(i) = single(hfd{i}.getCImin(rc,max(0,rt),rs,ri)); %ignore ROI groups
+                        zMax(i) = single(hfd{i}.getCImax(rc,rt,rs,ri));
+                        zMin(i) = single(hfd{i}.getCImin(rc,rt,rs,ri));
                     end
                 end    
                 if((zMax - zMin) < 0.1)
                     zMax = zMax + 0.1;
                 end
                 %color mapping
-                if(dispDim == 1 || isempty(hfd{i}.getCIColor(rc,max(0,rt),rs,ri))) %ignore ROI groups
+                if(dispDim == 1 || isempty(hfd{i}.getCIColor(rc,rt,rs,ri)))
                     %cTmp = hfd{i}.getColorScaling();
                     cTmp = single(this.myColorScaleObj.getCurCSInfo());
                     if(isempty(cTmp) || length(cTmp) ~= 3 || nrFD > 1)
@@ -800,7 +825,7 @@ classdef FDisplay < handle
                     end                    
                 else
                     %we have precomputed colors
-                    colors = hfd{i}.getCIColor(rc,max(0,rt),rs,ri); %ignore ROI groups
+                    colors = hfd{i}.getCIColor(rc,rt,rs,ri);
                     alphaData = ceil(sum(colors,3));
                 end
                 %intensity overlay
@@ -809,7 +834,7 @@ classdef FDisplay < handle
                     if(dispDim == 1)
                         colors = this.makeIntOverlay(colors,hfdInt.getFullImage());
                     else
-                        colors = this.makeIntOverlay(colors,hfdInt.getROIImage(rc,max(0,rt),rs,ri)); %ignore ROI groups
+                        colors = this.makeIntOverlay(colors,hfdInt.getROIImage(rc,rt,rs,ri));
                     end
                 end
                 %save image for possible export
@@ -832,11 +857,11 @@ classdef FDisplay < handle
                         caxis(hAx,[zMin(end) zMax(end)]);
                         set(hAx,'YDir',ydir,'XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)]);
                         %draw crossSections
-                        tmp = hfd{i}.getCrossSectionXVal(dispDim-1,true,rc,max(0,rt),rs,ri); %ignore ROI groups
+                        tmp = hfd{i}.getCrossSectionXVal(dispDim-1,true,rc,rt,rs,ri);
                         if(hfd{i}.getCrossSectionX() && tmp ~= 0)
                             line('XData',[tmp tmp],'YData',[1 size(current_img,1)],'LineWidth',1,'Linestyle','--','Color',sVisParam.crossSectionXColor,'Parent',hAx);
                         end
-                        tmp = hfd{i}.getCrossSectionYVal(dispDim-1,true,rc,max(0,rt),rs,ri); %ignore ROI groups
+                        tmp = hfd{i}.getCrossSectionYVal(dispDim-1,true,rc,rt,rs,ri);
                         if(hfd{i}.getCrossSectionY() && tmp ~= 0)
                             line('XData',[1 size(current_img,2)], 'YData',[tmp tmp],'LineWidth',1,'Linestyle','--','Color',sVisParam.crossSectionYColor,'Parent',hAx);
                         end
@@ -885,7 +910,6 @@ classdef FDisplay < handle
 %                         end
                         %save for export
                     case 3 %3D plot
-                        rt = max(0,rt); %ignore ROI groups
                         if(sVisParam.offset_m3d && nrFD > 1)
                             %add offset to each 3d plot
                             if(hfd{i}.sType == 2)
@@ -1122,8 +1146,29 @@ classdef FDisplay < handle
                 xFullRange = hfd.rawImgXSz(end);
                 yFullRange = hfd.rawImgYSz(end);
             else
-                xFullRange = hfd.getCIxSz(rc,rt,rs,ri);
-                yFullRange = hfd.getCIySz(rc,rt,rs,ri);
+%                 if(rt < 0)
+%                     if(rt < 0)
+%                         %ROI group
+%                         current_img = hfd{i}.getROIImage(rc,0,rs,ri);
+%                         allGrps = this.visObj.fdt.getResultROIGroup(this.visObj.getStudy(this.mySide),[]);
+%                         if(abs(rt) <= size(allGrps,1))
+%                             grt = allGrps{abs(rt),2}; %list of roi types in this group
+%                             idx = [];
+%                             for j = 1:length(grt)
+%                                 %draw all rois of the group
+%                                 ROICoord = hfd{i}.getROICoordinates(grt(j));
+%                                 [~,idxTmp] = hfd{i}.getROIImage(ROICoord,grt(j),rs,ri);
+%                                 idx = unique([idxTmp;idx]);
+%                             end
+%                             ci = NaN(size(current_img));
+%                             ci(idx) = current_img(idx);
+%                             current_img = FData.removeNaNBoundingBox(ci);
+%                         end
+                    
+%                 else
+                    xFullRange = hfd.getCIxSz(rc,rt,rs,ri);
+                    yFullRange = hfd.getCIySz(rc,rt,rs,ri);
+%                 end
             end
             if(isempty(xFullRange))
                 return
@@ -1533,20 +1578,12 @@ classdef FDisplay < handle
         
         function makeDSTable(this)
             %fill descripte statistics table
-            [~, ~, hfd] = this.gethfd();    %update hfd(s)           
+            [~, ~, hfd] = this.gethfd();    %update hfd(s)
             if(isempty(hfd{1}) || length(hfd) > 1)
                 set(this.h_ds_t,'Data',cell(0,0));
             else
                 data(:,1) = hfd{1}.getDescriptiveStatisticsDescriptionShort();
-                if(this.ROIType < 0)
-                    %group of ROIs
-                    stats = hfd{1}.makeROIGroupStatistics(this.ROIType,this.ROISubType,this.ROIVicinity,false);
-                else
-                    %single ROI
-                    
-                    stats = hfd{1}.getROIStatistics(this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIVicinity);
-                    %data(:,2) = arrayfun(@FLIMXFitGUI.num4disp,tmp,'UniformOutput',false);%{num2str(tmp(i),'%.3G')};
-                end
+                stats = hfd{1}.getROIStatistics(this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIVicinity);
                 if(isempty(stats))
                     data(:,2) = cell(size(data,1),1);
                 else
