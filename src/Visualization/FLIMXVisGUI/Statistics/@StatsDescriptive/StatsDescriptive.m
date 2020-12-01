@@ -34,7 +34,8 @@ classdef StatsDescriptive < handle
     properties(GetAccess = public, SetAccess = protected)
         visHandles = []; %structure to handles in GUI
         visObj = []; %handle to FLIMXVis
-        subjectStats = cell(0,0);        
+        subjectStats = cell(0,0);   
+        nonEmptySubjectStats = false(0,0);
         statsDesc = cell(0,0);
         subjectDesc = cell(0,0);
         statHist = [];
@@ -92,6 +93,7 @@ classdef StatsDescriptive < handle
             set(this.visHandles.popupSelROIVicinity,'Callback',@this.GUI_SelROITypePop_Callback);
             set(this.visHandles.popupSelStatParam,'Callback',@this.GUI_SelStatParamPop_Callback);
             set(this.visHandles.checkDisplayAllROIs,'Callback',@this.GUI_checkDisplayAllROIs_Callback);
+            set(this.visHandles.checkHideEmptyROIs,'Callback',@this.GUI_checkHideEmptyROIs_Callback);
             %export
             set(this.visHandles.buttonExportExcel,'Callback',@this.GUI_buttonExcelExport_Callback);
             set(this.visHandles.checkSNFLIM,'Callback',@this.GUI_checkExcelExport_Callback);
@@ -196,15 +198,21 @@ classdef StatsDescriptive < handle
             this.updateGUI();
         end
         
+        function GUI_checkHideEmptyROIs_Callback(this,hObject,eventdata)
+            %
+            this.setupGUI();
+            this.updateGUI();
+        end
+        
         function GUI_buttonUpdateGUI_Callback(this,hObject,eventdata)
             %
-            try
-                set(hObject,'String',sprintf('<html><img src="file:/%s"/> Update</html>',FLIMX.getAnimationPath()));
-                drawnow;
-            end
+%             try
+%                 set(hObject,'String',sprintf('<html><img src="file:/%s"/> Update</html>',FLIMX.getAnimationPath()));
+%                 drawnow;
+%             end
             this.clearResults();
             this.updateGUI();
-            set(hObject,'String','Update');
+%             set(hObject,'String','Update');
         end
         
         function GUI_DispGrpPop_Callback(this,hObject,eventdata)
@@ -373,7 +381,7 @@ classdef StatsDescriptive < handle
                                     continue;
                                 end
                             end
-                            exportExcel(fn,this.subjectStats,this.statsDesc,this.subjectDesc,this.currentSheetName,sprintf('%s%d',this.dType,this.id));
+                            exportExcel(fn,this.subjectStats(this.nonEmptySubjectStats,:),this.statsDesc,this.subjectDesc(this.nonEmptySubjectStats,1),this.currentSheetName,sprintf('%s%d',this.dType,this.id));
                             if(this.exportModeStat)
                                 data = cell(0,0);
                                 str = get(this.visHandles.popupSelStatParam,'String');
@@ -520,13 +528,22 @@ classdef StatsDescriptive < handle
         
         function updateGUI(this)
             %update tables and axes
+            try
+                set(this.visHandles.buttonUpdateGUI,'String',sprintf('<html><img src="file:/%s"/> Update</html>',FLIMX.getAnimationPath()));
+                drawnow;
+            end            
             if(isempty(this.subjectStats))
                 this.makeStats();
                 if(isempty(this.subjectStats))
                     this.clearPlots();
                 end
             end
-            set(this.visHandles.tableSubjectStats,'ColumnName',this.statsDesc,'RowName',this.subjectDesc,'Data',FLIMXFitGUI.num4disp(this.subjectStats));
+            if(this.visHandles.checkHideEmptyROIs.Value)
+                this.nonEmptySubjectStats = ~all(isnan(this.subjectStats) | (abs(this.subjectStats) < eps),2); %find NaN and zero values
+            else
+                this.nonEmptySubjectStats = true(size(this.subjectStats,1),1);
+            end
+            set(this.visHandles.tableSubjectStats,'ColumnName',this.statsDesc,'RowName',this.subjectDesc(this.nonEmptySubjectStats,1),'Data',FLIMXFitGUI.num4disp(this.subjectStats(this.nonEmptySubjectStats,:)));
             set(this.visHandles.tableGroupStats,'RowName','','Data',FLIMXFitGUI.num4disp(this.groupStats));
             %axes
             if(~isempty(this.statHist))
@@ -539,6 +556,7 @@ classdef StatsDescriptive < handle
                     this.visHandles.tableNormalTests.Data = tmp;
                 end
             end
+            set(this.visHandles.buttonUpdateGUI,'String','Update');
         end
         
         function updateProgressbar(this,x,text)
