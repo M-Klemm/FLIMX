@@ -148,11 +148,11 @@ classdef FLIMXVisGUI < handle
                 s = ['l' 'r'];
             end
             for i=1:length(s)
-                set(this.visHandles.(sprintf('main_axes_chan_%s_pop',s(i))),'Value',1,'Visible','on');
-                set(this.visHandles.(sprintf('main_axes_%s_pop',s(i))),'Value',1,'Visible','on');
-                set(this.visHandles.(sprintf('main_axes_pdim_%s_pop',s(i))),'Enable','on');
-                set(this.visHandles.(sprintf('main_axes_var_%s_pop',s(i))),'Value',1,'Enable','off');
-                set(this.visHandles.(sprintf('main_axes_scale_%s_pop',s(i))),'Value',1);
+                set(this.visHandles.(sprintf('channel_%s_pop',s(i))),'Value',1,'Visible','on');
+                set(this.visHandles.(sprintf('flim_param_%s_pop',s(i))),'Value',1,'Visible','on');
+                set(this.visHandles.(sprintf('dimension_%s_pop',s(i))),'Enable','on');
+                set(this.visHandles.(sprintf('var_mode_%s_pop',s(i))),'Value',1,'Enable','off');
+                set(this.visHandles.(sprintf('scale_%s_pop',s(i))),'Value',1);
             end
         end
         
@@ -201,11 +201,11 @@ classdef FLIMXVisGUI < handle
                     %clear display objects
                     this.objHandles.(sprintf('%sdo',s)).sethfdMain([]);
                     %channel popups
-                    set(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'String','Ch','Value',1);                    
+                    set(this.visHandles.(sprintf('channel_%s_pop',s)),'String','Ch','Value',1);                    
                     %setup main popup menus
-                    set(this.visHandles.(sprintf('main_axes_%s_pop',s)),'String','params','Value',1);
+                    set(this.visHandles.(sprintf('flim_param_%s_pop',s)),'String','params','Value',1);
                     %setup study controls                    
-                    set(this.visHandles.(sprintf('dataset_%s_pop',s)),'String','dataset','Value',1);                    
+                    set(this.visHandles.(sprintf('subject_%s_pop',s)),'String','dataset','Value',1);                    
                     %update crossSections
                     this.objHandles.crossSectionx.updateCtrls();
                     this.objHandles.crossSectiony.updateCtrls();
@@ -221,9 +221,9 @@ classdef FLIMXVisGUI < handle
                 %update subject selection popups
                 dStr = this.fdt.getAllSubjectNames(curStudy,curCondition);
                 if(~isempty(dStr))
-                    set(this.visHandles.(sprintf('dataset_%s_pop',s)),'String',dStr,'Value',min(get(this.visHandles.(sprintf('dataset_%s_pop',s)),'Value'),nrSubs));
+                    set(this.visHandles.(sprintf('subject_%s_pop',s)),'String',dStr,'Value',min(get(this.visHandles.(sprintf('subject_%s_pop',s)),'Value'),nrSubs));
                 else
-                    set(this.visHandles.(sprintf('dataset_%s_pop',s)),'String','dataset','Value',1);
+                    set(this.visHandles.(sprintf('subject_%s_pop',s)),'String','dataset','Value',1);
                 end
                 this.myStatsGroupComp.setupGUI();
                 curSubject = this.getSubject(s);
@@ -233,10 +233,10 @@ classdef FLIMXVisGUI < handle
                     oldCh = this.getChannel(s);
                     chPos = find(chNrs == oldCh,1);
                     if(isempty(chPos))
-                        set(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'String',chStr,'Value',...
-                            min(length(chStr),get(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'Value')));
+                        set(this.visHandles.(sprintf('channel_%s_pop',s)),'String',chStr,'Value',...
+                            min(length(chStr),get(this.visHandles.(sprintf('channel_%s_pop',s)),'Value')));
                     else
-                        set(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'String',chStr,'Value',chPos);                        
+                        set(this.visHandles.(sprintf('channel_%s_pop',s)),'String',chStr,'Value',chPos);                        
                     end
                     %setup main popup menus
                     chObj = this.fdt.getChObjStr(curStudy,curSubject,this.getChannel(s));
@@ -251,39 +251,39 @@ classdef FLIMXVisGUI < handle
                     end
                     %determine if variation selection can be activated
                     if(~isempty(MVGroupNames))
-                        set(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Enable','On');
+                        set(this.visHandles.(sprintf('var_mode_%s_pop',s)),'Enable','On');
                     else
-                        set(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Enable','Off');
-                        set(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Value',1);
+                        set(this.visHandles.(sprintf('var_mode_%s_pop',s)),'Enable','Off');
+                        set(this.visHandles.(sprintf('var_mode_%s_pop',s)),'Value',1);
                     end
                     %setup gui according to variation selection
-                    switch get(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Value')
+                    switch get(this.visHandles.(sprintf('var_mode_%s_pop',s)),'Value')
                         case 1 %univariate
                             %add cluster objects to channel object string
                             chObj = unique([chObj;MVGroupNames]);
-                            set(this.visHandles.(sprintf('dataset_%s_pop',s)),'Visible','on');
-                            set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','on');
-                            set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','on');
-                            set(this.visHandles.(sprintf('main_axes_pdim_%s_pop',s)),'Enable','on');
+                            set(this.visHandles.(sprintf('subject_%s_pop',s)),'Visible','on');
+                            set(this.visHandles.(sprintf('subject_%s_dec_button',s)),'Visible','on');
+                            set(this.visHandles.(sprintf('subject_%s_inc_button',s)),'Visible','on');
+                            set(this.visHandles.(sprintf('dimension_%s_pop',s)),'Enable','on');
                             set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
                             set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
                         case 2 %multivariate
                             chObj = MVGroupNames;
-                            set(this.visHandles.(sprintf('dataset_%s_pop',s)),'Visible','on');
-                            set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','on');
-                            set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','on');
-                            set(this.visHandles.(sprintf('main_axes_pdim_%s_pop',s)),'Enable','off','Value',3);
+                            set(this.visHandles.(sprintf('subject_%s_pop',s)),'Visible','on');
+                            set(this.visHandles.(sprintf('subject_%s_dec_button',s)),'Visible','on');
+                            set(this.visHandles.(sprintf('subject_%s_inc_button',s)),'Visible','on');
+                            set(this.visHandles.(sprintf('dimension_%s_pop',s)),'Enable','off','Value',3);
                             set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
                             set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
                         case 3 %condition clusters
                             %show only clusters
                             chObj = MVGroupNames;
-                            set(this.visHandles.(sprintf('dataset_%s_pop',s)),'Visible','off');
-                            set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','off');
-                            set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','off');
-                            set(this.visHandles.(sprintf('main_axes_pdim_%s_pop',s)),'Enable','on');
+                            set(this.visHandles.(sprintf('subject_%s_pop',s)),'Visible','off');
+                            set(this.visHandles.(sprintf('subject_%s_dec_button',s)),'Visible','off');
+                            set(this.visHandles.(sprintf('subject_%s_inc_button',s)),'Visible','off');
+                            set(this.visHandles.(sprintf('dimension_%s_pop',s)),'Enable','on');
                             set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
                             set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
@@ -296,20 +296,20 @@ classdef FLIMXVisGUI < handle
                             if(isempty(globalMVGroupNames))
                                 %global cluster not created yet
                                 errordlg('No multivariate group in mulitple studies available! Please define in Statistics -> Multivariate Groups.','Error Multivariate Groups');
-                                set(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Value',1);
+                                set(this.visHandles.(sprintf('var_mode_%s_pop',s)),'Value',1);
                                 chObj = unique([chObj;MVGroupNames]);
-                                set(this.visHandles.(sprintf('dataset_%s_pop',s)),'Visible','on');
-                                set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','on');
-                                set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','on');
-                                set(this.visHandles.(sprintf('main_axes_pdim_%s_pop',s)),'Enable','on');
+                                set(this.visHandles.(sprintf('subject_%s_pop',s)),'Visible','on');
+                                set(this.visHandles.(sprintf('subject_%s_dec_button',s)),'Visible','on');
+                                set(this.visHandles.(sprintf('subject_%s_inc_button',s)),'Visible','on');
+                                set(this.visHandles.(sprintf('dimension_%s_pop',s)),'Enable','on');
                                 set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','on');
                                 set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','on');
                                 set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','on');
                             else
                                 chObj = globalMVGroupNames;
-                                set(this.visHandles.(sprintf('dataset_%s_pop',s)),'Visible','off');
-                                set(this.visHandles.(sprintf('dataset_%s_dec_button',s)),'Visible','off');
-                                set(this.visHandles.(sprintf('dataset_%s_inc_button',s)),'Visible','off');
+                                set(this.visHandles.(sprintf('subject_%s_pop',s)),'Visible','off');
+                                set(this.visHandles.(sprintf('subject_%s_dec_button',s)),'Visible','off');
+                                set(this.visHandles.(sprintf('subject_%s_inc_button',s)),'Visible','off');
                                 set(this.visHandles.(sprintf('study_color_%s_button',s)),'Visible','off');
                                 set(this.visHandles.(sprintf('study_%s_pop',s)),'Visible','off');
                                 set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','off');
@@ -318,7 +318,7 @@ classdef FLIMXVisGUI < handle
                     %supplementary plot histogram selection
                     if(get(this.visHandles.(sprintf('supp_axes_%s_pop',s)),'Value') == 2)
                         %Histogram
-                        if(get(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Value') == 1)
+                        if(get(this.visHandles.(sprintf('var_mode_%s_pop',s)),'Value') == 1)
                             %univariate
                             set(this.visHandles.(sprintf('supp_axes_hist_%s_pop',s)),'Visible','on','Enable','on');
                         else %multivariate, clusters
@@ -332,19 +332,19 @@ classdef FLIMXVisGUI < handle
                         set(this.visHandles.(sprintf('color_scale_%s_panel',s)),'Visible','off');
                     end
                     if(~isempty(chObj))
-                        oldPStr = get(this.visHandles.(sprintf('main_axes_%s_pop',s)),'String');
+                        oldPStr = get(this.visHandles.(sprintf('flim_param_%s_pop',s)),'String');
                         if(iscell(oldPStr))
-                            oldPStr = oldPStr(get(this.visHandles.(sprintf('main_axes_%s_pop',s)),'Value'));
+                            oldPStr = oldPStr(get(this.visHandles.(sprintf('flim_param_%s_pop',s)),'Value'));
                         end
                         %try to find oldPStr in new pstr
                         idx = find(strcmp(oldPStr,chObj),1);
                         if(isempty(idx))
-                            idx = min(get(this.visHandles.(sprintf('main_axes_%s_pop',s)),'Value'),length(chObj));
+                            idx = min(get(this.visHandles.(sprintf('flim_param_%s_pop',s)),'Value'),length(chObj));
                         end            
-                        set(this.visHandles.(sprintf('main_axes_%s_pop',s)),'String',chObj,'Value',idx);
+                        set(this.visHandles.(sprintf('flim_param_%s_pop',s)),'String',chObj,'Value',idx);
                     else
                         %empty channels
-                        set(this.visHandles.(sprintf('main_axes_%s_pop',s)),'String','params','Value',1);
+                        set(this.visHandles.(sprintf('flim_param_%s_pop',s)),'String','params','Value',1);
                     end
                 else
                     %no channels
@@ -352,9 +352,9 @@ classdef FLIMXVisGUI < handle
                     %clear display objects
                     this.objHandles.(sprintf('%sdo',s)).sethfdMain([]);
                     %channel popups
-                    set(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'String','Ch','Value',1);
+                    set(this.visHandles.(sprintf('channel_%s_pop',s)),'String','Ch','Value',1);
                     %setup main popup menus
-                    set(this.visHandles.(sprintf('main_axes_%s_pop',s)),'String','params','Value',1);
+                    set(this.visHandles.(sprintf('flim_param_%s_pop',s)),'String','params','Value',1);
                 end
                 %set arbitrary initial color value for new study
                 cColor = this.fdt.getConditionColor(curStudy,curCondition);
@@ -410,7 +410,7 @@ classdef FLIMXVisGUI < handle
                         set(this.visHandles.(sprintf('supp_axes_scale_%s_pop',s)),'Enable','on'); 
                 end
                 %enable / disable intensity overlay functions
-                var = get(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Value');
+                var = get(this.visHandles.(sprintf('var_mode_%s_pop',s)),'Value');
                 dType = this.getFLIMItem(s);                
                 %check if a cluster object is selected
                 clf = false;
@@ -653,28 +653,155 @@ classdef FLIMXVisGUI < handle
             end            
             hFig = figure;
             set(hFig,'Renderer','Painters');
-            ssObj = FScreenshot(this.objHandles.(sprintf('%sdo',side)));
-            ssObj.makeScreenshotPlot(hFig,pType);
+            feObj = FLIMXFigureExport(this.objHandles.(sprintf('%sdo',side)));
+            feObj.makeExportPlot(hFig,pType);
             %pause(1) %workaround for wrong painting
             switch filterindex
                 case 8
                     savefig(hFig,fn);
                 case {9,11}
-                    imwrite(uint16(ssObj.mainExportXls),fn);
+                    imwrite(uint16(feObj.mainExportXls),fn);
                 case 10
-                    imwrite(uint16(ssObj.mainExportXls),fn,'BitDepth',16,'Mode','lossless');
+                    imwrite(uint16(feObj.mainExportXls),fn,'BitDepth',16,'Mode','lossless');
                 otherwise
                     if(this.exportParams.resampleImage)
                         %resample image to desired resolution, add color bar, box, lines, ...
                         print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
                     else
                         %export image in native resolution with color bar, box, lines, ...
-                        imwrite(flipud(ssObj.mainExportColors),fn);
+                        imwrite(flipud(feObj.mainExportColors),fn);
                     end
             end
             if(ishandle(hFig))
                 close(hFig);
             end
+        end
+        
+        function menuExportAnimation_Callback(this,hObject,eventdata)
+            %export a batch of figures or an animation from different subjects
+            tag = get(hObject,'Tag');
+            side = 'l';            
+            if(contains(tag,'R'))
+                side = 'r';
+            end
+            pType = 'main'; %main plot
+            if(contains(tag,'B'))
+                pType = 'supp'; %supp. plot
+            end
+            
+            [settings, button] = settingsdlg(...
+                'Description','This tool will export the chosen figure for each subject in the currently selected view of the current study.',...
+                'title' , 'Figure Batch Export',...
+                'Export Batch of Figures or Animation',{'Batch of Figures';'Animation'},...
+                'Add Text Overlay',true,...
+                'Overlay Type',{'Running Number';'Subject Name'} );
+            %check user inputs
+            if(~strcmpi(button, 'ok'))
+                %user pressed cancel or has entered rubbish -> abort
+                return
+            end
+            ss = get(0,'screensize');
+            nSubjects = length(this.visHandles.(sprintf('subject_%s_pop',side)).String);
+            switch settings.ExportBatchOfFiguresOrAnimation
+                case 'Batch of Figures'
+                    formats = {'*.png','Portable Network Graphics (*.png)';...
+                        '*.jpg','Joint Photographic Experts Group (*.jpg)';...
+                        '*.eps','Encapsulated Postscript (*.eps)';...
+                        '*.tiff','TaggedImage File Format (*.tiff)';...
+                        '*.bmp','Windows Bitmap (*.bmp)';...
+                        '*.emf','Windows Enhanced Metafile (*.emf)';...
+                        '*.pdf','Portable Document Format (*.pdf)';...
+                        '*.fig','MATLAB figure (*.fig)';...
+                        '*.png','16-bit Portable Network Graphics (*.png)';...
+                        '*.jpg','16-bit Joint Photographic Experts Group (*.jpg)';...
+                        '*.tiff','16-bit TaggedImage File Format (*.tiff)';...
+                        };
+                    % %             if(any(idx))
+                    % %                 fn = cell(size(formats));
+                    % %                 fn(1,:) = formats(idx,:);
+                    % %                 fn(2:end,:) = formats(~idx,:);
+                    % %                 formats = fn;
+                    % %                 clear fn
+                    % %             end
+                    [file, path, filterindex] = uiputfile(formats,'Export Figure as',this.dynParams.lastExportFile);
+                    if ~path ; return ; end
+                    switch filterindex
+                        case 5 %'*.bmp'
+                            str = '-dbmp';
+                        case 6% '*.emf'
+                            str = '-dmeta';
+                        case 3 %'*.eps'
+                            str = '-depsc2';
+                        case 2 %'*.jpg'
+                            str = '-djpeg';
+                        case 7 %'*.pdf'
+                            str = '-dpdf';
+                        case 1 %'*.png'
+                            str = '-dpng';
+                        case 4 %'*.tiff'
+                            str = '-dtiff';
+                    end
+                case 'Animation'
+                    [file, path] = uiputfile({'*.gif','Graphics Interchange Format (*.gif)'},'Export Animation as',this.dynParams.lastExportFile);
+                    if ~path ; return ; end
+            end            
+            [~,file,ext] = fileparts(file);
+            hFig = figure('Position',ss - [0 0 250 75]);
+            set(hFig,'Renderer','Painters');
+            feObj = FLIMXFigureExport(this.objHandles.(sprintf('%sdo',side)));
+            for i = 1:nSubjects
+                fn = fullfile(path,sprintf('%s_%02.0f%s',file,i,ext));
+                this.visHandles.(sprintf('subject_%s_pop',side)).Value = i;
+                this.updateGUI(side);  
+                feObj.sethfdMain([]);
+                %roi
+%                 feObj.updatePlots();
+%                 feObj.myColorScaleObj.checkCallback(this.getROIDisplayMode(s) > 1);  
+                feObj.makeExportPlot(hFig,pType);
+                pause(1) %workaround for wrong painting
+                if(settings.AddTextOverlay)
+                    switch settings.OverlayType
+                        case 'Running Number'
+                            feObj.addTextOverlay(num2str(i));
+                        case 'Subject Name'
+                            feObj.addTextOverlay(this.visHandles.(sprintf('subject_%s_pop',side)).String{i});
+                    end
+                end                
+                switch settings.ExportBatchOfFiguresOrAnimation
+                    case 'Batch of Figures'
+                        switch filterindex
+                            case 8
+                                savefig(hFig,fn);
+                            case {9,11}
+                                %no color bar, box, lines, ...
+                                imwrite(uint16(feObj.mainExportXls),fn);
+                            case 10
+                                %no color bar, box, lines, ...
+                                imwrite(uint16(feObj.mainExportXls),fn,'BitDepth',16,'Mode','lossless');
+                            otherwise
+                                if(this.exportParams.resampleImage)
+%                                     fr = getframe(feObj.getHandleMainAxes());
+%                                     imwrite(fr.cdata,fn);
+                                    %resample image to desired resolution, add color bar, box, lines, ...
+                                    print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
+                                else
+                                    %export image in native resolution without color bar, box, lines, ...
+                                    imwrite(flipud(feObj.mainExportColors),fn);
+                                end
+                        end
+                    case 'Animation'
+                        fr = getframe(feObj.getHandleMainAxes());
+                        [imind,cm] = rgb2ind(fr.cdata,256);
+                        % Write to the GIF File
+                        if(i == 1)
+                            imwrite(imind,cm,fn,'gif','Loopcount',inf,'DelayTime',0.1); % 1s delay between frames
+                        else
+                            imwrite(imind,cm,fn,'gif','WriteMode','append');
+                        end
+                end
+            end
+            close(hFig);
+            [~,this.dynParams.lastExportFile] = fileparts(file);
         end
         
         function menuExportMovie_Callback(this,hObject,eventdata)
@@ -737,14 +864,14 @@ classdef FLIMXVisGUI < handle
         %% get current GUI values
         function out = getScale(this,s)
             %get current channel number of side s
-            out = get(this.visHandles.(sprintf('main_axes_scale_%s_pop',s)),'Value');
+            out = get(this.visHandles.(sprintf('scale_%s_pop',s)),'Value');
         end
         
         function [dType, dTypeNr] = getFLIMItem(this,s)
             %get datatype and number of currently selected FLIM item
-            list = get(this.visHandles.(sprintf('main_axes_%s_pop',s)),'String');
-            ma_pop_sel = get(this.visHandles.(sprintf('main_axes_%s_pop',s)),'Value');
-            switch get(this.visHandles.(sprintf('main_axes_var_%s_pop',s)),'Value')                
+            list = get(this.visHandles.(sprintf('flim_param_%s_pop',s)),'String');
+            ma_pop_sel = get(this.visHandles.(sprintf('flim_param_%s_pop',s)),'Value');
+            switch get(this.visHandles.(sprintf('var_mode_%s_pop',s)),'Value')                
                 case {1,3,4} %univariate / condition cluster
                     [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(list(ma_pop_sel,:));
                 case 2 %multivariate
@@ -762,8 +889,8 @@ classdef FLIMXVisGUI < handle
         function out = getChannel(this,s)
             %get current channel number of side s
             out = 1;
-            str = get(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'String');
-            str = str(get(this.visHandles.(sprintf('main_axes_chan_%s_pop',s)),'Value'));
+            str = get(this.visHandles.(sprintf('channel_%s_pop',s)),'String');
+            str = str(get(this.visHandles.(sprintf('channel_%s_pop',s)),'Value'));
             idx = isstrprop(str, 'digit');
             if(~iscell(idx))
                 return
@@ -775,7 +902,7 @@ classdef FLIMXVisGUI < handle
         
         function out = getROIDisplayMode(this,s)
             %get '2D', ROI 2D or ROI 3D
-            out = get(this.visHandles.(sprintf('main_axes_pdim_%s_pop',s)),'Value');
+            out = get(this.visHandles.(sprintf('dimension_%s_pop',s)),'Value');
         end
         
         function [name, nr] = getSubject(this,s)
@@ -784,8 +911,8 @@ classdef FLIMXVisGUI < handle
             NrSubs = this.fdt.getNrSubjects(this.getStudy(s),this.getCondition(s));
             if(NrSubs ~= 0)
                 %study/condition does contain subjects
-                nr = get(this.visHandles.(sprintf('dataset_%s_pop',s)),'Value');
-                subs = get(this.visHandles.(sprintf('dataset_%s_pop',s)),'String');           
+                nr = get(this.visHandles.(sprintf('subject_%s_pop',s)),'Value');
+                subs = get(this.visHandles.(sprintf('subject_%s_pop',s)),'String');           
                 if(iscell(subs))
                     name = subs{nr};
                 else
@@ -1533,7 +1660,7 @@ classdef FLIMXVisGUI < handle
         function GUI_subjectPop_Callback(this,hObject,eventdata)
             %select subject
             s = 'r';
-            if(strcmp(get(hObject,'Tag'),'dataset_l_pop'))
+            if(strcmp(get(hObject,'Tag'),'subject_l_pop'))
                 s = 'l';
             end
             %save study info to disk
@@ -1545,17 +1672,17 @@ classdef FLIMXVisGUI < handle
         function GUI_subjectButton_Callback(this,hObject,eventdata)
             %switch subject
             switch get(hObject,'Tag')
-                case 'dataset_l_dec_button'
-                    set(this.visHandles.dataset_l_pop,'Value',max(1,get(this.visHandles.dataset_l_pop,'Value')-1));
+                case 'subject_l_dec_button'
+                    set(this.visHandles.subject_l_pop,'Value',max(1,get(this.visHandles.subject_l_pop,'Value')-1));
                     s = 'l';
-                case 'dataset_l_inc_button'
-                    set(this.visHandles.dataset_l_pop,'Value',min(length(get(this.visHandles.dataset_l_pop,'String')),get(this.visHandles.dataset_l_pop,'Value')+1));
+                case 'subject_l_inc_button'
+                    set(this.visHandles.subject_l_pop,'Value',min(length(get(this.visHandles.subject_l_pop,'String')),get(this.visHandles.subject_l_pop,'Value')+1));
                     s = 'l';
-                case 'dataset_r_dec_button'
-                    set(this.visHandles.dataset_r_pop,'Value',max(1,get(this.visHandles.dataset_r_pop,'Value')-1));
+                case 'subject_r_dec_button'
+                    set(this.visHandles.subject_r_pop,'Value',max(1,get(this.visHandles.subject_r_pop,'Value')-1));
                     s = 'r';
-                case 'dataset_r_inc_button'
-                    set(this.visHandles.dataset_r_pop,'Value',min(length(get(this.visHandles.dataset_r_pop,'String')),get(this.visHandles.dataset_r_pop,'Value')+1));
+                case 'subject_r_inc_button'
+                    set(this.visHandles.subject_r_pop,'Value',min(length(get(this.visHandles.subject_r_pop,'String')),get(this.visHandles.subject_r_pop,'Value')+1));
                     s = 'r';
                 otherwise
                     return
@@ -1566,10 +1693,10 @@ classdef FLIMXVisGUI < handle
             this.updateGUI(s);
         end
         
-        function GUI_mainAxesPop_Callback(this,hObject,eventdata)
+        function GUI_FLIMParamPop_Callback(this,hObject,eventdata)
             %select FLIMItem
             s = 'r';
-            if(strcmp(get(hObject,'Tag'),'main_axes_l_pop'))
+            if(strcmp(get(hObject,'Tag'),'flim_param_l_pop'))
                 s = 'l';
             end                       
             this.updateGUI(s);
@@ -1579,20 +1706,20 @@ classdef FLIMXVisGUI < handle
 %             this.objHandles.(sprintf('%sdo',s)).updatePlots();       
         end
         
-        function GUI_mainAxesVarPop_Callback(this,hObject,eventdata)
+        function GUI_varModePop_Callback(this,hObject,eventdata)
             %select uni- or multivariate mode
             s = 'r';
-            if(strcmp(get(hObject,'Tag'),'main_axes_var_l_pop'))
+            if(strcmp(get(hObject,'Tag'),'var_mode_l_pop'))
                 s = 'l';
             end            
             this.setupGUI();
             this.updateGUI(s);                      
         end
         
-        function GUI_mainAxesDimPop_Callback(this,hObject,eventdata)
+        function GUI_dimensionPop_Callback(this,hObject,eventdata)
             %select 2D overview, 2D or 3D visualization
             s = 'r';                       
-            if(strcmp(get(hObject,'Tag'),'main_axes_pdim_l_pop'))
+            if(strcmp(get(hObject,'Tag'),'dimension_l_pop'))
                 s = 'l';
             end
             if(this.fdt.getNrSubjects(this.getStudy(s),this.getCondition(s)) < 1)
@@ -1606,20 +1733,20 @@ classdef FLIMXVisGUI < handle
             %this.updateGUI([]);
         end
         
-        function GUI_mainAxesChPop_Callback(this,hObject,eventdata)
+        function GUI_channelPop_Callback(this,hObject,eventdata)
             %select channel
             s = 'r';
-            if(strcmp(get(hObject,'Tag'),'main_axes_chan_l_pop'))
+            if(strcmp(get(hObject,'Tag'),'channel_l_pop'))
                 s = 'l';
             end
             this.setupGUI();
             this.updateGUI(s);
         end
         
-        function GUI_mainAxesScalePop_Callback(this,hObject,eventdata)
+        function GUI_scalePop_Callback(this,hObject,eventdata)
             %select linear or log10 scaling
             s = 'r';
-            if(strcmp(get(hObject,'Tag'),'main_axes_scale_l_pop'))
+            if(strcmp(get(hObject,'Tag'),'scale_l_pop'))
                 s = 'l';
             end
             this.objHandles.(sprintf('%sdo',s)).sethfdMain([]);
@@ -1627,10 +1754,10 @@ classdef FLIMXVisGUI < handle
             this.objHandles.(sprintf('%sdo',s)).updatePlots();
         end
         
-        function GUI_mainAxesZoom_Callback(this,hObject,eventdata)
+        function GUI_zoom_Callback(this,hObject,eventdata)
             %zoom
             s = 'r';
-            if(strcmp(hObject.Tag,'slider_l_zoom'))
+            if(strcmp(hObject.Tag,'zoom_l_slider'))
                 s = 'l';
             end
             if(hObject.Value == 1)
@@ -1863,8 +1990,8 @@ classdef FLIMXVisGUI < handle
 %             if(x > y)
 %                 ex = ex';
 %             end
-            dType = get(this.visHandles.(sprintf('main_axes_%s_pop',side)),'String');
-            dType = char(dType(get(this.visHandles.(sprintf('main_axes_%s_pop',side)),'Value'),:));
+            dType = get(this.visHandles.(sprintf('flim_param_%s_pop',side)),'String');
+            dType = char(dType(get(this.visHandles.(sprintf('flim_param_%s_pop',side)),'Value'),:));
             if(strcmp(pType,'supp'))
                 eType = get(this.visHandles.(sprintf('supp_axes_%s_pop',side)),'String');
                 eType = char(eType(get(this.visHandles.(sprintf('supp_axes_%s_pop',side)),'Value'),:));
@@ -1939,24 +2066,24 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.enableMouse_check,'Callback',@this.GUI_enableMouseCheck_Callback,'Value',0,'String','enable ROI definition');
             set(this.visHandles.sync3DViews_check,'Callback',@this.GUI_sync3DViews_check_Callback,'Value',0);
             %main axes
-            set(this.visHandles.dataset_l_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the left side');
-            set(this.visHandles.dataset_r_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the right side');
-            set(this.visHandles.dataset_l_dec_button,'FontName','Symbol','String',char(173),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to previous subject on the left side');
-            set(this.visHandles.dataset_l_inc_button,'FontName','Symbol','String',char(175),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to next subject on the left side');
-            set(this.visHandles.dataset_r_dec_button,'FontName','Symbol','String',char(173),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to previous subject on the right side');
-            set(this.visHandles.dataset_r_inc_button,'FontName','Symbol','String',char(175),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to next subject on the right side');
-            set(this.visHandles.main_axes_l_pop,'Callback',@this.GUI_mainAxesPop_Callback,'TooltipString','Select FLIM parameter to display on the left side');
-            set(this.visHandles.main_axes_r_pop,'Callback',@this.GUI_mainAxesPop_Callback,'TooltipString','Select FLIM parameter to display on the right side');
-            set(this.visHandles.main_axes_var_l_pop,'Callback',@this.GUI_mainAxesVarPop_Callback,'TooltipString','Display one or multiple FLIM parameters on the left side');
-            set(this.visHandles.main_axes_var_r_pop,'Callback',@this.GUI_mainAxesVarPop_Callback,'TooltipString','Display one or multiple FLIM parameters on the right side');
-            set(this.visHandles.main_axes_pdim_l_pop,'Callback',@this.GUI_mainAxesDimPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the left side');
-            set(this.visHandles.main_axes_pdim_r_pop,'Callback',@this.GUI_mainAxesDimPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the right side');
-            set(this.visHandles.main_axes_chan_l_pop,'Callback',@this.GUI_mainAxesChPop_Callback,'TooltipString','Switch the spectral channel on the left side');
-            set(this.visHandles.main_axes_chan_r_pop,'Callback',@this.GUI_mainAxesChPop_Callback,'TooltipString','Switch the spectral channel on the right side');
-            set(this.visHandles.main_axes_scale_l_pop,'Callback',@this.GUI_mainAxesScalePop_Callback,'Enable','off','Value',1,'TooltipString','Select linear or log10 scaling of the FLIM parameter on the left side');
-            set(this.visHandles.main_axes_scale_r_pop,'Callback',@this.GUI_mainAxesScalePop_Callback,'Enable','off','Value',1,'TooltipString','Select linear or log10 scaling of the FLIM parameter on the right side');
-            set(this.visHandles.slider_l_zoom,'Callback',@this.GUI_mainAxesZoom_Callback,'TooltipString','Zoom left side');
-            set(this.visHandles.slider_r_zoom,'Callback',@this.GUI_mainAxesZoom_Callback,'TooltipString','Zoom right side');
+            set(this.visHandles.subject_l_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the left side');
+            set(this.visHandles.subject_r_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the right side');
+            set(this.visHandles.subject_l_dec_button,'FontName','Symbol','String',char(173),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to previous subject on the left side');
+            set(this.visHandles.subject_l_inc_button,'FontName','Symbol','String',char(175),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to next subject on the left side');
+            set(this.visHandles.subject_r_dec_button,'FontName','Symbol','String',char(173),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to previous subject on the right side');
+            set(this.visHandles.subject_r_inc_button,'FontName','Symbol','String',char(175),'Callback',@this.GUI_subjectButton_Callback,'TooltipString','Switch to next subject on the right side');
+            set(this.visHandles.flim_param_l_pop,'Callback',@this.GUI_FLIMParamPop_Callback,'TooltipString','Select FLIM parameter to display on the left side');
+            set(this.visHandles.flim_param_r_pop,'Callback',@this.GUI_FLIMParamPop_Callback,'TooltipString','Select FLIM parameter to display on the right side');
+            set(this.visHandles.var_mode_l_pop,'Callback',@this.GUI_varModePop_Callback,'TooltipString','Display one or multiple FLIM parameters on the left side');
+            set(this.visHandles.var_mode_r_pop,'Callback',@this.GUI_varModePop_Callback,'TooltipString','Display one or multiple FLIM parameters on the right side');
+            set(this.visHandles.dimension_l_pop,'Callback',@this.GUI_dimensionPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the left side');
+            set(this.visHandles.dimension_r_pop,'Callback',@this.GUI_dimensionPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the right side');
+            set(this.visHandles.channel_l_pop,'Callback',@this.GUI_channelPop_Callback,'TooltipString','Switch the spectral channel on the left side');
+            set(this.visHandles.channel_r_pop,'Callback',@this.GUI_channelPop_Callback,'TooltipString','Switch the spectral channel on the right side');
+            set(this.visHandles.scale_l_pop,'Callback',@this.GUI_scalePop_Callback,'Enable','off','Value',1,'TooltipString','Select linear or log10 scaling of the FLIM parameter on the left side');
+            set(this.visHandles.scale_r_pop,'Callback',@this.GUI_scalePop_Callback,'Enable','off','Value',1,'TooltipString','Select linear or log10 scaling of the FLIM parameter on the right side');
+            set(this.visHandles.zoom_l_slider,'Callback',@this.GUI_zoom_Callback,'TooltipString','Zoom left side');
+            set(this.visHandles.zoom_r_slider,'Callback',@this.GUI_zoom_Callback,'TooltipString','Zoom right side');
             %supp axes
             set(this.visHandles.supp_axes_l_pop,'Callback',@this.GUI_suppAxesPop_Callback,'TooltipString','Show histogram or cross-section for current subject','Value',2);
             set(this.visHandles.supp_axes_r_pop,'Callback',@this.GUI_suppAxesPop_Callback,'TooltipString','Show histogram or cross-section for current subject','Value',2);
@@ -2014,15 +2141,19 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.menuHolmWilcoxon,'Callback',@this.menuHolmWilcoxon_Callback);
             set(this.visHandles.menuClustering,'Callback',@this.menuClustering_Callback);
             set(this.visHandles.menuOpenStudyMgr,'Callback',@this.menuOpenStudyMgr_Callback);
-            set(this.visHandles.menuSSTL,'Callback',@this.menuExportFigure_Callback);
-            set(this.visHandles.menuSSTR,'Callback',@this.menuExportFigure_Callback);
-            set(this.visHandles.menuSSBL,'Callback',@this.menuExportFigure_Callback);
-            set(this.visHandles.menuSSBR,'Callback',@this.menuExportFigure_Callback);
-            set(this.visHandles.menuMovie,'Callback',@this.menuExportMovie_Callback);
-            set(this.visHandles.menuXlsTL,'Callback',@this.menuExportExcel_Callback);
-            set(this.visHandles.menuXlsTR,'Callback',@this.menuExportExcel_Callback);
-            set(this.visHandles.menuXlsBL,'Callback',@this.menuExportExcel_Callback);
-            set(this.visHandles.menuXlsBR,'Callback',@this.menuExportExcel_Callback);
+            set(this.visHandles.menuExportFigureTL,'Callback',@this.menuExportFigure_Callback);
+            set(this.visHandles.menuExportFigureTR,'Callback',@this.menuExportFigure_Callback);
+            set(this.visHandles.menuExportFigureBL,'Callback',@this.menuExportFigure_Callback);
+            set(this.visHandles.menuExportFigureBR,'Callback',@this.menuExportFigure_Callback);
+            set(this.visHandles.menuExportAnimationTL,'Callback',@this.menuExportAnimation_Callback);
+            set(this.visHandles.menuExportAnimationTR,'Callback',@this.menuExportAnimation_Callback);
+            set(this.visHandles.menuExportAnimationBL,'Callback',@this.menuExportAnimation_Callback);
+            set(this.visHandles.menuExportAnimationBR,'Callback',@this.menuExportAnimation_Callback);
+            set(this.visHandles.menuExportMovie,'Callback',@this.menuExportMovie_Callback);
+            set(this.visHandles.menuExportExcelTL,'Callback',@this.menuExportExcel_Callback);
+            set(this.visHandles.menuExportExcelTR,'Callback',@this.menuExportExcel_Callback);
+            set(this.visHandles.menuExportExcelBL,'Callback',@this.menuExportExcel_Callback);
+            set(this.visHandles.menuExportExcelBR,'Callback',@this.menuExportExcel_Callback);
             set(this.visHandles.menuOpenFLIMXFit,'Callback',@this.menuOpenFLIMXFit_Callback);
             set(this.visHandles.menuAbout,'Callback',@this.menuAbout_Callback);
             set(this.visHandles.menuUserGuide,'Callback',@this.menuUserGuide_Callback);

@@ -1770,7 +1770,7 @@ classdef FDisplay < handle
         
         function out = get.h_pd(this)
             %
-            out = this.visObj.visHandles.(sprintf('dataset_%s_pop',this.mySide));
+            out = this.visObj.visHandles.(sprintf('subject_%s_pop',this.mySide));
         end
         
         function out = get.h_m_ax(this)
@@ -1780,32 +1780,32 @@ classdef FDisplay < handle
         
         function out = get.h_s_ax(this)
             %
-            out = this.getHandleSuppAxes();            
+            out = this.getHandleSuppAxes();
         end
         
         function out = get.h_m_p(this)
             %
-            out = this.visObj.visHandles.(sprintf('main_axes_%s_pop',this.mySide));
+            out = this.visObj.visHandles.(sprintf('flim_param_%s_pop',this.mySide));
         end
         
         function out = get.h_m_pvar(this)
             %
-            out = this.visObj.visHandles.(sprintf('main_axes_var_%s_pop',this.mySide));
+            out = this.visObj.visHandles.(sprintf('var_mode_%s_pop',this.mySide));
         end
         
         function out = get.h_m_pdim(this)
             %
-            out = this.visObj.visHandles.(sprintf('main_axes_pdim_%s_pop',this.mySide));
+            out = this.visObj.visHandles.(sprintf('dimension_%s_pop',this.mySide));
         end
         
         function out = get.h_m_pch(this)
             %
-            out = this.visObj.visHandles.(sprintf('main_axes_chan_%s_pop',this.mySide));
+            out = this.visObj.visHandles.(sprintf('channel_%s_pop',this.mySide));
         end
         
         function out = get.h_m_psc(this)
             %
-            out = this.visObj.visHandles.(sprintf('main_axes_scale_%s_pop',this.mySide));
+            out = this.visObj.visHandles.(sprintf('scale_%s_pop',this.mySide));
         end
         
         function out = get.h_s_p(this)
@@ -1865,7 +1865,7 @@ classdef FDisplay < handle
                 
         function out = get.h_zoom_slider(this)
             %
-            out = this.visObj.visHandles.(sprintf('slider_%s_zoom',this.mySide));
+            out = this.visObj.visHandles.(sprintf('zoom_%s_slider',this.mySide));
         end
         
         function out = get.h_s_colormapLowEdit(this)

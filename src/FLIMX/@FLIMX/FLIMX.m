@@ -524,8 +524,8 @@ classdef FLIMX < handle
             %set current revisions HERE!
             out.config_revision = 272;
             out.client_revision_major = 5;
-            out.client_revision_minor = 2;
-            out.client_revision_fix = 19;
+            out.client_revision_minor = 3;
+            out.client_revision_fix = 0;
             out.core_revision = 501;
             out.results_revision = 256;
             out.measurement_revision = 206;
@@ -569,7 +569,6 @@ classdef FLIMX < handle
             end
             out = maxSysCacheSz;
         end
-
 
         function MatlabPoolIdleFcn()
             %function to keep matlab pool from timing out
