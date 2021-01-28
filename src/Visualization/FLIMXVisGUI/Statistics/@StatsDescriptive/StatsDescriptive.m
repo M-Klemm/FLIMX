@@ -682,9 +682,9 @@ classdef StatsDescriptive < handle
         
         function dType = get.dType(this) 
             dType = [];
-            out = get(this.visHandles.popupSelFLIMParam,'String');
-            if(~ischar(out) && ~isempty(out))
-                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(out{get(this.visHandles.popupSelFLIMParam,'Value')});
+            str = get(this.visHandles.popupSelFLIMParam,'String');
+            if(~ischar(str) && ~isempty(str))
+                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(str{get(this.visHandles.popupSelFLIMParam,'Value')});
                 dType = dType{1};
             end
         end
