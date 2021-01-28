@@ -1138,12 +1138,31 @@ classdef FDTSubject < fluoSubject
                         out = zeros(size(dataA),'like',dataA);
                         out(idxB & idx) = dataB(idxB & idx);
                         out(idxA & idx) = dataA(idxA & idx);
+                    case {'dilate','erode','open','close'}
+                        dataA(~idxA) = 0;
+                        eval(sprintf('out = im%s(dataA,strel(''disk'',%d));',op,uint32(dataB(1))));
+                        %out = logical(out);
+                        idx = logical(out);
+                    case 'fill'
+                        %select largest region and fill it
+                        dataA(~idxA) = 0;
+                        rp = regionprops(logical(dataA),'FilledArea','FilledImage','BoundingBox');
+                        idx = false(size(dataA));
+                        if(isempty(rp))
+                            out = zeros(size(dataA),'like',dataA);
+                        else
+                            out = ones(size(dataA),'like',dataA);
+                            [~,rIdx] = max([rp.FilledArea]);
+                            idx(ceil(rp(rIdx).BoundingBox(2)):ceil(rp(rIdx).BoundingBox(2))+rp(rIdx).BoundingBox(4)-1,...
+                                ceil(rp(rIdx).BoundingBox(1)):ceil(rp(rIdx).BoundingBox(1))+rp(rIdx).BoundingBox(3)-1) = rp(rIdx).FilledImage;
+                            %idx = imfill(idx,'holes');
+                        end
                     otherwise %+,-,*,/,>,<,>=,<=,==,~=
                         eval(sprintf('out = (dataA %s dataB);',op));
                         idx = true(size(out));
                 end
                 if(~islogical(out))
-                    out(~idx) = nan;
+                    out(~idx) = NaN;
                 end
             end
         end

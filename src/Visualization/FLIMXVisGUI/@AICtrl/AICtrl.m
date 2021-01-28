@@ -166,7 +166,7 @@ classdef AICtrl < handle
             %updates controls to current values
             %get arithmetic images for current study
             [aiStr, aiParam] = this.visObj.fdt.getArithmeticImageDefinition(this.curStudy);
-            idx = min(length(aiStr),get(this.aiSel,'Value'));
+            idx = min(length(aiStr),this.aiSel.Value);
             if(length(aiStr) < idx || isempty(aiStr{idx}))
                 %hide controls
                 set(this.aiSel,'String','-none-','Value',1);
@@ -208,16 +208,24 @@ classdef AICtrl < handle
                 %make warning dialog?!
                 opNr = 1;
             end
-            set(this.opA,'Value',opNr);
-            set(this.normalizeA,'Value',aiParam{idx}.normalizeA);
-            set(this.normalizeB,'Value',aiParam{idx}.normalizeB);
-            set(this.normalizeC,'Value',aiParam{idx}.normalizeC);
-            this.updateItemPopup(this.chB.Value-1,'FLIMItem','B',aiParam{idx});
-            this.updateItemPopup(this.chB.Value-1,'ROI','B',aiParam{idx});
-            this.ROIVicinityB.Value = aiParam{idx}.ROIVicinityB;
-            this.updateItemPopup(this.chC.Value-1,'FLIMItem','C',aiParam{idx});
-            this.updateItemPopup(this.chC.Value-1,'ROI','C',aiParam{idx});
-            this.ROIVicinityC.Value = aiParam{idx}.ROIVicinityC;
+            this.opA.Value = opNr;
+            this.normalizeA.Value = aiParam{idx}.normalizeA;
+            if(opNr >= 16)
+                %dilate,erode,open,close,fill
+                this.targetSelB.Enable = 'Off';
+                this.opB.Visible = 'Off';
+            else
+                this.targetSelB.Enable = 'On';
+                this.opB.Visible = 'On';
+                this.normalizeB.Value = aiParam{idx}.normalizeB;
+                this.normalizeC.Value = aiParam{idx}.normalizeC;
+                this.updateItemPopup(this.chB.Value-1,'FLIMItem','B',aiParam{idx});
+                this.updateItemPopup(this.chB.Value-1,'ROI','B',aiParam{idx});
+                this.ROIVicinityB.Value = aiParam{idx}.ROIVicinityB;
+                this.updateItemPopup(this.chC.Value-1,'FLIMItem','C',aiParam{idx});
+                this.updateItemPopup(this.chC.Value-1,'ROI','C',aiParam{idx});
+                this.ROIVicinityC.Value = aiParam{idx}.ROIVicinityC;
+            end
             %first calculation target
             switch aiParam{idx}.compAgainstB
                 case 'val'
@@ -247,15 +255,22 @@ classdef AICtrl < handle
                     set(this.normalizeB,'Enable','off','Visible','off');
                     set(this.chB,'Enable','on','Visible','on');
             end
+            if(opNr == 20)
+                %fill operation
+                this.valB.Visible = 'off';
+                this.targetSelB.Visible = 'off';
+            else
+                this.targetSelB.Visible = 'on';
+            end
 %             this.updateItemPopup(this.chB.Value-1,aiParam{idx}.compAgainstB,'B',aiParam{idx});
             %op for third value / parameter
-            opNr = find(strcmp(aiParam{idx}.opB,get(this.opB,'String')));
+            opNr = find(strcmp(aiParam{idx}.opB,this.opB.String));
             if(isempty(opNr))
                 %Houston we've got a problem
                 %make warning dialog?!
                 opNr = 1;
             end
-            set(this.opB,'Value',opNr);
+            this.opB.Value = opNr;
             if(strcmp(aiParam{idx}.opB,'-no op-'))
                 set(this.valC,'Enable','off','Visible','off');
                 set(this.FLIMItemC,'Enable','off','Visible','off');
@@ -265,7 +280,7 @@ classdef AICtrl < handle
                 set(this.chC,'Enable','off','Visible','off');
                 set(this.targetSelC,'Visible','off');
             else
-                set(this.targetSelC,'Visible','on');
+                this.targetSelC.Visible = 'on';
                 %second calculation target
                 switch aiParam{idx}.compAgainstC
                     case 'val'
@@ -300,39 +315,44 @@ classdef AICtrl < handle
         function aiParams = getCurAIParams(this)
             %returns AIParams struct
             aiParams = AICtrl.getDefStruct();
-            str = get(this.FLIMItemA,'String');
-            aiParams.FLIMItemA = str{get(this.FLIMItemA,'Value')}; 
-            aiParams.normalizeA = get(this.normalizeA,'Value');
-            aiParams.normalizeB = get(this.normalizeB,'Value');
-            aiParams.normalizeC = get(this.normalizeC,'Value');
-            str = get(this.chA,'String');
-            vCh = get(this.chA,'Value');
+            str = this.FLIMItemA.String;
+            aiParams.FLIMItemA = str{this.FLIMItemA.Value}; 
+            aiParams.normalizeA = this.normalizeA.Value;
+            aiParams.normalizeB = this.normalizeB.Value;
+            aiParams.normalizeC = this.normalizeC.Value;
+            str = this.chA.String;
+            vCh = this.chA.Value;
             if(vCh == 1)
                 aiParams.chA = 0;
             else
-                tmp = str{get(this.chA,'Value')};
+                tmp = str{this.chA.Value};
                 aiParams.chA = str2double(tmp(isstrprop(tmp,'digit')));
             end
-            vCh = get(this.chB,'Value');
+            vCh = this.chB.Value;
             if(vCh == 1)
                 aiParams.chB = 0;
             else
-                tmp = str{get(this.chB,'Value')};
+                tmp = str{this.chB.Value};
                 aiParams.chB = str2double(tmp(isstrprop(tmp,'digit')));
             end
-            vCh = get(this.chC,'Value');
+            vCh = this.chC.Value;
             if(vCh == 1)
                 aiParams.chC = 0;
             else
-                tmp = str{get(this.chC,'Value')};
+                tmp = str{this.chC.Value};
                 aiParams.chC = str2double(tmp(isstrprop(tmp,'digit')));
             end
-            str = get(this.opA,'String');
-            aiParams.opA = str{get(this.opA,'Value')};
-            str = get(this.FLIMItemB,'String');
-            aiParams.FLIMItemB = str{get(this.FLIMItemB,'Value')};
-            str = get(this.ROIB,'String');
-            aiParams.ROIB = str{get(this.ROIB,'Value')};
+            str = this.opA.String;
+            aiParams.opA = str{this.opA.Value};
+            if(this.opA.Value >= 16)
+                %dilate, erode, open, close
+                this.targetSelB.Value = 3;
+                this.opB.Value = 1;
+            end
+            str = this.FLIMItemB.String;
+            aiParams.FLIMItemB = str{this.FLIMItemB.Value};
+            str = this.ROIB.String;
+            aiParams.ROIB = str{this.ROIB.Value};
             aiParams.ROIVicinityB = this.ROIVicinityB.Value;
             switch this.targetSelB.Value
                 case 1
@@ -342,10 +362,10 @@ classdef AICtrl < handle
                 case 3
                     aiParams.compAgainstB = 'val';
             end
-            str = get(this.FLIMItemC,'String');
-            aiParams.FLIMItemC = str{get(this.FLIMItemC,'Value')};
-            str = get(this.ROIC,'String');
-            aiParams.ROIC = str{get(this.ROIC,'Value')};
+            str = this.FLIMItemC.String;
+            aiParams.FLIMItemC = str{this.FLIMItemC.Value};
+            str = this.ROIC.String;
+            aiParams.ROIC = str{this.ROIC.Value};
             aiParams.ROIVicinityC = this.ROIVicinityC.Value;
             switch this.targetSelC.Value
                 case 1
@@ -355,10 +375,10 @@ classdef AICtrl < handle
                 case 3
                     aiParams.compAgainstC = 'val';
             end
-            str = get(this.opB,'String');
-            aiParams.opB = str{get(this.opB,'Value')};
-            aiParams.valB = str2double(get(this.valB,'String'));
-            aiParams.valC = str2double(get(this.valC,'String'));
+            str = this.opB.String;
+            aiParams.opB = str{this.opB.Value};
+            aiParams.valB = str2double(this.valB.String);
+            aiParams.valC = str2double(this.valC.String);
         end
         
         function out = get.curStudy(this)
@@ -398,9 +418,9 @@ classdef AICtrl < handle
             this.ROIC = this.visObj.visHandles.ai_roi_c_pop;
             set(this.ROIC,'Callback',@this.ui_Callback,'TooltipString','Select Region of Interest (ROI), its mean value will be used for the arithmetic image calculation');
             this.ROIVicinityB = this.visObj.visHandles.ai_roi_vic_b_pop;
-            set(this.ROIVicinityB,'Callback',@this.ui_Callback,'TooltipString','Select ''inside'' for the area insode the ROI coordinates, ''invert'' to exclude the ROI area from further analysis or ''vicinity'' to use the area surrounding the ROI');
+            set(this.ROIVicinityB,'Callback',@this.ui_Callback,'TooltipString','Select ''inside'' for the area inside the ROI coordinates, ''invert'' to exclude the ROI area from further analysis or ''vicinity'' to use the area surrounding the ROI');
             this.ROIVicinityC = this.visObj.visHandles.ai_roi_vic_c_pop;
-            set(this.ROIVicinityC,'Callback',@this.ui_Callback,'TooltipString','Select ''inside'' for the area insode the ROI coordinates, ''invert'' to exclude the ROI area from further analysis or ''vicinity'' to use the area surrounding the ROI');
+            set(this.ROIVicinityC,'Callback',@this.ui_Callback,'TooltipString','Select ''inside'' for the area inside the ROI coordinates, ''invert'' to exclude the ROI area from further analysis or ''vicinity'' to use the area surrounding the ROI');
             this.targetSelB = this.visObj.visHandles.ai_targetSel_b_pop;
             set(this.targetSelB,'Callback',@this.ui_Callback,'TooltipString','Select target for arithmetic operation: FLIM parameter (e.g. Tau1), mean value of region of interest (ROI) or a numeric value (e.g. for comparison with a threshold)');
             this.targetSelC = this.visObj.visHandles.ai_targetSel_c_pop;
@@ -513,7 +533,7 @@ classdef AICtrl < handle
         
         function out = getDefOpString()
             %return string with possible numeric and logical operations
-            out = {'+','-','.*','./','<','>','<=','>=','==','!=','AND','OR','!AND','!OR','XOR'};
+            out = {'+','-','.*','./','<','>','<=','>=','==','!=','AND','OR','!AND','!OR','XOR','dilate','erode','open','close','fill'};
         end
         
         function out = getDefROIString()
