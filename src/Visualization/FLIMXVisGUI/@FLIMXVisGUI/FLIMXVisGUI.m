@@ -102,11 +102,33 @@ classdef FLIMXVisGUI < handle
             if(isempty(val))
                 return
             end
-            for i=1:length(s)
-                set(this.visHandles.(sprintf('study_%s_pop',s(i))),'Value',val);
+            for i = 1:length(s)
+                this.visHandles.(sprintf('study_%s_pop',s(i))).Value = val;
             end
             this.setupGUI();
             this.updateGUI([]);
+        end
+        
+        function success = setSubject(this,s,val)
+            % set current subject of side s
+            success = true;
+            if(isempty(s))
+                success = false;
+                return
+            end
+            allSubjects = this.visHandles.(sprintf('subject_%s_pop',s)).String;
+            if(ischar(val))
+                val = find(strcmp(val,allSubjects),1);            
+            elseif(isnumeric(val))
+                val = max(1,min(val,length(allSubjects)));
+            end
+            if(isempty(val))
+                success = false;
+                return
+            end
+            this.visHandles.(sprintf('subject_%s_pop',s)).Value = val;
+            this.setupGUI();
+            this.updateGUI(s);
         end
         
         function out = isOpenVisWnd(this)
@@ -905,11 +927,29 @@ classdef FLIMXVisGUI < handle
             out = get(this.visHandles.(sprintf('dimension_%s_pop',s)),'Value');
         end
         
+        function out = getDType(this,s)
+            %get current data type of side s
+            out = '';
+            str = this.visHandles.(sprintf('flim_param_%s_pop',s)).String;
+            if(~ischar(str) && ~isempty(str))
+                out = FLIMXVisGUI.FLIMItem2TypeAndID(str{this.visHandles.(sprintf('flim_param_%s_pop',s)).Value});
+                out = out{1};
+            end
+        end
+        
+        function out = getDTypeID(this,s)
+            %get current data type id of side s
+            out = [];
+            str = this.visHandles.(sprintf('flim_param_%s_pop',s)).String;
+            if(~ischar(str) && ~isempty(str))
+                [~,out] = FLIMXVisGUI.FLIMItem2TypeAndID(str{this.visHandles.(sprintf('flim_param_%s_pop',s)).Value});
+            end
+        end
+        
         function [name, nr] = getSubject(this,s)
             %get current subject name of side s
             name = [];
-            NrSubs = this.fdt.getNrSubjects(this.getStudy(s),this.getCondition(s));
-            if(NrSubs ~= 0)
+            if(this.fdt.getNrSubjects(this.getStudy(s),this.getCondition(s)) ~= 0)
                 %study/condition does contain subjects
                 nr = get(this.visHandles.(sprintf('subject_%s_pop',s)),'Value');
                 subs = get(this.visHandles.(sprintf('subject_%s_pop',s)),'String');           
@@ -985,7 +1025,7 @@ classdef FLIMXVisGUI < handle
             end
         end
         
-        function GUI_enableMouseCheck_Callback(this,hObject,eventdata)
+        function GUI_enableROIDefinitionCheck_Callback(this,hObject,eventdata)
             %en/dis-able mouse motion callbacks
         end
         
@@ -993,7 +1033,15 @@ classdef FLIMXVisGUI < handle
             %en/dis-able synchronization of 3D views
             %left side leads
             this.objHandles.rdo.setDispView(this.objHandles.ldo.getDispView());
-            this.objHandles.rdo.updatePlots();            
+            this.objHandles.rdo.updatePlots();
+        end
+        
+        function GUI_syncSubjects_check_Callback(this,hObject,eventdata)
+            %en/dis-able synchronization of subjects
+            %left side leads initially
+            if(hObject.Value)
+                this.setSubject('r',this.getSubject('l'));
+            end
         end
         
         function GUI_mouseScrollWheel_Callback(this,hObject,eventdata)
@@ -1092,14 +1140,14 @@ classdef FLIMXVisGUI < handle
                         end
                     elseif(~isempty(this.dynParams.mouseButtonDown) && this.dynParams.mouseButtonDown && ~isLeftButton)
                         %mouse move during moving of ROI or moving zoom
-                        if(this.dynParams.mouseButtonIsInsideROI && this.visHandles.enableMouse_check.Value)
+                        if(this.dynParams.mouseButtonIsInsideROI && this.visHandles.enableROIDef_check.Value)
                             this.visHandles.FLIMXVisGUIFigure.Pointer = 'fleur';
                         else
                             this.visHandles.FLIMXVisGUIFigure.Pointer = 'hand';
                         end
                     else
                         %no mouse button pressed
-                        if(this.visHandles.enableMouse_check.Value)
+                        if(this.visHandles.enableROIDef_check.Value)
                             %mouse pointer at edge of ROI with ROI enabled
                             ROICoord = thisROIObj.getCurROIInfo();
                             this.visHandles.FLIMXVisGUIFigure.Pointer = ROICtrl.mouseOverROIBorder(cpMain,thisROIObj.ROIType,ROICoord(:,2:end),pixelMargin);
@@ -1197,7 +1245,7 @@ classdef FLIMXVisGUI < handle
                                 this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),tmpROI(:,1),tmpROI(:,2:end),false);
                             end
                         else                            
-                            if(this.dynParams.mouseButtonIsInsideROI  && this.visHandles.enableMouse_check.Value)
+                            if(this.dynParams.mouseButtonIsInsideROI  && this.visHandles.enableROIDef_check.Value)
                                 %right button down: move ROI
                                 dTarget = int16(flipud(this.dynParams.mouseButtonDownCoord-cpMain));
                                 ROICoord = thisROIObj.getCurROIInfo();
@@ -1339,7 +1387,7 @@ classdef FLIMXVisGUI < handle
                     %check if user hit the border of an ROI
                     [ROIBorderStr, ROIBorderID] = ROICtrl.mouseOverROIBorder(cpMain,rt,currentROI(:,2:end),pixelMargin);
                     %ROI is active and ROI definition enabled
-                    if(isLeftButton && this.visHandles.enableMouse_check.Value && rt > 1000)
+                    if(isLeftButton && this.visHandles.enableROIDef_check.Value && rt > 1000)
                         this.dynParams.mouseButtonDown = ROIBorderID+1;
                         if(rt > 2000 && ~strcmp(ROIBorderStr,'cross'))
                             %this is not an ETDRS grid, change size of existing ROI
@@ -1380,7 +1428,7 @@ classdef FLIMXVisGUI < handle
                         else
                             isInsideROI = ROICtrl.mouseInsideROI(cpMain,rt,currentROI(:,2:end));
                         end
-                        if(isInsideROI && this.visHandles.enableMouse_check.Value)
+                        if(isInsideROI && this.visHandles.enableROIDef_check.Value)
                             this.visHandles.FLIMXVisGUIFigure.Pointer = 'fleur';
                         end
                         this.dynParams.mouseButtonIsInsideROI = isInsideROI;
@@ -1470,7 +1518,7 @@ classdef FLIMXVisGUI < handle
             %% main axes
             %draw mouse overlay in both main axes (empty cp deletes old overlays)
             if(~isempty(cpMain) && this.getROIDisplayMode(thisSide) < 3)
-                if(isempty(cpSupp) && this.getROIType(thisSide) > 1000 && this.visHandles.enableMouse_check.Value)
+                if(isempty(cpSupp) && this.getROIType(thisSide) > 1000 && this.visHandles.enableROIDef_check.Value)
                     thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
                     otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
                     if(~isempty(cpMain))
@@ -1583,7 +1631,7 @@ classdef FLIMXVisGUI < handle
                         %other side displays something else, clear possible invalid mouse overlay
                         this.objHandles.(sprintf('%sdo',otherSide)).drawCPMain([]);
                     end
-                elseif(~isempty(cpMain) && isempty(cpSupp) && ~this.visHandles.enableMouse_check.Value || this.getROIType(thisSide) < 1000)
+                elseif(~isempty(cpMain) && isempty(cpSupp) && ~this.visHandles.enableROIDef_check.Value || this.getROIType(thisSide) < 1000)
                     %click in main axis with ROI definition disabled or no ROI active
                     if(~this.dynParams.mouseButtonIsLeft)
                         %move zoom anchor
@@ -1639,34 +1687,57 @@ classdef FLIMXVisGUI < handle
         
         function GUI_studySet_Callback(this,hObject,eventdata)
             %select study
-            s = 'r';
+            thisSide = 'r';
+            otherSide = 'l';
             if(strcmp(get(hObject,'Tag'),'study_l_pop'))
-                s = 'l';
+                thisSide = 'l';
+                otherSide = 'r';
             end
-            this.setupGUI();
-            this.updateGUI(s);
+            if(this.visHandles.syncSubjects_check.Value)
+                this.setupGUI();
+                if(~this.setSubject(thisSide,this.getSubject(otherSide)))
+                    this.updateGUI(thisSide);
+                end
+            else
+                this.setupGUI();
+                this.updateGUI(thisSide);
+            end
         end
         
         function GUI_conditionSet_Callback(this,hObject,eventdata)
             %select condition
             s = 'r';
-            if(strcmp(get(hObject,'Tag'),'view_l_pop'))                
-                s = 'l';            
+            if(strcmp(get(hObject,'Tag'),'view_l_pop'))
+                s = 'l';
             end
             this.setupGUI();
-            this.updateGUI(s);             
+            this.updateGUI(s);
         end
                         
         function GUI_subjectPop_Callback(this,hObject,eventdata)
             %select subject
-            s = 'r';
+            thisSide = 'r';
+            otherSide = 'l';
             if(strcmp(get(hObject,'Tag'),'subject_l_pop'))
-                s = 'l';
+                thisSide = 'l';
+                otherSide = 'r';
             end
             %save study info to disk
-            this.FLIMXObj.fdt.saveStudy(this.getStudy(s));
+            this.FLIMXObj.fdt.saveStudy(this.getStudy(thisSide));
+            %if enabled by user, find current subject of this side on the other side and set it
             this.setupGUI();
-            this.updateGUI(s);
+            this.updateGUI(thisSide);
+            if(this.visHandles.syncSubjects_check.Value)
+                this.setSubject(otherSide,this.getSubject(thisSide));
+%                 dStr = this.fdt.getAllSubjectNames(curStudy,curCondition);
+%                 if(~isempty(dStr))
+%                     set(this.visHandles.(sprintf('subject_%s_pop',s)),'String',dStr,'Value',min(get(this.visHandles.(sprintf('subject_%s_pop',s)),'Value'),nrSubs));
+%                 else
+%                     set(this.visHandles.(sprintf('subject_%s_pop',s)),'String','dataset','Value',1);
+%                 end
+%                 this.myStatsGroupComp.setupGUI();
+%                 curSubject = this.getSubject(s);
+            end
         end
         
         function GUI_subjectButton_Callback(this,hObject,eventdata)
@@ -1674,23 +1745,30 @@ classdef FLIMXVisGUI < handle
             switch get(hObject,'Tag')
                 case 'subject_l_dec_button'
                     set(this.visHandles.subject_l_pop,'Value',max(1,get(this.visHandles.subject_l_pop,'Value')-1));
-                    s = 'l';
+                    thisSide = 'l';
+                    otherSide = 'r';
                 case 'subject_l_inc_button'
                     set(this.visHandles.subject_l_pop,'Value',min(length(get(this.visHandles.subject_l_pop,'String')),get(this.visHandles.subject_l_pop,'Value')+1));
-                    s = 'l';
+                    thisSide = 'l';
+                    otherSide = 'r';
                 case 'subject_r_dec_button'
                     set(this.visHandles.subject_r_pop,'Value',max(1,get(this.visHandles.subject_r_pop,'Value')-1));
-                    s = 'r';
+                    thisSide = 'r';
+                    otherSide = 'l';
                 case 'subject_r_inc_button'
                     set(this.visHandles.subject_r_pop,'Value',min(length(get(this.visHandles.subject_r_pop,'String')),get(this.visHandles.subject_r_pop,'Value')+1));
-                    s = 'r';
+                    thisSide = 'r';
+                    otherSide = 'l';
                 otherwise
                     return
             end
             %save study info to disk
-            this.FLIMXObj.fdt.saveStudy(this.getStudy(s));
+            this.FLIMXObj.fdt.saveStudy(this.getStudy(thisSide));
             this.setupGUI();
-            this.updateGUI(s);
+            this.updateGUI(thisSide);
+            if(this.visHandles.syncSubjects_check.Value)
+                this.setSubject(otherSide,this.getSubject(thisSide));
+            end
         end
         
         function GUI_FLIMParamPop_Callback(this,hObject,eventdata)
@@ -1698,12 +1776,12 @@ classdef FLIMXVisGUI < handle
             s = 'r';
             if(strcmp(get(hObject,'Tag'),'flim_param_l_pop'))
                 s = 'l';
-            end                       
+            end
             this.updateGUI(s);
             this.updateColorbar();
 %             this.objHandles.(sprintf('%sdo',s)).sethfdMain([]);
 %             this.objHandles.(sprintf('%sROI',s)).updateGUI([]);
-%             this.objHandles.(sprintf('%sdo',s)).updatePlots();       
+%             this.objHandles.(sprintf('%sdo',s)).updatePlots();
         end
         
         function GUI_varModePop_Callback(this,hObject,eventdata)
@@ -1711,14 +1789,14 @@ classdef FLIMXVisGUI < handle
             s = 'r';
             if(strcmp(get(hObject,'Tag'),'var_mode_l_pop'))
                 s = 'l';
-            end            
+            end
             this.setupGUI();
-            this.updateGUI(s);                      
+            this.updateGUI(s);
         end
         
         function GUI_dimensionPop_Callback(this,hObject,eventdata)
             %select 2D overview, 2D or 3D visualization
-            s = 'r';                       
+            s = 'r';
             if(strcmp(get(hObject,'Tag'),'dimension_l_pop'))
                 s = 'l';
             end
@@ -1811,11 +1889,47 @@ classdef FLIMXVisGUI < handle
                     if(isequal(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}, this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1}))
                         this.objHandles.(sprintf('%sdo',otherSide)).zoomSuppXScale(this.objHandles.(sprintf('%sdo',thisSide)).mySuppXZoomScale);
                     end
-                else
+                elseif(contains(tag,'out'))
                     this.objHandles.(sprintf('%sdo',thisSide)).zoomSuppXScale('out');
                     if(isequal(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}, this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1}))
                         this.objHandles.(sprintf('%sdo',otherSide)).zoomSuppXScale(this.objHandles.(sprintf('%sdo',thisSide)).mySuppXZoomScale);
                     end
+                elseif(contains(tag,'misc'))
+                    csInfo = this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.getCurCSInfo();
+                    ch = this.getChannel(thisSide);
+                    sp1 = sprintf('Set ''%s %d'' color scaling for all subjects of channel %d\n\n',this.getDType(thisSide),this.getDTypeID(thisSide),ch);
+                    if(strcmp(this.getCondition(thisSide),FDTree.defaultConditionName))
+                        %all subjects
+                        sp2 = sprintf('in study ''%s''\n\n',this.getStudy(thisSide));
+                    else
+                        %condition
+                        sp2 = sprintf('in study ''%s'' condition ''%s''\n\n',this.getStudy(thisSide),this.getCondition(thisSide));
+                    end
+                    if(csInfo(1))
+                        sp3 = sprintf('to automatic?');
+%                         if(strcmp(this.getCondition(thisSide),FDTree.defaultConditionName))
+%                             choice = questdlg(sprintf('Set color scaling of ''%s %d'' for all subjects of channel %d\n\nin study ''%s''?\n\nto automatic?',...
+%                                 ,this.getStudy(thisSide)),'Set Color Scaling?','Yes','No','Yes');
+%                         else
+%                             choice = questdlg(sprintf('Set color scaling of ''%s %d'' for all subjects of channel %d\n\nin condition ''%s''\n\nof study ''%s''?\n\nto automatic?',...
+%                                 this.getDType(thisSide),this.getDTypeID(thisSide),ch,this.getCondition(thisSide),this.getStudy(thisSide)),'Set Color Scaling?','Yes','No','Yes');
+%                         end
+                    else
+                        csInfoStr = FLIMXFitGUI.num4disp(csInfo);
+                        sp3 = sprintf('to %s - %s?',csInfoStr{2},csInfoStr{3});
+%                         if(strcmp(this.getCondition(thisSide),FDTree.defaultConditionName))
+%                             choice = questdlg(sprintf('Set color scaling of ''%s %d'' for all subjects of channel %d\n\nin study ''%s''\n\nto %0.1f - %0.1f?\n',...
+%                                 this.getDType(thisSide),this.getDTypeID(thisSide),ch,this.getStudy(thisSide),csInfo(2),csInfo(3)),'Set Color Scaling?','Yes','No','Yes');
+%                         else
+%                             choice = questdlg(sprintf('Set color scaling of ''%s %d'' for all subjects of channel %d\n\nin condition ''%s''\n\nof study ''%s''\n\nto %0.1f - %0.1f?\n',...
+%                                 this.getDType(thisSide),this.getDTypeID(thisSide),ch,this.getCondition(thisSide),this.getStudy(thisSide),csInfo(2),csInfo(3)),'Set Color Scaling?','Yes','No','Yes');
+%                         end
+                    end
+                    choice = questdlg([sp1,sp2,sp3],'Set Color Scaling?','Yes','No','Yes');
+                    switch choice
+                        case 'Yes'
+                            this.fdt.setResultColorScaling(this.getStudy(thisSide),this.getCondition(thisSide),this.getChannel(thisSide),this.getDType(thisSide),this.getDTypeID(thisSide),csInfo);
+                    end                    
                 end
                 return
             end
@@ -1849,16 +1963,16 @@ classdef FLIMXVisGUI < handle
             if(contains(tag,'edit'))
                 if(strcmp(dim,'z'))
                     this.objHandles.(sprintf('%sZScale',thisSide)).editCallback(dim,bnd);
-                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.checkCallback(this.getROIDisplayMode(thisSide) > 1); 
+                    this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.checkCallback(this.getROIDisplayMode(thisSide) > 1);
                 else
                     this.objHandles.(sprintf('%sROI',thisSide)).editCallback(dim,bnd);
                 end
             elseif(contains(tag,'roi_group'))
-                if(isempty(this.objHandles.ROIGM) || ~isprop(this.objHandles.ROIGM,'FLIMXROIGroupManagerUIFigure') || ~isgraphics(this.objHandles.ROIGM.FLIMXROIGroupManagerUIFigure)) 
+                if(isempty(this.objHandles.ROIGM) || ~isprop(this.objHandles.ROIGM,'FLIMXROIGroupManagerUIFigure') || ~isgraphics(this.objHandles.ROIGM.FLIMXROIGroupManagerUIFigure))
                     this.objHandles.ROIGM = GUI_ROIGroups(this,this.getStudy(thisSide));
                 else
                     this.objHandles.ROIGM.myStartupFcn(this,this.getStudy(thisSide));
-                end                
+                end
             elseif(length(tag) == 11 && contains(tag,'table'))
                 this.objHandles.(sprintf('%sROI',thisSide)).tableEditCallback(eventdata);
                 this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
@@ -1893,7 +2007,7 @@ classdef FLIMXVisGUI < handle
                     case 'Delete'
                         this.objHandles.(sprintf('%sROI',thisSide)).deleteROI();
                         this.objHandles.(sprintf('%sROI',otherSide)).setupGUI();
-                        this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);                        
+                        this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
                     case 'Reset'
                         this.objHandles.(sprintf('%sROI',thisSide)).resetROI();
                         this.objHandles.(sprintf('%sROI',thisSide)).updateGUI([]);
@@ -1918,7 +2032,7 @@ classdef FLIMXVisGUI < handle
             %update ROI controls on other side
             if(contains(tag,'type_'))
                 this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
-            else                
+            else
                 if(~strcmp(dim,'z'))
                     this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
                     %update crossSections only for x and y
@@ -1950,7 +2064,7 @@ classdef FLIMXVisGUI < handle
             s = 'r';
             if(strcmp(get(hObject,'Tag'),'supp_axes_hist_l_pop'))
                 s = 'l';
-            end            
+            end
             this.updateGUI(s);
         end
         
@@ -1961,12 +2075,12 @@ classdef FLIMXVisGUI < handle
                 s = 'l';
             end
             this.objHandles.(sprintf('%sdo',s)).makeSuppPlot();
-        end        
+        end
                 
         function menuExportExcel_Callback(this,hObject,eventdata)
             %
             tag = get(hObject,'Tag');
-            side = 'l';            
+            side = 'l';
             if(contains(tag,'R'))
                 side = 'r';
             end
@@ -1985,11 +2099,11 @@ classdef FLIMXVisGUI < handle
             end
             [file,path] = uiputfile({'*.xlsx','Excel file (*.xlsx)';'*.xls','Excel 97-2003 file (*.xls)'},'Export Data in Excel Fileformat...');
             if ~file ; return ; end
-            fn = fullfile(path,file);            
-%             [y x] = size(ex);
-%             if(x > y)
-%                 ex = ex';
-%             end
+            fn = fullfile(path,file);
+            %             [y x] = size(ex);
+            %             if(x > y)
+            %                 ex = ex';
+            %             end
             dType = get(this.visHandles.(sprintf('flim_param_%s_pop',side)),'String');
             dType = char(dType(get(this.visHandles.(sprintf('flim_param_%s_pop',side)),'Value'),:));
             if(strcmp(pType,'supp'))
@@ -2004,12 +2118,12 @@ classdef FLIMXVisGUI < handle
         
         function GUI_intOverlay_Callback(this,hObject,eventdata)
             %
-            s = 'l';                     
+            s = 'l';
             %find side/axes
             tag = get(hObject,'Tag');
             if(~contains(tag,'_l_'))
                 s = 'r';
-            end     
+            end
             if(this.fdt.getNrSubjects(this.getStudy(s),this.getCondition(s)) < 1)
                 return
             end
@@ -2027,7 +2141,7 @@ classdef FLIMXVisGUI < handle
             end
             this.objHandles.(sprintf('%sdo',s)).sethfdMain([]); %for log10 scaling
             this.objHandles.(sprintf('%sdo',s)).updatePlots();
-        end 
+        end
         
         function GUI_conditionColorSelection_Callback(this,hObject,eventdata)
             %change study condition color
@@ -2052,10 +2166,10 @@ classdef FLIMXVisGUI < handle
         function createVisWnd(this)
             %make a window for visualization of current fit
             switch this.generalParams.windowSize
-                case 1                    
+                case 1
                     this.visHandles = FLIMXVisGUIFigureMedium();
                 case 2
-                     this.visHandles = FLIMXVisGUIFigureSmall();
+                    this.visHandles = FLIMXVisGUIFigureSmall();
                 case 3
                     this.visHandles = FLIMXVisGUIFigureLarge();
             end
@@ -2063,8 +2177,9 @@ classdef FLIMXVisGUI < handle
             %set callbacks
             set(this.visHandles.FLIMXVisGUIFigure,'Units','Pixels');
             %popups
-            set(this.visHandles.enableMouse_check,'Callback',@this.GUI_enableMouseCheck_Callback,'Value',0,'String','enable ROI definition');
-            set(this.visHandles.sync3DViews_check,'Callback',@this.GUI_sync3DViews_check_Callback,'Value',0);
+            set(this.visHandles.enableROIDef_check,'Callback',@this.GUI_enableROIDefinitionCheck_Callback,'Value',0,'TooltipString','Enable ROI definition by mouse pointer (no 3D rotation possible if enabled)');
+            set(this.visHandles.sync3DViews_check,'Callback',@this.GUI_sync3DViews_check_Callback,'Value',0,'TooltipString','Synchronize 3D views on left and right side');
+            set(this.visHandles.syncSubjects_check,'Callback',@this.GUI_syncSubjects_check_Callback,'Value',0,'TooltipString','Synchronize subjects by their names on left and right side (if possible)');
             %main axes
             set(this.visHandles.subject_l_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the left side');
             set(this.visHandles.subject_r_pop,'Callback',@this.GUI_subjectPop_Callback,'TooltipString','Select current subject of the right side');
@@ -2120,7 +2235,7 @@ classdef FLIMXVisGUI < handle
                 set(this.visHandles.(sprintf('roi_vicinity_%s_popup',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Select ''inside'' for the area insode the ROI coordinates, ''invert'' to exclude the ROI area from further analysis or ''vicinity'' to use the area surrounding the ROI');
                 set(this.visHandles.(sprintf('roi_%s_table',ax)),'CellEditCallback',@this.GUI_roi_Callback);
                 set(this.visHandles.(sprintf('roi_table_clearLast_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Clear last node of current polygon ROI');
-                set(this.visHandles.(sprintf('roi_table_clearAll_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Clear all nodes of current polygon ROI');  
+                set(this.visHandles.(sprintf('roi_table_clearAll_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Clear all nodes of current polygon ROI');
                 set(this.visHandles.(sprintf('roi_add_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Add new ROI');
                 set(this.visHandles.(sprintf('roi_delete_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Delete / clear ROI');
                 set(this.visHandles.(sprintf('roi_group_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Manage ROI groups');
@@ -2128,8 +2243,11 @@ classdef FLIMXVisGUI < handle
                 set(this.visHandles.(sprintf('colormap_auto_%s_check',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Enable or disable automatic color scaling');
                 set(this.visHandles.(sprintf('colormap_low_%s_edit',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Enter lower border for color scaling');
                 set(this.visHandles.(sprintf('colormap_high_%s_edit',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Enter upper border for color scaling');
-                set(this.visHandles.(sprintf('colormap_zoom_in_%s_button',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Zoom into histogram');
-                set(this.visHandles.(sprintf('colormap_zoom_out_%s_button',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Zoom out of histogram');
+                set(this.visHandles.(sprintf('colormap_zoom_in_%s_button',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Zoom into histogram',...
+                    'String',sprintf('<html><img src="file:/%s" height="16" width="16"></html>',which('FLIMX_zoom_in.png')));
+                set(this.visHandles.(sprintf('colormap_zoom_out_%s_button',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Zoom out of histogram',...
+                    'String',sprintf('<html><img src="file:/%s" height="14" width="14"></html>',which('FLIMX_zoom_out.png')));
+                set(this.visHandles.(sprintf('colormap_misc_%s_button',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Apply current color scaling to study condition')
             end
             %menu
             set(this.visHandles.FLIMXVisGUIFigure,'CloseRequestFcn',@this.menuExit_Callback);
@@ -2206,7 +2324,7 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.hrotate3d,'Enable','on','ActionPostCallback',{@FLIMXVisGUI.rotate_postCallback,this});
             setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.main_l_axes,false);
             this.setupGUI();
-            this.updateGUI([]);            
+            this.updateGUI([]);
             this.objHandles.ldo.drawCPMain([]);
             this.objHandles.rdo.drawCPMain([]);
             this.objHandles.lZScale.updateGUI([]);
@@ -2289,7 +2407,7 @@ classdef FLIMXVisGUI < handle
                 hFLIMXVis.objHandles.(sprintf('%sdo',otherSide)).setDispView(get(eventdata.Axes,'View'));
                 hFLIMXVis.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
             end
-        end        
+        end
         
         function out = getROIBorderPointerTypes()
             %return possible mouse pointer types when on border of a ROI

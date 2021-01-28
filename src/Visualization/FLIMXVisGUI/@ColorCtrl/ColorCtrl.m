@@ -44,6 +44,7 @@ classdef ColorCtrl < handle
         zoom_out_button = [];
         low_edit = [];
         high_edit = [];
+        hyphen_text = [];
     end
     
     properties (Dependent = true)
@@ -115,10 +116,11 @@ classdef ColorCtrl < handle
                     argVis = 'off';
                 end
             end
-            set(this.low_edit,'Enable',argEn,'Visible',argVis);
-            set(this.high_edit,'Enable',argEn,'Visible',argVis);
-            set(this.zoom_in_button,'Enable',argEn,'Visible',argVis);
-            set(this.zoom_out_button,'Enable',argEn,'Visible',argVis);
+            set(this.low_edit,'Enable',argEn);
+            set(this.high_edit,'Enable',argEn);
+            set(this.zoom_in_button,'Enable',argEn);
+            set(this.zoom_out_button,'Enable',argEn);
+            set(this.hyphen_text,'Enable',argEn);
         end
         
         function checkCallback(this,isROIFlag)
@@ -410,6 +412,7 @@ classdef ColorCtrl < handle
             this.high_edit = this.visObj.visHandles.(sprintf('colormap_high_%s_edit',s));            
             this.zoom_in_button = this.visObj.visHandles.(sprintf('colormap_zoom_in_%s_button',s));
             this.zoom_out_button = this.visObj.visHandles.(sprintf('colormap_zoom_out_%s_button',s));
+            this.hyphen_text = this.visObj.visHandles.(sprintf('colormap_%s_text',s));
         end
     end %methods protected
     

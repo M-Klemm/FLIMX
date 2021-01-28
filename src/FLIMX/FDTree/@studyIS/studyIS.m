@@ -466,48 +466,61 @@ classdef studyIS < handle
         
         function setResultColorScaling(this,subName,ch,dType,dTypeNr,colorBorders)
             %set the color scaling at subject subjectID
-            idx = this.subName2idx(subName);
-            if(isempty(idx) || isempty(dType) || length(colorBorders) ~= 3)
+            %check if target is a condition
+            if(strcmp(subName,FDTree.defaultConditionName()))
+                %default condition: all subjects
+                subIdx = 1:this.nrSubjects;
+            elseif(any(strcmp(subName,this.getDataFromStudyInfo('subjectInfoConditionalColumnNames'))))
+                %specific condition
+                subInfo = this.getSubjectInfo([]);
+                subIdx = find(cell2mat(subInfo(:,this.subjectInfoColumnName2idx(subName))));
+            else
+                %single subject
+                subIdx = this.subName2idx(subName);
+            end            
+            if(isempty(subIdx) || isempty(dType) || length(colorBorders) ~= 3)
                 %subject not in study or color values size is wrong
                 return
             end
-            tmp = this.resultColorScaling{idx};
-            if(isempty(tmp))
-                tmp = cell(0,4);
-            end
-            idxCh = ch == [tmp{:,1}];
-            idxCh = idxCh(:);
-            if(~any(idxCh))
-                %channel not found
-                idxCh(end+1,1) = true;
-                tmp{idxCh,1} = ch;
-                tmp{idxCh,2} = dType;
-                tmp{idxCh,3} = dTypeNr;
-            end
-            idxType = strcmp(dType,tmp(:,2));
-            idxType = idxType(:) & idxCh(:);
-            if(~any(idxType))
-                %dType not found
-                idxCh(end+1,1) = true;
-                idxType(end+1,1) = true;
-                tmp{idxType,1} = ch;
-                tmp{idxType,2} = dType;                
-                tmp{idxType,3} = dTypeNr;
-            end
-            idxNr = dTypeNr == [tmp{:,3}];
-            idxNr = idxNr(:) & idxType(:) & idxCh(:);
-            if(~any(idxNr))
-                %dType number not found
-                idxNr(end+1,1) = true;
-                tmp{idxNr,1} = ch;
-                tmp{idxNr,2} = dType;
-                tmp{idxNr,3} = dTypeNr;
-            end
-            if(isempty(tmp) || isempty(tmp{find(idxNr,1),4}) || any(tmp{find(idxNr,1),4} ~= colorBorders,'all'))
-                tmp{find(idxNr,1),4} = colorBorders;
-                this.resultColorScaling(idx) = {tmp};
-                this.setDirty(true);
-            end
+            for i = 1:length(subIdx)
+                tmp = this.resultColorScaling{(i)};
+                if(isempty(tmp))
+                    tmp = cell(0,4);
+                end
+                idxCh = ch == [tmp{:,1}];
+                idxCh = idxCh(:);
+                if(~any(idxCh))
+                    %channel not found
+                    idxCh(end+1,1) = true;
+                    tmp{idxCh,1} = ch;
+                    tmp{idxCh,2} = dType;
+                    tmp{idxCh,3} = dTypeNr;
+                end
+                idxType = strcmp(dType,tmp(:,2));
+                idxType = idxType(:) & idxCh(:);
+                if(~any(idxType))
+                    %dType not found
+                    idxCh(end+1,1) = true;
+                    idxType(end+1,1) = true;
+                    tmp{idxType,1} = ch;
+                    tmp{idxType,2} = dType;
+                    tmp{idxType,3} = dTypeNr;
+                end
+                idxNr = dTypeNr == [tmp{:,3}];
+                idxNr = idxNr(:) & idxType(:) & idxCh(:);
+                if(~any(idxNr))
+                    %dType number not found
+                    idxNr(end+1,1) = true;
+                    tmp{idxNr,1} = ch;
+                    tmp{idxNr,2} = dType;
+                    tmp{idxNr,3} = dTypeNr;
+                end
+                if(isempty(tmp) || isempty(tmp{find(idxNr,1),4}) || any(tmp{find(idxNr,1),4} ~= colorBorders,'all'))
+                    tmp{find(idxNr,1),4} = colorBorders;
+                    this.resultColorScaling(subIdx(i)) = {tmp};
+                    this.setDirty(true);
+                end
+            end            
         end
         
         function setResultCrossSection(this,subName,dim,csDef)

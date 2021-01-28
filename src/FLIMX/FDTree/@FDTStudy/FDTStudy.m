@@ -440,11 +440,12 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            subject = this.getChild(subjectID);
-            if(isempty(subject))
-                return
+            %check if target is a condition
+            allConditions = [{FDTree.defaultConditionName()}; this.getDataFromStudyInfo('subjectInfoConditionalColumnNames');];            
+            idx = strcmp(allConditions,subjectID);
+            if(any(idx) || ~isempty(this.getChild(subjectID)))
+                this.myStudyInfoSet.setResultColorScaling(subjectID,ch,dType,dTypeNr,colorBorders);
             end
-            this.myStudyInfoSet.setResultColorScaling(subjectID,ch,dType,dTypeNr,colorBorders);
         end
         
         function setResultCrossSection(this,subjectID,dim,csDef)
@@ -1334,7 +1335,7 @@ classdef FDTStudy < FDTreeNode
                 %no condition selected, show all subjects
                 return
             end
-            %show only subjects which fullfil the conditional column
+            %show only subjects which fulfill the conditional column
             idx = this.myStudyInfoSet.subjectInfoColumnName2idx(cName);
             subjectInfo = this.myStudyInfoSet.getSubjectInfo([]);
             col = cell2mat(subjectInfo(:,idx));
