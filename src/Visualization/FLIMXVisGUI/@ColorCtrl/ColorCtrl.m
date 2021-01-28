@@ -246,8 +246,8 @@ classdef ColorCtrl < handle
                         return
                     end
                     data = hfd.getColorScaling();
-                    if(isempty(data) || length(data) ~= 3 || ~any(data(:)))
-                        data = this.getAutoScale(true);
+                    if(isempty(data) || length(data) ~= 3 || ~any(data(:)) || data(1) > 0)
+                        data = this.getAutoScale(this.myFDisplay.mDispDim > 1);
                     end
                 end
                 if(data(1))
@@ -281,7 +281,7 @@ classdef ColorCtrl < handle
                 data = hfd.getROIImage(rc,rt,rs,ri);
             else
                 %get full image
-                data = hfd.getROIImage([],0,1,0);
+                data = hfd.getFullImage();%getROIImage([],0,1,0);
             end
             if(strcmp(hfd.dType,'Intensity'))
                 out(2) = prctile(data(:),this.visObj.generalParams.cmIntensityPercentileLB);

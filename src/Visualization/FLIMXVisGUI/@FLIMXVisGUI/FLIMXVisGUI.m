@@ -1906,24 +1906,12 @@ classdef FLIMXVisGUI < handle
                         sp2 = sprintf('in study ''%s'' condition ''%s''\n\n',this.getStudy(thisSide),this.getCondition(thisSide));
                     end
                     if(csInfo(1))
+                        %auto color scaling
                         sp3 = sprintf('to automatic?');
-%                         if(strcmp(this.getCondition(thisSide),FDTree.defaultConditionName))
-%                             choice = questdlg(sprintf('Set color scaling of ''%s %d'' for all subjects of channel %d\n\nin study ''%s''?\n\nto automatic?',...
-%                                 ,this.getStudy(thisSide)),'Set Color Scaling?','Yes','No','Yes');
-%                         else
-%                             choice = questdlg(sprintf('Set color scaling of ''%s %d'' for all subjects of channel %d\n\nin condition ''%s''\n\nof study ''%s''?\n\nto automatic?',...
-%                                 this.getDType(thisSide),this.getDTypeID(thisSide),ch,this.getCondition(thisSide),this.getStudy(thisSide)),'Set Color Scaling?','Yes','No','Yes');
-%                         end
                     else
+                        %custom color scaling
                         csInfoStr = FLIMXFitGUI.num4disp(csInfo);
                         sp3 = sprintf('to %s - %s?',csInfoStr{2},csInfoStr{3});
-%                         if(strcmp(this.getCondition(thisSide),FDTree.defaultConditionName))
-%                             choice = questdlg(sprintf('Set color scaling of ''%s %d'' for all subjects of channel %d\n\nin study ''%s''\n\nto %0.1f - %0.1f?\n',...
-%                                 this.getDType(thisSide),this.getDTypeID(thisSide),ch,this.getStudy(thisSide),csInfo(2),csInfo(3)),'Set Color Scaling?','Yes','No','Yes');
-%                         else
-%                             choice = questdlg(sprintf('Set color scaling of ''%s %d'' for all subjects of channel %d\n\nin condition ''%s''\n\nof study ''%s''\n\nto %0.1f - %0.1f?\n',...
-%                                 this.getDType(thisSide),this.getDTypeID(thisSide),ch,this.getCondition(thisSide),this.getStudy(thisSide),csInfo(2),csInfo(3)),'Set Color Scaling?','Yes','No','Yes');
-%                         end
                     end
                     choice = questdlg([sp1,sp2,sp3],'Set Color Scaling?','Yes','No','Yes');
                     switch choice
