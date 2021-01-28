@@ -1021,19 +1021,19 @@ classdef studyMgr < handle
             if(isempty(this.myClipboard))
                 return
             end            
-            if(this.fdt.checkStudyDirtyFlag(this.curStudyName))
-                %warning dialog
-                if(this.fdt.checkStudyDirtyFlag(this.curStudyName))
-                    choice = questdlg(sprintf('All changes in study ''%s'' will be saved. Do you want to continue?',this.curStudyName),...
-                        'Inserting Subjects','Yes','Abort','Abort');
-                    switch choice
-                        case 'Yes'
+%             if(this.fdt.checkStudyDirtyFlag(this.curStudyName))
+%                 %warning dialog
+%                 if(this.fdt.checkStudyDirtyFlag(this.curStudyName))
+%                     choice = questdlg(sprintf('All changes in study ''%s'' will be saved. Do you want to continue?',this.curStudyName),...
+%                         'Inserting Subjects','Yes','Abort','Abort');
+%                     switch choice
+%                         case 'Yes'
                             this.fdt.saveStudy(this.curStudyName);
-                        case 'Abort'
-                            return
-                    end %end switch
-                end
-            end            
+%                         case 'Abort'
+%                             return
+%                     end %end switch
+%                 end
+%             end
             %Subject in Clipboard is from current Study
             if(this.curStudyNr == this.myClipboard{2})
                 errordlg('You can not copy a Subject to itself! Please select another Study!',...
@@ -1088,26 +1088,28 @@ classdef studyMgr < handle
         
         function menuRenameSubject_Callback(this,hObject,eventdata)
             %rename subject
-            if(this.fdt.checkStudyDirtyFlag(this.curStudyName))
-                %warning dialog
-                choice = questdlg(sprintf('All changes in study ''%s'' will be saved. Do you want to continue?',this.curStudyName),...
-                    'Inserting Subjects','Yes','Abort','Abort');
-                switch choice
-                    case 'Yes'
-                        %
-                    case 'Abort'
-                        return
-                end %end switch
-            end %end if
+%             if(this.fdt.checkStudyDirtyFlag(this.curStudyName))
+%                 %warning dialog
+%                 choice = questdlg(sprintf('All changes in study ''%s'' will be saved. Do you want to continue?',this.curStudyName),...
+%                     'Inserting Subjects','Yes','Abort','Abort');
+%                 switch choice
+%                     case 'Yes'
+%                         %
+%                     case 'Abort'
+%                         return
+%                 end %end switch
+%             end %end if
             subNrs = this.selectedSubjects;
+            td = this.visHandles.tableFileData.Data;
+            oldSubNames = td(subNrs,1);
             newSubNrs = zeros(size(subNrs));
             %rename selected subjects
             for i=1:length(subNrs)
-                oldSubName = this.fdt.getSubjectName(this.curStudyName,subNrs(i));
-                newSubName = this.getUniqueSubjectName(this.curStudyName,oldSubName);
+                %oldSubName = this.fdt.getSubjectName(this.curStudyName,subNrs(i));
+                newSubName = this.getUniqueSubjectName(this.curStudyName,oldSubNames{i});
                 if(~isempty(newSubName))
                     %rename subject
-                    this.fdt.setSubjectName(this.curStudyName,oldSubName,newSubName);
+                    this.fdt.setSubjectName(this.curStudyName,oldSubNames{i},newSubName);
                     newSubNrs(i) = this.fdt.getSubjectNr(this.curStudyName,newSubName);
                 end
             end
