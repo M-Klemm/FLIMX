@@ -350,12 +350,20 @@ classdef FLIMXParamMgr < paramMgr
                         %                             this.volatilePixelParams.compatibleGPUs = [];
                         %                         end
                         %                         warning('on','parallel:gpu:DeviceCapability');
-                        if(~isempty(this.FLIMXObj) && new.useMatlabDistComp > 0 && isempty(gcp('nocreate')))
+                        p = gcp('nocreate');
+                        if(~isempty(this.FLIMXObj) && new.useMatlabDistComp > 0 && isempty(p))
                             %open a pool
                             this.FLIMXObj.openMatlabPool();
-                        elseif(~isempty(this.FLIMXObj) && new.useMatlabDistComp == 0 && ~isempty(gcp('nocreate')))
+                        elseif(~isempty(this.FLIMXObj) && new.useMatlabDistComp > 0 && ~isempty(p))
+                            %change pool type?
+                            if((new.poolType == 2 && ~isa(p,'parallel.ThreadPool')) || (new.poolType == 1 && isa(p,'parallel.ThreadPool')))
+                                this.FLIMXObj.closeMatlabPool();
+                                pause(0.5);
+                                this.FLIMXObj.openMatlabPool();
+                            end                            
+                        elseif(~isempty(this.FLIMXObj) && new.useMatlabDistComp == 0 && ~isempty(p))
                             %close our pool
-                            this.FLIMXObj.closeMatlabPool();                            
+                            this.FLIMXObj.closeMatlabPool();
                         end
                 end
             else

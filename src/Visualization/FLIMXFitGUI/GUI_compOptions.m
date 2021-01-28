@@ -54,7 +54,7 @@ function varargout = GUI_compOptions(varargin)
 
 % Edit the above text to modify the response to help GUI_compOptions
 
-% Last Modified by GUIDE v2.5 18-Jun-2020 17:27:37
+% Last Modified by GUIDE v2.5 27-Jan-2021 19:49:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -157,7 +157,18 @@ end
 set(handles.checkVectorComp,'Value',data.computation.useVectorApproximation,'Enable',data.enableGUIControlsFlag);
 set(handles.textVectorComp,'Enable',flag);
 set(handles.editVectorLength,'String',data.computation.vectorApproxLength,'Enable',flag);
+if(strcmp(data.enableGUIControlsFlag,'Off'))
+    flag = 'Off';
+else
+    if(data.computation.useMatlabDistComp > 0)
+        flag = 'on';
+    else
+        flag = 'off';
+    end
+end
 set(handles.checkMatlabDistComp,'Value',logical(data.computation.useMatlabDistComp),'Enable',data.enableGUIControlsFlag);
+set(handles.textPoolType,'Enable',flag);
+set(handles.popupPoolType,'Value',data.computation.poolType,'Enable',flag);
 set(handles.checkMatlabGPU,'Value',logical(data.computation.useGPU),'Enable',data.enableGUIControlsFlag);
 set(handles.buttonMCPath,'Enable',data.enableGUIControlsFlag);
 
@@ -199,6 +210,7 @@ rdh = get(handles.compOptionsFigure,'userdata');
 rdh.computation.useGPU = get(hObject,'Value');
 set(handles.compOptionsFigure,'userdata',rdh);
 updateGUI(handles, rdh);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %edit fields
@@ -276,7 +288,13 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %popup menus
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+% --- Executes on selection change in popupPoolType.
+function popupPoolType_Callback(hObject, eventdata, handles)
+%
+rdh = get(handles.compOptionsFigure,'userdata');
+rdh.computation.poolType = hObject.Value;
+set(handles.compOptionsFigure,'userdata',rdh);
+updateGUI(handles, rdh);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %tables
@@ -303,6 +321,12 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function editVectorLength_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupPoolType_CreateFcn(hObject, eventdata, handles)
+%       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

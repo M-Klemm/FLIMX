@@ -222,6 +222,7 @@ classdef paramMgr < handle
                         
             def.computation.useDistComp                 =	0; %0: run only local, 1: multicore, 2: TU Ilmenau LSF
             def.computation.useMatlabDistComp           =   0; %0: don't use Matlabs distrubuted computing engine, 1: use Matlabs distrubuted computing engine
+            def.computation.poolType                    =   1; %1: process, 2: thread
             def.computation.maxNrWorkersMatlabDistComp  =   32; %upper limit for number of workers per computer
             def.computation.mcTargetNrWUs               =   100;
             def.computation.mcTargetPixelPerWU          =   64;
@@ -356,8 +357,7 @@ classdef paramMgr < handle
             def.fluo_decay_fit_gui.plotExp4Color          =	[0.615079365079365 0.384400000000000 0.244801587301587;];
             def.fluo_decay_fit_gui.plotExp5Color          =	[0.25 0.25 0.25];
             def.fluo_decay_fit_gui.plotExpMarkerstyle     = 'none';
-            def.fluo_decay_fit_gui.plotExpMarkersize      = 6;
-            
+            def.fluo_decay_fit_gui.plotExpMarkersize      = 6;            
             
             def.fluo_decay_fit_gui.plotResLinewidth       =	2;
             def.fluo_decay_fit_gui.plotResLinestyle       =	'-';

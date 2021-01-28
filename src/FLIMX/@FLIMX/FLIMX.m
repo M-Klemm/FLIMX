@@ -149,7 +149,7 @@ classdef FLIMX < handle
                     else
                         %as many workers as CPU cores
                         nr = version('-release');
-                        if(str2double(nr(1:4)) >= 2020)
+                        if(str2double(nr(1:4)) >= 2020 && computationParams.poolType == 2)
                             p = parpool('threads');
                         else
                             p = parpool('local',min(computationParams.maxNrWorkersMatlabDistComp,feature('numCores')));
@@ -158,11 +158,7 @@ classdef FLIMX < handle
                     if(~isempty(p))
                         parfevalOnAll(p, @warning, 0, 'off', 'MATLAB:rankDeficientMatrix');
                     end
-%                     if(~isa(p,'parallel.ThreadPool'))
-%                         pctRunOnAll warning('off','MATLAB:rankDeficientMatrix');
-%                     end
                     this.splashScreenGUIObj.updateShortProgress(1,'Open pool of MATLAB workers - done');
-                    %p.IdleTimeout = 0;
                 catch ME
                     if(ishandle(this.splashScreenGUIObj))
                         this.splashScreenGUIObj.updateShortProgress(1,'Open pool of MATLAB workers - failed');
@@ -187,7 +183,7 @@ classdef FLIMX < handle
         function closeMatlabPool(this)
             %try to close our matlab pool
             p = gcp('nocreate');
-            if(~isempty(p) && ~isa(p,'parallel.ThreadPool'))
+            if(~isempty(p))% && ~isa(p,'parallel.ThreadPool'))
                 %delete idle timer object
                 try
                     delete(this.matlabPoolTimer);
@@ -522,9 +518,9 @@ classdef FLIMX < handle
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
-            out.config_revision = 272;
+            out.config_revision = 273;
             out.client_revision_major = 5;
-            out.client_revision_minor = 3;
+            out.client_revision_minor = 4;
             out.client_revision_fix = 0;
             out.core_revision = 501;
             out.results_revision = 256;
