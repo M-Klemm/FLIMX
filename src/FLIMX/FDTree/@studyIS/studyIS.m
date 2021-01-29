@@ -483,7 +483,7 @@ classdef studyIS < handle
                 return
             end
             for i = 1:length(subIdx)
-                tmp = this.resultColorScaling{(i)};
+                tmp = this.resultColorScaling{subIdx(i)};
                 if(isempty(tmp))
                     tmp = cell(0,4);
                 end
