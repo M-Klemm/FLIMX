@@ -241,9 +241,15 @@ classdef FLIMXVisGUI < handle
                     continue
                 end
                 %update subject selection popups
-                dStr = this.fdt.getAllSubjectNames(curStudy,curCondition);
-                if(~isempty(dStr))
-                    set(this.visHandles.(sprintf('subject_%s_pop',s)),'String',dStr,'Value',min(get(this.visHandles.(sprintf('subject_%s_pop',s)),'Value'),nrSubs));
+                allSubStr = this.fdt.getAllSubjectNames(curStudy,curCondition);
+                if(~isempty(allSubStr))
+                    curSubject = this.getSubject(s);
+                    curSubjectIdx = find(strcmp(curSubject,allSubStr),1);
+                    if(isempty(curSubjectIdx))
+                        set(this.visHandles.(sprintf('subject_%s_pop',s)),'String',allSubStr,'Value',min(get(this.visHandles.(sprintf('subject_%s_pop',s)),'Value'),nrSubs));
+                    else
+                        set(this.visHandles.(sprintf('subject_%s_pop',s)),'String',allSubStr,'Value',curSubjectIdx);
+                    end
                 else
                     set(this.visHandles.(sprintf('subject_%s_pop',s)),'String','dataset','Value',1);
                 end
@@ -1706,12 +1712,21 @@ classdef FLIMXVisGUI < handle
         
         function GUI_conditionSet_Callback(this,hObject,eventdata)
             %select condition
-            s = 'r';
+            thisSide = 'r';
+            otherSide = 'l';
             if(strcmp(get(hObject,'Tag'),'view_l_pop'))
-                s = 'l';
+                thisSide = 'l';
+                otherSide = 'r';
             end
-            this.setupGUI();
-            this.updateGUI(s);
+            if(this.visHandles.syncSubjects_check.Value)
+                this.setupGUI();
+                if(~this.setSubject(otherSide,this.getSubject(thisSide)))
+                    this.updateGUI(otherSide);
+                end
+            else
+                this.setupGUI();
+                this.updateGUI(thisSide);
+            end
         end
                         
         function GUI_subjectPop_Callback(this,hObject,eventdata)
@@ -1917,6 +1932,7 @@ classdef FLIMXVisGUI < handle
                     switch choice
                         case 'Yes'
                             this.fdt.setResultColorScaling(this.getStudy(thisSide),this.getCondition(thisSide),this.getChannel(thisSide),this.getDType(thisSide),this.getDTypeID(thisSide),csInfo);
+                            this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                     end                    
                 end
                 return

@@ -166,7 +166,10 @@ classdef AICtrl < handle
             %updates controls to current values
             %get arithmetic images for current study
             [aiStr, aiParam] = this.visObj.fdt.getArithmeticImageDefinition(this.curStudy);
-            idx = min(length(aiStr),this.aiSel.Value);
+            idx = find(strcmp(aiStr,this.curAIName));
+            if(isempty(idx))
+                idx = min(length(aiStr),this.aiSel.Value);
+            end
             if(length(aiStr) < idx || isempty(aiStr{idx}))
                 %hide controls
                 set(this.aiSel,'String','-none-','Value',1);
@@ -395,7 +398,11 @@ classdef AICtrl < handle
             %get name of current arithmetic image
             str = get(this.aiSel,'String');
             nr = get(this.aiSel,'Value');
-            out = str{nr};
+            if(iscell(str))
+                out = str{nr};
+            else
+                out = str;
+            end
             if(strcmp(out,'-none-'))
                 out = '';
             end
