@@ -298,13 +298,17 @@ classdef FDisplay < handle
         function drawROI(this,ROIType,op,cp,drawTextFlag)
             %draw ROI on 2D main plot; cp: current point; op: old point
             if(isempty(op) && isempty(cp))
-                %nothing to do
+                %delete old ROIs
                 ROIType = 0;
+            end
+            if(~any([op(:); cp(:)]))
+                %empty ROI
+                return
             end
             op = double(op);
             cp = double(cp);
             [~, ROIMinor] = ROICtrl.decodeROIType(ROIType);
-            if(length(this.h_ROIArea) >= ROIType)
+            if(ROIType > 0 && length(this.h_ROIArea) >= ROIType)
                 try
                     delete(this.h_ROIArea(ROIType));
                 end
@@ -371,7 +375,7 @@ classdef FDisplay < handle
         
         function drawRectangle(this,cp,widths,drawTextFlag,ROINumber)
             %draw rectangle into 2D plot
-            if(isempty(widths))
+            if(isempty(widths) || ~any(widths(:)))
                 return
             end
             gc = this.staticVisParams.ROIColor;
@@ -402,7 +406,7 @@ classdef FDisplay < handle
         
         function drawCircle(this,cp,radius,drawTextFlag,ROINumber)
             %draw rectangle into 2D plot
-            if(isempty(radius))
+            if(isempty(radius) || ~any(radius(:)))
                 return
             end
             gc = this.staticVisParams.ROIColor;
@@ -465,7 +469,7 @@ classdef FDisplay < handle
             else
                 idxT = [];
             end
-            if(isempty(cp))
+            if(isempty(cp) || ~any(cp(:)))
                 delete(this.h_ETDRSGrid(idxG,ROINumber));
                 delete(this.h_ETDRSGridText(idxT,ROINumber));
                 return
@@ -1170,7 +1174,7 @@ classdef FDisplay < handle
                     yFullRange = hfd.getCIySz(rc,rt,rs,ri);
 %                 end
             end
-            if(isempty(xFullRange))
+            if(isempty(xFullRange) || isempty(yFullRange) || xFullRange < 1 || yFullRange < 1)
                 return
             end
             zoom = this.mZoomFactor;
@@ -1217,7 +1221,7 @@ classdef FDisplay < handle
                 return
             end
 %             if(~this.screenshot)
-%                 set(this.h_m_ax,'Fontsize',this.staticVisParams.fontsize);
+%                 set(this.h_m_ax,'FontUnits','pixels','Fontsize',this.staticVisParams.fontsize);
 %             end
             if(this.mDispDim == 1) %2Do
                 xlbl = hfd{1}.getRIXLbl();
@@ -1568,7 +1572,8 @@ classdef FDisplay < handle
                 hold(this.h_s_ax,'off');
             end
             if(~this.screenshot)
-%                 set(this.h_s_ax,'Fontsize',this.staticVisParams.fontsize);
+                this.h_s_ax.FontSize = this.staticVisParams.fontsize;
+                this.h_s_ax.FontUnits = 'pixels';
                 if(strcmp(this.mySide,'l'))
                     this.h_s_ax.YAxisLocation = 'right';
                 end
@@ -1577,10 +1582,11 @@ classdef FDisplay < handle
         end %makeSuppPlot
         
         function makeDSTable(this)
-            %fill descripte statistics table
+            %fill descriptive statistics table
             [~, ~, hfd] = this.gethfd();    %update hfd(s)
-            if(isempty(hfd{1}) || length(hfd) > 1)
-                set(this.h_ds_t,'Data',cell(0,0));
+            if(this.ROIType >= 0 && (isempty(hfd{1}) || length(hfd) > 1 || ~any(this.ROICoordinates(:))))
+                %ROI is empty and not a ROI group
+                this.h_ds_t.Data = cell(0,0);
             else
                 data(:,1) = hfd{1}.getDescriptiveStatisticsDescriptionShort();
                 stats = hfd{1}.getROIStatistics(this.ROICoordinates,this.ROIType,this.ROISubType,this.ROIVicinity);
@@ -1589,9 +1595,7 @@ classdef FDisplay < handle
                 else
                     data(:,2) = FLIMXFitGUI.num4disp(stats);
                 end
-                %remove not needed parameters
-                %data([4,8,9],:) = [];
-                set(this.h_ds_t,'Data',data);
+                this.h_ds_t.Data = data;
             end
         end
         
@@ -1599,7 +1603,7 @@ classdef FDisplay < handle
             %update the labels of the colorbar
             tickLbls = this.makeColorBarLbls(5);
             for i=1:5
-                set(this.(sprintf('h_t%s',num2str(i))),'String',tickLbls{i});%,'Fontsize',this.staticVisParams.fontsize);                
+                set(this.(sprintf('h_t%s',num2str(i))),'String',tickLbls{i},'FontUnits','pixels','Fontsize',this.staticVisParams.fontsize);                
             end
         end
         

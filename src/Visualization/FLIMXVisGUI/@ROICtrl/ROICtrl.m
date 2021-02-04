@@ -266,6 +266,14 @@ classdef ROICtrl < handle
             end
             other = [];
             rt = this.ROIType;
+            ROICoord = hfd.getROICoordinates(rt);
+            if(isempty(ROICoord) || ~any(ROICoord(:)) && rt < 4000)
+                %ETDRS grid, rectangles, circles
+                ROICoord = [hfd.rawImgYSz; hfd.rawImgXSz];
+                this.updateGUI(ROICoord);
+                this.save();
+                return
+            end
             if(rt > 1000 && rt < 2000)
                 %ETDRS grid
                 switch target
@@ -292,9 +300,9 @@ classdef ROICtrl < handle
                     other = this.(sprintf('%s%s',target,otherEdit))(dim);
                 end
             end
-            set(this.(sprintf('%s_%s_edit',dim,thisBnd)),'String',current);
+            this.(sprintf('%s_%s_edit',dim,thisBnd)).String = current;
             if(~isempty(other))
-                set(this.(sprintf('%s_%s_edit',dim,otherBnd)),'String',other);
+                this.(sprintf('%s_%s_edit',dim,otherBnd)).String = other;
             end
             this.save();
             this.updateGUI([]);
@@ -325,8 +333,15 @@ classdef ROICtrl < handle
         function buttonClearAllCallback(this)
             %callback function to clear all nodes of current polygon
             rt = this.ROIType;
-            if(rt > 4000 && rt < 5000)
-                choice = questdlg(sprintf('Delete all nodes of Polygon #%d ROI in subject %s?',this.ROIType-5,this.myHFD.subjectName),'Clear all Polygon ROI nodes?','Yes','No','No');
+            [ROIStr,~,ROITypeFine] = ROICtrl.ROIType2ROIItem(this.ROIType);
+            if(rt > 1000 && rt < 4000)
+                choice = questdlg(sprintf('Clear ROI %s in subject %s?',ROIStr,this.myHFD.subjectName),'Clear ROI?','Yes','No','No');
+                switch choice
+                    case 'Yes'
+                        this.resetROI();
+                end
+            elseif(rt > 4000 && rt < 5000)
+                choice = questdlg(sprintf('Delete all nodes of Polygon #%d ROI in subject %s?',ROITypeFine,this.myHFD.subjectName),'Clear all Polygon ROI nodes?','Yes','No','No');
                 switch choice
                     case 'Yes'
                         set(this.roi_table,'Data',cell(2,1));
@@ -496,7 +511,7 @@ classdef ROICtrl < handle
                 set(this.y_lo_inc_button,'Enable','on','Visible','on');
                 set(this.roi_table,'Visible','off');
                 set(this.roi_table_clearLast_button,'Visible','off');
-                set(this.roi_table_clearAll_button,'Visible','off');
+                set(this.roi_table_clearAll_button,'Visible','on','String','Clear');
             elseif(rt > 2000 && rt < 3000)
                 %rectangle
                 set(this.roi_add_button,'Visible','on');
@@ -506,7 +521,7 @@ classdef ROICtrl < handle
                 this.enDisAble('on','on');
                 set(this.roi_table,'Visible','off');
                 set(this.roi_table_clearLast_button,'Visible','off');
-                set(this.roi_table_clearAll_button,'Visible','off');
+                set(this.roi_table_clearAll_button,'Visible','on','String','Clear');
             elseif(rt > 3000 && rt < 4000)
                 %circle
                 set(this.roi_add_button,'Visible','on');
@@ -521,7 +536,7 @@ classdef ROICtrl < handle
                 set(this.y_szMM_edit,'Enable','off','Visible','off');
                 set(this.roi_table,'Visible','off');
                 set(this.roi_table_clearLast_button,'Visible','off');
-                set(this.roi_table_clearAll_button,'Visible','off');
+                set(this.roi_table_clearAll_button,'Visible','on','String','Clear');
             elseif(rt > 4000 && rt < 5000)
                 %polygon
                 set(this.roi_add_button,'Visible','on');
@@ -530,7 +545,7 @@ classdef ROICtrl < handle
                 set(this.roi_subtype_popup,'Visible','off');
                 set(this.roi_table,'Visible','on');
                 set(this.roi_table_clearLast_button,'Visible','on');
-                set(this.roi_table_clearAll_button,'Visible','on');
+                set(this.roi_table_clearAll_button,'Visible','on','String','Clear all');
                 this.enDisAble('off','off');
             elseif(rt < 0)
                 %ROI group
@@ -569,18 +584,18 @@ classdef ROICtrl < handle
             rt = this.ROIType;
             if(isempty(ROICoord))
                 ROICoord = hfd.getROICoordinates(rt);
-                if(isempty(ROICoord) || ~any(ROICoord(:)))
-                    if(rt < 4000)
-                        %ETDRS grid, rectangles, circles
-                        ROICoord = [hfd.rawImgYSz; hfd.rawImgXSz];
-                    else
-                        ROICoord = [];
-                    end
-                end
-                if(rt > 4000 && rt < 5000 && ~all(all(ROICoord,1)))
-                    %polygons
-                    ROICoord = ROICoord(:,all(ROICoord,1));
-                end
+            end
+%             if(isempty(ROICoord) || ~any(ROICoord(:)))
+%                 if(rt < 4000)
+%                     %ETDRS grid, rectangles, circles
+%                     ROICoord = [hfd.rawImgYSz; hfd.rawImgXSz];
+%                 else
+%                     ROICoord = [];
+%                 end
+%             end
+            if(rt > 4000 && rt < 5000 && ~all(all(ROICoord,1)))
+                %polygons
+                ROICoord = ROICoord(:,all(ROICoord,1));
             end
             fi = hfd.getFileInfoStruct();
             if(~isempty(fi))
@@ -589,9 +604,17 @@ classdef ROICtrl < handle
                 res = 0;%58.66666666666/1000;
                 %todo: warning/error message
             end
-            if(isempty(ROICoord) && rt < 4000)
-                this.ROIType = 0;
-                this.popupCallback('');
+            if((isempty(ROICoord) || ~any(ROICoord(:))) && rt < 4000)
+                this.y_lo_edit.String = '';
+                this.x_lo_edit.String = '';
+                this.y_u_edit.String = '';
+                this.x_u_edit.String = '';
+                this.y_sz_edit.String = '';
+                this.y_szMM_edit.String = '';
+                this.x_sz_edit.String = '';
+                this.x_szMM_edit.String = '';
+%                 this.ROIType = 0;
+%                 this.popupCallback('');
             else
                 if(rt > 1000 && rt < 2000)
                     %ETDRS grid
@@ -638,20 +661,39 @@ classdef ROICtrl < handle
                 return
             end
             rt = this.ROIType;
+            if(rt < 0)
+                out = [];
+                return
+            end
             out(1,1) = rt;
             out(2,1) = this.ROIVicinity;
-            out(1,2) = hfd.yLbl2Pos(sscanf(get(this.y_lo_edit,'String'),'%i',1)); %sscanf(s,'%f',1);
-            out(2,2) = hfd.xLbl2Pos(sscanf(get(this.x_lo_edit,'String'),'%i',1));
+            if(rt == 0)
+                out(2,2:3) = hfd.rawImgYSz;
+                out(1,2:3) = hfd.rawImgXSz;
+                return
+            end
+            if((isempty(this.y_lo_edit.String) && this.y_lo_edit.Visible) || (isempty(this.x_lo_edit.String) && this.x_lo_edit.Visible)  ||...
+                    (isempty(this.y_u_edit.String) && this.y_u_edit.Visible) || (isempty(this.x_u_edit.String) && this.x_u_edit.Visible) )
+                return
+            end
+            if(rt > 1000 && rt < 4000)
+                %ETDRS, rectangles, circles
+                out(1,2) = hfd.yLbl2Pos(sscanf(this.y_lo_edit.String,'%i',1)); %sscanf(s,'%f',1);
+                out(2,2) = hfd.xLbl2Pos(sscanf(this.x_lo_edit.String,'%i',1));
+            end
             if(rt > 1000 && rt < 2000)
+                %ETDRS
                 out(:,3) = out(:,2);
             elseif(rt > 4000 && rt < 5000)
+                %polygons
                 out = int16([[1;this.ROIVicinity], cell2mat(get(this.roi_table,'Data'))]);
 %                 if(size(tmp,2) < size(out,2))
 %                     out(:,1:size(tmp,2)) = tmp;
 %                 end
             else
-                out(1,3) = hfd.yLbl2Pos(sscanf(get(this.y_u_edit,'String'),'%i',1));
-                out(2,3) = hfd.xLbl2Pos(sscanf(get(this.x_u_edit,'String'),'%i',1));
+                %rectangles, circles
+                out(1,3) = hfd.yLbl2Pos(sscanf(this.y_u_edit.String,'%i',1));
+                out(2,3) = hfd.xLbl2Pos(sscanf(this.x_u_edit.String,'%i',1));
             end
         end
         
