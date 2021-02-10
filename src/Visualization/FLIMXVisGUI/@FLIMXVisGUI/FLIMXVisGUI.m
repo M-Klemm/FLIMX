@@ -736,7 +736,7 @@ classdef FLIMXVisGUI < handle
                         '*.jpg','Joint Photographic Experts Group (*.jpg)';...
                         '*.eps','Encapsulated Postscript (*.eps)';...
                         '*.tiff','TaggedImage File Format (*.tiff)';...
-                        '*.bmp','Windows Bitmap (*.bmp)';...
+                        %'*.bmp','Windows Bitmap (*.bmp)';...
                         '*.emf','Windows Enhanced Metafile (*.emf)';...
                         '*.pdf','Portable Document Format (*.pdf)';...
                         '*.fig','MATLAB figure (*.fig)';...
@@ -754,15 +754,15 @@ classdef FLIMXVisGUI < handle
                     [file, path, filterindex] = uiputfile(formats,'Export Figure as',this.dynParams.lastExportFile);
                     if ~path ; return ; end
                     switch filterindex
-                        case 5 %'*.bmp'
-                            str = '-dbmp';
-                        case 6% '*.emf'
+%                         case 5 %'*.bmp'
+%                             str = '-dbmp';
+                        case 5% '*.emf'
                             str = '-dmeta';
                         case 3 %'*.eps'
                             str = '-depsc2';
                         case 2 %'*.jpg'
                             str = '-djpeg';
-                        case 7 %'*.pdf'
+                        case 6 %'*.pdf'
                             str = '-dpdf';
                         case 1 %'*.png'
                             str = '-dpng';
@@ -798,23 +798,24 @@ classdef FLIMXVisGUI < handle
                 switch settings.ExportBatchOfFiguresOrAnimation
                     case 'Batch of Figures'
                         switch filterindex
-                            case 8
+                            case 7
                                 savefig(hFig,fn);
-                            case {9,11}
+                            case {8,10} %16 bit png / tiff
                                 %no color bar, box, lines, ...
                                 imwrite(uint16(feObj.mainExportXls),fn);
-                            case 10
+                            case 9 %16 bit jpg
                                 %no color bar, box, lines, ...
                                 imwrite(uint16(feObj.mainExportXls),fn,'BitDepth',16,'Mode','lossless');
                             otherwise
-                                if(this.exportParams.resampleImage)
+                                if(this.exportParams.resampleImage || settings.AddTextOverlay)
 %                                     fr = getframe(feObj.getHandleMainAxes());
 %                                     imwrite(fr.cdata,fn);
                                     %resample image to desired resolution, add color bar, box, lines, ...
-                                    print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
+                                    %print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
+                                    exportgraphics(feObj.h_m_ax,fn,'Resolution',this.exportParams.dpi);
                                 else
                                     %export image in native resolution without color bar, box, lines, ...
-                                    imwrite(flipud(feObj.mainExportColors),fn);
+                                    imwrite(flipud(feObj.mainExportColors),fn);                                    
                                 end
                         end
                     case 'Animation'
