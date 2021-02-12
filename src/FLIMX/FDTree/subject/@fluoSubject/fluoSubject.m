@@ -910,6 +910,30 @@ classdef fluoSubject < FDTreeNode
             [apObj, xVec, hShift, oset, chi2, chi2Tail, TotalPhotons, iterations, time, slopeStart, iVec] = this.myResult.getVisParams(apObj,ch,y,x,isInitFit);
         end
         
+        function out = getEstimatedTauByAge(this,tauStr,ch)
+            %calculate an estimated tau1, tau2, tau3 or tauMean for the age of the subject (if age is set in subject info)
+            out = [];
+            age = double(this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,'Age'));
+            if(ch > 2 || isempty(age) || isnan(age) || isinf(age))
+                return
+            end            
+            switch lower(tauStr)
+                case 'tau1'
+                    tauStr = '1';
+                case 'tau2'
+                    tauStr = '2';
+                case 'tau3'
+                    tauStr = '3';
+                case 'tau4'
+                    tauStr = '4';
+                case 'tau5'
+                    tauStr = '5';
+                case 'taumean'
+                    tauStr = 'Mean';
+            end
+            out = this.basicParams.(sprintf('fixTau%sByAgeSlopeCh%d',tauStr,ch))*age + this.basicParams.(sprintf('fixTau%sByAgeOffsetCh%d',tauStr,ch));
+        end
+        
         function out = getInitApproxObjs(this,ch,isCleanUpFit)
             %make parameter structure needed for approximation of initialization
             if(~this.isInitialized)
@@ -964,7 +988,8 @@ classdef fluoSubject < FDTreeNode
                 if(~isempty(age) && ~isnan(age) && ~isinf(age))
                     for i = 1:params.basicFit.nExp
                         for c = 1:2
-                            t.(sprintf('t%d_c%d',i,c)) = params.basicFit.(sprintf('fixTau%dByAgeSlopeCh%d',i,c))*age + params.basicFit.(sprintf('fixTau%dByAgeOffsetCh%d',i,c));
+                            %t.(sprintf('t%d_c%d',i,c)) = params.basicFit.(sprintf('fixTau%dByAgeSlopeCh%d',i,c))*age + params.basicFit.(sprintf('fixTau%dByAgeOffsetCh%d',i,c));
+                            t.(sprintf('t%d_c%d',i,c)) = this.getEstimatedTauByAge(sprintf('Tau%d',i),c);
                         end
                     end
                     for i = 1:params.basicFit.nExp

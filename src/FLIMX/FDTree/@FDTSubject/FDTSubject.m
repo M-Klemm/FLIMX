@@ -1058,7 +1058,18 @@ classdef FDTSubject < fluoSubject
                         if(strncmp(aiParams.(lStr),'subjectInfo->',13))
                             %get data from subject info
                             colName = aiParams.(lStr)(14:end);
-                            out = this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,colName);
+                            switch colName
+                                case 'Tau1_EstimatedByAge'
+                                    out = this.getEstimatedTauByAge('Tau1',ch);                                    
+                                case 'Tau2_EstimatedByAge'
+                                    out = this.getEstimatedTauByAge('Tau2',ch); 
+                                case 'Tau3_EstimatedByAge'
+                                    out = this.getEstimatedTauByAge('Tau3',ch); 
+                                case 'TauMean_EstimatedByAge'
+                                    out = this.getEstimatedTauByAge('TauMean',ch); 
+                                otherwise
+                                    out = this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,colName);
+                            end
                         else
                             [dTypeB, dTypeBNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.(lStr));
                             %ask study for FData object, if this is an arithmetic image, study will build it if needed
