@@ -327,7 +327,9 @@ end
 function out = getCurrentChannel(handles)
 %get currently selected channel
 out = get(handles.popupChannel,'String');
-if(~ischar(out))
+if(isempty(out))
+    out = '1';
+elseif(~ischar(out))
     out = out{min(get(handles.popupChannel,'Value'),length(out))};
 end
 out = str2double(out(isstrprop(out, 'digit')));
