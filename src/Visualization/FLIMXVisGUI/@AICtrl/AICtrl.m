@@ -473,6 +473,12 @@ classdef AICtrl < handle
                 for i = 1:length(subjectInfoColumns)
                     subjectInfoColumns{i} = sprintf('subjectInfo->%s',subjectInfoColumns{i});
                 end
+                if(any(strcmp(subjectInfoColumns,'subjectInfo->Age')))
+                    subjectInfoColumns{end+1,1} = 'subjectInfo->Tau1_EstimatedByAge';
+                    subjectInfoColumns{end+1,1} = 'subjectInfo->Tau2_EstimatedByAge';
+                    subjectInfoColumns{end+1,1} = 'subjectInfo->Tau3_EstimatedByAge';
+                    subjectInfoColumns{end+1,1} = 'subjectInfo->TauMean_EstimatedByAge';
+                end
                 objStr = [objStr; subjectInfoColumns];
                 %remove current arithmetic image from channel objects
                 objStr = objStr(~strcmp(objStr,this.curAIName));

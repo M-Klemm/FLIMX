@@ -674,7 +674,7 @@ classdef FDTSubject < fluoSubject
                     end
                     %find pixel without approximated fluorescence lifetime
                     tmp = this.getPixelFLIMItem(ch,'AmplitudePercent1');
-                    if(~isempty(tmp))
+                    if(this.myResult.isPixelResult(ch) && ~isempty(tmp))
                         ignoreMask = isnan(tmp);
                         chObj = this.getChild(ch);
                         chObj.setIgnoredPixelsMask(ignoreMask);
@@ -1078,6 +1078,10 @@ classdef FDTSubject < fluoSubject
                                 return
                             end
                             out = fd.getFullImage();
+                            if(fd.rawImgIsLogical)
+                                out(isnan(out)) = 0;
+                                out = logical(out);
+                            end
                         end
                         if(aiParams.normalizeB)
                             out = out ./ max(out(:),[],'omitnan');
@@ -1131,6 +1135,9 @@ classdef FDTSubject < fluoSubject
                     case '&'
                         eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
                         out = dataA;
+                        if(islogical(out))
+                            out(~idx) = false;
+                        end
                     case '|'
                         eval(sprintf('idx = %s(idxA %s idxB);',neg,op));
                         if(isempty(neg))
@@ -1141,6 +1148,9 @@ classdef FDTSubject < fluoSubject
                         else
                             %this is ~|
                             out = dataA;
+                            if(islogical(out))
+                                out(~idx) = false;
+                            end
                         end
                     case 'xor'
                         %out = false(size(idx));
@@ -1167,10 +1177,16 @@ classdef FDTSubject < fluoSubject
                             idx(ceil(rp(rIdx).BoundingBox(2)):ceil(rp(rIdx).BoundingBox(2))+rp(rIdx).BoundingBox(4)-1,...
                                 ceil(rp(rIdx).BoundingBox(1)):ceil(rp(rIdx).BoundingBox(1))+rp(rIdx).BoundingBox(3)-1) = rp(rIdx).FilledImage;
                             %idx = imfill(idx,'holes');
+                            if(islogical(out))
+                                out(~idx) = false;
+                            end
                         end
                     otherwise %+,-,*,/,>,<,>=,<=,==,~=
                         eval(sprintf('out = (dataA %s dataB);',op));
                         idx = true(size(out));
+                        if(islogical(out))
+                            out(~idx) = false;
+                        end
                 end
                 if(~islogical(out))
                     out(~idx) = NaN;

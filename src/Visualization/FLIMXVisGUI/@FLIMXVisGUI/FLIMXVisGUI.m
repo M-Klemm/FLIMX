@@ -159,8 +159,10 @@ classdef FLIMXVisGUI < handle
             axis(this.visHandles.(sprintf('main_%s_axes',s)),'off');
             cla(this.visHandles.(sprintf('supp_%s_axes',s)));
             axis(this.visHandles.(sprintf('supp_%s_axes',s)),'off');
-            cla(this.visHandles.cm_axes);
-            axis(this.visHandles.cm_axes,'off');
+            cla(this.visHandles.cm_l_axes);
+            cla(this.visHandles.cm_r_axes);
+            axis(this.visHandles.cm_l_axes,'off');
+            axis(this.visHandles.cm_r_axes,'off');
             this.setupPopUps(s);
         end
         
@@ -219,7 +221,7 @@ classdef FLIMXVisGUI < handle
                 nrSubs = this.fdt.getNrSubjects(curStudy,curCondition);    %Number of subjects
                 if(~nrSubs)
                     this.clearAxes(s);
-                    this.updateColorbar();                                                    
+                    this.objHandles.(sprintf('%sdo',s)).updateColorbar();                                                    
                     %clear display objects
                     this.objHandles.(sprintf('%sdo',s)).sethfdMain([]);
                     %channel popups
@@ -395,7 +397,7 @@ classdef FLIMXVisGUI < handle
                 end
             end
             %colorbar
-            this.updateColorbar();                               
+            this.objHandles.(sprintf('%sdo',s)).updateColorbar();                               
             %arithmetic images
             this.objHandles.AI.updateCtrls();            
         end %setupGUI
@@ -493,27 +495,27 @@ classdef FLIMXVisGUI < handle
             end
         end          
         
-        %colorbar
-        function updateColorbar(this)
-            %update the colorbar to the current color map
-            temp = zeros(length(this.dynParams.cm),2,3);
-            if(strcmp(this.getFLIMItem('l'),'Intensity'))
-                temp(:,1,:) = gray(size(temp,1));
-            else
-                temp(:,1,:) = this.dynParams.cm;
-            end
-            if(strcmp(this.getFLIMItem('r'),'Intensity'))
-                temp(:,2,:) = gray(size(temp,1));
-            else
-                temp(:,2,:) = this.dynParams.cm;
-            end
-            image(temp,'Parent',this.visHandles.cm_axes);
-            ytick = (0:0.25:1).*size(this.dynParams.cm,1);
-            ytick(1) = 1;
-            set(this.visHandles.cm_axes,'YDir','normal','YTick',ytick,'YTickLabel','','YAxisLocation','right','XTick',[],'XTickLabel','');
-            ylim(this.visHandles.cm_axes,[1 size(this.dynParams.cm,1)]);
-            setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.cm_axes,false);
-        end
+%         %colorbar
+%         function updateColorbar(this)
+%             %update the colorbar to the current color map
+%             temp = zeros(length(this.dynParams.cm),2,3);
+%             if(strcmp(this.getFLIMItem('l'),'Intensity'))
+%                 temp(:,1,:) = gray(size(temp,1));
+%             else
+%                 temp(:,1,:) = this.dynParams.cm;
+%             end
+%             if(strcmp(this.getFLIMItem('r'),'Intensity'))
+%                 temp(:,2,:) = gray(size(temp,1));
+%             else
+%                 temp(:,2,:) = this.dynParams.cm;
+%             end
+%             image(temp,'Parent',this.visHandles.cm_axes);
+%             ytick = (0:0.25:1).*size(this.dynParams.cm,1);
+%             ytick(1) = 1;
+%             set(this.visHandles.cm_axes,'YDir','normal','YTick',ytick,'YTickLabel','','YAxisLocation','right','XTick',[],'XTickLabel','');
+%             ylim(this.visHandles.cm_axes,[1 size(this.dynParams.cm,1)]);
+%             setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.cm_axes,false);
+%         end
                                
         %% menu functions                
         function menuExit_Callback(this,hObject,eventdata)
@@ -1794,7 +1796,7 @@ classdef FLIMXVisGUI < handle
                 s = 'l';
             end
             this.updateGUI(s);
-            this.updateColorbar();
+            this.objHandles.(sprintf('%sdo',s)).updateColorbar();
 %             this.objHandles.(sprintf('%sdo',s)).sethfdMain([]);
 %             this.objHandles.(sprintf('%sROI',s)).updateGUI([]);
 %             this.objHandles.(sprintf('%sdo',s)).updatePlots();

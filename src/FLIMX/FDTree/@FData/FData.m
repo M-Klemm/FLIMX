@@ -37,6 +37,7 @@ classdef FData < handle
         sType = [];
         rawImage = [];
         rawImgFilt = [];
+        rawImgIsLogical = false;
         color_data = [];
         logColor_data = [];
         rawImgXSz = [];
@@ -126,6 +127,11 @@ classdef FData < handle
         %% input functions
         function setRawData(this,val)
             %set the raw data, clears cached data
+            if(islogical(val))
+                this.rawImgIsLogical = true;
+            else
+                this.rawImgIsLogical = false;
+            end
             this.rawImage = single(val);
             this.color_data = [];
             this.logColor_data = [];

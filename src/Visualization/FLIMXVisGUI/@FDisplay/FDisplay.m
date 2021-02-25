@@ -98,6 +98,7 @@ classdef FDisplay < handle
         h_s_hist = [];
         h_s_psc = [];
         h_ds_t = [];
+        h_cm = [];
         h_t1 = [];
         h_t2 = [];
         h_t3 = [];
@@ -757,80 +758,90 @@ classdef FDisplay < handle
                 if(isempty(current_img) || all(isnan(current_img(:))) || all(isinf(current_img(:))))
                     return
                 end
-                %z scaling
-                zData = hfd{i}.getZScaling();
-                if(~isempty(zData) && zData(1))                    
-                    zMin(i) = zData(2);
-                    if(isinf(zMin))
-                        zMin(i) = hfd{i}.getCImin();
-                    end
-                    zMax(i) = zData(3);
-                    if(dispDim == 1)
-                        %do z scaling here
-                        current_img(current_img < zMin(i)) = NaN;%zMin(i);
-                        current_img(current_img > zMax(i)) = NaN;%zMax(i);
-                    end
+                if(hfd{i}.rawImgIsLogical)
+                    %logical data, e.g. a mask
+                    current_img(isnan(current_img)) = 0;
+                    current_img = logical(current_img);
+                    zMin = 0;
+                    zMax = 1;
+                    colors = single(repmat(current_img,[1 1 3]));
+                    alphaData = ones(size(colors,1),1);
                 else
-                    if(dispDim == 1)
-                        zMax(i) = FData.getNonInfMinMax(2,current_img);
-                        zMin(i) = FData.getNonInfMinMax(1,current_img);                       
+                    %z scaling
+                    zData = hfd{i}.getZScaling();
+                    if(~isempty(zData) && zData(1))
+                        zMin(i) = zData(2);
+                        if(isinf(zMin))
+                            zMin(i) = hfd{i}.getCImin();
+                        end
+                        zMax(i) = zData(3);
+                        if(dispDim == 1)
+                            %do z scaling here
+                            current_img(current_img < zMin(i)) = NaN;%zMin(i);
+                            current_img(current_img > zMax(i)) = NaN;%zMax(i);
+                        end
                     else
-                        zMax(i) = single(hfd{i}.getCImax(rc,rt,rs,ri));
-                        zMin(i) = single(hfd{i}.getCImin(rc,rt,rs,ri));
+                        if(dispDim == 1)
+                            zMax(i) = FData.getNonInfMinMax(2,current_img);
+                            zMin(i) = FData.getNonInfMinMax(1,current_img);
+                        else
+                            zMax(i) = single(hfd{i}.getCImax(rc,rt,rs,ri));
+                            zMin(i) = single(hfd{i}.getCImin(rc,rt,rs,ri));
+                        end
                     end
-                end    
-                if((zMax - zMin) < 0.1)
-                    zMax = zMax + 0.1;
-                end
-                %color mapping
-                if(dispDim == 1 || isempty(hfd{i}.getCIColor(rc,rt,rs,ri)))
-                    %cTmp = hfd{i}.getColorScaling();
-                    cTmp = single(this.myColorScaleObj.getCurCSInfo());
-                    if(isempty(cTmp) || length(cTmp) ~= 3 || nrFD > 1)
-                        %auto color scaling
-                        cMin = zMin(i);
-                        cMax = zMax(i);
+                    if((zMax - zMin) < 0.1)
+                        zMax = zMax + 0.1;
+                    end
+                    %color mapping
+                    if(dispDim == 1 || isempty(hfd{i}.getCIColor(rc,rt,rs,ri)))
+                        %cTmp = hfd{i}.getColorScaling();
+                        cTmp = single(this.myColorScaleObj.getCurCSInfo());
+                        if(isempty(cTmp) || length(cTmp) ~= 3 || nrFD > 1)
+                            %auto color scaling
+                            cMin = zMin(i);
+                            cMax = zMax(i);
+                        else
+                            cMin = cTmp(2);
+                            cMax = cTmp(3);
+                        end
+                        colors = current_img - cMin;
+                        colors(isinf(colors)) = NaN;
+                        if(strcmp(hfd{i}.dType,'Intensity'))
+                            cm = this.dynVisParams.cmIntensity;
+                        else
+                            cm = this.dynVisParams.cm;
+                        end
+                        colors = colors/(cMax-cMin)*(size(cm,1)-1)+1; %mapping for colorbar
+                        colors(isnan(colors)) = 1;
+                        colors = max(colors,1);
+                        colors = min(colors,256);
+                        if(strncmp(hfd{i}.dType,'MVGroup',7)  || strncmp(hfd{i}.dType,'ConditionMVGroup',16))
+                            cm = repmat([0:1/(size(cm,1)-1):1]',1,3);
+                            conditionColor = this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide));
+                            cm = [cm(:,1).*conditionColor(1) cm(:,2).*conditionColor(2) cm(:,3).*conditionColor(3)];
+                            colors = cm(round(reshape(colors,[],1)),:);
+                            alphaData = ceil(sum(colors,2));
+                            colors = reshape(colors,[size(current_img) 3]);
+                            alphaData = reshape(alphaData,size(current_img));
+                        elseif(strncmp(hfd{i}.dType,'GlobalMVGroup',13))
+                            %get colors for global merged clusters
+                            colors = hfd{i}.getCIColor([],0,1,0);
+                            alphaData = ceil(sum(colors,3));
+                        else
+                            %get colors from map
+                            colors = cm(round(reshape(colors,[],1)),:);
+                            alphaData = ones(size(colors,1),1);
+                            colors = reshape(colors,[size(current_img) 3]);
+                            alphaData = reshape(alphaData,size(current_img));
+                            %set NaN to black
+                            colors(repmat(isnan(current_img),[1 1 3])) = 0;
+                            colors(repmat(isinf(current_img),[1 1 3])) = 0;
+                        end
                     else
-                        cMin = cTmp(2);
-                        cMax = cTmp(3);
-                    end
-                    colors = current_img - cMin;
-                    colors(isinf(colors)) = NaN;
-                    if(strcmp(hfd{i}.dType,'Intensity'))
-                        cm = this.dynVisParams.cmIntensity;
-                    else
-                        cm = this.dynVisParams.cm;
-                    end
-                    colors = colors/(cMax-cMin)*(size(cm,1)-1)+1; %mapping for colorbar
-                    colors(isnan(colors)) = 1;
-                    colors = max(colors,1);
-                    colors = min(colors,256);
-                    if(strncmp(hfd{i}.dType,'MVGroup',7)  || strncmp(hfd{i}.dType,'ConditionMVGroup',16))
-                        cm = repmat([0:1/(size(cm,1)-1):1]',1,3);
-                        conditionColor = this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide));
-                        cm = [cm(:,1).*conditionColor(1) cm(:,2).*conditionColor(2) cm(:,3).*conditionColor(3)];
-                        colors = cm(round(reshape(colors,[],1)),:);
-                        alphaData = ceil(sum(colors,2));
-                        colors = reshape(colors,[size(current_img) 3]);
-                        alphaData = reshape(alphaData,size(current_img));
-                    elseif(strncmp(hfd{i}.dType,'GlobalMVGroup',13))
-                        %get colors for global merged clusters
-                        colors = hfd{i}.getCIColor([],0,1,0);
+                        %we have precomputed colors
+                        colors = hfd{i}.getCIColor(rc,rt,rs,ri);
                         alphaData = ceil(sum(colors,3));
-                    else
-                        %get colors from map
-                        colors = cm(round(reshape(colors,[],1)),:);
-                        alphaData = ones(size(colors,1),1);
-                        colors = reshape(colors,[size(current_img) 3]);
-                        alphaData = reshape(alphaData,size(current_img));
-                        %set NaN to black
-                        colors(repmat(isnan(current_img),[1 1 3])) = 0;
-                        colors(repmat(isinf(current_img),[1 1 3])) = 0;
-                    end                    
-                else
-                    %we have precomputed colors
-                    colors = hfd{i}.getCIColor(rc,rt,rs,ri);
-                    alphaData = ceil(sum(colors,3));
+                    end
                 end
                 %intensity overlay
                 if(this.intOver)
@@ -1599,11 +1610,51 @@ classdef FDisplay < handle
             end
         end
         
+        function updateColorbar(this)
+            %update the colorbar to the current color map
+            hfd = this.gethfd();
+            hfd = hfd{1};
+            if(isempty(hfd))
+                cla(this.h_cm);
+                return
+            end
+            dp = this.getDynVisParams();
+            if(hfd.rawImgIsLogical)
+                temp(:,1,:) = gray(2);
+                ytick = 1:2;
+            elseif(strcmp(hfd.dType,'Intensity'))
+                temp(:,1,:) = gray(length(dp.cm));
+                ytick = (0:0.25:1).*size(temp,1);
+            else
+                temp(:,1,:) = dp.cm;
+                ytick = (0:0.25:1).*size(temp,1);
+            end
+            image(temp,'Parent',this.h_cm);            
+            ytick(1) = 1;
+            set(this.h_cm,'YDir','normal','YTick',ytick,'YTickLabel','','YAxisLocation','right','XTick',[],'XTickLabel','');
+            ylim(this.h_cm,[1 size(temp,1)]);
+            if(isfield(this.visObj.visHandles,'hrotate3d'))
+                setAllowAxesRotate(this.visObj.visHandles.hrotate3d,this.h_cm,false);
+            end
+        end
+        
         function updateColorBarLbls(this)
             %update the labels of the colorbar
-            tickLbls = this.makeColorBarLbls(5);
+            hfd = this.gethfd();
+            hfd = hfd{1};
+            if(isempty(hfd))
+                tickLbls = cell(5,1);
+            else
+                if(hfd.rawImgIsLogical)
+                    tickLbls = cell(5,1);
+                    tickLbls{1} = '0';
+                    tickLbls{5} = '1';
+                else
+                    tickLbls = this.makeColorBarLbls(5);
+                end
+            end            
             for i=1:5
-                set(this.(sprintf('h_t%s',num2str(i))),'String',tickLbls{i},'FontUnits','pixels','Fontsize',this.staticVisParams.fontsize);                
+                set(this.(sprintf('h_t%s',num2str(i))),'String',tickLbls{i},'FontUnits','pixels','Fontsize',this.staticVisParams.fontsize);
             end
         end
         
@@ -1830,6 +1881,11 @@ classdef FDisplay < handle
         function out = get.h_ds_t(this)
             %
             out = this.visObj.visHandles.(sprintf('descStats_%s_table',this.mySide));
+        end
+        
+        function out = get.h_cm(this)
+            %
+            out = this.visObj.visHandles.(sprintf('cm_%s_axes',this.mySide));
         end
         
         function out = get.h_t1(this)
