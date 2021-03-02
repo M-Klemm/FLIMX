@@ -1014,7 +1014,7 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             %compute masks which data points are used for figure of merit computation
             fi = this.fileInfo;
             if(~isempty(this.dataStorage.measurement.raw))
-                this.dataStorage.measurement.nonZeroMask = this.dataStorage.measurement.raw ~= 0;
+                this.dataStorage.measurement.nonZeroMask = true(size(this.dataStorage.measurement.raw)); %this.dataStorage.measurement.raw ~= 0
                 maxPos = this.dMaxPos; %this will compute myStartPos -> fix this
                 for i = 1:length(this.myStartPos)
                     this.dataStorage.measurement.nonZeroMask(1:this.myStartPos(i)-1,i) = false;

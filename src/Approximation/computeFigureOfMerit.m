@@ -80,6 +80,21 @@ if(figureOfMerit == 2)
 %     chi = sum(chiVec(:));
 %     chiD = chiVec(1);
     return
+elseif(figureOfMerit == 3)
+    %max. likelihood
+    measData = max(measData,1);
+    chiVec = measData .* log(measData ./ max(model,1));
+    if(multiModelsFlag)
+        chiVec(~dataNonZeroMask,:) = 0;
+    else
+        chiVec(~dataNonZeroMask) = 0;
+    end
+    chiVec(isnan(chiVec)) = 0;
+    chiVec = 2*sum(chiVec);
+    chiVec(chiVec <= eps(chiVec)) = inf;
+%     chi = sum(chiVec(:));
+%     chiD = chiVec(1);
+    return
 end
 %                 elseif(figureOfMerit == 3) %maximum likelihood
 %                     tmp = bsxfun(@minus,model,measData);
@@ -92,7 +107,7 @@ end
 %                     chiVec = t1 + t2;
 switch chiWeightingMode
     case 2 %person
-        modelNonZeroMask = model > 0 & dataNonZeroMask;
+        modelNonZeroMask = dataNonZeroMask; %model > 0 & dataNonZeroMask;
 %         modelNonZeroMask(1:this.fileInfo.StartPosition-1,:) = false;
 %         modelNonZeroMask(this.fileInfo.EndPosition+1:end,:) = false;
 %         if(isempty(this.fileInfo.reflectionMask))
@@ -101,7 +116,7 @@ switch chiWeightingMode
 %             reflectionMask = this.fileInfo.reflectionMask;
 %         end
 %         modelNonZeroMask = modelNonZeroMask & repmat(reflectionMask,1,nrM);
-        errLsq(modelNonZeroMask) = errLsq(modelNonZeroMask) .* (1./model(modelNonZeroMask));
+        errLsq(modelNonZeroMask) = errLsq(modelNonZeroMask) .* (1./max(model(modelNonZeroMask),1));
         errLsq(~modelNonZeroMask) = 0;
     case {3,4} %weight by initial model
          dMaxVal = max(measData,[],1);
@@ -110,7 +125,7 @@ switch chiWeightingMode
 %         dMaxVal = max(measData,[],1);
 %         errLsq = bsxfun(@times,errLsq,chiWeightingData.*1./(dMaxVal.*min(chiWeightingData,[],2))); %normalize weight vector to data maximum
     otherwise %neyman
-        errLsq = errLsq .* 1./measData;
+        errLsq = errLsq .* 1./max(measData,1);
 end
 %use only residuum of non-zero values in measurement data
 if(multiModelsFlag)
