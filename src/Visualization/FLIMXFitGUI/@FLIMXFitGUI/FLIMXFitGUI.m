@@ -1873,7 +1873,8 @@ classdef FLIMXFitGUI < handle
             new = GUI_compOptions(this.computationParams,'On');
             if(~isempty(new))
                 this.FLIMXObj.paramMgr.setParamSection('computation',new.computation);
-                this.FLIMXObj.curSubject.computationParams = new;
+                this.FLIMXObj.curSubject.computationParams = new.computation;
+                this.FLIMXObj.curSubject.clearCachedApproxObj();
             end
         end
 

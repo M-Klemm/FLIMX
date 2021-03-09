@@ -1243,7 +1243,7 @@ classdef fluoSubject < FDTreeNode
             %load scatter data into the object
             if(~isempty(scatterData))
                 out.setScatterData(scatterData);
-            end   
+            end
 %             if(params.basicFit.chiWeightingMode == 4 && ~isempty(cw))                
 %                 out.setChiWeightData(cw);
 %             end            

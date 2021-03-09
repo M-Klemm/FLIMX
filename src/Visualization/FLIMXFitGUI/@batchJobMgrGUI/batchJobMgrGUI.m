@@ -55,7 +55,9 @@ classdef batchJobMgrGUI < handle
         %% GUI & menu callbacks
         function menuExit_Callback(this,hObject,eventdata)
             %executes on figure close
-            this.GUI_buttonStop_Callback(this.visHandles.buttonStop,[]);
+            try
+                this.GUI_buttonStop_Callback(this.visHandles.buttonStop,[]);
+            end
             %close batchJobMgr
             if(~isempty(this.visHandles) && ishandle(this.visHandles.batchJobMgrFigure))
                 delete(this.visHandles.batchJobMgrFigure);
