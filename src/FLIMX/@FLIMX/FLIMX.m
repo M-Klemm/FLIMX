@@ -37,13 +37,14 @@ classdef FLIMX < handle
         paramMgr = [];      %parameter objects
         curSubject = [];    %current subject
         loggerObj = [];     %logger object
+        GPUList = [];       %list of compatible GPUs in current PC
     end
 
     properties(GetAccess = protected, SetAccess = private)
         FLIMFitObj = [];    %approximation object
         sDDMgrObj = [];     %only temporary: manage synthetic datasets
         batchJobMgrObj = [];%batch job manager
-        hashEngineObj = []; %MD5 hash engine
+        hashEngineObj = []; %MD5 hash engine        
 
         %GUIs
         FLIMFitGUIObj = [];             %visualization of approximation
@@ -120,6 +121,10 @@ classdef FLIMX < handle
             end
             this.updateSplashScreenLongProgress(0.7,'Open pool of MATLAB workers...');
             this.openMatlabPool();
+            if(this.paramMgr.computationParams.useGPU)
+                this.updateSplashScreenLongProgress(0.8,'Looking for compatible GPUs...');
+                this.checkCompatibleGPUs();
+            end
             this.updateSplashScreenShortProgress(0,'');
         end
 
@@ -143,10 +148,10 @@ classdef FLIMX < handle
                     this.splashScreenGUIObj.updateShortProgress(0.5,sprintf('MATLAB pool workers can be disabled in Settings -> Computation'));
                 end
                 try
-                    if(computationParams.useGPU)
-                        %as many workers as GPUs
-                        p = parpool('local',gpuDeviceCount);
-                    else
+%                     if(computationParams.useGPU)
+%                         %as many workers as GPUs
+%                         p = parpool('local',gpuDeviceCount);
+%                     else
                         %as many workers as CPU cores
                         nr = version('-release');
                         if(str2double(nr(1:4)) >= 2020 && computationParams.poolType == 2)
@@ -154,7 +159,7 @@ classdef FLIMX < handle
                         else
                             p = parpool('local',min(computationParams.maxNrWorkersMatlabDistComp,feature('numCores')));
                         end
-                    end
+%                     end
                     if(~isempty(p))
                         parfevalOnAll(p, @warning, 0, 'off', 'MATLAB:rankDeficientMatrix');
                     end
@@ -170,6 +175,22 @@ classdef FLIMX < handle
                 this.matlabPoolTimer = timer('ExecutionMode','fixedRate','Period',p.IdleTimeout/2*60,'TimerFcn','FLIMX.MatlabPoolIdleFcn','Tag','FLIMXMatlabPoolTimer');
                 start(this.matlabPoolTimer);
             end
+        end
+        
+        function checkCompatibleGPUs(this)
+            %look for GPUs in the current system and store the IDs of compatible GPUs
+            warning('off','parallel:gpu:DeviceCapability');
+            n = gpuDeviceCount;
+%             list = [];
+%             for i = 1:n
+%                 data = gpuDevice(i);
+%                 if(~isempty(data) && isfield(data,'DeviceSupported'))
+%                     %in the future: check other requirements here (e.g. size of GPU memory)
+%                     list = [list, i];
+%                 end
+%             end
+%             this.GPUList = list;
+            this.GPUList = find(parallel.gpu.GPUDevice.isAvailable(1:n));
         end
 
         function closeSplashScreen(this)
@@ -518,11 +539,11 @@ classdef FLIMX < handle
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
-            out.config_revision = 274;
+            out.config_revision = 275;
             out.client_revision_major = 5;
             out.client_revision_minor = 4;
-            out.client_revision_fix = 14;
-            out.core_revision = 502;
+            out.client_revision_fix = 15;
+            out.core_revision = 503;
             out.results_revision = 256;
             out.measurement_revision = 206;
         end

@@ -73,8 +73,8 @@ end
 %     end
 % end
 % for i = 1:nrPixels
-% %     apObjs{i}.checkGPU;
-%     apObjs{i}.checkMexFiles();
+%     apObjs{i}.checkGPU;
+%     %apObjs{i}.checkMexFiles();
 % end
 if(aboutInfo.core_revision ~= myAboutInfo.core_revision)
     warning('FluoDecayFit:mcOpt:coreVersionMismatch', 'Revision of this core (%01.2f) does not match the core revision of calling client (%01.2f)! Skipping computation...',...

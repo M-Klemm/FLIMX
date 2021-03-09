@@ -53,10 +53,10 @@ exponentialsShort = computeExponentials(nExp, incompleteDecayFactor, scatterEnab
     stretchedExpMask, t(:,1:nExp*nVecs), irfMaxPos, irfFFT, scatterData, taus, tcis, betas, scAmps, scShifts, scHShiftsFine, scOset, hShift, tciHShiftFine,...
     optimize4CodegenFlag,exponentialsLong,exponentialsShort);
 % end
-if(isa(exponentialsShort,'gpuArray'))
-    exponentialsShort = gather(exponentialsShort);
-    oset = gather(oset);
-end
+% if(isa(exponentialsShort,'gpuArray'))
+%     exponentialsShort = gather(exponentialsShort);
+%     oset = gather(oset);
+% end
 if(~fitAmpsFlag && ~fitOsetFlag)
     %do not fit amps or offset
     ao = zeros(1,size(expAmps,1)+size(scAmps,1)+size(oset,1),size(expAmps,2),'like',expAmps);
@@ -71,5 +71,6 @@ else
     end
 end
 %exponentialsShort = exponentialsShort(1:nTimeChNoID,1:nExp+nScatter+1,1:nVecs);
-exponentialsShort = bsxfun(@times,exponentialsShort,ao);
+%exponentialsShort = bsxfun(@times,exponentialsShort,ao);
+exponentialsShort = exponentialsShort.*ao;
 models = squeeze(sum(exponentialsShort,2,'native'));

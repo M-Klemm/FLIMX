@@ -35,6 +35,7 @@ hostname = optimizationParams.hostname;
 prevXVec = [];
 %t_start = clock;
 tic;
+apObj.checkGPU();
 chList = apObj.nonEmptyChannelList;
 pixelIDs = apObj.getPixelIDs(apObj.currentChannel);
 totalNrPIDs = length(pixelIDs);

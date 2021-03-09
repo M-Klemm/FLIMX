@@ -50,10 +50,12 @@ end
 %     idx = mod((0:r-1)'-sVec, r)+1;
 % else
 if(isa(data,'gpuArray'))
-    tmp = repmat(gpuArray(0:int32(r)-1)',1,c);
-    idx = bsxfun(@plus,mod(bsxfun(@minus,tmp,sVec'), r)+1,(0:c-1)*r);
+    %tmp = repmat(gpuArray(0:int32(r)-1)',1,c);
+    %idx = bsxfun(@plus,mod(bsxfun(@minus,tmp,sVec'), r)+1,(0:c-1)*r);
+    idx = mod((0:gpuArray.int32(r)-1)'-sVec',r)+1 + (0:c-1)*r;
 else
-    idx = bsxfun(@plus,mod(bsxfun(@minus,repmat((0:int32(r)-1)',1,c),sVec'), r)+1,(0:c-1)*r);
+    %idx = bsxfun(@plus,mod(bsxfun(@minus,repmat((0:int32(r)-1)',1,c),sVec'), r)+1,(0:c-1)*r);
+    idx = mod((0:int32(r)-1)'-sVec',r)+1 + (0:c-1)*r;
 end
 % end
 if(e > 1)

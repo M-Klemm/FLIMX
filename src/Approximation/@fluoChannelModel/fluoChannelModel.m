@@ -485,12 +485,12 @@ classdef fluoChannelModel < matlab.mixin.Copyable
             if(isa(x,'gpuArray'))
                 %useGPUFlag = true;
                 xClass = classUnderlying(x);
-                if(isempty(gt))
+                if(isempty(gt) || ~existsOnGPU(gt))
                     gt = repmat(gpuArray(cast(this.time(:,1),xClass)),1,bp.nExp*nVecs);
                 elseif(size(gt,1) ~= this.tLen || size(gt,2) < bp.nExp*nVecs || ~strcmp(xClass,classUnderlying(gt)))
                     gt = repmat(gpuArray(cast(this.time(:,1),xClass)),1,bp.nExp*nVecs);
                 end
-                if(isempty(gexpModelsLong) || size(gexpModelsLong,1) ~= size(t,1) || size(gexpModelsLong,3) < nVecs || size(gexpModelsLong,2) ~= bp.nExp || size(gexpModelsShort,2) ~= bp.nExp+vpp.nScatter+1)
+                if(isempty(gexpModelsLong) || size(gexpModelsLong,1) ~= size(t,1) || size(gexpModelsLong,3) < nVecs || size(gexpModelsLong,2) ~= bp.nExp || size(gexpModelsShort,2) ~= bp.nExp+vpp.nScatter+1 || ~existsOnGPU(gexpModelsShort) || ~existsOnGPU(gexpModelsLong))
                     gexpModelsLong = ones(nTimeCh,bp.nExp,nVecs,xClass,'gpuArray');
                     gexpModelsShort = ones(nTimeChNoID,bp.nExp+vpp.nScatter+1,nVecs,xClass,'gpuArray');
                 end
@@ -984,7 +984,8 @@ classdef fluoChannelModel < matlab.mixin.Copyable
                 this.dataStorage.measurement.maxPos(p) = dMaxPosTmp;
                 this.dataStorage.measurement.maxVal(p) = double(dMaxValTmp);
                 if(this.basicParams.fitModel ~=1)
-                    this.myStartPos(p) = max(1,find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p),dMaxValTmp*this.basicParams.tailFitPreMaxSteps/100),1,'last'));
+                    %this.myStartPos(p) = max(1,find(bsxfun(@lt,this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p),dMaxValTmp*this.basicParams.tailFitPreMaxSteps/100),1,'last'));
+                    this.myStartPos(p) = max(1,find(this.dataStorage.measurement.raw(1:this.dataStorage.measurement.maxPos(p),p) < dMaxValTmp*this.basicParams.tailFitPreMaxSteps/100,1,'last'));
                     %this.myStartPos(p) = max(1,this.dataStorage.measurement.maxPos(p)-this.basicParams.tailFitPreMaxSteps-1);
                 else
                     this.myStartPos(p) = sp0;

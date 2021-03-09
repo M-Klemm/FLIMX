@@ -51,14 +51,14 @@ resid = d - C*x;
 w = C'*resid;
 
 % Set up iteration criterion
-outeriter = zeros(1,1,'uint8');
+%outeriter = zeros(1,1,'uint8');
 iter = zeros(1,1,'uint8');
 itmax = uint8(3*n); %ones(1,1,'like',C);
 %             exitflag = 1;
 
 % Outer loop to put variables into set to hold positive coefficients
 while any(Z) && any(w(Z) > tol)
-    outeriter = outeriter + 1;
+    %outeriter = outeriter + 1;
     % Reset intermediate solution z
     z = nZeros;
     % Create wz, a Lagrange multiplier vector of variables in the zero set.

@@ -48,12 +48,12 @@ xi(negFlag) = xi(negFlag)+1;
 idxPosShift = ~negFlag & idxNonZero;
 idxNegShift = negFlag & idxNonZero;
 if(any(idxPosShift(:)))
-    %Y(1:end-1,idxPosShift) = (1-xi(idxPosShift)).*Y(1:end-1,idxPosShift) + (xi(idxPosShift)).*Y(2:end,idxPosShift);
-    Y(1:end-1,idxPosShift) = bsxfun(@times,Y(1:end-1,idxPosShift),(1-xi(idxPosShift))) + bsxfun(@times,Y(2:end,idxPosShift),(xi(idxPosShift)));
+    Y(1:end-1,idxPosShift) = (1-xi(idxPosShift)).*Y(1:end-1,idxPosShift) + (xi(idxPosShift)).*Y(2:end,idxPosShift);
+    %Y(1:end-1,idxPosShift) = bsxfun(@times,Y(1:end-1,idxPosShift),(1-xi(idxPosShift))) + bsxfun(@times,Y(2:end,idxPosShift),(xi(idxPosShift)));
 end
 if(any(idxNegShift(:)))
-    %Y(2:end,idxNegShift) = (1-xi(idxNegShift)).*Y(1:end-1,idxNegShift) + (xi(idxNegShift)).*Y(2:end,idxNegShift);
-    Y(2:end,idxNegShift) = bsxfun(@times,Y(1:end-1,idxNegShift),(1-xi(idxNegShift))) + bsxfun(@times,Y(2:end,idxNegShift),(xi(idxNegShift)));
+    Y(2:end,idxNegShift) = (1-xi(idxNegShift)).*Y(1:end-1,idxNegShift) + (xi(idxNegShift)).*Y(2:end,idxNegShift);
+    %Y(2:end,idxNegShift) = bsxfun(@times,Y(1:end-1,idxNegShift),(1-xi(idxNegShift))) + bsxfun(@times,Y(2:end,idxNegShift),(xi(idxNegShift)));
 end
 
 end

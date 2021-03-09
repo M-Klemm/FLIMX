@@ -468,7 +468,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             if(~(nPixels == nModels || nPixels == 1))
                 error('FLIMX:fluoPixelModel:costFcn','Number of models (%d) does not match number of pixelIDs (%d).',nModels,nPixels);
             end
-            modelsAtOnce = uint16(2*2048);
+            modelsAtOnce = uint16(2048);
             if(any(this.volatilePixelParams.globalFitMask))
                 nCh = this.nrChannels;
             else
@@ -478,7 +478,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             if(isa(xVec,'gpuArray'))
                 xClass = classUnderlying(xVec);
                 if(strcmpi(xClass,'Double'))
-                    modelsAtOnce = uint16(2*1024);
+                    modelsAtOnce = uint16(1024);
                 end
                 chi2 = zeros(1,nModels,xClass);
                 if(nargin > 1)
@@ -555,7 +555,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             amps = zeros(bp.nExp,size(xVec,2));
             scAmps = zeros(this.volatilePixelParams.nScatter,size(xVec,2));
             oset = zeros(1,nVecs);%,'like',xVec);
-            chi2 = zeros(1,nVecs,'like',xVec);
+            chi2 = zeros(1,nVecs);%,'like',xVec);
             if(~noChi2PenalityFlag && ~(bp.approximationTarget == 2 && (ch == 2 || bp.anisotropyR0Method == 3 && ch == 4)))
                 %ensure tau ordering
                 %exclude stretched exponentials
@@ -583,7 +583,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
                 return
             end
             %compute model function
-            model = zeros(this.getFileInfoStruct(ch).nrTimeChannels,length(pixelIDs));
+            model = zeros(this.getFileInfoStruct(ch).nrTimeChannels,length(pixelIDs));%,'like',xVec);
             curPIs = pixelIDs(~idxIgnored);
             [model(:,~idxIgnored), amps(:,~idxIgnored), scAmps(:,~idxIgnored), oset(~idxIgnored), exponentials(:,:,~idxIgnored)] = this.myChannels{ch}.compModel2(xVec(:,~idxIgnored),curPIs);
             %compute chi2
@@ -604,6 +604,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             if(isa(chi2,'gpuArray'))
                 chi2 = gather(chi2);
                 idxIgnored = gather(idxIgnored);
+                %model = gather(model);
             end
             if(isempty(xVec))
                 chi2tail = chi2;
@@ -1110,20 +1111,24 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             rs.hShift = zeros(nRows,nCols);
         end
 
-%         function checkGPU(this)
+        function checkGPU(this)
             %check for available GPUs
-%             if(this.computationParams.useGPU && ~isempty(this.volatilePixelParams.compatibleGPUs))
-%                 %try to distribute parfor worker to the existing GPUs
-%                 idx = min(length(this.volatilePixelParams.compatibleGPUs),ceil(get(getCurrentTask,'ID')/length(this.volatilePixelParams.compatibleGPUs)));
-%                 if(isempty(idx))
-%                     idx = 1;
-%                 end
-%                 gpuDevice(this.volatilePixelParams.compatibleGPUs(idx));
-%                 this.useGPU = true;
-%             else
-%                 this.useGPU = false;
-%             end
-%         end
+            if(this.computationParams.useGPU && ~isempty(this.computationParams.GPUList) && this.nPixel >= 64)
+                %try to distribute parfor worker to the existing GPUs
+                idx = min(length(this.computationParams.GPUList),ceil(get(getCurrentTask,'ID')/length(this.computationParams.GPUList)));
+                if(isempty(idx))
+                    idx = 1;
+                end
+                curDev = gpuDevice();
+                if(abs(curDev.Index - idx) > eps) %curDev.Index ~= idx
+                    %change current GPU device
+                    gpuDevice(this.computationParams.GPUList(idx));
+                end
+                this.useGPU = true;
+            else
+                this.useGPU = false;
+            end
+        end
 
         function checkMexFiles(this)
             %check if mex files are available

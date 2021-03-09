@@ -263,6 +263,8 @@ classdef FLIMXParamMgr < paramMgr
             %convert color map                       
             ini.general.cmType = strcat(ini.general.cmType,'|');
             ini.general.cmIntensityType = strcat(ini.general.cmIntensityType,'|');
+            %remove GPUList
+            ini.computation.GPUList = '';
             FLIMXParamMgr.struct2ini(this.fileName,ini);
         end
     end
@@ -335,21 +337,11 @@ classdef FLIMXParamMgr < paramMgr
                             end
                         end
                     case 'computation'
-                        %                         %check GPU support
-                        %                         warning('off','parallel:gpu:DeviceCapability');
-                        %                         if(isfield(new,'useGPU') && new.useGPU && isempty(this.volatilePixelParams.compatibleGPUs) && isGpuAvailable())
-                        %                             GPUList = [];
-                        %                             for i = 1:gpuDeviceCount
-                        %                                 info = gpuDevice(i);
-                        %                                 if(info.DeviceSupported)
-                        %                                     GPUList = [GPUList i];
-                        %                                 end
-                        %                             end
-                        %                             this.volatilePixelParams.compatibleGPUs = GPUList;
-                        %                         elseif(isfield(new,'useGPU') && ~new.useGPU)
-                        %                             this.volatilePixelParams.compatibleGPUs = [];
-                        %                         end
-                        %                         warning('on','parallel:gpu:DeviceCapability');
+                        %check GPU support                        
+                        if(isfield(new,'useGPU') && new.useGPU && ~isempty(this.FLIMXObj))
+                            this.FLIMXObj.checkCompatibleGPUs();
+                        end
+                        warning('on','parallel:gpu:DeviceCapability');
                         p = gcp('nocreate');
                         if(~isempty(this.FLIMXObj) && new.useMatlabDistComp > 0 && isempty(p))
                             %open a pool

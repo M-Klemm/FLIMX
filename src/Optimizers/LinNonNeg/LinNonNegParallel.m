@@ -1,10 +1,10 @@
-function x = LinNonNeg(C,d,tol) %,resnorm,resid,exitflag,output,lambda]
+function x = LinNonNegParallel(C,d,tol) %,resnorm,resid,exitflag,output,lambda]
 %=============================================================================================================
 %
-% @file     LinNonNeg.m
+% @file     LinNonNegParallel.m
 % @author   Matthias Klemm <Matthias_Klemm@gmx.net>
-% @version  1.0
-% @date     July, 2015
+% @version  2.0
+% @date     March, 2021
 %
 % @section  LICENSE
 %
@@ -32,35 +32,61 @@ function x = LinNonNeg(C,d,tol) %,resnorm,resid,exitflag,output,lambda]
 % @brief    A function to implement a non-negative linear optimizer based on MATLAB's lsqnonneg
 %
 [nTime,nModels,nVecs] = size(C);
-nModels = uint16(nModels); nVecs = uint16(nVecs);
-tol = repmat(10*eps(C(1,1))*squeeze(sum(C,[1,2],'native'))*nTime*nModels,[1,nModels]);
+if(isa(C,'gpuArray'))
+    gpuFlag = true;
+else
+    gpuFlag = false;
+end
+%nModels = (nModels); 
+nVecs = uint16(nVecs);
+if(gpuFlag)
+    Ccpu = gather(C);
+else
+    Ccpu = C;
+end
+tol = repmat(10*eps(Ccpu(1,1))*squeeze(sum(Ccpu,[1,2],'native'))*nTime*nModels,[1,nModels])';
 % Initialize vector of n zeros and Infs (to be used later)
-nZeros = zeros(nModels,nVecs,'like',C);
+nZeros = zeros(nModels,nVecs,underlyingType(C));
 wz = nZeros;
 idxOffsetVec = reshape(1:nModels*nVecs,[nModels,nVecs]);
 idxOffsetVec = idxOffsetVec(1,:);
 % Initialize set of non-active columns to null
-P = false(nModels,nVecs,'like',logical(d));
+P = false(nModels,nVecs,'logical');
 % Initialize set of active columns to all and the initial point to zeros
 Z = true(nModels,nVecs,'like',P);
-x = nZeros;
-resid = zeros(size(d),'like',d);
-w = wz;
+% x = nZeros;
+% resid = zeros(size(d),'like',d);
+% w = wz;
 %guess initial solution
-for i = 1:nVecs
-    x(:,i) = C(:,:,i)\d(:,i);
-    if(any(x(:,i) < 0))
-        x(:,i) = 0;
+if(gpuFlag)
+    x = gather(pagefun(@mldivide,C,d));
+else
+    for i = nVecs:-1:1
+        Ct(i).e = C(:,:,i);
+        Ct(i).d = d(:,:,i);
     end
-    resid(:,i) = d(:,i) - C(:,:,i)*x(:,i);
-    w(:,i) = C(:,:,i)'*resid(:,i);
+    x = zeros(nModels,1,nVecs,'like',C);
+    x(:,1,:) = cell2mat(arrayfun(@(x) mldivide(x.e,x.d),Ct,'UniformOutput',false));
 end
+x(:,:,squeeze(any(x < 0))) = 0;
+% for i = 1:nVecs
+%     x(:,i) = C(:,:,i)\d(:,i);
+%     if(any(x(:,i) < 0))
+%         x(:,i) = 0;
+%     end
+%     resid(:,i) = d(:,i) - C(:,:,i)*x(:,i);
+%     w(:,i) = C(:,:,i)'*resid(:,1,i);
+% end
+
+resid = d - pagemtimes(C,x);
+w = gather(squeeze(pagemtimes(permute(C,[2,1,3]),resid)));
 % x2 = zeros(3,1,1024);
 % x2(:,1,:) = x;
 % tmp = pagefun(@mtimes,gpuArray(single(C(:,:,1:100))),gpuArray(single(x2(:,:,1:100))));
 % Set up iteration criterion
-outeriter = zeros(1,nVecs,'uint8');
+outeriter = 0; % zeros(1,nVecs,'uint8');
 iter = zeros(1,nVecs,'uint8');
+iterAtMax = false(1,nVecs);
 itmax = uint8(3*nModels); %ones(1,1,'like',C);
 %             exitflag = 1;
 
@@ -77,22 +103,46 @@ while any(idx)
     wz(Z) = w(Z);
     % Find variable with largest Lagrange multiplier
     [~,t] = max(wz,[],1);
-    t = uint16(t);
     % Move variable t from zero set to positive set
-    P(idxOffsetVec+t-1) = true;
-    Z(idxOffsetVec+t-1) = false;
+    P(idxOffsetVec+uint16(t)-1) = true;
+    Z(idxOffsetVec+uint16(t)-1) = false;
     % Compute intermediate solution using only variables in positive set
-    idxOne = sum(P,1) == 1;
-    Pt = P;
-    Pt(:,~idxOne) = false;
-    Ct = reshape(C,[nTime*nModels,nVecs]);
-    Pt = reshape(Pt,[],1);
-    Z(Pt) = Ct(Pt,:)'\d(:,idxOne);
+    
+    sols = sum(P,1);
+    uSols = unique(sols);
+    uSols(uSols < 1) = [];
+    for i = 1:length(uSols)
+        idxSol = sols == uSols(i);
+        nSol = sum(idxSol);
+        Ptmp = reshape(P(:,idxSol),[1,nModels*nSol]);        
+        if(gpuFlag)
+            Ctmp = reshape(C(:,:,idxSol),[nTime,nModels*nSol]);
+            z(P(:,idxSol)) = gather(pagefun(@mldivide,reshape(Ctmp(:,Ptmp),[nTime,uSols(i),nSol]),d(:,:,idxSol)));
+        else
+            for j = length(idxSol):-1:1
+                if(idxSol(j))
+                    Ct(j).P = P(:,j);
+                end
+            end
+            z(P(:,idxSol)) = cell2mat(arrayfun(@(x) mldivide(x.e(:,x.P),x.d),Ct(idxSol),'UniformOutput',false));
+        end        
+%         Ctmp = Ctmp(:,Ptmp);
+%         Ctmp = reshape(Ctmp,[nTime,uSols(i),nSol]);
+%         C(:,:,idxSol) = Ctmp;
+%         z(P) = pagefun(@mldivide,Ctmp,d(:,:,idxSol));
+        %P = reshape(Ptmp,[nModels,nSol]);
+    end
+%     Pt = P;
+%     Pt(:,~idxOne) = false;
+%     Pt = reshape(Pt,[],1);
+    %Z(Pt) = Ct(Pt,:)'\d(:,idxOne);
+    %z(P) = pagefun(@mldivide,Ctmp,d(:,:,idxSol));
     
     % inner loop to remove elements from the positive set which no longer belong
-    while any(z(P) <= tol)
-        iter = iter + 1;
-        if iter > itmax
+    idxInner = any(z <= tol & P,1) & ~iterAtMax;
+    while any(idxInner)
+        iter(idxInner) = iter(idxInner) + 1;
+        if(any(iter > itmax)) %TODO!
             %                         msg = sprintf(['Exiting: Iteration count is exceeded, exiting LSQNONNEG.', ...
             %                             '\n','Try raising the tolerance (OPTIONS.TolX).']);
             %                         if verbosity
@@ -103,24 +153,76 @@ while any(idx)
             %                         output.message = msg;
             %                         output.algorithm = 'active-set';
             %                         resnorm = sum(resid.*resid);
-            x = z;
+            x(:,:,idxInner) = z(:,idxInner);
             %                         lambda = w;
-            return
+            %return
+            iterAtMax(idxInner) = true;
+            if(all(iterAtMax(:)))
+                return
+            end
         end
         % Find indices where intermediate solution z is approximately negative
-        Q = (z <= tol) & P;
+        xInner = gather(squeeze(x(:,:,idxInner)));
+        zInner = z(:,idxInner);
+        %nInner = sum(idxInner(:));
+        Q = (zInner <= tol(:,idxInner)) & P(:,idxInner);
         % Choose new x subject to keeping new x nonnegative
-        alpha = min(x(Q)./(x(Q) - z(Q)));
-        x = x + alpha*(z - x);
+        tmpInner = xInner ./ (xInner - zInner);
+        tmpInner(~Q) = NaN;
+        alpha = min(tmpInner,[],1,'omitnan');        
+        xInner = xInner + alpha.*(zInner - xInner);
         % Reset Z and P given intermediate values of x
-        Z = ((abs(x) < tol) & P) | Z;
-        P = ~Z;
-        z = nZeros;           % Reset z
-        z(P) = C(:,P)\d;      % Re-solve for z
+        Z(:,idxInner) = ((abs(xInner) < tol(:,idxInner)) & P(:,idxInner)) | Z(:,idxInner);
+        P(:,idxInner) = ~Z(:,idxInner);
+        zInner = nZeros(:,idxInner);           % Reset z
+%         Cinner = C(:,:,idxInner);
+%         Pinner = reshape(P(:,idxInner),[1,nModels*nInner]);
+%         Cinner = reshape(Cinner,[nTime,nModels*nInner]);
+%         Cinner = Cinner(:,Pinner);
+%         Cinner = reshape(Cinner,[nTime,size(Cinner,2)/nInner,nInner]);
+%         Pinner = reshape(Pinner,[nModels,nInner]);
+%         zInner(Pinner) = pagefun(@mldivide,Cinner,d(:,:,idxInner));
+        
+        Pinner = P(:,idxInner);
+        if(gpuFlag)
+            Cinner = Ccpu(:,:,idxInner);
+        else
+            for j = length(idxInner):-1:1
+                if(idxInner(j))
+                    Ct(j).P = P(:,j);
+                end
+            end
+            Cinner = Ct(idxInner);            
+        end
+        sols = sum(P(:,idxInner),1);
+        uSols = unique(sols);
+        uSols(uSols < 1) = [];
+        for i = 1:length(uSols)
+            idxSol = sols == uSols(i);
+            nSol = sum(idxSol);
+            Ptmp = reshape(Pinner(:,idxSol),[1,nModels*nSol]);
+            if(gpuFlag)
+                Ctmp = reshape(Cinner(:,:,idxSol),[nTime,nModels*nSol]);
+                zInner(Pinner(:,idxSol)) = pagefun(@mldivide,reshape(Ctmp(:,Ptmp),[nTime,uSols(i),nSol]),d(:,:,idxSol));
+            else
+                zInner(Pinner(:,idxSol)) = cell2mat(arrayfun(@(x) mldivide(x.e(:,x.P),x.d),Cinner(idxSol),'UniformOutput',false));
+            end
+            %         Ctmp = Ctmp(:,Ptmp);
+            %         Ctmp = reshape(Ctmp,[nTime,uSols(i),nSol]);
+            %         C(:,:,idxSol) = Ctmp;
+            %         z(P) = pagefun(@mldivide,Ctmp,d(:,:,idxSol));
+            %P = reshape(Ptmp,[nModels,nSol]);
+        end
+    
+        %z(P) = C(:,P)\d;      % Re-solve for z
+        z(:,idxInner) = zInner;
+        idxInner = any(z <= tol & P,1) & ~iterAtMax;
     end
-    x = z;
-    resid = d - C*x;
-    w = C'*resid;
+    x(:,:,:) = z;
+    %resid = d - C*x;
+    resid = d - pagemtimes(C,x);
+    %w = C'*resid;
+    w = gather(squeeze(pagemtimes(permute(C,[2,1,3]),resid)));
     idx = any(Z) & any(w(Z) > tol(Z));
 end
 

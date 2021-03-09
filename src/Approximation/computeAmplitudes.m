@@ -52,9 +52,9 @@ else
 end
 nData = size(measData,2);
 if(fitOsetFlag)
-    ao = zeros(1,nParams,nVecs,'like',expModels);
+    ao = zeros(1,nParams,nVecs,underlyingType(expModels));
 else
-    ao = zeros(1,nParams-1,nVecs,'like',expModels);
+    ao = zeros(1,nParams-1,nVecs,underlyingType(expModels));
 end
 if(~isempty(measData) && nParams > 0)
     %data = measData(dataNonZeroMask);    
@@ -86,15 +86,17 @@ if(fitOsetFlag)
 end
 %determine amplitudes
 if(isa(expModels,'gpuArray'))
-%     gpuFlag = true;
+    gpuFlag = true;
     nVecs = gpuArray(nVecs);
     nParams = gpuArray(nParams);
     nData = gpuArray(nData);
+    dataNonZeroMask = gpuArray(dataNonZeroMask);
+    measData = gpuArray(measData);
 else
-%     gpuFlag = false;
+    gpuFlag = false;
 end
 if(singleModelFlag)
-    %todo: add aplitude bounds check for all data in ao (not only those in for loop
+    %todo: add aplitude bounds check for all data in ao (not only those in for loop)
     if(fitOsetFlag)
         dA = decomposition(expModels);
         ao(1,:,:) = dA\measData;
@@ -115,24 +117,41 @@ if(singleModelFlag)
     end
     
 else
-    for j = 1:nVecs
-        %     if(singleModelFlag)
-        %         idxExpModel = ones(1,1,'like',expModels);
-        %         idxData = j;
-        %     else
-        idxExpModel = j;
-        idxData = min(j,nData);
-        %     end
+    if(~gpuFlag)
+        for j = 1:nVecs
+            %     if(singleModelFlag)
+            %         idxExpModel = ones(1,1,'like',expModels);
+            %         idxData = j;
+            %     else
+            idxExpModel = j;
+            idxData = min(j,nData);
+            %     end
+            if(fitOsetFlag)
+                %determine amplitudes and offset
+                %ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),idxExpModel),measData(dataNonZeroMask(:,idxData),idxData)),linLB(1:nParams,idxData),linUB(1:nParams,idxData));
+                tmp = LinNonNeg(expModels(dataNonZeroMask(:,idxData),:,idxData),measData(dataNonZeroMask(:,idxData),idxData));
+                ao(1,:,j) = checkBounds(tmp,sum(tmp(:)).*linLB(1:nParams,idxData),sum(tmp(:)).*linUB(1:nParams,idxData));
+            else
+                %determine amplitudes only, offset is already set
+                %ao(1,:,j) = checkBounds(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel)\(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel)),linLB(1:nParams-1,idxData),linUB(1:nParams-1,idxData));
+                tmp = LinNonNeg(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel),(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel)));
+                ao(1,:,j) = checkBounds(tmp,sum(tmp(:)).*linLB(1:nParams-1,idxData),sum(tmp(:)).*linUB(1:nParams-1,idxData));
+            end
+        end
+    else
+        dnzm = reshape(dataNonZeroMask,[size(expModels,1),1,nVecs]);
+        dnzm = repmat(dnzm,[1,size(expModels,2),1]);
+        measData = measData-oset;
+        measData(~dataNonZeroMask) = 0;
+        expModels(~dnzm) = 0;
         if(fitOsetFlag)
-            %determine amplitudes and offset
-            %ao(1,:,j) = checkBounds(LinNonNeg(expModels(dataNonZeroMask(:,idxData),idxExpModel),measData(dataNonZeroMask(:,idxData),idxData)),linLB,linUB);
-            tmp = LinNonNeg(expModels(dataNonZeroMask(:,idxData),:,idxData),measData(dataNonZeroMask(:,idxData),idxData));
-            ao(1,:,j) = checkBounds(tmp,sum(tmp(:)).*linLB(1:nParams,idxData),sum(tmp(:)).*linUB(1:nParams,idxData));
+            tmp = squeeze(gather(LinNonNegParallel(expModels(:,1:nParams,:),reshape(measData-oset,[size(expModels,1),1,nVecs]))));
+            %tmp = gather(pagefun(@mldivide,expModels(:,1:nParams,:),reshape(measData-oset,[size(expModels,1),1,nVecs])));
+            ao(1,:,:) = checkBounds(tmp,sum(tmp,1).*linLB(1:nParams,:),sum(tmp(:)).*linUB(1:nParams,:));
         else
-            %determine amplitudes only, offset is already set
-            %ao(1,1:nParams-1,j) = checkBounds(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel)\(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel)),linLB(1:nParams-1,:),linUB(1:nParams-1,:));
-            tmp = LinNonNeg(expModels(dataNonZeroMask(:,idxData),1:nParams-1,idxExpModel),(measData(dataNonZeroMask(:,idxData),idxData)-oset(idxExpModel)));
-            ao(1,:,j) = checkBounds(tmp,sum(tmp(:)).*linLB(1:nParams-1,idxData),sum(tmp(:)).*linUB(1:nParams-1,idxData));
+            tmp = squeeze(gather(LinNonNegParallel(expModels(:,1:nParams-1,:),reshape(measData-oset,[size(expModels,1),1,nVecs]))));
+            %tmp = squeeze(gather(pagefun(@mldivide,expModels(:,1:nParams-1,:),reshape(measData-oset,[size(expModels,1),1,nVecs]))));
+            ao(1,:,:) = checkBounds(tmp,sum(tmp,1).*linLB(1:nParams-1,:),sum(tmp(:)).*linUB(1:nParams-1,:));
         end
     end
 end

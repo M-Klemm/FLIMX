@@ -141,6 +141,7 @@ classdef FluoDecayFit < handle
             %% assemble cell
             parameterCell(1) = {apObjs};
             parameterCell(2) = {this.optimizationParams};
+            parameterCell{2}.hostname = gethostname();
             parameterCell(3) = {this.aboutInfo};
         end
         
@@ -455,6 +456,8 @@ classdef FluoDecayFit < handle
                 if(~isempty(pool))
                     nWorkers = pool.NumWorkers;
                 end
+            else
+                pool = [];
             end
             %fit dimension
             if(fitModeFlag > 0)
@@ -807,44 +810,137 @@ classdef FluoDecayFit < handle
                     %oldstyle singlethreaded
                     pixelPerWU = 1;
                 end
-                for i = 1:pixelPerWU:totalPixels
+                if(totalPixels < pixelPerWU)
+                    totalWUs = uint32(min(nWorkers,totalPixels));
+                    pixelPerCore = ceil(totalPixels/totalWUs);
+                else
+                    totalWUs = uint32(ceil(totalPixels/pixelPerCore));
+                end
+                parameterCell = cell(totalWUs,3);
+                workingSet = cell(2*nWorkers,1);
+                currentWU = uint32(0);
+                finishedWUs = 0;
+                while(currentWU < totalWUs || ~all(cellfun(@isempty,workingSet)))
+                %for currentPixel = 1:pixelPerCore:totalPixels %1:pixelPerWU:totalPixels
                     if(this.parameters.stopOptimization)
                         %user wants to stop
+                        idx = cellfun(@isempty,workingSet);
+                        cellfun(@cancel,workingSet(~idx));
                         this.parameters.stopOptimization = false;
                         status = true;
                         break;
                     end
-                    curIdx = min(totalPixels,i+pixelPerWU-1);
-                    [parameterCell, idx] = this.getApproxParamCell(ch,pixelPool(i:curIdx),pixelPerCore,fitModeFlag);
-                    if(isempty(parameterCell) || isempty(idx))
-                        status = true;
-                        break
-                    end
-                    resultStruct = makePixelFit(parameterCell{:});
-                    if(~isstruct(resultStruct))
-                        %something went wrong
-                        %todo: error message, cleanup
-                        this.parameters.stopOptimization = true;
-                        warning('FluoDecayFit:makeLocalFit','Approximation process yielded empty results - aborting...');
-                        status = true;
-                        break
-                    end
-                    %store results
-                    if(fitModeFlag > 0)
-                        this.FLIMXObj.curSubject.addInitResult(ch,idx,resultStruct);
-                        %update waitbar
-                        this.updateShortProgress(curIdx/totalPixels,sprintf('Initialization: %02.1f%%',curIdx/totalPixels*100));
-                    else
-                        this.FLIMXObj.curSubject.addMultipleResults(ch,idx,resultStruct);
-                        %display results
-                        if(isempty(lastUpdate) || etime(clock, lastUpdate) > 5)
-                            this.FLIMXObj.FLIMFitGUI.setCurrentPos(idx(end,1),idx(end,2));
-                            lastUpdate = clock;
+                    freeSlots = find(cellfun(@isempty,workingSet));
+                    if(any(freeSlots) && currentWU < totalWUs)
+                        for f = 1:length(freeSlots)
+                            %add new jobs to working set
+                            currentWU = currentWU+1;
+%                             if(pixelPerCore > 1)
+                                startPxIdx = max(1,(currentWU-1)*pixelPerCore+1);
+%                             else
+%                                 startPxIdx = currentWU;
+%                             end
+                            endPxIdx = min(totalPixels,startPxIdx+pixelPerCore-1);%min(totalPixels,currentPixel+pixelPerWU-1);
+                            [parameterCell(currentWU,:), idx] = this.getApproxParamCell(ch,pixelPool(startPxIdx:endPxIdx),pixelPerCore,fitModeFlag);
+                            parameterCell{currentWU}{1,1}.computationParams.GPUList = this.FLIMXObj.GPUList;
+                            if(isempty(parameterCell) || isempty(idx))
+                                status = true;
+                                break
+                            end
+                            parameterCell{currentWU,2}.pixelIDs = idx;
+                            if(isempty(pool))
+                                workingSet{freeSlots(f),1}.OutputArguments{1,1} = runOpt(parameterCell{currentWU,1}{1,1},parameterCell{currentWU,2});
+                                workingSet{freeSlots(f),1}.InputArguments{1,1} = parameterCell{currentWU,1};
+                                workingSet{freeSlots(f),1}.InputArguments{1,2} = parameterCell{currentWU,2};
+                                workingSet{freeSlots(f),1}.State = 'finished';
+                            else
+                                workingSet{freeSlots(f),1} = parfeval(pool, @runOpt, 1, parameterCell{currentWU,1}{1,1},parameterCell{currentWU,2});
+                            end
+                            if(currentWU == totalWUs)
+                                break
+                            end
                         end
-                        %update waitbar
-                        [hours, minutes, secs] = secs2hms(etime(clock,tStart)/curIdx*(totalPixels-curIdx)); %mean cputime for finished runs * cycles left
-                        this.updateShortProgress(curIdx/totalPixels,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',curIdx/totalPixels*100,hours,minutes,secs));
                     end
+                    %flags = false(size(f));
+                    finishedSlots = find(cellfun(@(x) ~isempty(x) && strcmp(x.State,'finished'),workingSet));
+                    if(~isempty(finishedSlots))
+                        for f = 1:length(finishedSlots)
+                            finishedWUs = finishedWUs+1;
+                            if(fitModeFlag > 0)
+                                this.FLIMXObj.curSubject.addInitResult(ch,workingSet{finishedSlots(f),1}.InputArguments{1,2}.pixelIDs,workingSet{finishedSlots(f),1}.OutputArguments{1,1});
+                                this.updateShortProgress(finishedWUs/double(totalWUs),sprintf('Initialization: %02.1f%%',finishedWUs/double(totalWUs)*100));
+                            else
+                                this.FLIMXObj.curSubject.addMultipleResults(ch,workingSet{finishedSlots(f),1}.InputArguments{1,2}.pixelIDs,workingSet{finishedSlots(f),1}.OutputArguments{1,1});
+                                %display results
+                                if(isempty(lastUpdate) || etime(clock, lastUpdate) > 5)
+                                    this.FLIMXObj.FLIMFitGUI.setCurrentPos(workingSet{finishedSlots(f),1}.InputArguments{1,2}.pixelIDs(end,1),workingSet{finishedSlots(f),1}.InputArguments{1,2}.pixelIDs(end,2));
+                                    lastUpdate = clock;
+                                end
+                                %update waitbar
+                                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/finishedWUs*(double(totalWUs)-finishedWUs)); %mean cputime for finished runs * cycles left
+                                this.updateShortProgress(finishedWUs/double(totalWUs),sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',finishedWUs/double(totalWUs)*100,hours,minutes,secs));
+                            end
+                            workingSet(finishedSlots(f),1) = cell(1,1);
+                        end
+                    else
+                        %nothing to do
+                        pause(0.1);
+                    end
+%                             flags = arrayfun(@(x) strcmp(x.State,'finished'),f);
+%                             if(any(flags))
+%                                 
+%                             end
+%                             if(this.parameters.stopOptimization)
+%                                 break
+%                             end
+%                             pause(0.1);
+%                         end
+%                         %check for errors
+%                         eSize = arrayfun(@(x) size(x.Error,1),f);
+%                         if(any(eSize > 0))
+%                             %there is an error somewhere -> something went wrong
+%                             resultStruct = [];
+%                         else
+%                             %rebuild results structure
+%                             chList = apObjs{1}.nonEmptyChannelList;
+%                             resultStruct = f(1,1).OutputArguments{1,1}{:};
+%                             fn = fieldnames(resultStruct);
+%                             fn = fn(~strcmpi(fn,'ROI_merge_result'));
+%                             %fn = fn(~strcmpi(fn,'Message'));
+%                             for x = 2:length(apObjs)
+%                                 tmp = f(1,x).OutputArguments{1,1}{:};
+%                                 for chIdx = 1:length(chList)
+%                                     for j = 1:length(fn)
+%                                         resultStruct(chIdx).(fn{j}) = [resultStruct(chIdx).(fn{j}) tmp(chIdx).(fn{j})];
+%                                     end
+%                                 end
+%                             end
+%                         end
+%                     end
+%                     if(~isstruct(resultStruct))
+%                         %something went wrong
+%                         %todo: error message, cleanup
+%                         this.parameters.stopOptimization = true;
+%                         warning('FluoDecayFit:makeLocalFit','Approximation process yielded empty results - aborting...');
+%                         status = true;
+%                         break
+%                     end
+%                     %store results
+%                     if(fitModeFlag > 0)
+%                         this.FLIMXObj.curSubject.addInitResult(ch,idx,resultStruct);
+%                         %update waitbar
+%                         this.updateShortProgress(curIdx/totalPixels,sprintf('Initialization: %02.1f%%',curIdx/totalPixels*100));
+%                     else
+%                         this.FLIMXObj.curSubject.addMultipleResults(ch,idx,resultStruct);
+%                         %display results
+%                         if(isempty(lastUpdate) || etime(clock, lastUpdate) > 5)
+%                             this.FLIMXObj.FLIMFitGUI.setCurrentPos(idx(end,1),idx(end,2));
+%                             lastUpdate = clock;
+%                         end
+%                         %update waitbar
+%                         [hours, minutes, secs] = secs2hms(etime(clock,tStart)/curIdx*(totalPixels-curIdx)); %mean cputime for finished runs * cycles left
+%                         this.updateShortProgress(curIdx/totalPixels,sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',curIdx/totalPixels*100,hours,minutes,secs));
+%                     end
                 end %for i = 1:pixelPerWU:totalPixel
             end            
             this.updateShortProgress(0,'');
@@ -870,6 +966,7 @@ classdef FluoDecayFit < handle
                 result = res(1,idx);
             else
                 parameterCell{2}.options_de.iterPostProcess = @this.iterPostProcess;
+                %parameterCell{1}{1,1}.computationParams.GPUList = this.FLIMXObj.GPUList;
                 result = makePixelFit(parameterCell{:});
             end
             this.updateShortProgress(0,'');

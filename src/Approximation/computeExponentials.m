@@ -107,7 +107,8 @@ if(any(stretchedExpMask))
         exponentialsLong(:,idxExponentialsLong & ~idxSExp) = -t(:,1:sum(idxExponentialsLong & ~idxSExp)) .* taus(idxExponentialsLong & ~idxSExp)';
     end
 else
-    exponentialsLong(:,idxExponentialsLong) = exp(bsxfun(@times,-t(:,1:nExp*nVecs),taus'));
+    %exponentialsLong(:,idxExponentialsLong) = exp(bsxfun(@times,-t(:,1:nExp*nVecs),taus'));
+    exponentialsLong(:,idxExponentialsLong) = exp(-t(:,1:nExp*nVecs).*taus');
 end
 % if(scatterEnable && scatterIRF)
 %     %irf as scatter data
@@ -129,7 +130,8 @@ if(~isempty(irfFFT))
 %     if(isempty(this.irfFFT) || length(this.irfFFT) ~= len_model_2)
 %         this.irfFFT = fft(this.getIRF(), len_model_2);
 %     end
-    exponentialsLong(:,idxExponentialsLong) = real(ifft(bsxfun(@times,fft(exponentialsLong(:,idxExponentialsLong)),irfFFT)));
+    %exponentialsLong(:,idxExponentialsLong) = real(ifft(bsxfun(@times,fft(exponentialsLong(:,idxExponentialsLong)),irfFFT)));
+    exponentialsLong(:,idxExponentialsLong) = real(ifft(fft(exponentialsLong(:,idxExponentialsLong)).*irfFFT));
     %                 end
 %     if(bp.approximationTarget == 2 && this.myChannelNr <= 2) %only in anisotropy mode
 %         %correct for shift caused by reconvolution
