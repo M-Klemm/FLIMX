@@ -127,8 +127,7 @@ classdef AICtrl < handle
             %we got a new name, update all GUI controls
             this.visObj.fdt.setArithmeticImageDefinition(this.curStudy,settings.Name,this.getDefStruct);
             this.updateCtrls();
-            set(this.aiSel,'Value',length(oldNames)+1);%new ai is at the end
-            this.updateCtrls();
+            this.curAIName = settings.Name;
             this.visObj.setupGUI();
         end
         
@@ -139,6 +138,11 @@ classdef AICtrl < handle
         
         function del_Callback(this,hObject,eventdata)
             %delete arithmetic image
+            choice = questdlg(sprintf('Delete arithmetic image ''%s''?',this.curAIName),'Delete Arith. Image?','Yes','No','No');
+            switch choice
+                case 'No'
+                    return
+            end
             this.visObj.fdt.removeArithmeticImageDefinition(this.curStudy,this.curAIName);
             this.updateCtrls();
             this.visObj.setupGUI();
@@ -406,6 +410,19 @@ classdef AICtrl < handle
             if(strcmp(out,'-none-'))
                 out = '';
             end
+        end
+        
+        function set.curAIName(this,val)
+            %set current arithmetic image            
+            aiStr = get(this.aiSel,'String');
+            idx = find(strcmp(aiStr,val));
+            if(isempty(idx))
+                idx = min(length(aiStr),this.aiSel.Value);
+            end
+            if(isempty(idx))
+                return
+            end            
+            set(this.aiSel,'Value',idx);
         end
     end %methods
     
