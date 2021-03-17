@@ -165,6 +165,7 @@ classdef FDataNormal < FData
             %make current image segment from this.rawImage using x, y and z limits
             %compute minimum and maximum of this segment, also for labels (linear)
             ci = [];
+            idx = [];
             if(isempty(this.rawImage))                                                
                 return
             end
@@ -184,8 +185,7 @@ classdef FDataNormal < FData
                     else
                         colors = this.color_data;
                     end
-                    gRT = allGrps{abs(ROIType),2}; %list of roi types in this group
-                    idx = [];
+                    gRT = allGrps{abs(ROIType),2}; %list of roi types in this group                    
                     for j = 1:length(gRT)
                         %get indices of all rois of the group
                         [~,idxTmp] = this.updateCurrentImage(this.getROICoordinates(gRT(j)),gRT(j),ROISubType,ROIVicinity);

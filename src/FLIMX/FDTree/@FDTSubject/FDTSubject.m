@@ -1102,7 +1102,9 @@ classdef FDTSubject < fluoSubject
                             return
                         end
                         out = fd.getROIImage(this.getROICoordinates(ROIType),ROIType,ROISubtype,aiParams.(sprintf('ROIVicinity%s',layer)));
-                        out = mean(out(:),'omitnan');
+                        if(~isempty(out))
+                            out = mean(out(:),'omitnan');
+                        end
                 end
             end
 
@@ -1127,8 +1129,11 @@ classdef FDTSubject < fluoSubject
                 idxA(idxA) = logical(dataA(idxA));
                 idxB = ~isnan(dataB);
                 idxB(idxB) = logical(dataB(idxB));
-                if(isempty(idxA) || isempty(idxB))
-                    out = [];
+                if(isempty(idxA))
+                    out = dataB;
+                    return
+                elseif(isempty(idxB))
+                    out = dataA;
                     return
                 end
                 switch op
@@ -1182,10 +1187,18 @@ classdef FDTSubject < fluoSubject
                             end
                         end
                     otherwise %+,-,*,/,>,<,>=,<=,==,~=
-                        eval(sprintf('out = (dataA %s dataB);',op));
-                        idx = true(size(out));
-                        if(islogical(out))
-                            out(~idx) = false;
+                        if(~any(idxA(:)))
+                            out = dataB;
+                            idx = idxB;
+                        elseif(~any(idxB(:)))
+                            out = dataA;
+                            idx = idxA;
+                        else
+                            eval(sprintf('out = (dataA %s dataB);',op));
+                            idx = true(size(out));
+                            if(islogical(out))
+                                out(~idx) = false;
+                            end
                         end
                 end
                 if(~islogical(out))

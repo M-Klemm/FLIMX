@@ -892,6 +892,7 @@ classdef FData < handle
             %also returns indices of data in full image
             idx = [];
             if(isempty(data) || isempty(ROICoord) || ~any(ROICoord(:)))
+                data = [];
                 return;
             end
             if(~isempty(vicinityInfo))
