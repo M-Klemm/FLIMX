@@ -40,13 +40,16 @@ classdef FLIMXVisGUI < handle
         myStatsGroupComp = [];
         myStatsMVGroup = [];
     end
+    properties(GetAccess = public, SetAccess = private)
+        stopFlag = false;
+    end
     properties (Dependent = true)
         fdt = []; %FDTree object
         visParams = []; %options for visualization
         statParams = []; %options for statistics
         exportParams = []; %options for export
         filtParams = []; %options for filtering        
-        generalParams = []; %general parameters
+        generalParams = []; %general parameters        
     end
 
     methods
@@ -410,7 +413,7 @@ classdef FLIMXVisGUI < handle
             if(isempty(side))
                 side =  ['l' 'r'];
             end
-            this.fdt.setCancelFlag(false);
+            %this.fdt.setCancelFlag(false);
             for j = 1:length(side)                
                 s = side(j);                
                 if(~this.fdt.getNrSubjects(this.getStudy(s),this.getCondition(s)))
@@ -653,17 +656,12 @@ classdef FLIMXVisGUI < handle
                 '*.jpg','16-bit Joint Photographic Experts Group (*.jpg)';...
                 '*.tiff','16-bit TaggedImage File Format (*.tiff)';...
                 };
-%             idx = strcmp(formats(:,1),['*' ext]);
-%             if(any(idx))
-%                 fn = cell(size(formats));
-%                 fn(1,:) = formats(idx,:);
-%                 fn(2:end,:) = formats(~idx,:);
-%                 formats = fn;
-%                 clear fn
-%             end
-            [file, path, filterindex] = uiputfile(formats,'Export Figure as',this.dynParams.lastExportFile);
+            [~, file] = fileparts(this.dynParams.lastExportFile);
+            [file, path, filterindex] = uiputfile(formats,'Export Figure as',file);
             if ~path ; return ; end
-            fn = fullfile(path,file);
+            [~, file] = fileparts(file); %strip off extension incase user added something invalid
+            ext = formats{filterindex,1}(2:end);
+            fn = fullfile(path,[file,ext]);
             this.dynParams.lastExportFile = file;
             switch filterindex
                 case 5 %'*.bmp'
@@ -680,13 +678,16 @@ classdef FLIMXVisGUI < handle
                     str = '-dpng';
                 case 4 %'*.tiff'
                     str = '-dtiff';                    
-            end            
-            hFig = figure;
+            end
+            ss = get(0,'screensize');
+            hFig = figure('Position',ss - [0 0 250 75]);
             set(hFig,'Renderer','Painters');
             feObj = FLIMXFigureExport(this.objHandles.(sprintf('%sdo',side)));
             feObj.makeExportPlot(hFig,pType);
             %pause(1) %workaround for wrong painting
             switch filterindex
+                case 5 %bmp
+                    print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
                 case 8
                     savefig(hFig,fn);
                 case {9,11}
@@ -696,7 +697,8 @@ classdef FLIMXVisGUI < handle
                 otherwise
                     if(this.exportParams.resampleImage)
                         %resample image to desired resolution, add color bar, box, lines, ...
-                        print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
+                        %print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
+                        exportgraphics(feObj.h_m_ax,fn,'Resolution',this.exportParams.dpi);
                     else
                         %export image in native resolution with color bar, box, lines, ...
                         imwrite(flipud(feObj.mainExportColors),fn);
@@ -718,7 +720,7 @@ classdef FLIMXVisGUI < handle
             if(contains(tag,'B'))
                 pType = 'supp'; %supp. plot
             end
-            
+            this.stopFlag = false;
             [settings, button] = settingsdlg(...
                 'Description','This tool will export the chosen figure for each subject in the currently selected view of the current study.',...
                 'title' , 'Figure Batch Export',...
@@ -746,15 +748,11 @@ classdef FLIMXVisGUI < handle
                         '*.jpg','16-bit Joint Photographic Experts Group (*.jpg)';...
                         '*.tiff','16-bit TaggedImage File Format (*.tiff)';...
                         };
-                    % %             if(any(idx))
-                    % %                 fn = cell(size(formats));
-                    % %                 fn(1,:) = formats(idx,:);
-                    % %                 fn(2:end,:) = formats(~idx,:);
-                    % %                 formats = fn;
-                    % %                 clear fn
-                    % %             end
-                    [file, path, filterindex] = uiputfile(formats,'Export Figure as',this.dynParams.lastExportFile);
+                    [~, file] = fileparts(this.dynParams.lastExportFile);
+                    [file, path, filterindex] = uiputfile(formats,'Export Figure as',file);
                     if ~path ; return ; end
+                    [~, file] = fileparts(file); %strip off extension incase user added something invalid
+                    ext = formats{filterindex,1}(2:end);
                     switch filterindex
 %                         case 5 %'*.bmp'
 %                             str = '-dbmp';
@@ -775,11 +773,15 @@ classdef FLIMXVisGUI < handle
                     [file, path] = uiputfile({'*.gif','Graphics Interchange Format (*.gif)'},'Export Animation as',this.dynParams.lastExportFile);
                     if ~path ; return ; end
             end            
-            [~,file,ext] = fileparts(file);
+            [~,file] = fileparts(file);
             hFig = figure('Position',ss - [0 0 250 75]);
             set(hFig,'Renderer','Painters');
             feObj = FLIMXFigureExport(this.objHandles.(sprintf('%sdo',side)));
+            tStart = clock;
             for i = 1:nSubjects
+                if(this.stopFlag)
+                    break
+                end
                 fn = fullfile(path,sprintf('%s_%02.0f%s',file,i,ext));
                 this.visHandles.(sprintf('subject_%s_pop',side)).Value = i;
                 this.updateGUI(side);  
@@ -810,14 +812,14 @@ classdef FLIMXVisGUI < handle
                                 imwrite(uint16(feObj.mainExportXls),fn,'BitDepth',16,'Mode','lossless');
                             otherwise
                                 if(this.exportParams.resampleImage || settings.AddTextOverlay)
-%                                     fr = getframe(feObj.getHandleMainAxes());
-%                                     imwrite(fr.cdata,fn);
+                                    % fr = getframe(feObj.getHandleMainAxes());
+                                    % imwrite(fr.cdata,fn);
                                     %resample image to desired resolution, add color bar, box, lines, ...
                                     %print(hFig,str,['-r' num2str(this.exportParams.dpi)],fn);
                                     exportgraphics(feObj.h_m_ax,fn,'Resolution',this.exportParams.dpi);
                                 else
                                     %export image in native resolution without color bar, box, lines, ...
-                                    imwrite(flipud(feObj.mainExportColors),fn);                                    
+                                    imwrite(flipud(feObj.mainExportColors),fn);
                                 end
                         end
                     case 'Animation'
@@ -830,9 +832,14 @@ classdef FLIMXVisGUI < handle
                             imwrite(imind,cm,fn,'gif','WriteMode','append');
                         end
                 end
+                updateLongProgress(this,0,'');                
+                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(nSubjects-i)); %mean cputime for finished runs * cycles left
+                minutes = minutes + hours * 60; %unlikely to take hours
+                this.updateLongProgress(i/nSubjects,sprintf('%02.1f%% - ETA: %02.0fm %02.0fs',i/nSubjects*100,minutes,secs));                
             end
             close(hFig);
             [~,this.dynParams.lastExportFile] = fileparts(file);
+            updateLongProgress(this,0,'');
         end
         
         function menuExportMovie_Callback(this,hObject,eventdata)
@@ -1027,10 +1034,11 @@ classdef FLIMXVisGUI < handle
         %% GUI callbacks
         function GUI_cancelButton_Callback(this,hObject,eventdata)
             %try to stop current FDTree operation
-            button = questdlg(sprintf('Caution!\nCanceling the current operation will probably lead to false results!\nInvalidate to force re-computation (e.g. by reseting the Region of Interest).\n\nStill Cancel?'),'Cancel','Cancel','Continue','Continue');
+            button = questdlg(sprintf('Stop the current operation?'),'FLIMXVis: Stop Operation','Stop','Continue','Continue');
             switch button
-                case 'Cancel'
-                    this.fdt.setCancelFlag(true);
+                case 'Stop'
+                    this.stopFlag = true;
+                    %this.fdt.setCancelFlag(true);
             end
         end
         

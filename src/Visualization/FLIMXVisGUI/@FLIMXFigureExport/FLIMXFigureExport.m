@@ -86,33 +86,33 @@ classdef FLIMXFigureExport < FDisplay
             hFig.Position(4) = max(450,hFig.Position(4));
             if(this.visObj.exportParams.plotColorbar && strcmp(type,'main'))
                 switch lower(this.visObj.exportParams.colorbarLocation)
-                    case 'eastoutside'
-                        hFig.Position(3) = (hFig.Position(4)+75);
-                        axSz = hFig.Position(4)-20;
-                        offsetX = 10;
-                        offsetY = 10;
-                    case 'westoutside'
-                        hFig.Position(3) = hFig.Position(4)+75;
-                        axSz = hFig.Position(4)-20;
-                        offsetX = 75;
-                        offsetY = 10;
-                        %hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 250 75];
-                    case 'northoutside'
-                        hFig.Position(3) = hFig.Position(4)+175;
-                        axSz = hFig.Position(4)-20;
-                        offsetX = 10;
-                        offsetY = 10;
-                    case 'southoutside'
-                        hFig.Position(3) = hFig.Position(4)+175;
-                        axSz = hFig.Position(4)-20;
-                        offsetX = 10;
-                        offsetY = 175;
-                        %hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 150 175];
+%                     case 'eastoutside'
+%                         hFig.Position(3) = (hFig.Position(4)+75);
+%                         axSz = hFig.Position(4)-20;
+%                         offsetX = 50;
+%                         offsetY = 10;
+%                     case 'westoutside'
+%                         hFig.Position(3) = hFig.Position(4)+75;
+%                         axSz = hFig.Position(4)-20;
+%                         offsetX = 75;
+%                         offsetY = 10;
+%                         %hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 250 75];
+%                     case 'northoutside'
+%                         hFig.Position(3) = hFig.Position(4)+175;
+%                         axSz = hFig.Position(4)-20;
+%                         offsetX = 50;
+%                         offsetY = 10;
+%                     case 'southoutside'
+%                         hFig.Position(3) = hFig.Position(4)+175;
+%                         axSz = hFig.Position(4)-175;
+%                         offsetX = 50;
+%                         offsetY = 175;
+%                         %hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 150 175];
                     otherwise
                         hFig.Position(3) = hFig.Position(4);
-                        axSz = hFig.Position(4)-20;
-                        offsetX = 10;
-                        offsetY = 10;
+                        axSz = hFig.Position(4)-100;
+                        offsetX = 20;
+                        offsetY = 20;
                         %hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 150 75];
                 end
             else
@@ -153,53 +153,59 @@ classdef FLIMXFigureExport < FDisplay
                     this.UpdateMinMaxLbl();
                     this.makeMainPlot();
                     this.makeZoom();
-                    %this.makeMainXYLabels(); 
-                    colormap(hAx,this.dynVisParams.cm);
+                    %this.makeMainXYLabels();
+                    [~, ~, hfd] = this.gethfd();
+                    hfd = hfd{1};
+                    if(isempty(hfd))
+                        return
+                    end
+                    if(hfd.rawImgIsLogical)
+                        colormap(hAx,gray(2));
+                        cbLabels = this.makeColorBarLbls(2);
+                    elseif(strcmp(hfd.dType,'Intensity'))
+                        colormap(hAx,this.dynVisParams.cmIntensity);
+                        cbLabels = this.makeColorBarLbls(3);
+                    else
+                        colormap(hAx,this.dynVisParams.cm);
+                        cbLabels = this.makeColorBarLbls(3);
+                    end
                     %[y x] = size(this.mainExportGfx);
                     %daspect(hAx,[1 1 max(this.mainExportGfx(:))/max(x,y)]);
-                    if(this.visObj.exportParams.plotColorbar)% && this.mDispDim ~= 3
+                    if(this.visObj.exportParams.plotColorbar)
                         %todo: make own colorbar because Matlabs colorbar destroys the aspect ratio
                         if(isempty(this.myHColorBar) || ~this.myHColorBar.isvalid)
                             this.myHColorBar = colorbar(hAx,'location',this.visObj.exportParams.colorbarLocation,'Fontsize',this.visObj.exportParams.labelFontSize);
                         end
                         [dType, dTypeNr] = this.visObj.getFLIMItem(this.mySide);
-                        if(strcmp(dType,'Intensity'))
-                            colormap(hAx,gray(256));
-                        else
-                            colormap(hAx,this.dynVisParams.cm);
-                        end
-                        cbLabels = this.makeColorBarLbls(3);
-                        %set(this.myHColorBar,'Fontsize',this.visObj.exportParams.labelFontSize);
-                        %                         if(this.mDispDim == 2)
-                        %special handling of colorbar for 2D plot
-                        %clim = get(hAx,'CLim');
-                        %cbLabels = linspace(clim(1),clim(2),length(this.dynVisParams.cm));                        
                         if(dTypeNr)
                             dType = sprintf('%s %d',dType{1},dTypeNr);
                         else
                             dType = dType{1};
                         end
-                        %idx = [1 1+round(length(this.dynVisParams.cm)/2) 1+length(this.dynVisParams.cm)];
-                        idx = [this.myHColorBar.Limits(1) this.myHColorBar.Limits(1)+(this.myHColorBar.Limits(2)-this.myHColorBar.Limits(1))/2 this.myHColorBar.Limits(2)];
-                        if(contains(lower(this.visObj.exportParams.colorbarLocation),'north') || contains(lower(this.visObj.exportParams.colorbarLocation),'south'))
-                            %idx = [1 get(this.myHColorBar,'XTick')];
-                            set(this.myHColorBar,'XTick',idx,'XTickLabel',cbLabels);
-                            xlabel(this.myHColorBar,dType);
+                        if(hfd.rawImgIsLogical)
+                            ticks = [0 1];
                         else
-                            %idx = [1 get(this.myHColorBar,'YTick')];
-                            set(this.myHColorBar,'YTick',idx,'YTickLabel',cbLabels);
-                            ylabel(this.myHColorBar,dType);
+                            ticks = [this.myHColorBar.Limits(1) this.myHColorBar.Limits(1)+(this.myHColorBar.Limits(2)-this.myHColorBar.Limits(1))/2 this.myHColorBar.Limits(2)];
                         end
+%                         if(contains(lower(this.visObj.exportParams.colorbarLocation),'north') || contains(lower(this.visObj.exportParams.colorbarLocation),'south'))
+                            %idx = [1 get(this.myHColorBar,'XTick')];
+                            set(this.myHColorBar,'Ticks',ticks,'TickLabels',cbLabels);
+                            this.myHColorBar.Label.String = dType;
+                            %xlabel(this.myHColorBar,dType);
+%                         else
+%                             %idx = [1 get(this.myHColorBar,'YTick')];
+%                             set(this.myHColorBar,'Ticks',ticks,'Label',cbLabels); %YTickLabel
+%                             ylabel(this.myHColorBar,dType);
+%                         end
                         %set(hAx,'Units',this.myDynVisParams.mainAxesUnits,'Position',this.myDynVisParams.mainAxesPosition);                        
-                    end                    
-                    
+                    end
                 case 'supp'
                     if(isempty(hAx))
                         hAx = this.myHSuppAxes;
                     else
                         this.myHSuppAxes = hAx;
                     end
-                    this.makeSuppPlot();                   
+                    this.makeSuppPlot();
             end
             if(this.visObj.exportParams.autoAspectRatio)
                 daspect(hAx,'auto');
@@ -224,14 +230,24 @@ classdef FLIMXFigureExport < FDisplay
             if(isempty(this.myHMainAxes) || ~this.myHMainAxes.isvalid)
                 return
             end
+            xPos = 10;
+            yPos = 20;
             if(isempty(this.myHTextOverlay) || ~this.myHTextOverlay.isvalid)
-                this.myHTextOverlay = text(this.myHMainAxes,10,20,str, 'Interpreter', 'none'); %change to chosen corner
+                this.myHTextOverlay = text(this.myHMainAxes,xPos,yPos,str, 'Interpreter', 'none'); %change to chosen corner
             else
                 this.myHTextOverlay.String = str;
             end
-%                     t.Color = settings.overlayFontColor;
-                    this.myHTextOverlay.FontSize = this.visObj.exportParams.labelFontSize;
-%                     t.FontName = settings.overlayFontName;
+            imgFlat = sum(this.mainExportColors,3)/3;
+            txtArea = imgFlat(xPos:floor(xPos+this.myHTextOverlay.Extent(3)),floor((yPos:yPos+this.myHTextOverlay.Extent(4))-this.myHTextOverlay.Extent(4)/2));
+            %rectangle('Position',[xPos,yPos-this.myHTextOverlay.Extent(4)/2,this.myHTextOverlay.Extent(3),this.myHTextOverlay.Extent(4)],'EdgeColor','r');
+            if(mean(txtArea(:)) < 0.5)
+                this.myHTextOverlay.Color = [0.8 0.8 0.8];
+            else
+                this.myHTextOverlay.Color = [0.2 0.2 0.2];
+            end
+            % t.Color = settings.overlayFontColor;
+            this.myHTextOverlay.FontSize = this.visObj.exportParams.labelFontSize;
+            % t.FontName = settings.overlayFontName;
         end
         
     end

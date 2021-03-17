@@ -1623,7 +1623,7 @@ classdef FDisplay < handle
                 temp(:,1,:) = gray(2);
                 ytick = 1:2;
             elseif(strcmp(hfd.dType,'Intensity'))
-                temp(:,1,:) = gray(length(dp.cm));
+                temp(:,1,:) = dp.cmIntensity;
                 ytick = (0:0.25:1).*size(temp,1);
             else
                 temp(:,1,:) = dp.cm;
