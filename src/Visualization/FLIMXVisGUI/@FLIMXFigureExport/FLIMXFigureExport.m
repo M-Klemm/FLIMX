@@ -233,10 +233,13 @@ classdef FLIMXFigureExport < FDisplay
             xPos = 10;
             yPos = 20;
             if(isempty(this.myHTextOverlay) || ~this.myHTextOverlay.isvalid)
-                this.myHTextOverlay = text(this.myHMainAxes,xPos,yPos,str, 'Interpreter', 'none'); %change to chosen corner
+                this.myHTextOverlay = text(this.myHMainAxes,xPos,yPos,str, 'Units', 'pixels', 'Interpreter', 'none'); %change to chosen corner
             else
                 this.myHTextOverlay.String = str;
             end
+            this.myHTextOverlay.Units = 'data';
+            xPos = floor(this.myHTextOverlay.Position(1));
+            yPos = floor(this.myHTextOverlay.Position(2));
             imgFlat = sum(this.mainExportColors,3)/3;
             txtArea = imgFlat(xPos:floor(xPos+this.myHTextOverlay.Extent(3)),floor((yPos:yPos+this.myHTextOverlay.Extent(4))-this.myHTextOverlay.Extent(4)/2));
             %rectangle('Position',[xPos,yPos-this.myHTextOverlay.Extent(4)/2,this.myHTextOverlay.Extent(3),this.myHTextOverlay.Extent(4)],'EdgeColor','r');
