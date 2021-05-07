@@ -804,17 +804,22 @@ classdef FDisplay < handle
                             cMin = cTmp(2);
                             cMax = cTmp(3);
                         end
-                        colors = current_img - cMin;
-                        colors(isinf(colors)) = NaN;
+                        
                         if(strcmp(hfd{i}.dType,'Intensity'))
                             cm = this.dynVisParams.cmIntensity;
                         else
                             cm = this.dynVisParams.cm;
                         end
-                        colors = colors/(cMax-cMin)*(size(cm,1)-1)+1; %mapping for colorbar
+                        if(strcmp(this.dynVisParams.cmType,'Spectrum') && ~strcmp(hfd{i}.dType,'Intensity'))
+                            colors = current_img-379; %map pixel values directly to the color map starting at 380 nm
+                        else
+                            colors = current_img - cMin;
+                            colors(isinf(colors)) = NaN;
+                            colors = colors/(cMax-cMin)*(size(cm,1)-1)+1; %mapping for colorbar
+                        end                        
                         colors(isnan(colors)) = 1;
                         colors = max(colors,1);
-                        colors = min(colors,256);
+                        colors = min(colors,size(cm,1));
                         if(strncmp(hfd{i}.dType,'MVGroup',7)  || strncmp(hfd{i}.dType,'ConditionMVGroup',16))
                             cm = repmat([0:1/(size(cm,1)-1):1]',1,3);
                             conditionColor = this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide));

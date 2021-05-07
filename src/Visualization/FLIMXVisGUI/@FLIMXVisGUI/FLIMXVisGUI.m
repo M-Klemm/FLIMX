@@ -63,22 +63,23 @@ classdef FLIMXVisGUI < handle
             this.myStatsGroupComp = StatsGroupComparison(this);
             this.myStatsMVGroup = StatsMVGroupMgr(this);
             this.dynParams.lastPath = flimX.getWorkingDir();
-            try
-                this.dynParams.cm = eval(sprintf('%s(256)',lower(this.generalParams.cmType)));
-            catch
-                this.dynParams.cm = jet(256);
-            end
-            if(this.generalParams.cmInvert)
-                this.dynParams.cm = flipud(this.dynParams.cm);
-            end
-            try
-                this.dynParams.cmIntensity = eval(sprintf('%s(256)',lower(this.generalParams.cmIntensityType)));
-            catch
-                this.dynParams.cmIntensity = gray(256);
-            end
-            if(this.generalParams.cmIntensityInvert)
-                this.dynParams.cmIntensity = flipud(this.dynVisParams.cmIntensity);
-            end
+            this.makeDynParams();
+%             try
+%                 this.dynParams.cm = eval(sprintf('%s(256)',lower(this.generalParams.cmType)));
+%             catch
+%                 this.dynParams.cm = jet(256);
+%             end
+%             if(this.generalParams.cmInvert)
+%                 this.dynParams.cm = flipud(this.dynParams.cm);
+%             end
+%             try
+%                 this.dynParams.cmIntensity = eval(sprintf('%s(256)',lower(this.generalParams.cmIntensityType)));
+%             catch
+%                 this.dynParams.cmIntensity = gray(256);
+%             end
+%             if(this.generalParams.cmIntensityInvert)
+%                 this.dynParams.cmIntensity = flipud(this.dynParams.cmIntensity);
+%             end
             this.dynParams.mouseButtonDown = false;
             %this.dynParams.mouseButtonUp = false;
             this.dynParams.mouseButtonDownROI = [];
@@ -190,22 +191,7 @@ classdef FLIMXVisGUI < handle
             end
             side =  ['l' 'r'];
             studies = this.fdt.getAllStudyNames();
-            try
-                this.dynParams.cm = eval(sprintf('%s(256)',lower(this.generalParams.cmType)));
-            catch
-                this.dynParams.cm = jet(256);
-            end
-            if(this.generalParams.cmInvert)
-                this.dynParams.cm = flipud(this.dynParams.cm);
-            end
-            try
-                this.dynParams.cmIntensity = eval(sprintf('%s(256)',lower(this.generalParams.cmIntensityType)));
-            catch
-                this.dynParams.cmIntensity = gray(256);
-            end
-            if(this.generalParams.cmIntensityInvert)
-                this.dynParams.cmIntensity = flipud(this.dynParams.cmIntensity);
-            end
+            this.makeDynParams();
             %colormap(this.visHandles.cm_axes,this.dynParams.cm);
             for j = 1:length(side)
                 s = side(j);
@@ -777,6 +763,7 @@ classdef FLIMXVisGUI < handle
             hFig = figure('Position',ss - [0 0 250 75]);
             set(hFig,'Renderer','Painters');
             feObj = FLIMXFigureExport(this.objHandles.(sprintf('%sdo',side)));
+            updateLongProgress(this,0.01,'0.0%% - ETA: -');
             tStart = clock;
             for i = 1:nSubjects
                 if(this.stopFlag)
@@ -2359,6 +2346,35 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.FLIMXVisGUIFigure,'WindowScrollWheelFcn',@this.GUI_mouseScrollWheel_Callback);
             setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.short_progress_axes,false);
             setAllowAxesRotate(this.visHandles.hrotate3d,this.visHandles.long_progress_axes,false);
+        end
+        
+        function makeDynParams(this)
+            %make dynamic (visulaization) parameters
+            try
+                switch this.generalParams.cmType
+                    case 'Spectrum'
+                        this.dynParams.cm = spectrumColors;
+                    otherwise
+                        this.dynParams.cm = eval(sprintf('%s(256)',lower(this.generalParams.cmType)));
+                end
+                this.dynParams.cmType = this.generalParams.cmType;
+            catch
+                this.dynParams.cm = jet(256);
+                this.dynParams.cmType = 'jet'; 
+            end
+            if(this.generalParams.cmInvert)
+                this.dynParams.cm = flipud(this.dynParams.cm);
+            end
+            try
+                this.dynParams.cmIntensity = eval(sprintf('%s(256)',lower(this.generalParams.cmIntensityType)));
+                this.dynParams.cmIntensityType = this.generalParams.cmIntensityType;
+            catch
+                this.dynParams.cmIntensity = gray(256);
+                this.dynParams.cmIntensityType = 'gray';
+            end
+            if(this.generalParams.cmIntensityInvert)
+                this.dynParams.cmIntensity = flipud(this.dynParams.cmIntensity);
+            end
         end
     end %methods protected
     

@@ -499,14 +499,20 @@ classdef FLIMX < handle
                         error('FLIMX:getColormaps','Could not create color map data folder: %s\n%s',dataDir,message);
                     end
                 end
-                cmNames = {'Autumn','Bone','Colorcube','Cool','Copper','Cividis','Flag','Gray','Hot','Hsv','Inferno','Jet','Lines','Magma','Parula','Pink','Plasma','Prism','Spring','Summer','Twilight','TwilightShifted','Viridis','White','Winter'};
+                cmNames = {'Autumn','Bone','Colorcube','Cool','Copper','Cividis','Flag','Gray','Hot','Hsv','Inferno','Jet','Lines','Magma','Parula','Pink','Plasma','Prism','Spectrum','Spring','Summer','Twilight','TwilightShifted','Viridis','White','Winter'};
                 cmPaths = strcat([dataDir filesep 'colormap_'], cmNames', '.png');
                 for i = length(cmPaths):-1:1
                     if(~isfile(cmPaths{i}))
-                        %no color map icon found -> generate it
-                        map = zeros(1,256,3);
+                        %no color map icon found -> generate it                        
                         try
-                            eval(sprintf('map(1,:,:) = %s(256);',lower(cmNames{i})));
+                            switch cmNames{i}
+                                case 'Spectrum'
+                                    map = zeros(1,401,3);
+                                    map(1,:,:) = spectrumColors;
+                                otherwise
+                                    map = zeros(1,256,3);
+                                    eval(sprintf('map(1,:,:) = %s(256);',lower(cmNames{i})));
+                            end
                             if(any(map(:)))
                                 map = repmat(map,7,1,1);
                                 imwrite(map,cmPaths{i});
@@ -541,8 +547,8 @@ classdef FLIMX < handle
             %set current revisions HERE!
             out.config_revision = 275;
             out.client_revision_major = 5;
-            out.client_revision_minor = 4;
-            out.client_revision_fix = 19;
+            out.client_revision_minor = 5;
+            out.client_revision_fix = 0;
             out.core_revision = 503;
             out.results_revision = 256;
             out.measurement_revision = 206;
@@ -1121,7 +1127,7 @@ classdef FLIMX < handle
                 'This software is provided by the copyright holders and contributors �as is� and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall copyright holders or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.';
 
                 newline;
-                'This software uses ''logging4matlab'' by Dominique Orban from https://https://github.com/optimizers/logging4matlab, which is covered by the following license:';
+                'This software uses ''logging4matlab'' by Dominique Orban from https://github.com/optimizers/logging4matlab, which is covered by the following license:';
                 'MIT License'
                 'Copyright (c) 2016 optimizers';
                 char(13);
@@ -1142,6 +1148,35 @@ classdef FLIMX < handle
                 'LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,';
                 'OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE';
                 'SOFTWARE.';
+                
+                newline;
+                'This software uses ''MATLAB Color Tools'' by Steve Eddins from https://github.com/mathworks/matlab-color-tools, which is covered by the following license:';
+                'Copyright (c) 2018-2019, The MathWorks, Inc.';
+                char(13);
+                'Redistribution and use in source and binary forms, with or without modification,';
+                'are permitted provided that the following conditions are met:';
+                char(13);
+                '1. Redistributions of source code must retain the above copyright notice, this';
+                'list of conditions and the following disclaimer.';
+                char(13);
+                '2. Redistributions in binary form must reproduce the above copyright notice,';
+                'this list of conditions and the following disclaimer in the documentation and/or';
+                'other materials provided with the distribution.';
+                char(13);
+                '3. In all cases, the software is, and all modifications and derivatives of the';
+                'software shall be, licensed to you solely for use in conjunction with MathWorks';
+                'products and service offerings.';
+                char(13);
+                'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND';
+                'ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED';
+                'WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE';
+                'DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR';
+                'ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES';
+                '(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;';
+                'LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON';
+                'ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT';
+                '(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS';
+                'SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.';
 
                 };
         end
