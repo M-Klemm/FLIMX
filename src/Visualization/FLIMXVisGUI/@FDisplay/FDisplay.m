@@ -1695,8 +1695,17 @@ classdef FDisplay < handle
 %             if(isempty(img_max))
 %                 return
 %             end
-            cs = this.myColorScaleObj.getCurCSInfo();
-            %range = img_max - img_min;            
+            
+            %range = img_max - img_mini;
+            hfd = this.gethfd();
+            if(isempty(hfd{1}))
+                return
+            end
+            if(strcmp(this.dynVisParams.cmType,'Spectrum') && ~strcmp(hfd{1}.dType,'Intensity'))
+                cs = [1 380 780];
+            else
+                cs = this.myColorScaleObj.getCurCSInfo();
+            end
             vec = linspace(double(cs(2)),double(cs(3)),nTicks);
             %out(:,1) = arrayfun(@FLIMXFitGUI.num4disp,vec,'UniformOutput',false);
             out(:,1) = FLIMXFitGUI.num4disp(vec);

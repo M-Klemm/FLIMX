@@ -169,7 +169,12 @@ set(handles.editLowerBoundColormapIntensity,'string',data.general.cmIntensityPer
 set(handles.editUpperBoundColormapIntensity,'string',data.general.cmIntensityPercentileUB);
 %plot colormap
 try
-    cm = eval(sprintf('%s(256)',lower(data.general.cmType)));
+    switch data.general.cmType
+        case 'Spectrum'
+            cm = spectrumColors;
+        otherwise
+            cm = eval(sprintf('%s(256)',lower(data.general.cmType)));
+    end
     if(data.general.cmInvert)
         cm = flipud(cm);
     end
@@ -178,7 +183,12 @@ try
     axis(handles.axesColormapFLIMItems,'off');
 end
 try
-    cm = eval(sprintf('%s(256)',lower(data.general.cmIntensityType)));
+    switch data.general.cmIntensityType
+        case 'Spectrum'
+            cm = spectrumColors;
+        otherwise
+            cm = eval(sprintf('%s(256)',lower(data.general.cmIntensityType)));
+    end
     if(data.general.cmIntensityInvert)
         cm = flipud(cm);
     end

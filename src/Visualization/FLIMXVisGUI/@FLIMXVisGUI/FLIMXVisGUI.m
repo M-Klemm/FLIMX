@@ -2366,7 +2366,12 @@ classdef FLIMXVisGUI < handle
                 this.dynParams.cm = flipud(this.dynParams.cm);
             end
             try
-                this.dynParams.cmIntensity = eval(sprintf('%s(256)',lower(this.generalParams.cmIntensityType)));
+                switch this.generalParams.cmIntensityType
+                    case 'Spectrum'
+                        this.dynParams.cmIntensity = spectrumColors;
+                    otherwise
+                        this.dynParams.cmIntensity = eval(sprintf('%s(256)',lower(this.generalParams.cmIntensityType)));
+                end
                 this.dynParams.cmIntensityType = this.generalParams.cmIntensityType;
             catch
                 this.dynParams.cmIntensity = gray(256);
