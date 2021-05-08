@@ -94,7 +94,7 @@ rdh.fluoDecay = varargin{1};
 rdh.general = varargin{2};
 rdh.fdt = varargin{3};
 rdh.isDirty = [0 0]; %1: FLIMXFitGUI, 2: general
-[mapNames, iconPaths] = FLIMX.getColormaps();
+[mapNames, iconPaths] = FLIMX.getColormapsInfo();
 if(~isempty(iconPaths))
     %thanks to Yair Altman
     htmlStr = strcat('<html><img width=105 height=10 src="file:///', iconPaths,'">', mapNames');

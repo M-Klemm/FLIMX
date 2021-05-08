@@ -2350,30 +2350,22 @@ classdef FLIMXVisGUI < handle
         
         function makeDynParams(this)
             %make dynamic (visulaization) parameters
-            try
-                switch this.generalParams.cmType
-                    case 'Spectrum'
-                        this.dynParams.cm = spectrumColors;
-                    otherwise
-                        this.dynParams.cm = eval(sprintf('%s(256)',lower(this.generalParams.cmType)));
-                end
+            cm = FLIMX.getColormap(this.generalParams.cmType);%eval(sprintf('%s(256)',lower(this.generalParams.cmType)));
+            if(~isempty(cm) && any(cm(:)))
+                this.dynParams.cm = cm;
                 this.dynParams.cmType = this.generalParams.cmType;
-            catch
+            else
                 this.dynParams.cm = jet(256);
-                this.dynParams.cmType = 'jet'; 
+                this.dynParams.cmType = 'jet';
             end
             if(this.generalParams.cmInvert)
                 this.dynParams.cm = flipud(this.dynParams.cm);
             end
-            try
-                switch this.generalParams.cmIntensityType
-                    case 'Spectrum'
-                        this.dynParams.cmIntensity = spectrumColors;
-                    otherwise
-                        this.dynParams.cmIntensity = eval(sprintf('%s(256)',lower(this.generalParams.cmIntensityType)));
-                end
-                this.dynParams.cmIntensityType = this.generalParams.cmIntensityType;
-            catch
+            cm = FLIMX.getColormap(this.generalParams.cmIntensityType);%eval(sprintf('%s(256)',lower(this.generalParams.cmIntensityType)));
+            if(~isempty(cm) && any(cm(:)))
+                this.dynParams.cmIntensity = cm;
+                this.dynParams.cmIntensityType = this.generalParams.cmType;
+            else
                 this.dynParams.cmIntensity = gray(256);
                 this.dynParams.cmIntensityType = 'gray';
             end

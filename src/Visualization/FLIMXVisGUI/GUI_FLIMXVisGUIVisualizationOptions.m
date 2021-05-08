@@ -70,7 +70,7 @@ rdh.region_of_interest = varargin{3};
 rdh.defaults = varargin{4};
 rdh.fdt = varargin{5};
 rdh.isDirty = [0 0 0]; %1: flimvis, 2: general 3: region_of_interest
-[mapNames, iconPaths] = FLIMX.getColormaps();
+[mapNames, iconPaths] = FLIMX.getColormapsInfo();
 if(~isempty(iconPaths))
     %thanks to Yair Altman
     htmlStr = strcat('<html><img width=105 height=10 src="file:///', iconPaths,'">', mapNames');
@@ -168,34 +168,19 @@ set(handles.editUpperBoundColormapFLIMItems,'string',data.general.cmPercentileUB
 set(handles.editLowerBoundColormapIntensity,'string',data.general.cmIntensityPercentileLB);
 set(handles.editUpperBoundColormapIntensity,'string',data.general.cmIntensityPercentileUB);
 %plot colormap
-try
-    switch data.general.cmType
-        case 'Spectrum'
-            cm = spectrumColors;
-        otherwise
-            cm = eval(sprintf('%s(256)',lower(data.general.cmType)));
-    end
-    if(data.general.cmInvert)
-        cm = flipud(cm);
-    end
-    temp(1,:,:) = cm;
-    image(temp,'Parent',handles.axesColormapFLIMItems);
-    axis(handles.axesColormapFLIMItems,'off');
+cm = FLIMX.getColormap(data.general.cmType);%eval(sprintf('%s(256)',lower(data.general.cmType)));
+if(data.general.cmInvert)
+    cm = flipud(cm);
 end
-try
-    switch data.general.cmIntensityType
-        case 'Spectrum'
-            cm = spectrumColors;
-        otherwise
-            cm = eval(sprintf('%s(256)',lower(data.general.cmIntensityType)));
-    end
-    if(data.general.cmIntensityInvert)
-        cm = flipud(cm);
-    end
-    temp(1,:,:) = cm;
-    image(temp,'Parent',handles.axesColormapIntensity);
-    axis(handles.axesColormapIntensity,'off');
+image(shiftdim(cm,-1),'Parent',handles.axesColormapFLIMItems);
+axis(handles.axesColormapFLIMItems,'off');
+%plot intensity colormap
+cm = FLIMX.getColormap(data.general.cmIntensityType);%eval(sprintf('%s(256)',lower(data.general.cmIntensityType)));
+if(data.general.cmIntensityInvert)
+    cm = flipud(cm);
 end
+image(shiftdim(cm,-1),'Parent',handles.axesColormapIntensity);
+axis(handles.axesColormapIntensity,'off');
 set(handles.checkFillROI,'Value',data.flimvis.ROI_fill_enable);
 val = find(strncmp(get(handles.popupETDRSSubfieldValues,'String'),data.flimvis.ETDRS_subfield_values,length(data.flimvis.ETDRS_subfield_values)),1);
 if(isempty(val))

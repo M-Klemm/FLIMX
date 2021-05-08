@@ -96,6 +96,17 @@ classdef FLIMXParamMgr < paramMgr
                     end
                 end
                 
+                if(ini.about.config_revision < 276)
+                    %remove changed spectrum color map, if exists
+                    [mapNames, iconPaths] = FLIMX.getColormapsInfo();
+                    idx = find(strcmp(mapNames,'Spectrum'));
+                    if(~isempty(idx))
+                        try
+                            delete(iconPaths{idx});
+                        end
+                    end
+                end
+                
                 if(ini_isdirty || ini.about.client_revision_major < this.about.client_revision_major || ini.about.client_revision_minor < this.about.client_revision_minor || ini.about.client_revision_fix < this.about.client_revision_fix || ini.about.config_revision < this.about.config_revision)
                     %generic version mismatch
                     ini = rmfield(ini,{'about'});

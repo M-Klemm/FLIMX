@@ -810,7 +810,7 @@ classdef FDisplay < handle
                         else
                             cm = this.dynVisParams.cm;
                         end
-                        if(strcmp(this.dynVisParams.cmType,'Spectrum') && ~strcmp(hfd{i}.dType,'Intensity'))
+                        if(strcmp(this.dynVisParams.cmType,'SpectrumFixed') && ~strcmp(hfd{i}.dType,'Intensity'))
                             colors = current_img-379; %map pixel values directly to the color map starting at 380 nm
                         else
                             colors = current_img - cMin;
@@ -1701,7 +1701,7 @@ classdef FDisplay < handle
             if(isempty(hfd{1}))
                 return
             end
-            if(strcmp(this.dynVisParams.cmType,'Spectrum') && ~strcmp(hfd{1}.dType,'Intensity'))
+            if(strcmp(this.dynVisParams.cmType,'SpectrumFixed') && ~strcmp(hfd{1}.dType,'Intensity'))
                 cs = [1 380 780];
             else
                 cs = this.myColorScaleObj.getCurCSInfo();

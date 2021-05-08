@@ -488,40 +488,27 @@ classdef FLIMX < handle
             out = myDir;
         end
 
-        function [mapNames, iconPaths] = getColormaps()
-            %get names and path to images of color maps
+        function [mapNames, iconPaths] = getColormapsInfo()
+            %get names and path to images of color maps, generate color map previews
             persistent cmNames cmPaths
             if(isempty(cmPaths))
                 dataDir = [FLIMX.getWorkingDir() filesep 'data'];
                 if(~isfolder(dataDir))
                     [status, message, ~] = mkdir(dataDir);
                     if(~status)
-                        error('FLIMX:getColormaps','Could not create color map data folder: %s\n%s',dataDir,message);
+                        error('FLIMX:getColormapsInfo','Could not create color map data folder: %s\n%s',dataDir,message);
                     end
                 end
-                cmNames = {'Autumn','Bone','Colorcube','Cool','Copper','Cividis','Flag','Gray','Hot','Hsv','Inferno','Jet','Lines','Magma','Parula','Pink','Plasma','Prism','Spectrum','Spring','Summer','Twilight','TwilightShifted','Viridis','White','Winter'};
+                cmNames = {'Autumn','Bone','Colorcube','Cool','Copper','Cividis','Flag','Gray','Hot','Hsv','Inferno','Jet','Lines','Magma','Parula','Pink','Plasma','Prism','Spectrum','SpectrumFixed','Spring','Summer','Twilight','TwilightShifted','Viridis','White','Winter'};
                 cmPaths = strcat([dataDir filesep 'colormap_'], cmNames', '.png');
                 for i = length(cmPaths):-1:1
                     if(~isfile(cmPaths{i}))
-                        %no color map icon found -> generate it                        
-                        try
-                            switch cmNames{i}
-                                case 'Spectrum'
-                                    map = zeros(1,401,3);
-                                    map(1,:,:) = spectrumColors;
-                                otherwise
-                                    map = zeros(1,256,3);
-                                    eval(sprintf('map(1,:,:) = %s(256);',lower(cmNames{i})));
-                            end
-                            if(any(map(:)))
-                                map = repmat(map,7,1,1);
-                                imwrite(map,cmPaths{i});
-                            else
-                                %color map generation did not work -> remove it from list
-                                cmNames = cmNames(1:i-1);
-                                cmPaths = cmPaths(1:i-1);
-                            end
-                        catch
+                        %no color map icon found -> generate it
+                        map = shiftdim(FLIMX.getColormap(cmNames{i}),-1); 
+                        if(~isempty(map) && any(map(:)))
+                            map = repmat(map,7,1,1);
+                            imwrite(map,cmPaths{i});
+                        else
                             %color map generation did not work -> remove it from list
                             cmNames = cmNames(1:i-1);
                             cmPaths = cmPaths(1:i-1);
@@ -531,6 +518,26 @@ classdef FLIMX < handle
             end
             mapNames = cmNames;
             iconPaths = cmPaths;
+        end
+        
+        function out = getColormap(mapName)
+            %return a color map for use in FLIMX
+            try
+                switch mapName
+                case 'SpectrumFixed'
+                    %out = zeros(1,401,3);
+                    out = spectrumColors;
+                case 'Spectrum'
+                    %out = zeros(1,272,3); %430 - 700 nm
+                    out = spectrumColors;
+                    out = out(50:321,:);
+                otherwise
+                    %out = zeros(1,256,3);
+                    eval(sprintf('out = %s(256);',lower(mapName)));
+                end
+            catch ME
+                out = [];
+            end
         end
 
         function out = getLogoPath()
@@ -545,10 +552,10 @@ classdef FLIMX < handle
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
-            out.config_revision = 275;
+            out.config_revision = 276;
             out.client_revision_major = 5;
             out.client_revision_minor = 5;
-            out.client_revision_fix = 2;
+            out.client_revision_fix = 3;
             out.core_revision = 503;
             out.results_revision = 256;
             out.measurement_revision = 206;
