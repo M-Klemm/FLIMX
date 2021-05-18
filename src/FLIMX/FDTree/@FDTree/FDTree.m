@@ -411,6 +411,12 @@ classdef FDTree < FDTreeNode
             end
         end
         
+        function clearAllMVGroups(this)
+            %clear data of all MVGroups in all subjects
+            clearAllMVGroups@FDTreeNode(this); 
+            this.myConditionsMerged.clearAllRIs('');
+        end
+        
 %         function clearArithmeticRIs(this,studyID)
 %             %clear raw images of arithmetic images in a study
 %             study = this.getChild(studyID);
@@ -1388,9 +1394,13 @@ classdef FDTree < FDTreeNode
         end
         
         function [aiStr, aiParam] = getArithmeticImageDefinition(this,studyID)
-            %get names and definitions of arithmetic images for a study
-            study = this.getChild(studyID);
+            %get names and definitions of arithmetic images for a study            
             aiStr = []; aiParam = [];
+            if(nargin < 2)
+                %for myConditionsMerged
+                return
+            end
+            study = this.getChild(studyID);
             if(~isempty(study))
                 [aiStr, aiParam] = study.getArithmeticImageDefinition();
             end

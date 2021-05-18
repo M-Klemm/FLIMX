@@ -59,6 +59,10 @@ classdef FData < handle
         myParent = [];
         cachedImage = [];
         maxHistClasses = 5000;
+        rawXLblStart = [];
+        rawXLblTick = 1;
+        rawYLblStart = [];
+        rawYLblTick = 1;
     end
 
     methods
@@ -69,9 +73,9 @@ classdef FData < handle
             this.sType = 1; %default to linear data scaling
             this.myParent = parent;
             this.setRawData(rawImage);
-            this.clearCachedImage();
-            this.color_data = [];
-            this.logColor_data = [];
+%             this.clearCachedImage();
+%             this.color_data = [];
+%             this.logColor_data = [];
         end
 
         function out = getMemorySize(this)
@@ -103,10 +107,10 @@ classdef FData < handle
             ci.info.ZLblMax = [];
             ci.info.XSz = [];
             ci.info.YSz = [];
-            ci.info.XLblStart = [];
-            ci.info.XLblTick = [];
-            ci.info.YLblStart = [];
-            ci.info.YLblTick = [];
+%             ci.info.XLblStart = [];
+%             ci.info.XLblTick = [];
+%             ci.info.YLblStart = [];
+%             ci.info.YLblTick = [];
             ci.statistics.descriptive = [];
             ci.statistics.histogram = [];
             ci.statistics.histogramCenters = [];
@@ -141,6 +145,10 @@ classdef FData < handle
             this.setRawDataZSz([]);
             this.rawImgFilt = [];
             this.clearCachedImage();
+            this.rawXLblStart = [];
+            this.rawXLblTick = 1;
+            this.rawYLblStart = [];
+            this.rawYLblTick = 1;
             if(isempty(val))
                 return;
             end
@@ -190,8 +198,8 @@ classdef FData < handle
             else
                 start = start(1);
             end
-            this.cachedImage.info.XLblStart = start;
-            this.cachedImage.info.XLblTick = tick;
+            this.rawXLblStart = start;
+            this.rawXLblTick = tick;
         end
 
         function setupYLbl(this,start,tick)
@@ -201,8 +209,8 @@ classdef FData < handle
             else
                 start = start(1);
             end
-            this.cachedImage.info.YLblStart = start;
-            this.cachedImage.info.YLblTick = tick;
+            this.rawYLblStart = start;
+            this.rawYLblTick = tick;
         end
 
         function setSType(this,val)
@@ -256,7 +264,7 @@ classdef FData < handle
                 if(~isMatrixPos)
                     ROIlb = this.yPos2Lbl(ROIlb);
                     ROIub = this.yPos2Lbl(ROIub);
-                    stepSize = this.cachedImage.info.YLblTick;
+                    stepSize = this.rawYLblTick;
                 end
             else %x
                 ROIlb = coord(2,1);
@@ -264,7 +272,7 @@ classdef FData < handle
                 if(~isMatrixPos)
                     ROIlb = this.xPos2Lbl(ROIlb);
                     ROIub = this.xPos2Lbl(ROIub);
-                    stepSize = this.cachedImage.info.XLblTick;
+                    stepSize = this.rawXLblTick;
                 end
             end
         end
@@ -396,6 +404,9 @@ classdef FData < handle
 
         function out = getCIColor(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get current image colors
+            if(isempty(ROICoordinates))
+                ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
+            end
             if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity) || isempty(this.cachedImage.colors) && ~isempty(this.color_data))
                 %update only if we have color data
                 this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
@@ -463,9 +474,9 @@ classdef FData < handle
 
         function out = getRIXLbl(this)
             %get x labels for raw image
-            if(~isempty(this.cachedImage.info.XLblStart) && ~isempty(this.rawImgXSz))
-                out = this.xPos2Lbl(1) : this.cachedImage.info.XLblTick : this.xPos2Lbl(this.rawImgXSz(2));
-            elseif(isempty(this.cachedImage.info.XLblStart) && ~isempty(this.rawImgXSz))
+            if(~isempty(this.rawXLblStart) && ~isempty(this.rawImgXSz))
+                out = this.xPos2Lbl(1) : this.rawXLblTick : this.xPos2Lbl(this.rawImgXSz(2));
+            elseif(isempty(this.rawXLblStart) && ~isempty(this.rawImgXSz))
                 step = this.getDefaultXLblTick();
                 out = 1*step:step:this.rawImgXSz(2)*step;
             else
@@ -494,12 +505,11 @@ classdef FData < handle
                 out = [];
                 return
             end
-            if(ROIType == 0)
-                if(isempty(ROICoordinates))
-                    XSz = this.rawImgXSz(2);
-                else
-                    XSz = ROICoordinates(2,2);
-                end
+            if(isempty(ROICoordinates))
+                ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
+            end
+            if(ROIType == 0 && ~(strncmp(this.dType,'MVGroup',7) || strncmp(this.dType,'ConditionMVGroup',16) || strncmp(this.dType,'GlobalMVGroup',13)))
+                XSz = ROICoordinates(1,2);
                 XLblStart = [];
                 XLblTick = this.getDefaultXLblTick();
             else
@@ -507,8 +517,8 @@ classdef FData < handle
                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
                 end
                 XSz = this.cachedImage.info.XSz;
-                XLblStart = this.cachedImage.info.XLblStart;
-                XLblTick = this.cachedImage.info.XLblTick;
+                XLblStart = this.rawXLblStart;
+                XLblTick = this.rawXLblTick;
             end
             if(~isempty(ROICoordinates) && (ROIType == 0 || ROIType > 2000 && ROIType < 3000))
                 shift = ROICoordinates(2,1)-1;
@@ -524,36 +534,36 @@ classdef FData < handle
 
         function out = xPos2Lbl(this,pos)
             %convert absolut matrix position of x axis to label
-            if(isempty(this.cachedImage.info.XLblStart))
+            if(isempty(this.rawXLblStart))
                 out = pos;
             else
-                out = this.cachedImage.info.XLblStart + (pos-1)*this.cachedImage.info.XLblTick;
+                out = this.rawXLblStart + (pos-1)*this.rawXLblTick;
             end
         end
 
         function out = xLbl2Pos(this,lbl)
             %convert label of x axis to absolut matrix position
-            if(isempty(this.cachedImage.info.XLblStart))
+            if(isempty(this.rawXLblStart))
                 out = lbl;
             else
-                out = round((lbl - this.cachedImage.info.XLblStart)/this.cachedImage.info.XLblTick+1);
+                out = round((lbl - this.rawXLblStart)/this.rawXLblTick+1);
             end
         end
 
         function out = getXLblTick(this)
             %get tick (step) size of x axis labels
-            if(isempty(this.cachedImage.info.XLblTick))
+            if(isempty(this.rawXLblTick))
                 out = this.getDefaultXLblTick();
             else
-                out = this.cachedImage.info.XLblTick;
+                out = this.rawXLblTick;
             end
         end
 
         function out = getRIYLbl(this)
             %get y labels for raw image
-            if(~isempty(this.cachedImage.info.YLblStart) && ~isempty(this.rawImgYSz))
-                out = this.yPos2Lbl(1) : this.cachedImage.info.YLblTick : this.yPos2Lbl(this.rawImgYSz(2));
-            elseif(isempty(this.cachedImage.info.YLblStart) && ~isempty(this.rawImgYSz))
+            if(~isempty(this.rawYLblStart) && ~isempty(this.rawImgYSz))
+                out = this.yPos2Lbl(1) : this.rawYLblTick : this.yPos2Lbl(this.rawImgYSz(2));
+            elseif(isempty(this.rawYLblStart) && ~isempty(this.rawImgYSz))
                 step = this.getDefaultYLblTick();
                 out = 1*step:step:this.rawImgYSz(2)*step;
             else
@@ -567,12 +577,11 @@ classdef FData < handle
                 out = [];
                 return
             end
-            if(ROIType == 0)
-                if(isempty(ROICoordinates))
-                    YSz = this.rawImgYSz(2);
-                else
-                    YSz = ROICoordinates(1,2);
-                end
+            if(isempty(ROICoordinates))
+                ROICoordinates = [this.rawImgYSz; this.rawImgXSz];
+            end
+            if(ROIType == 0 && ~(strncmp(this.dType,'MVGroup',7) || strncmp(this.dType,'ConditionMVGroup',16) || strncmp(this.dType,'GlobalMVGroup',13)))
+                YSz = ROICoordinates(2,2);
                 YLblStart = [];
                 YLblTick = this.getDefaultYLblTick();
             else
@@ -580,8 +589,8 @@ classdef FData < handle
                    this.updateCurrentImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
                 end
                 YSz = this.cachedImage.info.YSz;
-                YLblStart = this.cachedImage.info.YLblStart;
-                YLblTick = this.cachedImage.info.YLblTick;
+                YLblStart = this.rawYLblStart;
+                YLblTick = this.rawYLblTick;
             end
             if(~isempty(ROICoordinates) && (ROIType == 0 || ROIType > 2000 && ROIType < 3000))
                 shift = ROICoordinates(1,1)-1;
@@ -591,34 +600,34 @@ classdef FData < handle
             if(isempty(YLblStart))
                 out = (1+shift)*YLblTick : YLblTick : (YSz+shift)*YLblTick;
             else
-                out = this.YPos2Lbl(1+shift) : YLblTick : this.YPos2Lbl(YSz+shift);
+                out = this.yPos2Lbl(1+shift) : YLblTick : this.yPos2Lbl(YSz+shift);
             end
         end
 
         function out = yPos2Lbl(this,pos)
             %convert absolut matrix position of x axis to label
-            if(isempty(this.cachedImage.info.YLblStart))
+            if(isempty(this.rawYLblStart))
                 out = pos;
             else
-                out = this.cachedImage.info.YLblStart + (pos-1)*this.cachedImage.info.YLblTick;
+                out = this.rawYLblStart + (pos-1)*this.rawYLblTick;
             end
         end
 
         function out = yLbl2Pos(this,lbl)
             %convert label of y axis to absolut matrix position
-            if(isempty(this.cachedImage.info.YLblStart))
+            if(isempty(this.rawYLblStart))
                 out = lbl;
             else
-                out = round((lbl - this.cachedImage.info.YLblStart)/this.cachedImage.info.YLblTick+1);
+                out = round((lbl - this.rawYLblStart)/this.rawYLblTick+1);
             end
         end
 
         function out = getYLblTick(this)
             %get tick (step) size of y axis labels
-            if(isempty(this.cachedImage.info.YLblTick))
+            if(isempty(this.rawYLblTick))
                 out = this.getDefaultYLblTick();
             else
-                out = this.cachedImage.info.YLblTick;
+                out = this.rawYLblTick;
             end
         end
 
@@ -1144,7 +1153,7 @@ classdef FData < handle
                     out = max(data(:),[],'omitnan');
             end
             if(isempty(out))
-                %all data is was zero
+                %all data is zero
                 out = 0;
             end
         end

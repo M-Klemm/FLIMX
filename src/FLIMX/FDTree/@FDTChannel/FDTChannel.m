@@ -359,6 +359,32 @@ classdef FDTChannel < FDTreeNode
             end
         end
         
+        function out = getMVGroupTargets(this,MVGroupNr)
+            %get multivariate targets
+            gMVs = this.myParent.getMVGroupTargets(MVGroupNr);
+            myObjs = this.getChObjStr();
+            out.x = cell(0,0);
+            out.y = cell(0,0);
+            if(~isstruct(gMVs) || isstruct(gMVs) && ~all(isfield(gMVs,{'x','y','ROI'})))
+                %we did not get MVGroup targets
+                warning('FDTChannel:getMVGroupTargets','Could not get MVGroup targets for subject ''%s'' in study ''%s''',this.myParent.name,this.myParent.myParent.name);
+                return
+            end
+            out.ROI = gMVs.ROI;
+            for i = 1:length(gMVs.x)
+                idx = strcmpi(gMVs.x{i}, myObjs);
+                if(any(idx))
+                    out.x(end+1) = gMVs.x(i);
+                end
+            end
+            for i = 1:length(gMVs.y)
+                idx = strcmpi(gMVs.y{i}, myObjs);
+                if(any(idx))
+                    out.y(end+1) = gMVs.y(i);
+                end
+            end
+        end
+        
         function out = get.FLIMXParamMgrObj(this)
             %get handle to parameter manager object
             out = this.myParent.FLIMXParamMgrObj;
@@ -368,7 +394,7 @@ classdef FDTChannel < FDTreeNode
         function [cimg, lblx, lbly, cw] = makeMVGroupObj(this,MVGroupID)
             %make and update MVGroup for spectral channel using cMVs                
             cimg = []; lblx = []; lbly = []; cw = [];
-            cMVs = this.myParent.getMVGroupTargets(MVGroupID);
+            cMVs = this.getMVGroupTargets(MVGroupID);
             CImaxs = zeros(length(cMVs.y)+1,1);
             CImins = zeros(length(cMVs.y)+1,1);
             %get ROI coordinates for current subject

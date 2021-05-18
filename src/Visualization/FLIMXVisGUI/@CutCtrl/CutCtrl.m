@@ -108,8 +108,8 @@ classdef CutCtrl < handle
         
         function updateCtrls(this)
             %updates cuts controls to current values
-            [cur minVal maxVal step iFlag eFlag] = this.getCurValMaxInv();
-            set(this.slider,'Min',minVal,'Max',maxVal,'Value',cur,'Sliderstep',[step/(maxVal-minVal) 0.1]); %step/(maxVal-minVal+1)
+            [cur, minVal, maxVal, step, iFlag, eFlag] = this.getCurValMaxInv();
+            set(this.slider,'Min',minVal,'Max',maxVal,'Value',cur,'Sliderstep',[max(1e-6,min(0.1,step/(maxVal-minVal))) 0.1]); %step/(maxVal-minVal+1)
             set(this.minText,'String',num2str(minVal));
             set(this.maxText,'String',num2str(maxVal));
             set(this.edit,'String',num2str(cur));
@@ -118,7 +118,7 @@ classdef CutCtrl < handle
             this.enDisAble(eFlag);
         end
         
-        function [cur minVal maxVal step iFlag eFlag] = getCurValMaxInv(this)
+        function [cur, minVal, maxVal, step, iFlag, eFlag] = getCurValMaxInv(this)
             %get max allowed value for cuts
             cur = 0; iFlag = 0; minVal = 0; maxVal = 1; step = 1; eFlag = 0;
             hfd = this.myFDisplayL.gethfd();

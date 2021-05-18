@@ -32,12 +32,12 @@ function [out, lbl_x, lbl_y] = mergeScatterPlotData(m1,lbl_x1,lbl_y1,m2,lbl_x2,l
 % @brief    A function to merge two 2D arrays of possibly different sizes and their axis labels
 %
 %if m1 is filled with zeros m2 is cut to fit in m1
-if(isempty(m1))
+if(isempty(m1) || isempty(lbl_x1) || isempty(lbl_y1))
     out = m2;
     lbl_x = lbl_x2;
     lbl_y = lbl_y2;
     return;
-elseif(isempty(m2))
+elseif(isempty(m2)  || isempty(lbl_x2)  || isempty(lbl_y2))
     out = m1;
     lbl_x = lbl_x1;
     lbl_y = lbl_y1;

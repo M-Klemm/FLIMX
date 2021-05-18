@@ -86,7 +86,7 @@ classdef fluoSubject < FDTreeNode
                 this.initParamMgr();
             elseif(isa(parentObj,'FDTree'))
                 this.initParamMgr();
-                this.myParent = [];
+                %this.myParent = [];
             elseif(isa(parentObj,'paramMgr'))
                 this.myParent = [];
                 this.myParamMgr = subjectParamMgr(this,parentObj.getParamSection('about'));

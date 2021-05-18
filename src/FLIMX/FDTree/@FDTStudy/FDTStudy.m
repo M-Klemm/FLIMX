@@ -316,6 +316,14 @@ classdef FDTStudy < FDTreeNode
 %             end
         end
         
+        function clearAllMVGroups(this)
+            %clear data of all MVGroups in all subjects
+            clearAllMVGroups@FDTreeNode(this); 
+            for i = 1:this.myConditionStatistics.queueLen
+                this.myConditionStatistics.getDataByPos(i).clearAllRIs('');
+            end
+        end
+                
         function clearArithmeticRIs(this)
             %clear raw images of arithmetic images
             aiNames = this.getArithmeticImageDefinition();

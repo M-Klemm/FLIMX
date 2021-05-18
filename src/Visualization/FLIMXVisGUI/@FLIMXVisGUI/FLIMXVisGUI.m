@@ -540,6 +540,7 @@ classdef FLIMXVisGUI < handle
                 %save to disc
                 this.FLIMXObj.paramMgr.setParamSection('statistics',new.prefs);
                 this.fdt.clearAllCIs(''); %can be more efficient
+                this.fdt.clearAllMVGroups();
                 this.myStatsGroupComp.clearResults();
                 this.updateGUI([]);
                 %instead?!

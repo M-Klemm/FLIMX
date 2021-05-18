@@ -777,33 +777,7 @@ classdef FDTSubject < fluoSubject
 
         function out = getMVGroupTargets(this,MVGroupNr)
             %get multivariate targets
-            gMVs = this.myParent.getMVGroupTargets(MVGroupNr);
-            chObj = this.getChild(1);
-            if(~isempty(chObj))
-                myObjs = chObj.getChObjStr();
-            else
-                myObjs = '';
-            end
-            out.x = cell(0,0);
-            out.y = cell(0,0);
-            if(~isstruct(gMVs) || isstruct(gMVs) && ~all(isfield(gMVs,{'x','y','ROI'})))
-                %we did not get MVGroup targets
-                warning('FDTSubject:getMVGroupTargets','Could not get MVGroup targets for subject ''%s'' in study ''%s''',this.name,this.myParent.name);
-                return
-            end
-            out.ROI = gMVs.ROI;
-            for i = 1:length(gMVs.x)
-                idx = strcmpi(gMVs.x{i}, myObjs);
-                if(any(idx))
-                    out.x(end+1) = gMVs.x(i);
-                end
-            end
-            for i = 1:length(gMVs.y)
-                idx = strcmpi(gMVs.y{i}, myObjs);
-                if(any(idx))
-                    out.y(end+1) = gMVs.y(i);
-                end
-            end
+            out = this.myParent.getMVGroupTargets(MVGroupNr);
         end
 
 %         function nr = getMyChannelNr(this,caller)
@@ -906,7 +880,7 @@ classdef FDTSubject < fluoSubject
             chObj = this.getChild(ch);
             if(~isempty(chObj))
                 cos = chObj.getChObjStr();
-                aid = this.myParent.getArithmeticImageDefinition();
+                aid = this.myParent.getArithmeticImageDefinition();         
                 if(~isempty(aid) && iscell(aid) && all(cellfun(@ischar,aid)))
                     idx = ismember(cos,aid);
                     cos(idx) = [];

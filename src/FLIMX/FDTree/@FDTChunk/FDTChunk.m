@@ -138,7 +138,14 @@ classdef FDTChunk < FDTreeNode
                 this.getChildAtPos(i).clearRawImage();
                 this.getChildAtPos(i).clearFilteredImage();
             end
-        end                
+        end
+        
+        function clearAllMVGroups(this)
+            %clear data of all MVGroups
+            if(strncmp(this.dType,'MVGroup',7) || strncmp(this.dType,'ConditionMVGroup',16) || strncmp(this.dType,'GlobalMVGroup',13))
+                this.clearAllRIs();
+            end
+        end
         
         %% output functions
         function h = getFDataObj(this,id,sType)

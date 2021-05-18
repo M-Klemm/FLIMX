@@ -178,12 +178,12 @@ classdef StatsMVGroupMgr < handle
                     end
                     newStr = ROICtrl.ROIType2ROIItem(cMVs.ROI.ROIType);
                     idx = find(strcmp(pStr,newStr),1,'first');
-                    if(isempty(idx))
+                    if(~isempty(idx))
                         this.visHandles.popupROIType.Value = idx;
                     else
                         %ROI Type not in popup menu
                         %todo: add ROI Type to popup? It is not yet in the study!
-                        this.visHandles.popupROIType.Value = 0;
+                        this.visHandles.popupROIType.Value = 1;
                     end
                 end
                 if(cMVs.ROI.ROIType > 1000 && cMVs.ROI.ROIType < 2000)
@@ -192,7 +192,7 @@ classdef StatsMVGroupMgr < handle
                     visFlag = 'off';
                 end
                 set(this.visHandles.popupROISubType,'Value',cMVs.ROI.ROISubType,'Visible',visFlag);
-                set(this.visHandles.popupROIVicinity,'Value',cMVs.ROI.ROIVicinity);
+                set(this.visHandles.popupROIVicinity,'Value',cMVs.ROI.ROIVicinity,'Visible',visFlag);
             end
             if(isempty(allObjs))
                 set(this.lLB,'String','','Value',1);

@@ -113,7 +113,14 @@ classdef FDTreeNode < handle
             for i = 1:this.myChildren.queueLen
                 this.myChildren.getDataByPos(i).clearAllRIs(varargin);
             end
-        end        
+        end 
+        
+        function clearAllMVGroups(this)
+            %clear data of all MVGroups in all subjects
+            for i = 1:this.myChildren.queueLen
+                this.myChildren.getDataByPos(i).clearAllMVGroups();
+            end 
+        end 
         
         %% output methods 
         function [childObj, childID] = getChild(this,childID)

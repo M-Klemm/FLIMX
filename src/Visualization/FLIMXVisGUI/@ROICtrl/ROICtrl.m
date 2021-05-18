@@ -668,8 +668,12 @@ classdef ROICtrl < handle
             out(1,1) = rt;
             out(2,1) = this.ROIVicinity;
             if(rt == 0)
-                out(2,2:3) = hfd.rawImgYSz;
-                out(1,2:3) = hfd.rawImgXSz;
+                if(~isempty(hfd.rawImgYSz))
+                    out(2,2:3) = hfd.rawImgYSz;
+                end
+                if(~isempty(hfd.rawImgXSz))
+                    out(1,2:3) = hfd.rawImgXSz;
+                end
                 return
             end
             if((isempty(this.y_lo_edit.String) && this.y_lo_edit.Visible) || (isempty(this.x_lo_edit.String) && this.x_lo_edit.Visible)  ||...
