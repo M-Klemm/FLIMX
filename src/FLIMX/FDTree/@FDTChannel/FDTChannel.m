@@ -303,7 +303,7 @@ classdef FDTChannel < FDTreeNode
                     str(end+1,1) = tmp(j,:);
                 end
             end
-            %str = sort(str); %will be sorted by FStudy
+            %str = sort(str); %will be sorted by FDTSubject
         end
         
 %         function str = getMVGroupNames(this)
@@ -362,7 +362,7 @@ classdef FDTChannel < FDTreeNode
         function out = getMVGroupTargets(this,MVGroupNr)
             %get multivariate targets
             gMVs = this.myParent.getMVGroupTargets(MVGroupNr);
-            myObjs = this.getChObjStr();
+            myObjs = this.myParent.getChObjStr(str2double(this.name));
             out.x = cell(0,0);
             out.y = cell(0,0);
             if(~isstruct(gMVs) || isstruct(gMVs) && ~all(isfield(gMVs,{'x','y','ROI'})))
@@ -405,7 +405,7 @@ classdef FDTChannel < FDTreeNode
             %get FLIM item for x-axis (reference)
             if(~isempty(cMVs.x))
                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
-                hfd = this.getFDataObj(dType{1},dTypeNr(1),1); %only linear data
+                hfd = this.myParent.getFDataObj(str2double(this.name),dType{1},dTypeNr(1),1); %only linear data
                 if(isempty(hfd))
                     return
                 end
@@ -413,7 +413,7 @@ classdef FDTChannel < FDTreeNode
 %                 if(hfd.checkClasswidth(ci))
 %                     return
 %                 end
-                temp(1,:) = ci(~isnan(ci(:)));
+                temp(1,:) = ci(:); %ci(~isnan(ci(:)));
                 CImaxs(1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
                 CImins(1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
                 %get reference classwidth
@@ -423,7 +423,7 @@ classdef FDTChannel < FDTreeNode
             if(~isempty(cMVs.y))
                 for yTargets=1:length(cMVs.y)
                     [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.y{yTargets});
-                    hfd = this.getFDataObj(dType{1},dTypeNr(1),1);
+                    hfd = this.myParent.getFDataObj(str2double(this.name),dType{1},dTypeNr(1),1);
                     if(isempty(hfd))
                         return
                     end
@@ -431,7 +431,7 @@ classdef FDTChannel < FDTreeNode
 %                     if(hfd.checkClasswidth(ci))
 %                         return
 %                     end
-                    temp(yTargets+1,:) = ci(~isnan(ci(:)));
+                    temp(yTargets+1,:) = ci(:); %ci(~isnan(ci(:)));
                     CImaxs(yTargets+1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
                     CImins(yTargets+1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
                 end

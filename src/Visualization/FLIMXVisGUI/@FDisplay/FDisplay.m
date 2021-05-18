@@ -1154,7 +1154,7 @@ classdef FDisplay < handle
         function makeZoom(this)
             %apply zoom to main and supplemental plots; does NOT set labels correctly!
             hfd = this.gethfd();
-            if(isempty(hfd{1}))
+            if(isempty(hfd{1}) || isempty(hfd{1}.rawImgXSz) || isempty(hfd{1}.rawImgYSz))
                 return
             end
             hfd = hfd{1};

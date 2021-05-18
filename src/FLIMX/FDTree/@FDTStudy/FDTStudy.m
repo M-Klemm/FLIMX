@@ -998,23 +998,9 @@ classdef FDTStudy < FDTreeNode
             subject = this.getChild(subjectID);
             if(isempty(subject))
                 out = [];
-                return
-            end
-            %check if is arithmetic image
-            %to do: move this to FDTSubject class?
-            [aiNames, aiParams] = this.myStudyInfoSet.getArithmeticImageDefinition();
-            idx = strcmp(dType,aiNames);
-            if(sum(idx) == 1) %found 1 arithmetic image
-                %try to get image data
+            else
                 out = subject.getFDataObj(chan,dType,id,sType);
-                if(isempty(out) || isempty(out.getFullImage()))
-                    %(re)build arithmetic image
-                    subject.makeArithmeticImage(aiNames{idx},aiParams{idx});
-                else %we have what we want
-                    return
-                end
             end
-            out = subject.getFDataObj(chan,dType,id,sType);
         end
         
         function out = isArithmeticImage(this,dType)
@@ -1381,17 +1367,9 @@ classdef FDTStudy < FDTreeNode
             if(isempty(subject))
                 str = [];
                 return
-            end
-%             if(~subject.channelResultIsLoaded(ch))
-%                 subject.loadChannel(ch,false);
-%             end
-            %get existing FLIMitems in channel + arithmetic images (which may have not been computed yet)
-            str = this.getArithmeticImageDefinition();
-            if(isempty(str{1}))
-                str = sort(subject.getChObjStr(ch));
             else
-                str = unique([subject.getChObjStr(ch);str]);
-            end
+                str = subject.getChObjStr(ch);
+            end            
         end
                 
 %         function str = getMVGroupNames(this,subjectID,ch)

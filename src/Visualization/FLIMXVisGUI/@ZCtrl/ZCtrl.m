@@ -207,7 +207,11 @@ classdef ZCtrl < handle
                 end
                 data = hfd.getZScaling();
                 if(isempty(data) || length(data) ~= 3 || ~any(data(:)))
-                    data = [0 hfd.rawImgZSz];
+                    if(isempty(hfd.rawImgZSz))
+                        data = [0 0 0];
+                    else
+                        data = [0 hfd.rawImgZSz];
+                    end
                 end
             end            
             %[cMin, cMax, ~, ~, gMax, flag] = this.getValuesFromGUI(dim,false);

@@ -535,6 +535,9 @@ classdef FDTSubject < fluoSubject
         %% input functions
         function loadChannel(this,ch,forceLoadFlag)
             %load channel (measurement and results)
+            if(isMultipleCall())
+                return
+            end
             hfd = this.getFDataObj(ch,'Intensity',0,1); %check only linear data
             if(any(this.nonEmptyChannelList(:)) && any(ch == this.nonEmptyChannelList(:)) && (isempty(hfd) || ~this.channelResultIsLoaded(ch) || forceLoadFlag))
                 this.updateShortProgress(0.33,sprintf('Load Ch %s',num2str(ch)));
@@ -748,7 +751,7 @@ classdef FDTSubject < fluoSubject
         %% output functions
         function h = getFDataObj(this,ch,dType,id,sType)
             %get FData object
-            if(~this.channelResultIsLoaded(ch) && ~isMultipleCall())
+            if(~this.channelResultIsLoaded(ch))% && ~isMultipleCall())
                 this.loadChannel(ch,false);
             end
             h = [];
@@ -768,6 +771,14 @@ classdef FDTSubject < fluoSubject
                 return
             end
             h = chObj.getFDataObj(dType,id,sType);
+            %check if is arithmetic image
+            [aiNames, aiParams] = this.myParent.getArithmeticImageDefinition();
+            idx = strcmp(dType,aiNames);
+            if(sum(idx) == 1 && (isempty(h) || isempty(h.getFullImage()))) %found 1 arithmetic image, try to get image data
+                %(re)build arithmetic image
+                this.makeArithmeticImage(aiNames{idx},aiParams{idx});
+                h = chObj.getFDataObj(dType,id,sType);
+            end            
         end
 
         function nr = getNrChannels(this)
@@ -807,7 +818,15 @@ classdef FDTSubject < fluoSubject
                 str = '';
                 return
             else
-                str = chObj.getChObjStr();
+                %get existing FLIMitems in channel + arithmetic images (which may have not been computed yet)
+                str = this.myParent.getArithmeticImageDefinition();
+                if(isempty(str{1}))
+                    %no arithmetic images
+                    str = sort(chObj.getChObjStr());
+                else
+                    %add arithmetic images to the list of channel objects
+                    str = unique([chObj.getChObjStr(); str]);
+                end
             end
         end
 
@@ -1047,7 +1066,11 @@ classdef FDTSubject < fluoSubject
                         else
                             [dTypeB, dTypeBNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.(lStr));
                             %ask study for FData object, if this is an arithmetic image, study will build it if needed
-                            fd = this.myParent.getFDataObj(this.name,ch,dTypeB{1},dTypeBNr(1),1);
+%                             %check here if channel is loaded, as this may be blocked in getFDataObj() by isMultipleCall() function
+%                             if(~this.channelResultIsLoaded(ch))% && ~isMultipleCall()
+%                                 this.loadChannel(ch,false);
+%                             end
+                            fd = this.getFDataObj(ch,dTypeB{1},dTypeBNr(1),1);
                             if(isempty(fd))
                                 return
                             end
@@ -1071,7 +1094,7 @@ classdef FDTSubject < fluoSubject
                             ROISubtype = 0;
                         end
                         [dTypeA, dTypeANr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
-                        fd = this.myParent.getFDataObj(this.name,ch,dTypeA{1},dTypeANr(1),1);
+                        fd = this.getFDataObj(ch,dTypeA{1},dTypeANr(1),1);
                         if(isempty(fd))
                             return
                         end
