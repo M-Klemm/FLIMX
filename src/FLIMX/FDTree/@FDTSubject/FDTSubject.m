@@ -698,8 +698,9 @@ classdef FDTSubject < fluoSubject
                     end
                     this.updateShortProgress(1,sprintf('Load Ch %s',num2str(ch))); %0.5
                     %intensity image
-                    hfd = this.getFDataObj(ch,'Intensity',0,1); %check only linear data
-                    if(isempty(hfd) && isASCIIResult)
+                    int = this.getPixelFLIMItem(ch,'Intensity');
+                    %hfd = this.getFDataObj(ch,'Intensity',0,1); %check only linear data
+                    if(isempty(int) && isASCIIResult)
                         %no intensity image -> approximate it from amplitudes
                         ampItems = allItems(cellfun(@length,allItems) == 10);
                         ampItems = ampItems(strncmp('Amplitude',ampItems,9));
