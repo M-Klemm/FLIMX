@@ -533,10 +533,20 @@ classdef FDTSubject < fluoSubject
         end
 
         %% input functions
-        function loadChannel(this,ch,forceLoadFlag)
+        function success = loadChannel(this,ch,forceLoadFlag)
             %load channel (measurement and results)
-            if(isMultipleCall())
+%             if(isMultipleCall())
+%                 return
+%             end
+            success = false;
+            persistent currentChannel
+            if(isempty(currentChannel))
+               currentChannel = ch;
+            elseif(any((currentChannel - ch) < eps))
+                %this channel is currently being loaded
                 return
+            else %new channel -> add it to currentChannel
+                currentChannel = [currentChannel, ch];
             end
             hfd = this.getFDataObj(ch,'Intensity',0,1); %check only linear data
             if(any(this.nonEmptyChannelList(:)) && any(ch == this.nonEmptyChannelList(:)) && (isempty(hfd) || ~this.channelResultIsLoaded(ch) || forceLoadFlag))
@@ -584,6 +594,8 @@ classdef FDTSubject < fluoSubject
                     if(~any(this.myResult.filesOnHDD(:)) && ~any(this.myResult.pixelApproximated(:)))
                         %nothing to do
                         this.updateShortProgress(0,'');
+                        idx = ((currentChannel - ch) < eps);
+                        currentChannel(idx) = [];
                         return
                     end
                     this.updateShortProgress(0.66,sprintf('Load Ch %s',num2str(ch)));
@@ -671,6 +683,8 @@ classdef FDTSubject < fluoSubject
                             if(strcmp(msg(end),'size'))
                                 %abort, make sure nothing of this channel is left
                                 this.removeResultChannelFromMemory(ch);
+                                idx = ((currentChannel - ch) < eps);
+                                currentChannel(idx) = [];
                                 return
                             end
                         end
@@ -691,7 +705,7 @@ classdef FDTSubject < fluoSubject
                         ampItems = ampItems(strncmp('Amplitude',ampItems,9));
                         if(~isempty(ampItems))
                             int = this.getPixelFLIMItem(ch,ampItems{1});
-                            for i=2:length(ampItems)
+                            for i = 2:length(ampItems)
                                 %no checking if dimensions agree - todo?!
                                 int = int + this.getPixelFLIMItem(ch,ampItems{i});
                             end
@@ -704,6 +718,9 @@ classdef FDTSubject < fluoSubject
                 end
                 this.updateShortProgress(0,'');
             end
+            idx = ((currentChannel - ch) < eps);
+            currentChannel(idx) = [];
+            success = true;
         end
 
         function setSubjectName(this,val)
@@ -751,10 +768,12 @@ classdef FDTSubject < fluoSubject
         %% output functions
         function h = getFDataObj(this,ch,dType,id,sType)
             %get FData object
-            if(~this.channelResultIsLoaded(ch))% && ~isMultipleCall())
-                this.loadChannel(ch,false);
-            end
             h = [];
+            if(~this.channelResultIsLoaded(ch))% && ~isMultipleCall())
+                if(~this.loadChannel(ch,false))
+                    return
+                end
+            end            
             if(isempty(ch))
                 chObj = this.getChild(1);
             else

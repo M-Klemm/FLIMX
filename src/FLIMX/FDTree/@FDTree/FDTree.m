@@ -411,9 +411,9 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function clearAllMVGroups(this)
+        function clearAllMVGroupIs(this)
             %clear data of all MVGroups in all subjects
-            clearAllMVGroups@FDTreeNode(this); 
+            clearAllMVGroupIs@FDTreeNode(this); 
             this.myConditionsMerged.clearAllRIs('');
         end
         
@@ -734,6 +734,7 @@ classdef FDTree < FDTreeNode
             study = this.getChild(studyID);
             if(~isempty(study))
                 study.setArithmeticImageDefinition(aiName,aiParam);
+                this.clearAllMVGroupIs();
             end
         end
         

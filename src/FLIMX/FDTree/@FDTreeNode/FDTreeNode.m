@@ -115,10 +115,10 @@ classdef FDTreeNode < handle
             end
         end 
         
-        function clearAllMVGroups(this)
+        function clearAllMVGroupIs(this)
             %clear data of all MVGroups in all subjects
             for i = 1:this.myChildren.queueLen
-                this.myChildren.getDataByPos(i).clearAllMVGroups();
+                this.myChildren.getDataByPos(i).clearAllMVGroupIs();
             end 
         end 
         

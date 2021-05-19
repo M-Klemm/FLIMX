@@ -140,7 +140,7 @@ classdef FDTChunk < FDTreeNode
             end
         end
         
-        function clearAllMVGroups(this)
+        function clearAllMVGroupIs(this)
             %clear data of all MVGroups
             if(strncmp(this.dType,'MVGroup',7) || strncmp(this.dType,'ConditionMVGroup',16) || strncmp(this.dType,'GlobalMVGroup',13))
                 this.clearAllRIs();
