@@ -436,10 +436,17 @@ classdef FDTChannel < FDTreeNode
                     CImins(yTargets+1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
                 end
                 %define reference (i.e. x axis)
-                ref = reshape(temp(1,:,:),1,[])';
+                ref = reshape(temp(1,:,:),1,[])';                
                 for j = 1:yTargets
                     xtemp = floor(CImins(1)/cw)*cw:cw:ceil(CImaxs(1)/cw)*cw;
                     ytemp = floor(CImins(j+1)/cw)*cw:cw:ceil(CImaxs(j+1)/cw)*cw;
+                    matSize = length(xtemp) .* length(ytemp) *8 / 1024^3;
+                    if(matSize > 1)
+                        %expected MVGroup array is > 1GB -> abort
+                        warning('FLIMX:FDTChannel:makeMVGroupObj','Requested 2D histogram size %dx%d (%.2f GB) is too large. Aborted computation for subject %s.',length(ytemp),length(xtemp),matSize,this.myParent.name);
+                        cimg = []; lblx = []; lbly = []; cw = [];
+                        return
+                    end
                     ctemp = hist3([reshape(temp(j+1,:,:),1,[])' ref],'Edges',{ytemp xtemp});
                     [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,ctemp,xtemp,ytemp,cw);
                 end

@@ -894,7 +894,7 @@ classdef FDTree < FDTreeNode
         function out = getStudyConditionsStr(this,studyID)
             % get conditions of study
             study = this.getChild(studyID);
-            if(isempty(studyID))
+            if(isempty(studyID) || ~isa(study,'FDTStudy'))
                 out = FDTree.defaultConditionName();
                 return
             end
