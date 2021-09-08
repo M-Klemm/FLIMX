@@ -412,6 +412,7 @@ classdef ROICtrl < handle
         
         function setStartPoint(this,coord)
             %set coordinates(y,x) of ROI start point
+            %coord must be matrix position
             if(this.ROIType < 4000)
                 ROICoord = this.getCurROIInfo();
                 ROICoord = ROICoord(:,2:end);
@@ -425,6 +426,7 @@ classdef ROICtrl < handle
         
         function setEndPoint(this,coord,saveFlag)
             %set coordinates(y,x) of ROI end point
+            %coord must be matrix position
             ROICoord = this.getCurROIInfo();
             ROICoord = ROICoord(:,2:end);
             rt = this.ROIType;
@@ -577,6 +579,7 @@ classdef ROICtrl < handle
         
         function updateGUI(this,ROICoord)
             %set GUI items to values from FDTree / FData object
+            %ROICoord must be matrix position
             hfd = this.myHFD;
             if(isempty(hfd))
                 return
@@ -616,6 +619,10 @@ classdef ROICtrl < handle
 %                 this.ROIType = 0;
 %                 this.popupCallback('');
             else
+                if(~isempty(ROICoord))
+                    ROICoord(1,:) = hfd.yPos2Lbl(ROICoord(1,:));
+                    ROICoord(2,:) = hfd.xPos2Lbl(ROICoord(2,:));
+                end
                 if(rt > 1000 && rt < 2000)
                     %ETDRS grid
                     set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
@@ -655,6 +662,7 @@ classdef ROICtrl < handle
             %get coordinates of current ROI
             %out = [invert,x1,x2]
             %      [enable,y1,y2]
+            %out is in matrix positions, not labels
             out = zeros(2,3,'int16');
             hfd = this.myHFD;
             if(isempty(hfd))
@@ -691,6 +699,8 @@ classdef ROICtrl < handle
             elseif(rt > 4000 && rt < 5000)
                 %polygons
                 out = int16([[1;this.ROIVicinity], cell2mat(get(this.roi_table,'Data'))]);
+                out(1,2:end) = hfd.yLbl2Pos(out(1,2:end));
+                out(2,2:end) = hfd.xLbl2Pos(out(2,2:end));
 %                 if(size(tmp,2) < size(out,2))
 %                     out(:,1:size(tmp,2)) = tmp;
 %                 end

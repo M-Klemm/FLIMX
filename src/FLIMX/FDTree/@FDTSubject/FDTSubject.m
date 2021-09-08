@@ -753,7 +753,7 @@ classdef FDTSubject < fluoSubject
         end
 
         function setResultROICoordinates(this,dType,ROIType,ROICoord)
-            %set the ROI vector for dimension dim
+            %set the ROI for all channels
             for i = 1:this.nrChildren
                 this.getChildAtPos(i).setResultROICoordinates(dType,ROIType,ROICoord);
             end
@@ -889,9 +889,24 @@ classdef FDTSubject < fluoSubject
             out = this.myParent.getResultROIGroup(grpName);
         end
 
-        function out = getROICoordinates(this,ROIType)
+        function out = getROICoordinates(this,dType,ROIType)
             %get coordinates of ROI
-            out = this.myParent.getResultROICoordinates(this.name,ROIType);
+            if(isempty(ROIType) || this.getDefaultSizeFlag(dType))
+                out = this.myParent.getResultROICoordinates(this.name,dType,ROIType);
+            else
+                %this FLIM item (chunk) has a different size than the subject
+                for ch = 1:this.nrChildren
+                    if(~this.channelResultIsLoaded(ch))
+                        this.loadChannel(ch,false);
+                    end
+                    chObj = this.getChild(ch);
+                    if(~isempty(chObj))
+                        %both channels should have the same ROi coordinates -> first non-empty channel is good enough
+                        out = chObj.getROICoordinates(dType,ROIType);
+                        return
+                    end
+                end
+            end
         end
 
         function out = getZScaling(this,ch,dType,dTypeNr)
@@ -950,8 +965,8 @@ classdef FDTSubject < fluoSubject
             out = this.myParent.isArithmeticImage(dType);
         end
 
-        function out = getGlobalScale(this,dType)
-            %return global scale flag for dType
+        function out = getDefaultSizeFlag(this,dType)
+            %return true, if FLIM item (of dType) has the subject's default size
             out = false;
             for ch = 1:this.nrChildren
                 if(~this.channelResultIsLoaded(ch))
@@ -959,7 +974,7 @@ classdef FDTSubject < fluoSubject
                 end
                 chObj = this.getChild(ch);
                 if(~isempty(chObj))
-                    out = chObj.getGlobalScale(dType);
+                    out = chObj.getDefaultSizeFlag(dType);
                     return
                 end
             end
@@ -1118,7 +1133,7 @@ classdef FDTSubject < fluoSubject
                         if(isempty(fd))
                             return
                         end
-                        out = fd.getROIImage(this.getROICoordinates(ROIType),ROIType,ROISubtype,aiParams.(sprintf('ROIVicinity%s',layer)));
+                        out = fd.getROIImage(this.getROICoordinates(dTypeA{1},ROIType),ROIType,ROISubtype,aiParams.(sprintf('ROIVicinity%s',layer)));
                         if(~isempty(out))
                             out = mean(out(:),'omitnan');
                         end

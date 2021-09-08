@@ -408,7 +408,12 @@ classdef FDTStudy < FDTreeNode
             if(isempty(subject))
                 return
             end
-            this.myStudyInfoSet.setResultROICoordinates(subjectID,ROIType,ROICoord);
+            if(isempty(ROIType) || subject.getDefaultSizeFlag(dType))
+                this.myStudyInfoSet.setResultROICoordinates(subjectID,ROIType,ROICoord);
+            else
+                %this FLIM item (chunk) has a different size than the subject
+                subject.setResultROICoordinates(dType,ROIType,ROICoord);
+            end
             this.clearArithmeticRIs(); %todo: check if an AI uses an ROI
             this.clearObjMerged();
             this.clearMVGroups(subjectID,dType,dTypeNr);
@@ -891,11 +896,11 @@ classdef FDTStudy < FDTreeNode
 %                 this.myParent.clearGlobalObjMerged(dType);
             else
                 %normal dType
-                curGS = subject.getGlobalScale(dType);
+                curGS = subject.getDefaultSizeFlag(dType);
                 for i = 1:length(MVGroupStr)
                     cMVs = this.getMVGroupTargets(MVGroupStr{i});
                     cDType = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
-                    cGS = subject.getGlobalScale(cDType{1});
+                    cGS = subject.getDefaultSizeFlag(cDType{1});
                     tmp = sprintf('%s %d',dType,dTypeNr);
                     if(ismember(tmp,cMVs.x) || ismember(tmp,cMVs.y) || curGS && cGS)
                         %clear local MVGroups
@@ -1442,7 +1447,7 @@ classdef FDTStudy < FDTreeNode
             end
             for i = 1:length(hg)
                 %tmp = hg{i}.getFullImage();
-                ROICoordinates = this.getResultROICoordinates(hg{i}.subjectName,ROIType);
+                ROICoordinates = this.getResultROICoordinates(hg{i}.subjectName,dType,ROIType);
                 tmp = hg{i}.getImgSeg(hg{i}.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,hg{i}.getFileInfoStruct(),this.getVicinityInfo());
                 switch dataProc
                     case 'mean'
@@ -1471,7 +1476,7 @@ classdef FDTStudy < FDTreeNode
                     if(isempty(hg))
                         return
                     end
-                    ROICoordinates = this.getResultROICoordinates(hg{1}.subjectName,ROIType);
+                    ROICoordinates = this.getResultROICoordinates(hg{1}.subjectName,dType,ROIType);
                     [~, histMerge, centers] = hg{1}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
                     histTable = zeros(length(hg),length(centers));
                     colDescription = cell(length(hg),1);
@@ -1479,7 +1484,7 @@ classdef FDTStudy < FDTreeNode
                         %just make sure that histograms correspond to subject names
                         %c = hg{i}.getCIHistCentersStrict();
                         colDescription(i) = {hg{i}.subjectName};
-                        ROICoordinates = this.getResultROICoordinates(colDescription{i},ROIType);
+                        ROICoordinates = this.getResultROICoordinates(colDescription{i},dType,ROIType);
                         [~, histTemp, cTemp]= hg{i}.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
                         if(isempty(cTemp))
                             continue
@@ -1547,7 +1552,7 @@ classdef FDTStudy < FDTreeNode
             subjectDesc = cell(nSubs,1);
             for i = 1:nSubs
                 subjectDesc(i) = {hg{i}.subjectName};
-                ROICoordinates = this.getResultROICoordinates(subjectDesc{i},ROIType);
+                ROICoordinates = this.getResultROICoordinates(subjectDesc{i},dType,ROIType);
 %                 if(ROIType < 0)
 %                     %ROI group
 %                     [tmp, ~, ~] = hg{i}.makeROIGroupStatistics(ROIType,ROISubType,ROIVicinity,strictFlag);
@@ -1627,12 +1632,21 @@ classdef FDTStudy < FDTreeNode
             [ids, str] = this.myStudyInfoSet.getResultROITypes();
         end
         
-        function out = getResultROICoordinates(this,subName,ROIType)
+        function out = getResultROICoordinates(this,subName,dType,ROIType)
             %return ROI coordinates for ROIType in a subject
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getResultROICoordinates(subName,ROIType);
+            subject = this.getChild(subName);
+            if(isempty(subject))
+                return
+            end
+            if(isempty(ROIType) || subject.getDefaultSizeFlag(dType))
+                out = this.myStudyInfoSet.getResultROICoordinates(subName,ROIType);
+            else
+                %this FLIM item (chunk) has a different size than the subject
+                out = subject.getROICoordinates(dType,ROIType);
+            end
         end
         
         function out = getResultZScaling(this,subName,ch,dType,dTypeNr)
@@ -1865,6 +1879,7 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
+            this.updateLongProgress(0.01,'Scatter Plot...');
             cimg = []; lblx = []; lbly = [];
             MVGroupObjs = this.getStudyObjs(cName,chan,MVGroupID,0,1);            
             cMVs = this.getMVGroupTargets(MVGroupID);
@@ -1877,8 +1892,12 @@ classdef FDTStudy < FDTreeNode
             %get merged MVGroups from subjects of condition
             for i=1:length(MVGroupObjs)
                 %use whole image for scatter plots, ignore any ROIs
-                [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,MVGroupObjs{i}.getROIImage([],0,1,0),MVGroupObjs{i}.getCIXLbl([],0,1,0),MVGroupObjs{i}.getCIYLbl([],0,1,0),cw);
+                if(~isempty(MVGroupObjs{i}.getROIImage([],0,1,0)))
+                    [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,MVGroupObjs{i}.getROIImage([],0,1,0),MVGroupObjs{i}.getCIXLbl([],0,1,0),MVGroupObjs{i}.getCIYLbl([],0,1,0),cw);
+                end
+                this.updateLongProgress(i/length(MVGroupObjs),sprintf('Scatter Plot: %0.1f%%',100*i/length(MVGroupObjs)));
             end
+            this.updateLongProgress(0,'');
         end
                 
         function [cimg, lblx, lbly, colors, logColors] = makeGlobalMVGroupObj(this,chan,MVGroupID)
@@ -1901,7 +1920,7 @@ classdef FDTStudy < FDTreeNode
             end
             ciMerged = [];
             for i = 1:length(hg)
-                ROICoordinates = this.getResultROICoordinates(hg{i}.subjectName,ROIType);
+                ROICoordinates = this.getResultROICoordinates(hg{i}.subjectName,dType,ROIType);
                 ci = hg{i}.getROIImage(ROICoordinates,ROIType,ROISubType,ROIVicinity);
                 ciMerged = [ciMerged; ci(:);];
             end

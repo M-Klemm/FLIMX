@@ -43,17 +43,18 @@ classdef FData < handle
         rawImgXSz = [];
         rawImgYSz = [];
         rawImgZSz = [];
+        supplementalData = [];
     end
     properties(Dependent = true, SetAccess = protected, GetAccess = public)
-        name = '';
+        name;
     end
     properties(Dependent = true, SetAccess = public, GetAccess = public)
-        dType = [];
-        globalScale = [];
-        subjectName = [];
-        channel = [];
-        isEmptyStat = true;
-        FLIMXParamMgrObj = [];
+        dType
+        isSubjectDefaultSize
+        subjectName
+        channel
+        isEmptyStat
+        FLIMXParamMgrObj
     end
     properties(SetAccess = protected, GetAccess = protected)
         myParent = [];
@@ -137,6 +138,7 @@ classdef FData < handle
                 this.rawImgIsLogical = false;
             end
             this.rawImage = single(val);
+            this.supplementalData = [];
             this.color_data = [];
             this.logColor_data = [];
             % this.curImgColors = [];
@@ -157,6 +159,11 @@ classdef FData < handle
             this.setRawDataYSz([1 y]);
             %val = this.getFullImage(); %expensive but correct
             this.setRawDataZSz([FData.getNonInfMinMax(1,val) FData.getNonInfMinMax(2,val)]);
+        end
+        
+        function setSupplementalData(this,val)
+            %set supplemental data, e.g. info supporting the raw data
+            this.supplementalData = val;
         end
 
         function setColor_data(this,val,valLog)
@@ -236,9 +243,9 @@ classdef FData < handle
             out = this.myParent.getDType();
         end
 
-        function out = get.globalScale(this)
-            %get global scale flag
-            out = this.myParent.getGlobalScale();
+        function out = get.isSubjectDefaultSize(this)
+            %return true, if FLIM item has the subect defalt size
+            out = this.myParent.isSubjectDefaultSize;
         end
 
         function nr = get.channel(this)
@@ -342,6 +349,11 @@ classdef FData < handle
                 end
             end
         end
+        
+        function out = getSupplementalData(this)
+            %return support data, if available
+            out = this.supplementalData;
+        end            
         
         function out = getROIGroup(this,grpName)
             %get the ROI group names and members
@@ -704,8 +716,9 @@ classdef FData < handle
 
         %% compute functions
         function clearRawImage(this)
-            %clear raw image data
+            %clear raw image data (and the supplemental data) 
             this.rawImage = [];
+            this.supplementalData = [];
         end
 
         function clearFilteredImage(this)
@@ -1039,6 +1052,11 @@ classdef FData < handle
                 if(vertices > 2)
                     %create mask out of polygon
                     mask0 = false(y,x);
+                    %clip pixels outside the image
+                    ROICoord(1,ROICoord(1,:) > y) = y;
+                    ROICoord(1,ROICoord(1,:) < 1) = 1;
+                    ROICoord(2,ROICoord(2,:) > x) = x;
+                    ROICoord(2,ROICoord(2,:) < 1) = 1;
                     mask0(sub2ind([y,x],ROICoord(1,:),ROICoord(2,:))) = true;
                     [minY, posY] = min(ROICoord(1,:));
                     [minX, posX] = min(ROICoord(2,:));

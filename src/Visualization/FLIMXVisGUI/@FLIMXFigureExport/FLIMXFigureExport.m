@@ -84,8 +84,8 @@ classdef FLIMXFigureExport < FDisplay
             this.screenshot = true;
             hFig.Units = this.myDynVisParams.mainAxesUnits;
             hFig.Position(4) = max(450,hFig.Position(4));
-            if(this.visObj.exportParams.plotColorbar && strcmp(type,'main'))
-                switch lower(this.visObj.exportParams.colorbarLocation)
+%             if(this.visObj.exportParams.plotColorbar && strcmp(type,'main'))
+%                 switch lower(this.visObj.exportParams.colorbarLocation)
 %                     case 'eastoutside'
 %                         hFig.Position(3) = (hFig.Position(4)+75);
 %                         axSz = hFig.Position(4)-20;
@@ -108,16 +108,16 @@ classdef FLIMXFigureExport < FDisplay
 %                         offsetX = 50;
 %                         offsetY = 175;
 %                         %hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 150 175];
-                    otherwise
+%                     otherwise
                         hFig.Position(3) = hFig.Position(4);
                         axSz = hFig.Position(4)-100;
-                        offsetX = 20;
-                        offsetY = 20;
+                        offsetX = 30;
+                        offsetY = 30;
                         %hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 150 75];
-                end
-            else
+%                 end
+%             else
                 %hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 150 75];
-            end
+%             end
             %hFig.Position(4) = max(715,hFig.Position(4));
             if(isempty(this.myHMainAxes) || ~this.myHMainAxes.isvalid)
                 %axSz = min(0.95*(hFig.Position(3)-70-175),0.95*(hFig.Position(4)-50));

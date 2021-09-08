@@ -870,7 +870,7 @@ classdef StatsDescriptive < handle
         function allROT = get.allROITypes(this)
             ds1 = this.visObj.fdt.getAllSubjectNames(this.study,this.condition);
             if(~isempty(ds1))
-                allROT = this.visObj.fdt.getResultROICoordinates(this.study,ds1{1},[]);
+                allROT = this.visObj.fdt.getResultROICoordinates(this.study,ds1{1},this.dType,[]);
                 if(isempty(allROT))
                     allROT = ROICtrl.getDefaultROIStruct();
                 end

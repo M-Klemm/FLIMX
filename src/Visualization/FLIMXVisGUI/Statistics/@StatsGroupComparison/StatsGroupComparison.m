@@ -481,7 +481,7 @@ classdef StatsGroupComparison < handle
             if(~isempty(ds1))
                 ch1 = this.visObj.fdt.getChStr(this.study1,ds1{1});
                 coStr1 = this.visObj.fdt.getChObjStr(this.study1,ds1{1},this.ch1);
-                allROT = this.visObj.fdt.getResultROICoordinates(this.study1,ds1{1},[]);
+                allROT = this.visObj.fdt.getResultROICoordinates(this.study1,ds1{1},this.dType1,[]);
                 if(isempty(allROT))
                     allROT = ROICtrl.getDefaultROIStruct();
                 end

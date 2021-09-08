@@ -1257,6 +1257,15 @@ classdef measurementFile < handle
                     this.progressCb{i} = [];
                 end
             end
+        end        
+        
+        function out = getMeasurementFileName(this,ch,folder)
+            %returns path and filename for channel ch
+            if(isempty(folder))
+                out = fullfile(this.getWorkingDirectory(),sprintf('%sch%02d%s',this.fileStub,ch,this.fileExt));
+            else
+                out = fullfile(folder,sprintf('%sch%02d%s',this.fileStub,ch,this.fileExt));
+            end
         end
 
     end %methods
@@ -1371,15 +1380,6 @@ classdef measurementFile < handle
                 this.roiMerged(channel,1) = cell(1,1);
             end
             this.setDirtyFlags(channel,1,true);
-        end
-
-        function out = getMeasurementFileName(this,ch,folder)
-            %returns path and filename for channel ch
-            if(isempty(folder))
-                out = fullfile(this.getWorkingDirectory(),sprintf('%sch%02d%s',this.fileStub,ch,this.fileExt));
-            else
-                out = fullfile(folder,sprintf('%sch%02d%s',this.fileStub,ch,this.fileExt));
-            end
         end
 
         function out = getNrSpectralChannels(this)

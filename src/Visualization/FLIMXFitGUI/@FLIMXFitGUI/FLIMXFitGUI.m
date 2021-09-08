@@ -2023,36 +2023,77 @@ classdef FLIMXFitGUI < handle
             this.setButtonStopSpinning(true);
             this.FLIMXObj.FLIMFit.setInitFitOnly(false);
             this.FLIMXObj.FLIMFit.stopOptimization(false);
+            lsf = false;            
             tStart = clock;
-            for i = 1:length(subjects)
-                if(this.FLIMXObj.FLIMFit.parameters.stopOptimization)
-                    %stop fit process
-                    break
+            if(lsf)
+                jobDir = 'd:\job01';
+                %create jobs
+                apObj = this.FLIMXObj.curSubject.getApproxObj(this.currentChannel,1,1);
+                params.preProcessing = apObj.preProcessParams;
+                params.bounds = apObj.boundsParams;
+                params.pixelFit = apObj.pixelFitParams;
+                params.computation = apObj.computationParams;
+                params.basicFit = apObj.basicParams;
+                params.allIRFs = cell(1,this.FLIMXObj.curSubject.nrSpectralChannels);
+                for chTmp = 1:this.FLIMXObj.curSubject.nrSpectralChannels
+                    params.allIRFs{chTmp} = this.FLIMXObj.irfMgr.getCurIRF(chTmp);
                 end
-                this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentCondition,subjects{i});
-                this.FLIMXObj.curSubject.clearROAResults(true); %delete old fit results
-                this.FLIMXObj.curSubject.update();
-                %start actual fitting process
-                try
-                    status = this.FLIMXObj.FLIMFit.startFitProcess([],[],[]);
-                    if(status)
-                        %user pressed stop
+                jobParamFile = fullfile(jobDir,'parameters.mat');
+                save(jobParamFile,'params','-mat');
+                jobList = cell(0,4);
+                for i = 1:length(subjects)
+                    cs = this.fdt.getSubject4Approx(this.currentStudy,subjects{i},false);
+                    chList = cs.nonEmptyMeasurementChannelList;
+                    for chIdx = 1:length(chList)
+                        curSubDir = fullfile(jobDir,subjects{i});
+                        status = 1;
+                        if(~isfolder(curSubDir))
+                            [status,message,messageId] = mkdir(curSubDir);
+                        end
+                        if(status)
+                            curJobFile = cs.myMeasurement.getMeasurementFileName(chList(chIdx),curSubDir);
+                            [status,message,messageId] = copyfile(cs.myMeasurement.getMeasurementFileName(chList(chIdx),''), curJobFile, 'f');
+                            if(status)
+                                jobList{end+1,1} = curJobFile;
+                                jobList{end,2} = chList(chIdx);
+                                jobList{end,3} = 1:cs.myMeasurement.rawXSz*cs.myMeasurement.rawYSz;
+                            end
+                        end
+                    end
+                end
+                %collect results
+                
+            else                
+                for i = 1:length(subjects)
+                    if(this.FLIMXObj.FLIMFit.parameters.stopOptimization)
+                        %stop fit process
                         break
                     end
-                catch ME
-                    %todo
+                    this.FLIMXObj.setCurrentSubject(this.currentStudy,this.currentCondition,subjects{i});
+                    this.FLIMXObj.curSubject.clearROAResults(true); %delete old fit results
+                    this.FLIMXObj.curSubject.update();
+                    %start actual fitting process
+                    try
+                        status = this.FLIMXObj.FLIMFit.startFitProcess([],[],[]);
+                        if(status)
+                            %user pressed stop
+                            break
+                        end
+                    catch ME
+                        %todo
+                    end
+                    this.FLIMXObj.FLIMVisGUI.updateGUI('');
+                    %update progressbar
+                    [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(subjects)-i)); %mean time for finished runs * iterations left
+                    this.updateLongProgress(i/length(subjects),sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',i/length(subjects)*100,hours,minutes,secs));
                 end
-                this.FLIMXObj.FLIMVisGUI.updateGUI('');
-                %update progressbar
-                [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(subjects)-i)); %mean time for finished runs * iterations left
-                this.updateLongProgress(i/length(subjects),sprintf('%02.1f%% - Time left: %02.0fh %02.0fm %02.0fs',i/length(subjects)*100,hours,minutes,secs));                
             end
             [hours, minutes, secs] = secs2hms(etime(clock,tStart));
             fprintf('Fitting process finished after %02.0fh %02.0fmin %02.0fsec!\n',hours, minutes, round(secs));
             this.setButtonStopSpinning(false);
             this.updateLongProgress(0,'');
         end
-
+        
         function menuCleanUpFit_Callback(this,hObject,eventdata)
             %fit all channels
             if(this.isOpenVisWnd())

@@ -361,8 +361,8 @@ classdef studyIS < handle
                     idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
                 end
                 if(ROIType >= 1000 && ROIType < 4000 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
-                    %ETDRS, rectangle or cricle                    
-                    tmp(idx,1:3,1:2) = int16(ROICoord');                    
+                    %ETDRS, rectangle or cricle
+                    tmp(idx,1:3,1:2) = int16(ROICoord');
                 elseif(ROIType > 4000 && ROIType < 5000 && size(ROICoord,1) == 2)
                     %polygons
                     if(size(ROICoord,2) > size(tmp,2))
@@ -403,20 +403,22 @@ classdef studyIS < handle
         
         function addResultROIType(this,ROIType)
             %add an empty ROIType to all subjects in this study
+            %this.resultROICoordinates = cellfun(@(x)FDTChunk.addResultROIType(x,ROIType),this.resultROICoordinates);
             for i = 1:this.nrSubjects
-                tmp = this.resultROICoordinates{i};
-                if(isempty(tmp))
-                    tmp = ROICtrl.getDefaultROIStruct();
-                end
-                [val,idx] = min(abs(tmp(:,1,1) - ROIType));
-                if(val > 0)
-                    tmpNew = zeros(size(tmp,1)+val,size(tmp,2),size(tmp,3),'int16');
-                    tmpNew(1:idx,:,:) = tmp(1:idx,:,:);
-                    tmpNew(idx+val+1:end,:,:) = tmp(idx+1:end,:,:);
-                    tmpNew(idx+1:idx+val,1,1) = (tmp(idx,1,1)+1 : 1 : tmp(idx,1,1)+val)';
-                    tmp = tmpNew;
-                    this.resultROICoordinates(i) = {tmp};
-                end
+                this.resultROICoordinates{i} = FDTChunk.addResultROIType(this.resultROICoordinates{i},ROIType);
+%                 tmp = this.resultROICoordinates{i};
+%                 if(isempty(tmp))
+%                     tmp = ROICtrl.getDefaultROIStruct();
+%                 end
+%                 [val,idx] = min(abs(tmp(:,1,1) - ROIType));
+%                 if(val > 0)
+%                     tmpNew = zeros(size(tmp,1)+val,size(tmp,2),size(tmp,3),'int16');
+%                     tmpNew(1:idx,:,:) = tmp(1:idx,:,:);
+%                     tmpNew(idx+val+1:end,:,:) = tmp(idx+1:end,:,:);
+%                     tmpNew(idx+1:idx+val,1,1) = (tmp(idx,1,1)+1 : 1 : tmp(idx,1,1)+val)';
+%                     tmp = tmpNew;
+%                     this.resultROICoordinates(i) = {tmp};
+%                 end
             end
         end
         
@@ -1055,28 +1057,29 @@ classdef studyIS < handle
                         return
                     end
                 end
-                out = double(cell2mat(this.resultROICoordinates(subName)));
-                if(~isempty(out) && ~isempty(ROIType) && isscalar(ROIType) && ROIType > 1000)
-                    idx = find(abs(out(:,1,1) - ROIType) < eps,1,'first');
-                    if(~isempty(idx))
-                        out = squeeze(out(idx,:,:))';
-                        out = out(1:2,2:end);
-                        if(ROIType < 4000)
-                            out = out(1:2,1:2);
-                        elseif(ROIType > 4000 && ROIType < 5000)
-                            %remove potential trailing zeros
-                            idx = any(out,1);
-                            idx(1:3) = true;
-                            out(:,find(idx,1,'last')+1:end) = [];
-                        end
-                    else
-                        out = [];
-                    end
-                elseif(isempty(ROIType))
-                    %return all ROI coordinates                    
-                else
-                    out = [];
-                end
+                %out = double(cell2mat(this.resultROICoordinates(subName)));
+                out = FDTChunk.extractROICoordinates(cell2mat(this.resultROICoordinates(subName)),ROIType);
+%                 if(~isempty(out) && ~isempty(ROIType) && isscalar(ROIType) && ROIType > 1000)
+%                     idx = find(abs(out(:,1,1) - ROIType) < eps,1,'first');
+%                     if(~isempty(idx))
+%                         out = squeeze(out(idx,:,:))';
+%                         out = out(1:2,2:end);
+%                         if(ROIType < 4000)
+%                             out = out(1:2,1:2);
+%                         elseif(ROIType > 4000 && ROIType < 5000)
+%                             %remove potential trailing zeros
+%                             idx = any(out,1);
+%                             idx(1:3) = true;
+%                             out(:,find(idx,1,'last')+1:end) = [];
+%                         end
+%                     else
+%                         out = [];
+%                     end
+%                 elseif(isempty(ROIType))
+%                     %return all ROI coordinates
+%                 else
+%                     out = [];
+%                 end
             end
         end
         

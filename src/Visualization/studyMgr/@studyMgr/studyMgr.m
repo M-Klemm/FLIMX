@@ -35,10 +35,10 @@ classdef studyMgr < handle
         
     end
     properties(GetAccess = public, SetAccess = private)
-        FLIMXObj = []; %handle to FLIMX        
+        FLIMXObj = []; %handle to FLIMX
         lastAddedSubject = ''; %name last added subject
         lastStudyPath = '';
-        lastImportPath = '';        
+        lastImportPath = '';
     end
     properties(GetAccess = protected, SetAccess = protected)
         visHandles = []; %structure to handles in GUI

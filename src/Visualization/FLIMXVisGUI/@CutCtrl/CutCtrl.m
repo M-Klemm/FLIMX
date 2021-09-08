@@ -176,12 +176,12 @@ classdef CutCtrl < handle
             end            
             %make sure cut value is a matrix position
             val = hfd.(sprintf('%sLbl2Pos',this.myAxis))(round(get(this.slider,'Value')));
-            if(hfd.globalScale)
+            if(hfd.isSubjectDefaultSize)
                 this.visObj.fdt.setResultCrossSection(this.visObj.getStudy('l'),this.visObj.getSubject('l'),this.myAxis,[get(this.check,'Value') val get(this.inv,'Value')]);
             else
                 hfd.setResultCrossSection(this.myAxis,[get(this.check,'Value') val get(this.inv,'Value')]);
-                end
             end
+        end
                 
         function setUIHandles(this)
             %builds the uicontrol handles for the CutCtrl object for axis ax

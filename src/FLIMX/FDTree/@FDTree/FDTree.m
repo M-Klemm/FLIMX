@@ -585,7 +585,7 @@ classdef FDTree < FDTreeNode
                 destSubject = destStudy.getChild(subjectID);
                 if(~isempty(orgSubject) && ~isempty(destSubject))
                     %get all ROI coordinates from source
-                    ROICoord = orgStudy.getResultROICoordinates(subjectID,[]);
+                    ROICoord = orgStudy.getResultROICoordinates(subjectID,[],[]);
                     %set all ROI coordinates in destination
                     destStudy.setResultROICoordinates(subjectID,'Amplitude',1,[],ROICoord);
                 end
@@ -1069,11 +1069,11 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function out = getResultROICoordinates(this,studyID,subjectID,ROIType)
+        function out = getResultROICoordinates(this,studyID,subjectID,dType,ROIType)
             %return ROI coordinates for ROIType in a subject in a study
             study = this.getChild(studyID);
             if(~isempty(study))
-                out = study.getResultROICoordinates(subjectID,ROIType);
+                out = study.getResultROICoordinates(subjectID,dType,ROIType);
             else
                 out = [];
             end
@@ -1476,9 +1476,10 @@ classdef FDTree < FDTreeNode
         
         function [cimg, lblx, lbly, cw, colorMVGroup, logColorMVGroup] = makeGlobalMVGroupObj(this,chan,MVGroupID)
             %make global MVGroup object
-            cimg = []; lblx = []; lbly = []; cw = []; colorMVGroup = []; logColorMVGroup = [];            
+            cimg = []; lblx = []; lbly = []; cw = []; colorMVGroup = []; logColorMVGroup = [];
+            this.updateLongProgress(0.01,'Scatter Plot...');
             MVGroupTargets = this.getGlobalMVGroupTargets(MVGroupID);
-            for i=1:size(MVGroupTargets,1)
+            for i = 1:size(MVGroupTargets,1)
                 study = this.getChild(MVGroupTargets{i,1});
                 conditionMVGroupObj = study.getFDataMergedObj(MVGroupTargets{i,2},chan,sprintf('Condition%s',MVGroupID),0,1);
                 if(isempty(conditionMVGroupObj) || isempty(conditionMVGroupObj.getROIImage([],0,1,0)))
@@ -1490,7 +1491,10 @@ classdef FDTree < FDTreeNode
                 cw = getHistParams(this.getStatsParams(),chan,dType{1},dTypeNr(1));
                 %get merged MVGroups from subjects of condition
                 %use whole image for scatter plots, ignore any ROIs
-                [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,conditionMVGroupObj.getROIImage([],0,1,0)./conditionMVGroupObj.getCImax([],0,1,0)*1000,conditionMVGroupObj.getCIXLbl([],0,1,0),conditionMVGroupObj.getCIYLbl([],0,1,0),cw);
+                if(~isempty(conditionMVGroupObj.getROIImage([],0,1,0)))
+                    [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,conditionMVGroupObj.getROIImage([],0,1,0)./conditionMVGroupObj.getCImax([],0,1,0)*1000,conditionMVGroupObj.getCIXLbl([],0,1,0),conditionMVGroupObj.getCIYLbl([],0,1,0),cw);
+                end
+                this.updateLongProgress(0.5*i/length(MVGroupTargets),sprintf('Scatter Plot: %0.1f%%',50*i/length(MVGroupTargets)));
             end            
             if(isempty(cimg))
                 return
@@ -1499,7 +1503,7 @@ classdef FDTree < FDTreeNode
             colorMVGroup = zeros(size(cimg,1),size(cimg,2),3);
             logColorMVGroup = zeros(size(cimg,1),size(cimg,2),3);
             cimg = zeros(size(cimg));
-            for i=1:size(MVGroupTargets,1)
+            for i = 1:size(MVGroupTargets,1)
                 study = this.getChild(MVGroupTargets{i,1});
                 conditionMVGroupObj = study.getFDataMergedObj(MVGroupTargets{i,2},chan,sprintf('Condition%s',MVGroupID),0,1);
                 curImg = mergeScatterPlotData(cimg,lblx,lbly,conditionMVGroupObj.getROIImage([],0,1,0),conditionMVGroupObj.getCIXLbl([],0,1,0),conditionMVGroupObj.getCIYLbl([],0,1,0),cw);
@@ -1530,6 +1534,7 @@ classdef FDTree < FDTreeNode
                 logColorMVGroup = logColorMVGroup + colorsLog;
                 idxLog = repmat(sum(colorsLog,3) ~= 0 & sum(logColorMVGroup,3) ~= 0, [1 1 3]);
                 logColorMVGroup(idxLog) = logColorMVGroup(idxLog)./2;
+                this.updateLongProgress(0.5+0.5*i/length(MVGroupTargets),sprintf('Scatter Plot: %0.1f%%',50+50*i/length(MVGroupTargets)));
             end
             %set brightness to max
             %linear scaling
@@ -1548,6 +1553,7 @@ classdef FDTree < FDTreeNode
             t2(idx) = 1;
             t(:,:,3) = t2;
             logColorMVGroup = hsv2rgb(t);
+            this.updateLongProgress(0,'');
         end
                 
         function scanForStudies(this)

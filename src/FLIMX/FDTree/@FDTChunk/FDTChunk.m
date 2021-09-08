@@ -33,20 +33,22 @@ classdef FDTChunk < FDTreeNode
     %
     properties(SetAccess = protected,GetAccess = public)
         dType = [];
-        globalScale = [];
+        defaultSizeFlag = true;
+        resultROICoordinates = []; %only used, if defaultSizeFlag is false
     end
     properties(SetAccess = protected,GetAccess = protected)        
     end
     properties (Dependent = true)
-        FLIMXParamMgrObj = [];
+        FLIMXParamMgrObj
+        isSubjectDefaultSize
     end
 
     methods
-        function this = FDTChunk(parent,dType,globalScale)
+        function this = FDTChunk(parent,dType,defaultSizeFlag)
             % Constructor for FDTChunk
             this = this@FDTreeNode(parent,dType);
             this.dType = dType;
-            this.globalScale = logical(globalScale);
+            this.defaultSizeFlag = logical(defaultSizeFlag);            
         end
         
 %         function out = getSize(this)
@@ -105,10 +107,56 @@ classdef FDTChunk < FDTreeNode
         end
         
         function setResultROICoordinates(this,ROIType,ROICoord)
-            %set the ROI vector for dimension dim
-            for i = 1:this.nrChildren
-                this.getChildAtPos(i).setResultROICoordinates(ROIType,ROICoord);
+            %set the ROI
+            if(isempty(ROICoord))
+                ROICoord = zeros(2,3,'uint16');
+            elseif(size(ROICoord,1) == 2 && size(ROICoord,2) == 1)
+                ROICoord(:,2:3) = zeros(2,2,'like',ROICoord);
             end
+            tmp = this.resultROICoordinates;
+            if(isempty(ROIType))
+                %set all ROI coordinates at once
+                if(size(ROICoord,1) >= 7 && size(ROICoord,2) >= 3 && size(ROICoord,3) >= 2)
+                    tmp = int16(ROICoord);
+                end
+            else
+                if(isempty(tmp) || size(tmp,1) < 7 || size(tmp,2) < 3)
+                    tmp = ROICtrl.getDefaultROIStruct();
+                end
+                ROIType = int16(ROIType);
+                idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
+                if(isempty(idx))
+                    %new ROI
+                    tmp = FDTChunk.addResultROIType(tmp,ROIType);
+                    idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
+                end
+                if(ROIType >= 1000 && ROIType < 4000 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
+                    %ETDRS, rectangle or cricle                    
+                    tmp(idx,1:3,1:2) = int16(ROICoord');                    
+                elseif(ROIType > 4000 && ROIType < 5000 && size(ROICoord,1) == 2)
+                    %polygons
+                    if(size(ROICoord,2) > size(tmp,2))
+                        tmpNew = zeros(size(tmp,1),size(ROICoord,2),2,'int16');
+                        tmpNew(:,1:size(tmp,2),:) = tmp;
+                        tmpNew(idx,1:size(ROICoord,2),:) = int16(ROICoord');
+                        tmp = tmpNew;
+                    else
+                        tmp(idx,1:size(ROICoord,2),1:2) = int16(ROICoord');
+                        tmp(idx,max(4,size(ROICoord,2)+1):end,:) = 0;
+                    end
+                    %polygon could have shrinked, remove trailing zeros
+                    idxZeros = squeeze(any(any(tmp,1),3));
+                    idxZeros(1:3) = true;
+                    tmp(:,find(idxZeros,1,'last')+1:end,:) = [];
+                end
+                %store ROIType just to be sure it is correct
+                tmp(idx,1,1) = ROIType;
+            end
+            this.resultROICoordinates = tmp;           
+            
+%             for i = 1:this.nrChildren
+%                 this.getChildAtPos(i).setResultROICoordinates(ROIType,ROICoord);
+%             end
         end
         
         function setResultCrossSection(this,dim,csDef)
@@ -154,19 +202,21 @@ classdef FDTChunk < FDTreeNode
             if(strncmp(this.dType,'MVGroup',7))
                 %check if MVGroup has to be computed
                 if(isempty(h))
-                    [cimg, lblx, lbly, cw] = this.myParent.makeMVGroupObj(this.dType);
+                    [cimg, lblx, lbly, cw, binNrs] = this.myParent.makeMVGroupObj(this.dType);
                     this.addChildByName(FDataNormal(this,id,cimg),num2str(id)); %,id,true);  %with overwrite flag
                     h = this.getChild(num2str(id));
                     %set labels for condition MVGroup computation
                     h.setupXLbl(lblx,cw);
                     h.setupYLbl(lbly,cw);
+                    h.setSupplementalData(binNrs);
                 else
                     if(isempty(h.getFullImage()))
-                        [cimg, lblx, lbly, cw] = this.myParent.makeMVGroupObj(this.dType);
+                        [cimg, lblx, lbly, cw, binNrs] = this.myParent.makeMVGroupObj(this.dType);
                         h.setRawData(cimg);
                         %set labels for condition MVGroup computation
                         h.setupXLbl(lblx,cw);
                         h.setupYLbl(lbly,cw);
+                        h.setSupplementalData(binNrs);
                     end
                 end
             end
@@ -230,11 +280,6 @@ classdef FDTChunk < FDTreeNode
             out = this.dType;
         end
         
-        function out = getGlobalScale(this)
-            %get global scaling flag
-            out = this.globalScale;
-        end
-        
         function nr = getNrElements(this)
             %get number of slices in this chunk
             nr = this.nrChildren;
@@ -281,7 +326,16 @@ classdef FDTChunk < FDTreeNode
         
         function out = getROICoordinates(this,ROIType)
             %get coordinates of ROI
-            out = this.myParent.getROICoordinates(ROIType);
+            if(this.isSubjectDefaultSize)
+                %ask the study for the ROI coordinates
+                out = this.myParent.getROICoordinates(this.dType,ROIType);
+            else
+                %use local ROI coordinates
+                if(isempty(this.resultROICoordinates))
+                    this.resultROICoordinates = ROICtrl.getDefaultROIStruct();
+                end
+                out = FDTChunk.extractROICoordinates(this.resultROICoordinates,ROIType);
+            end
         end
         
         function out = getZScaling(this,dTypeNr)
@@ -321,8 +375,8 @@ classdef FDTChunk < FDTreeNode
         
         function out = getIgnoredPixelsMask(this)
             %get mask of ignored pixels
-            if(this.globalScale)
-                %only for global scale data
+            if(this.defaultSizeFlag)
+                %only for data of subject default size
                 out = this.myParent.ignoredPixelsMask;
             else
                 out = [];
@@ -332,10 +386,54 @@ classdef FDTChunk < FDTreeNode
         function out = get.FLIMXParamMgrObj(this)
             %get handle to parameter manager object
             out = this.myParent.FLIMXParamMgrObj;
-        end        
+        end
+        
+        function out = get.isSubjectDefaultSize(this)
+            %return true, if this item has the subject default size
+            out = this.defaultSizeFlag;
+        end
     end
     
     methods(Static)
+        function ROICoord = addResultROIType(ROICoord,ROIType)
+            %add an empty ROIType
+            if(isempty(ROICoord))
+                ROICoord = ROICtrl.getDefaultROIStruct();
+            end
+            [val,idx] = min(abs(ROICoord(:,1,1) - ROIType));
+            if(val > 0)
+                tmpNew = zeros(size(ROICoord,1)+val,size(ROICoord,2),size(ROICoord,3),'int16');
+                tmpNew(1:idx,:,:) = ROICoord(1:idx,:,:);
+                tmpNew(idx+val+1:end,:,:) = ROICoord(idx+1:end,:,:);
+                tmpNew(idx+1:idx+val,1,1) = (ROICoord(idx,1,1)+1 : 1 : ROICoord(idx,1,1)+val)';
+                ROICoord = tmpNew;
+            end
+        end
         
+        function ROICoordinates = extractROICoordinates(ROICoordinates,ROIType)
+            %return ROI coordinates for a specific ROI type
+            ROICoordinates = double(ROICoordinates);
+            if(~isempty(ROICoordinates) && ~isempty(ROIType) && isscalar(ROIType) && ROIType > 1000)
+                idx = find(abs(ROICoordinates(:,1,1) - ROIType) < eps,1,'first');
+                if(~isempty(idx))
+                    ROICoordinates = squeeze(ROICoordinates(idx,:,:))';
+                    ROICoordinates = ROICoordinates(1:2,2:end);
+                    if(ROIType < 4000)
+                        ROICoordinates = ROICoordinates(1:2,1:2);
+                    elseif(ROIType > 4000 && ROIType < 5000)
+                        %remove potential trailing zeros
+                        idx = any(ROICoordinates,1);
+                        idx(1:3) = true;
+                        ROICoordinates(:,find(idx,1,'last')+1:end) = [];
+                    end
+                else
+                    ROICoordinates = [];
+                end
+            elseif(isempty(ROIType))
+                %return all ROI coordinates
+            else
+                ROICoordinates = [];
+            end
+        end
     end %methods(static)
 end %classdef

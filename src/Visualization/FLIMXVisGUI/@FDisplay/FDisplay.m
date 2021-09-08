@@ -575,7 +575,7 @@ classdef FDisplay < handle
             hfdInt = this.visObj.fdt.getFDataObj(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),this.visObj.getChannel(this.mySide),'Intensity',0,1);
             %no old FData handle, read GUI settings and get new one
             scale = get(this.h_m_psc,'Value');
-            %get 'variation mode': 1:uini 2: multi 3: cluster
+            %get 'variation mode': 1:uni 2: multi 3: cluster
             varMode = get(this.h_m_pvar,'Value');            
             [dType, dTypeNr] = this.visObj.getFLIMItem(this.mySide);
             hfd = cell(length(dTypeNr),1);
@@ -877,6 +877,94 @@ classdef FDisplay < handle
                         caxis(hAx,[zMin(end) zMax(end)]);
                         set(hAx,'YDir',ydir,'XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)]);
                         %draw crossSections
+                        %MVGroup hack
+                        if(strcmp(this.mySide,'r') && strcmp(this.visObj.getStudy('l'),this.visObj.getStudy('r')) && strcmp(this.visObj.getSubject('l'),this.visObj.getSubject('r')) && int8(this.visObj.getChannel('l')) == int8(this.visObj.getChannel('r')))
+                            %study, subject and channel are identical for both sides of FLIMXVisGUI
+                            mvg_hfd = this.visObj.objHandles.ldo.myhfdMain{1};
+                            sd = mvg_hfd.getSupplementalData();
+                            if(~isempty(sd))
+                                gc = [1 0 0];
+                                rcL = double(this.visObj.getROICoordinates('l'));
+                                rtL = this.visObj.getROIType('l');
+                                rsL = this.visObj.getROISubType('l');
+                                riL = this.visObj.getROIVicinity('l');
+                                fileInfo.pixelResolution = this.pixelResolution;
+                                fileInfo.position = this.measurementPosition;
+                                %mvg_img = mvg_hfd.getFullImage();
+                                %get mvgroup roi and determine which pixels are not zero / NaN
+                                [mvg_roi,roi_idx] = FData.getImgSeg(mvg_hfd.getFullImage(),rcL,rtL,rsL,riL,fileInfo,this.visObj.fdt.getVicinityInfo());
+                                mvg_roi = mvg_roi(~isnan(mvg_roi));
+                                if(length(mvg_roi) == length(roi_idx))
+                                    roi_idx(~mvg_roi) = [];
+                                    [row,col] = ind2sub([mvg_hfd.rawImgYSz(2),mvg_hfd.rawImgXSz(2)],roi_idx);
+                                    mvg_overlay = zeros([hfd{i}.rawImgYSz(2),hfd{i}.rawImgXSz(2)]);
+                                    for mi = 1:length(roi_idx)
+                                        idx = sd(:,1) == col(mi) & sd(:,2) == row(mi);
+                                        if(~isempty(idx))
+                                            %should not happen to be empty
+                                            mvg_overlay(idx) = 1;
+                                        end
+                                        %                                 mvg_hfd.yLbl2Pos(row);
+                                        %                                 mvg_hfd.xLbl2Pos(col);
+                                        %sd(sub2ind([hfd{i}.rawImgYSz(2),hfd{i}.rawImgXSz(2)],row(mi),col(mi)),:)
+                                    end
+                                    mvg_overlay = repmat(mvg_overlay,1,1,4);
+                                    mvg_overlay(:,:,1) = mvg_overlay(:,:,1) .* gc(1);
+                                    mvg_overlay(:,:,2) = mvg_overlay(:,:,2) .* gc(2);
+                                    mvg_overlay(:,:,3) = mvg_overlay(:,:,3) .* gc(3);
+                                    mvg_overlay(:,:,4) = mvg_overlay(:,:,4) .* this.staticVisParams.ETDRS_subfield_bg_color(end);
+                                    hold(hAx,'on');
+                                    hOL = image(hAx,mvg_overlay(:,:,1:3),'AlphaData',mvg_overlay(:,:,4));
+                                    hold(hAx,'off');
+                                end
+                            end
+                            %get ROI info from the left side
+%                             rcL = double(this.visObj.getROICoordinates('l'));
+%                             rtL = this.visObj.getROIType('l');
+%                             rsL = this.visObj.getROISubType('l');
+%                             riL = this.visObj.getROIVicinity('l');%                             
+%                             %mvg_img = this.visObj.objHandles.ldo.myhfdMain{1}.getROIImage(rcL,rtL,rsL,riL);
+%                             gc = [1 0 0];
+%                             fileInfo.pixelResolution = this.pixelResolution;
+%                             fileInfo.position = this.measurementPosition;                            
+%                             mvg_hfd = this.visObj.objHandles.ldo.myhfdMain{1};
+%                             mvg_targets = this.visObj.fdt.getStudyMVGroupTargets(this.visObj.getStudy('l'),mvg_hfd.dType);
+%                             [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(mvg_targets.x{1});
+%                             mvg_tx = this.visObj.fdt.getFDataObj(this.visObj.getStudy('l'),this.visObj.getSubject('l'),this.visObj.getChannel('l'),dType{1},dTypeNr(1),1);
+%                             [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(mvg_targets.y{1});
+%                             mvg_ty = this.visObj.fdt.getFDataObj(this.visObj.getStudy('l'),this.visObj.getSubject('l'),this.visObj.getChannel('l'),dType{1},dTypeNr(1),1);
+%                             tx = uint16(round(mvg_tx.getFullImage()));
+%                             ty = uint16(round(mvg_ty.getFullImage()));
+%                             %get mvgroup roi and determine which pixels are not zero / NaN
+%                             [mvg_img,roi_idx] = FData.getImgSeg(mvg_hfd.getFullImage(),rcL,rtL,rsL,riL,fileInfo,this.visObj.fdt.getVicinityInfo());
+%                             mvg_mask = mvg_img(:) > 0;
+%                             mvg_idx = roi_idx(mvg_mask);
+%                             for mi = 1:length(mvg_idx)
+%                                 %determine the mvgroup parameters for these hits
+%                                 [row,col] = ind2sub([mvg_hfd.rawImgYSz(2),mvg_hfd.rawImgXSz(2)],mvg_idx(mi));
+%                                 mvg_hfd.yPos2Lbl(row);
+%                                 mvg_hfd.xPos2Lbl(col);
+%                                 %
+%                                 ix = tx == uint16(mvg_hfd.xPos2Lbl(col));
+%                                 iy = ty == uint16(mvg_hfd.yPos2Lbl(row));
+%                             end
+                            
+                            
+%                             mask = zeros(size(this.mainExportXls),'single');
+%                             if(~isempty(idx))
+%                                 mask(idx) = 1;
+%                                 mask = repmat(mask,1,1,4);
+%                                 mask(:,:,1) = mask(:,:,1) .* gc(1);
+%                                 mask(:,:,2) = mask(:,:,2) .* gc(2);
+%                                 mask(:,:,3) = mask(:,:,3) .* gc(3);
+%                                 mask(:,:,4) = mask(:,:,4) .* this.staticVisParams.ETDRS_subfield_bg_color(end);
+%                                 hold(this.h_m_ax,'on');
+%                                 this.h_ROIArea(ROIType) = image(this.h_m_ax,mask(:,:,1:3),'AlphaData',mask(:,:,4));
+%                                 hold(this.h_m_ax,'off');
+%                             end
+                            
+                        end
+                        
                         tmp = hfd{i}.getCrossSectionXVal(dispDim-1,true,rc,rt,rs,ri);
                         if(hfd{i}.getCrossSectionX() && tmp ~= 0)
                             line('XData',[tmp tmp],'YData',[1 size(current_img,1)],'LineWidth',1,'Linestyle','--','Color',sVisParam.crossSectionXColor,'Parent',hAx);

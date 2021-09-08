@@ -37,7 +37,7 @@ classdef FDTChannel < FDTreeNode
     properties(SetAccess = protected,GetAccess = protected)
     end
     properties (Dependent = true)
-        FLIMXParamMgrObj = [];
+        FLIMXParamMgrObj
     end
     
     methods
@@ -133,28 +133,28 @@ classdef FDTChannel < FDTreeNode
         end        
         
         function setResultROICoordinates(this,dType,ROIType,ROICoord)
-            %set the ROI vector for dimension dim
+            %set the ROI
             chunk = this.getChild(dType);
             if(isempty(chunk))
                 return
             end
-            if(chunk.getGlobalScale())
-                %set ROI vec for all global scaled chunks
-                for i = 1:this.nrChildren
-                    if(this.getChildAtPos(i).globalScale)
-                        this.getChildAtPos(i).setResultROICoordinates(ROIType,ROICoord);
-                    end
-                end
-            else
+%             if(chunk.isSubjectDefaultSize)
+%                 %set ROI vec for all global scaled chunks
+%                 for i = 1:this.nrChildren
+%                     if(this.getChildAtPos(i).isSubjectDefaultSize)
+%                         this.getChildAtPos(i).setResultROICoordinates(ROIType,ROICoord);
+%                     end
+%                 end
+%             else
                 %set ROI vec only for specific chunk
                 chunk.setResultROICoordinates(ROIType,ROICoord);
-            end
+%             end
         end
         
         function setResultCrossSection(this,dim,csDef)
             %set the cross section for dimension dim
             for i = 1:this.nrChildren
-                if(this.getChildAtPos(i).globalScale)
+                if(this.getChildAtPos(i).isSubjectDefaultSize)
                     this.getChildAtPos(i).setResultCrossSection(dim,csDef);
                 end
             end
@@ -245,9 +245,19 @@ classdef FDTChannel < FDTreeNode
             out = this.myParent.getROIGroup(grpName);
         end
         
-        function out = getROICoordinates(this,ROIType)
+        function out = getROICoordinates(this,dType,ROIType)
             %get coordinates of ROI
-            out = this.myParent.getROICoordinates(ROIType);
+            if(isempty(ROIType) || this.getDefaultSizeFlag(dType))
+                out = this.myParent.getROICoordinates(dType,ROIType);
+            else
+                %this FLIM item (chunk) has a different size than the subject
+                chunk = this.getChild(ROIType);
+                if(isempty(chunk))
+                    out = [];                    
+                else
+                    out = chunk.getROICoordinates(ROIType);
+                end                
+            end
         end
         
         function out = getZScaling(this,dType,dTypeNr)
@@ -349,13 +359,13 @@ classdef FDTChannel < FDTreeNode
             out = this.myParent.isArithmeticImage(dType);
         end
         
-        function out = getGlobalScale(this,dType)
-            %return global scale flag for dType
+        function out = getDefaultSizeFlag(this,dType)
+            %return true, if FLIM item (of dType) has the subject's default size
             chunk = this.getChild(dType);
             if(isempty(chunk))
                 out = false;
             else
-                out = chunk.getGlobalScale();
+                out = chunk.isSubjectDefaultSize;
             end
         end
         
@@ -391,65 +401,67 @@ classdef FDTChannel < FDTreeNode
         end
         
         %% compute functions                
-        function [cimg, lblx, lbly, cw] = makeMVGroupObj(this,MVGroupID)
+        function [cimg, lblx, lbly, cw, binNrs] = makeMVGroupObj(this,MVGroupID)
             %make and update MVGroup for spectral channel using cMVs                
-            cimg = []; lblx = []; lbly = []; cw = [];
+            cimg = []; lblx = []; lbly = []; cw = []; binNrs = [];
             cMVs = this.getMVGroupTargets(MVGroupID);
+            if(isempty(cMVs.x) || isempty(cMVs.y))
+                return
+            end
             CImaxs = zeros(length(cMVs.y)+1,1);
             CImins = zeros(length(cMVs.y)+1,1);
+            %get FLIM item for x-axis (reference)
+            [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
             %get ROI coordinates for current subject
-            ROICoordinates = this.myParent.getROICoordinates(cMVs.ROI.ROIType);
+            ROICoordinates = this.myParent.getROICoordinates(dType{1},cMVs.ROI.ROIType);
             if(~any(ROICoordinates(:)))
                 cMVs.ROI.ROIType = 0; %no ROI set -> use whole image
+            end            
+            hfd = this.myParent.getFDataObj(str2double(this.name),dType{1},dTypeNr(1),1); %only linear data
+            if(isempty(hfd))
+                return
             end
-            %get FLIM item for x-axis (reference)
-            if(~isempty(cMVs.x))
-                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
-                hfd = this.myParent.getFDataObj(str2double(this.name),dType{1},dTypeNr(1),1); %only linear data
+            ci = hfd.getROIImage(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
+            temp(:,1) = ci(:); %ci(~isnan(ci(:)));
+            CImaxs(1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
+            CImins(1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
+            %get reference classwidth
+            cw = getHistParams(this.getStatsParams(),double(this.getMyIDInParent()),dType{1},dTypeNr(1));            
+            %define reference (i.e. x axis)
+            %ref = reshape(temp(:,1),1,[])';
+            xEdges = floor(CImins(1)/cw)*cw:cw:ceil(CImaxs(1)/cw)*cw;
+            binNrs = zeros(size(temp,1),1+length(cMVs.y),'uint16');
+            [~,binNrs(:,1)] = histc(temp(:,1),xEdges,1);
+            binNrs(:,1) = min(binNrs(:,1),length(xEdges));
+            %get FLIM items for y-axis
+            for yTargetNr = 1:length(cMVs.y)
+                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.y{yTargetNr});
+                hfd = this.myParent.getFDataObj(str2double(this.name),dType{1},dTypeNr(1),1);
                 if(isempty(hfd))
                     return
                 end
                 ci = hfd.getROIImage(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
-%                 if(hfd.checkClasswidth(ci))
-%                     return
-%                 end
-                temp(1,:) = ci(:); %ci(~isnan(ci(:)));
-                CImaxs(1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
-                CImins(1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
-                %get reference classwidth
-                cw = getHistParams(this.getStatsParams(),double(this.getMyIDInParent()),dType{1},dTypeNr(1));
-            end
-            %get FLIM items for y-axis
-            if(~isempty(cMVs.y))
-                for yTargets=1:length(cMVs.y)
-                    [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.y{yTargets});
-                    hfd = this.myParent.getFDataObj(str2double(this.name),dType{1},dTypeNr(1),1);
-                    if(isempty(hfd))
-                        return
-                    end
-                    ci = hfd.getROIImage(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
-%                     if(hfd.checkClasswidth(ci))
-%                         return
-%                     end
-                    temp(yTargets+1,:) = ci(:); %ci(~isnan(ci(:)));
-                    CImaxs(yTargets+1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
-                    CImins(yTargets+1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
-                end
-                %define reference (i.e. x axis)
-                ref = reshape(temp(1,:,:),1,[])';                
-                for j = 1:yTargets
-                    xtemp = floor(CImins(1)/cw)*cw:cw:ceil(CImaxs(1)/cw)*cw;
-                    ytemp = floor(CImins(j+1)/cw)*cw:cw:ceil(CImaxs(j+1)/cw)*cw;
-                    matSize = length(xtemp) .* length(ytemp) *8 / 1024^3;
+                temp(:,yTargetNr+1) = ci(:); %ci(~isnan(ci(:)));
+                CImaxs(yTargetNr+1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
+                CImins(yTargetNr+1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);                
+                %for j = 1:yTargets                    
+                    yEdges = floor(CImins(yTargetNr+1)/cw)*cw:cw:ceil(CImaxs(yTargetNr+1)/cw)*cw;
+                    matSize = length(xEdges) .* length(yEdges) *8 / 1024^3;
                     if(matSize > 1)
                         %expected MVGroup array is > 1GB -> abort
-                        warning('FLIMX:FDTChannel:makeMVGroupObj','Requested 2D histogram size %dx%d (%.2f GB) is too large. Aborted computation for subject %s.',length(ytemp),length(xtemp),matSize,this.myParent.name);
+                        warning('FLIMX:FDTChannel:makeMVGroupObj','Requested 2D histogram size %dx%d (%.2f GB) is too large. Aborted computation for subject %s.',length(yEdges),length(xEdges),matSize,this.myParent.name);
                         cimg = []; lblx = []; lbly = []; cw = [];
                         return
                     end
-                    ctemp = hist3([reshape(temp(j+1,:,:),1,[])' ref],'Edges',{ytemp xtemp});
-                    [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,ctemp,xtemp,ytemp,cw);
-                end
+                    [~,binNrs(:,1+yTargetNr)] = histc(temp(:,yTargetNr+1),yEdges,1);
+                    binNrs(:,1+yTargetNr) = min(binNrs(:,1+yTargetNr),length(yEdges));
+                    binNrs = binNrs(all(binNrs>0,2),:);
+                    % Combine the two vectors of 1D bin counts into a grid of 2D bin
+                    % counts.
+                    ctemp = accumarray([binNrs(:,yTargetNr+1) binNrs(:,1)],1,[length(yEdges) length(xEdges)]);
+                    %ctemp = hist3([reshape(temp(j+1,:,:),1,[])' ref],'Edges',{yEdges xEdges});
+                    [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,ctemp,xEdges,yEdges,cw);
+                %end
             end
         end       
         
