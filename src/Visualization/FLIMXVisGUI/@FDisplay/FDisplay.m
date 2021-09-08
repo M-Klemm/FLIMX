@@ -894,7 +894,7 @@ classdef FDisplay < handle
                                 %get mvgroup roi and determine which pixels are not zero / NaN
                                 [mvg_roi,roi_idx] = FData.getImgSeg(mvg_hfd.getFullImage(),rcL,rtL,rsL,riL,fileInfo,this.visObj.fdt.getVicinityInfo());
                                 mvg_roi = mvg_roi(~isnan(mvg_roi));
-                                if(length(mvg_roi) == length(roi_idx))
+                                if(~isempty(roi_idx) && length(mvg_roi) == length(roi_idx))
                                     roi_idx(~mvg_roi) = [];
                                     [row,col] = ind2sub([mvg_hfd.rawImgYSz(2),mvg_hfd.rawImgXSz(2)],roi_idx);
                                     mvg_overlay = zeros([hfd{i}.rawImgYSz(2),hfd{i}.rawImgXSz(2)]);
