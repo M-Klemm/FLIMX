@@ -1015,22 +1015,54 @@ classdef FDTSubject < fluoSubject
             end
             %loop over channels
             for chIdx = 1:nCh
-                dataA = this.getArithmeticImageData(aiParams,'A',chAList(chIdx));
-                if(isempty(dataA))
-                    continue
-                end
-                dataB = this.getArithmeticImageData(aiParams,'B',chBList(chIdx));
-                [opA, negA] = studyIS.str2logicOp(aiParams.opA);
-                [opB, negB] = studyIS.str2logicOp(aiParams.opB);
-                if(isempty(opB))
-                    data = FDTSubject.calculateArithmeticImage(dataA,dataB,opA,negA);
+                if(strcmp(aiParams.opA,'srcPixel') && strncmp(aiParams.FLIMItemA,'MVGroup',7))
+                    %special method to determine the source pixels of an mv group scatter plot (2D histogram)                    
+                    %get mvgroup roi and determine which pixels are not zero / NaN
+                    ROIs = AICtrl.getDefROIString();
+                    if(strncmp(aiParams.ROIB,'ETDRS->',7))
+                        ROIType = 1001;
+                        ROISubtype = find(strcmp(ROIs,aiParams.ROIB));
+                    else
+                        ROIType = ROICtrl.ROIItem2ROIType(aiParams.ROIB);
+                        ROISubtype = 0;
+                    end
+                    [dTypeA, dTypeANr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
+                    mvg_hfd = this.getFDataObj(chBList(chIdx),dTypeA{1},dTypeANr(1),1);
+                    sd = mvg_hfd.getSupplementalData();
+                    %get ROI in mv group
+                    [mvg_roi,roi_idx] = FData.getImgSeg(mvg_hfd.getFullImage(),this.getROICoordinates(dTypeA{1},ROIType),ROIType,ROISubtype,aiParams.ROIVicinityB,[],this.getVicinityInfo());
+                    mvg_roi = mvg_roi(~isnan(mvg_roi));
+                    data = [];
+                    if(~isempty(roi_idx) && length(mvg_roi) == length(roi_idx))
+                        roi_idx(~mvg_roi) = [];
+                        [row,col] = ind2sub([mvg_hfd.rawImgYSz(2),mvg_hfd.rawImgXSz(2)],roi_idx);
+                        data = false([this.YSz,this.XSz]);
+                        for mi = 1:length(roi_idx)
+                            idx = sd(:,1) == col(mi) & sd(:,2) == row(mi);
+                            if(~isempty(idx))
+                                %should not happen to be empty
+                                data(idx) = true;
+                            end
+                        end
+                    end
                 else
-                    %get dataC
-                    dataC = this.getArithmeticImageData(aiParams,'C',chCList(chIdx));
-                    %run opB first
-                    data = FDTSubject.calculateArithmeticImage(dataB,dataC,opB,negB);
-                    %now run opA
-                    data = FDTSubject.calculateArithmeticImage(dataA,data,opA,negA);
+                    dataA = this.getArithmeticImageData(aiParams,'A',chAList(chIdx));
+                    if(isempty(dataA))
+                        continue
+                    end
+                    dataB = this.getArithmeticImageData(aiParams,'B',chBList(chIdx));
+                    [opA, negA] = studyIS.str2logicOp(aiParams.opA);
+                    [opB, negB] = studyIS.str2logicOp(aiParams.opB);
+                    if(isempty(opB))
+                        data = FDTSubject.calculateArithmeticImage(dataA,dataB,opA,negA);
+                    else
+                        %get dataC
+                        dataC = this.getArithmeticImageData(aiParams,'C',chCList(chIdx));
+                        %run opB first
+                        data = FDTSubject.calculateArithmeticImage(dataB,dataC,opB,negB);
+                        %now run opA
+                        data = FDTSubject.calculateArithmeticImage(dataA,data,opA,negA);
+                    end
                 end
                 if(isempty(data))
                     continue
@@ -1068,9 +1100,9 @@ classdef FDTSubject < fluoSubject
     end %methods
 
         methods(Access = protected)
-            function out = getArithmeticImageData(this,aiParams,layer,ch)
+            function [data, idx] = getArithmeticImageData(this,aiParams,layer,ch)
                 %gather data for artificial image layer (A, B or C)
-                out = [];
+                data = [];
                 if(~any(strcmp({'A','B','C'},layer)))
                     return
                 end
@@ -1080,7 +1112,7 @@ classdef FDTSubject < fluoSubject
                 end
                 switch aiParams.(sprintf('compAgainst%s',layer))
                     case 'val'
-                        out = aiParams.(sprintf('val%s',layer));
+                        data = aiParams.(sprintf('val%s',layer));
                     case 'FLIMItem'
                         lStr = sprintf('FLIMItem%s',layer);
                         if(strncmp(aiParams.(lStr),'subjectInfo->',13))
@@ -1088,15 +1120,15 @@ classdef FDTSubject < fluoSubject
                             colName = aiParams.(lStr)(14:end);
                             switch colName
                                 case 'Tau1_EstimatedByAge'
-                                    out = this.getEstimatedTauByAge('Tau1',ch);                                    
+                                    data = this.getEstimatedTauByAge('Tau1',ch);                                    
                                 case 'Tau2_EstimatedByAge'
-                                    out = this.getEstimatedTauByAge('Tau2',ch); 
+                                    data = this.getEstimatedTauByAge('Tau2',ch); 
                                 case 'Tau3_EstimatedByAge'
-                                    out = this.getEstimatedTauByAge('Tau3',ch); 
+                                    data = this.getEstimatedTauByAge('Tau3',ch); 
                                 case 'TauMean_EstimatedByAge'
-                                    out = this.getEstimatedTauByAge('TauMean',ch); 
+                                    data = this.getEstimatedTauByAge('TauMean',ch); 
                                 otherwise
-                                    out = this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,colName);
+                                    data = this.myParent.getDataFromStudyInfo('subjectInfoData',this.name,colName);
                             end
                         else
                             [dTypeB, dTypeBNr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.(lStr));
@@ -1109,14 +1141,17 @@ classdef FDTSubject < fluoSubject
                             if(isempty(fd))
                                 return
                             end
-                            out = fd.getFullImage();
+                            data = fd.getFullImage();
                             if(fd.rawImgIsLogical)
-                                out(isnan(out)) = 0;
-                                out = logical(out);
+                                data(isnan(data)) = 0;
+                                data = logical(data);
                             end
                         end
                         if(aiParams.normalizeB)
-                            out = out ./ max(out(:),[],'omitnan');
+                            data = data ./ max(data(:),[],'omitnan');
+                        end
+                        if(nargout == 2)
+                            idx = 1:numel(data);
                         end
                     case 'ROI'
                         lStr = sprintf('ROI%s',layer);
@@ -1133,9 +1168,9 @@ classdef FDTSubject < fluoSubject
                         if(isempty(fd))
                             return
                         end
-                        out = fd.getROIImage(this.getROICoordinates(dTypeA{1},ROIType),ROIType,ROISubtype,aiParams.(sprintf('ROIVicinity%s',layer)));
-                        if(~isempty(out))
-                            out = mean(out(:),'omitnan');
+                        [data, idx] = fd.getROIImage(this.getROICoordinates(dTypeA{1},ROIType),ROIType,ROISubtype,aiParams.(sprintf('ROIVicinity%s',layer)));
+                        if(~isempty(data))
+                            data = mean(data(:),'omitnan');
                         end
                 end
             end

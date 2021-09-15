@@ -874,11 +874,11 @@ classdef StatsDescriptive < handle
                 if(isempty(allROT))
                     allROT = ROICtrl.getDefaultROIStruct();
                 end
-                allROT = [0;allROT(:,1,1)];                
+                allROT = [0;allROT(:,1,1)];
             else
                 allROT = 0;
             end
-        end        
+        end
         
         function out = get.alpha(this)
             %get current alpha value

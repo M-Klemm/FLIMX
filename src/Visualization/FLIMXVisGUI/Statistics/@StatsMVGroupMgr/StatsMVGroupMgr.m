@@ -49,6 +49,9 @@ classdef StatsMVGroupMgr < handle
         yButton = [];
         dButton = [];
     end
+    properties (Dependent = true)
+        allROITypes
+    end
     
     methods
         %% computations and other methods
@@ -318,10 +321,30 @@ classdef StatsMVGroupMgr < handle
             else
                 %should not happen
             end
-            ROI.ROIType = ROICtrl.ROIItem2ROIType(str);
+            if(strncmp(str,'Group: ',7))
+                %this is a group
+                idx = strncmp(this.visHandles.popupROIType.String,'Group: ',7);
+                grps = this.visHandles.popupROIType.String(idx);
+                ROI.ROIType = -1*find(strcmp(grps,str),1,'first');
+            else
+                ROI.ROIType = ROICtrl.ROIItem2ROIType(str);
+            end
             %ROI.ROIType = get(this.visHandles.popupROIType,'Value')-1;
             ROI.ROISubType = get(this.visHandles.popupROISubType,'Value');
             ROI.ROIVicinity = get(this.visHandles.popupROIVicinity,'Value');            
+        end
+        
+        function allROT = get.allROITypes(this)
+            ds1 = this.visObj.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName);
+            if(~isempty(ds1))
+                allROT = this.visObj.fdt.getResultROICoordinates(this.curStudyName,ds1{1},[],[]);
+                if(isempty(allROT))
+                    allROT = ROICtrl.getDefaultROIStruct();
+                end
+                allROT = [0;allROT(:,1,1)];
+            else
+                allROT = 0;
+            end
         end
         
         %% GUI callbacks
@@ -336,7 +359,12 @@ classdef StatsMVGroupMgr < handle
                 if(isempty(allROT))
                     allROT = ROICtrl.getDefaultROIStruct();
                 end
-                allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
+                allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,this.allROITypes,'UniformOutput',false);
+                %allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
+                grps = this.visObj.fdt.getResultROIGroup(this.curStudyName,[]);
+                if(~isempty(grps) && ~isempty(grps{1,1}))
+                    allROIStr = [allROIStr; sprintfc('Group: %s',string(grps(:,1)))];
+                end
             else
                 allROIStr = {ROICtrl.ROIType2ROIItem(0)};
             end            

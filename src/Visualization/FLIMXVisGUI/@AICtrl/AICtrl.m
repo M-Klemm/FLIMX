@@ -167,7 +167,7 @@ classdef AICtrl < handle
         end        
         
         function updateCtrls(this)
-            %updates controls to current values
+            %updates controls to current values 
             %get arithmetic images for current study
             [aiStr, aiParam] = this.visObj.fdt.getArithmeticImageDefinition(this.curStudy);
             idx = find(strcmp(aiStr,this.curAIName));
@@ -189,7 +189,7 @@ classdef AICtrl < handle
                 %make warning dialog to switch subject?!
                 return
             end
-            set(this.chA,'String',chStr,'Value',chNr+1);
+            set(this.chA,'String',chStr,'Value',chNr+1);            
             %second flim item channel
             chNr = this.AIParam2GUIChannelNr(aiParam{idx},'B');
             if(isempty(chNr))
@@ -207,15 +207,36 @@ classdef AICtrl < handle
             end
             set(this.chC,'String',chStr,'Value',chNr+1);            
             %find saved FLIM item
-            this.updateItemPopup(this.chA.Value-1,'FLIMItem','A',aiParam{idx});                               
+            this.updateItemPopup(this.chA.Value-1,'FLIMItem','A',aiParam{idx});
+            dType = this.FLIMItemA.String;
+            if(~isempty(dType) && iscell(dType))
+                dType = dType{this.FLIMItemA.Value};
+                dType = FLIMXVisGUI.FLIMItem2TypeAndID(dType);
+                oStr = AICtrl.getDefOpString();
+                oStr = [{'-no op-'},oStr];
+                if(strncmp(dType,'MVGroup',7))
+                    oStr = [oStr,{'srcPixel'}];
+                end
+                set(this.opA,'String',oStr,'Value',min(this.opA.Value,length(oStr)));
+            end
             %op for base flim item
-            opNr = find(strcmp(aiParam{idx}.opA,get(this.opA,'String')));
+            opNr = find(strcmp(aiParam{idx}.opA,this.opA.String));
             if(isempty(opNr))                
                 %Houston we've got a problem
                 %make warning dialog?!
                 opNr = 1;
-            end
+            end            
             this.opA.Value = opNr;
+            if(opNr == 22) %scrPixel
+                %special op only for mv groups
+                this.inVisible('off');
+                this.FLIMItemA.Visible = 'on';
+                this.chA.Visible = 'on';
+                this.opA.Visible = 'on';
+                set(this.ROIB,'Enable','on','Visible','on');
+                set(this.ROIVicinityB,'Enable','on','Visible','on');
+                return
+            end
             this.normalizeA.Value = aiParam{idx}.normalizeA;
             if(opNr >= 16)
                 %dilate,erode,open,close,fill

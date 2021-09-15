@@ -515,7 +515,7 @@ classdef FDisplay < handle
                     delete(this.h_ETDRSGridText(idxT,ROINumber));
                     return
                 end
-                [hfd, ~] = this.gethfd();
+                hfd = this.gethfd();
                 if(isempty(hfd{1}))
                     return
                 end
@@ -562,17 +562,18 @@ classdef FDisplay < handle
                 end
             end
         end
-                
-        function [hfd, hfdInt, hfdSupp] = gethfd(this)
-            %get handle(s) to current FData object(s)
-            hfd = this.myhfdMain;           
-            hfdInt = this.myhfdInt;
-            hfdSupp = this.myhfdSupp;
-            if(~isempty(hfd{1}) && ~isempty(hfdInt) && ~isempty(hfdSupp{1}))            
-                return
-            end
+        function hfdInt = getIntHfd(this)
             %get handle to intensity image
             hfdInt = this.visObj.fdt.getFDataObj(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),this.visObj.getChannel(this.mySide),'Intensity',0,1);
+        end
+        function [hfd, hfdSupp] = gethfd(this)
+            %get handle(s) to current FData object(s)
+%             hfd = this.myhfdMain;           
+%             hfdInt = this.myhfdInt;
+%             hfdSupp = this.myhfdSupp;
+%             if(~isempty(hfd{1}) && ~isempty(hfdInt) && ~isempty(hfdSupp{1}))            
+%                 return
+%             end            
             %no old FData handle, read GUI settings and get new one
             scale = get(this.h_m_psc,'Value');
             %get 'variation mode': 1:uni 2: multi 3: cluster
@@ -593,19 +594,23 @@ classdef FDisplay < handle
                     hfd{1} = this.visObj.fdt.getGlobalMVGroupObj(this.visObj.getChannel(this.mySide),clusterID,scale);
             end            
             %save new hfd(s)            
-            this.myhfdMain = hfd;
-            this.myhfdInt = hfdInt;
+%             this.myhfdMain = hfd;
+%             this.myhfdInt = hfdInt;
             if(this.sDispMode == 2)
                 %histogram
                 switch get(this.h_s_hist,'Value')
                     case 1 %single histogram
                         this.sethfdSupp(hfd);
+                        hfdSupp = hfd;
                     case 2 %study view histogram
                         if(~(dTypeNr == 0))
                             this.sethfdSupp(this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
                                 this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1,this.ROIType,this.ROISubType,this.ROIVicinity));
+                            hfdSupp = {this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
+                                this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1,this.ROIType,this.ROISubType,this.ROIVicinity)};
                         else
                             this.sethfdSupp({[]});
+                            hfdSupp = [];
                         end
 %                     case 3 %global histogram
 %                         if(~isnan(dTypeNr))
@@ -617,6 +622,7 @@ classdef FDisplay < handle
             else
                 %crossSections                    
                 this.sethfdSupp(hfd);
+                hfdSupp = hfd;
             end
             if(~isempty(hfd{1}))
                 fi = hfd{1}.getFileInfoStruct();
@@ -702,7 +708,7 @@ classdef FDisplay < handle
         
         function makeMainPlot(this)
             %make current main plot
-            [hfd, hfdInt] = this.gethfd();
+            hfd = this.gethfd();
             hAx = this.h_m_ax;
             cla(hAx);
             axis(hAx,'off');
@@ -821,13 +827,38 @@ classdef FDisplay < handle
                         colors = max(colors,1);
                         colors = min(colors,size(cm,1));
                         if(strncmp(hfd{i}.dType,'MVGroup',7)  || strncmp(hfd{i}.dType,'ConditionMVGroup',16))
-                            cm = repmat([0:1/(size(cm,1)-1):1]',1,3);
-                            conditionColor = this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide));
-                            cm = [cm(:,1).*conditionColor(1) cm(:,2).*conditionColor(2) cm(:,3).*conditionColor(3)];
+                            originalrgb = this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)); %replace by whatever rgb colour you want
+                            originalhsv = rgb2hsv(originalrgb);  %get the HSV values of your original colour. We really only care about the hue
+                            ciL10 = 1+double(log10(max(current_img(:))));
+                            logCM = log10(linspace(1,10^ciL10,256))'/ciL10;                            
+                            maphsv = rgb2hsv(repmat(logCM,1,3)); %rgb2hsv(gray(256));  convert to hsv
+                            maphsv(:, 1) = originalhsv(1);  %replace gray hue by original hue
+                            maphsv(:, 2) = originalhsv(2); %replace saturation. Anything but 0 will work
+                            cm = hsv2rgb(maphsv);
+                            cMin = zMin(i);
+                            cMax = zMax(i);
+                            colors = current_img - cMin;
+                            colors(isinf(colors)) = NaN;
+                            colors = colors/(cMax-cMin)*(size(cm,1)-1)+1;
+                            colors(isnan(colors)) = 1;
+                            colors = max(colors,1);
+                            colors = min(colors,size(cm,1));
+                            %get colors from map
                             colors = cm(round(reshape(colors,[],1)),:);
-                            alphaData = ceil(sum(colors,2));
+                            alphaData = ones(size(colors,1),1);
                             colors = reshape(colors,[size(current_img) 3]);
                             alphaData = reshape(alphaData,size(current_img));
+                            %set NaN to black
+                            colors(repmat(isnan(current_img),[1 1 3])) = 0;
+                            colors(repmat(isinf(current_img),[1 1 3])) = 0;
+
+%                             cm = repmat([0:1/(size(cm,1)-1):1]',1,3);
+%                             conditionColor = this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide));
+%                             cm = [cm(:,1).*conditionColor(1) cm(:,2).*conditionColor(2) cm(:,3).*conditionColor(3)];
+%                             colors = cm(round(reshape(colors,[],1)),:);
+%                             alphaData = ceil(sum(colors,2));
+%                             colors = reshape(colors,[size(current_img) 3]);
+%                             alphaData = reshape(alphaData,size(current_img));
                         elseif(strncmp(hfd{i}.dType,'GlobalMVGroup',13))
                             %get colors for global merged clusters
                             colors = hfd{i}.getCIColor([],0,1,0);
@@ -851,7 +882,8 @@ classdef FDisplay < handle
                 %intensity overlay
                 if(this.intOver)
                     %merge with intensity image
-                    if(dispDim == 1)
+                    hfdInt = this.getIntHfd();
+                    if(dispDim == 1)                        
                         colors = this.makeIntOverlay(colors,hfdInt.getFullImage());
                     else
                         colors = this.makeIntOverlay(colors,hfdInt.getROIImage(rc,rt,rs,ri));
@@ -877,47 +909,47 @@ classdef FDisplay < handle
                         caxis(hAx,[zMin(end) zMax(end)]);
                         set(hAx,'YDir',ydir,'XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)]);
                         %draw crossSections
-                        %MVGroup hack
-                        if(strcmp(this.mySide,'r') && strcmp(this.visObj.getStudy('l'),this.visObj.getStudy('r')) && strcmp(this.visObj.getSubject('l'),this.visObj.getSubject('r')) && int8(this.visObj.getChannel('l')) == int8(this.visObj.getChannel('r')))
-                            %study, subject and channel are identical for both sides of FLIMXVisGUI
-                            mvg_hfd = this.visObj.objHandles.ldo.myhfdMain{1};
-                            sd = mvg_hfd.getSupplementalData();
-                            if(~isempty(sd))
-                                gc = [1 0 0];
-                                rcL = double(this.visObj.getROICoordinates('l'));
-                                rtL = this.visObj.getROIType('l');
-                                rsL = this.visObj.getROISubType('l');
-                                riL = this.visObj.getROIVicinity('l');
-                                fileInfo.pixelResolution = this.pixelResolution;
-                                fileInfo.position = this.measurementPosition;
-                                %mvg_img = mvg_hfd.getFullImage();
-                                %get mvgroup roi and determine which pixels are not zero / NaN
-                                [mvg_roi,roi_idx] = FData.getImgSeg(mvg_hfd.getFullImage(),rcL,rtL,rsL,riL,fileInfo,this.visObj.fdt.getVicinityInfo());
-                                mvg_roi = mvg_roi(~isnan(mvg_roi));
-                                if(~isempty(roi_idx) && length(mvg_roi) == length(roi_idx))
-                                    roi_idx(~mvg_roi) = [];
-                                    [row,col] = ind2sub([mvg_hfd.rawImgYSz(2),mvg_hfd.rawImgXSz(2)],roi_idx);
-                                    mvg_overlay = zeros([hfd{i}.rawImgYSz(2),hfd{i}.rawImgXSz(2)]);
-                                    for mi = 1:length(roi_idx)
-                                        idx = sd(:,1) == col(mi) & sd(:,2) == row(mi);
-                                        if(~isempty(idx))
-                                            %should not happen to be empty
-                                            mvg_overlay(idx) = 1;
-                                        end
-                                        %                                 mvg_hfd.yLbl2Pos(row);
-                                        %                                 mvg_hfd.xLbl2Pos(col);
-                                        %sd(sub2ind([hfd{i}.rawImgYSz(2),hfd{i}.rawImgXSz(2)],row(mi),col(mi)),:)
-                                    end
-                                    mvg_overlay = repmat(mvg_overlay,1,1,4);
-                                    mvg_overlay(:,:,1) = mvg_overlay(:,:,1) .* gc(1);
-                                    mvg_overlay(:,:,2) = mvg_overlay(:,:,2) .* gc(2);
-                                    mvg_overlay(:,:,3) = mvg_overlay(:,:,3) .* gc(3);
-                                    mvg_overlay(:,:,4) = mvg_overlay(:,:,4) .* this.staticVisParams.ETDRS_subfield_bg_color(end);
-                                    hold(hAx,'on');
-                                    hOL = image(hAx,mvg_overlay(:,:,1:3),'AlphaData',mvg_overlay(:,:,4));
-                                    hold(hAx,'off');
-                                end
-                            end
+%                         %MVGroup hack
+%                         if(strcmp(this.mySide,'r') && strcmp(this.visObj.getStudy('l'),this.visObj.getStudy('r')) && strcmp(this.visObj.getSubject('l'),this.visObj.getSubject('r')) && int8(this.visObj.getChannel('l')) == int8(this.visObj.getChannel('r')))
+%                             %study, subject and channel are identical for both sides of FLIMXVisGUI
+%                             mvg_hfd = this.visObj.objHandles.ldo.myhfdMain{1};
+%                             sd = mvg_hfd.getSupplementalData();
+%                             if(~isempty(sd))
+%                                 gc = [1 0 0];
+%                                 rcL = double(this.visObj.getROICoordinates('l'));
+%                                 rtL = this.visObj.getROIType('l');
+%                                 rsL = this.visObj.getROISubType('l');
+%                                 riL = this.visObj.getROIVicinity('l');
+%                                 fileInfo.pixelResolution = this.pixelResolution;
+%                                 fileInfo.position = this.measurementPosition;
+%                                 %mvg_img = mvg_hfd.getFullImage();
+%                                 %get mvgroup roi and determine which pixels are not zero / NaN
+%                                 [mvg_roi,roi_idx] = FData.getImgSeg(mvg_hfd.getFullImage(),rcL,rtL,rsL,riL,fileInfo,this.visObj.fdt.getVicinityInfo());
+%                                 mvg_roi = mvg_roi(~isnan(mvg_roi));
+%                                 if(~isempty(roi_idx) && length(mvg_roi) == length(roi_idx))
+%                                     roi_idx(~mvg_roi) = [];
+%                                     [row,col] = ind2sub([mvg_hfd.rawImgYSz(2),mvg_hfd.rawImgXSz(2)],roi_idx);
+%                                     mvg_overlay = zeros([hfd{i}.rawImgYSz(2),hfd{i}.rawImgXSz(2)]);
+%                                     for mi = 1:length(roi_idx)
+%                                         idx = sd(:,1) == col(mi) & sd(:,2) == row(mi);
+%                                         if(~isempty(idx))
+%                                             %should not happen to be empty
+%                                             mvg_overlay(idx) = 1;
+%                                         end
+%                                         %                                 mvg_hfd.yLbl2Pos(row);
+%                                         %                                 mvg_hfd.xLbl2Pos(col);
+%                                         %sd(sub2ind([hfd{i}.rawImgYSz(2),hfd{i}.rawImgXSz(2)],row(mi),col(mi)),:)
+%                                     end
+%                                     mvg_overlay = repmat(mvg_overlay,1,1,4);
+%                                     mvg_overlay(:,:,1) = mvg_overlay(:,:,1) .* gc(1);
+%                                     mvg_overlay(:,:,2) = mvg_overlay(:,:,2) .* gc(2);
+%                                     mvg_overlay(:,:,3) = mvg_overlay(:,:,3) .* gc(3);
+%                                     mvg_overlay(:,:,4) = mvg_overlay(:,:,4) .* this.staticVisParams.ETDRS_subfield_bg_color(end);
+%                                     hold(hAx,'on');
+%                                     hOL = image(hAx,mvg_overlay(:,:,1:3),'AlphaData',mvg_overlay(:,:,4));
+%                                     hold(hAx,'off');
+%                                 end
+%                             end
                             %get ROI info from the left side
 %                             rcL = double(this.visObj.getROICoordinates('l'));
 %                             rtL = this.visObj.getROIType('l');
@@ -963,7 +995,7 @@ classdef FDisplay < handle
 %                                 hold(this.h_m_ax,'off');
 %                             end
                             
-                        end
+%                         end
                         
                         tmp = hfd{i}.getCrossSectionXVal(dispDim-1,true,rc,rt,rs,ri);
                         if(hfd{i}.getCrossSectionX() && tmp ~= 0)
@@ -1687,7 +1719,7 @@ classdef FDisplay < handle
         
         function makeDSTable(this)
             %fill descriptive statistics table
-            [~, ~, hfd] = this.gethfd();    %update hfd(s)
+            [~, hfd] = this.gethfd();    %update hfd(s)
             if(this.ROIType >= 0 && (isempty(hfd{1}) || length(hfd) > 1 || ~any(this.ROICoordinates(:))))
                 %ROI is empty and not a ROI group
                 this.h_ds_t.Data = cell(0,0);
@@ -1791,6 +1823,8 @@ classdef FDisplay < handle
             end
             if(strcmp(this.dynVisParams.cmType,'SpectrumFixed') && ~strcmp(hfd{1}.dType,'Intensity'))
                 cs = [1 380 780];
+            elseif(strncmp(hfd{1}.dType,'MVGroup',7))
+                cs = [1 hfd{1}.rawImgZSz];
             else
                 cs = this.myColorScaleObj.getCurCSInfo();
             end

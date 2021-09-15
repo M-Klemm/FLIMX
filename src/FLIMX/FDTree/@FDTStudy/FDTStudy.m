@@ -1374,6 +1374,12 @@ classdef FDTStudy < FDTreeNode
                 return
             else
                 str = subject.getChObjStr(ch);
+                MVGroupNames = this.getMVGroupNames(1);
+                idx = strncmp('MVGroup_',MVGroupNames,8);
+                if(~isempty(idx))
+                    MVGroupNames = MVGroupNames(idx);
+                end
+                str = unique([str; MVGroupNames]);
             end            
         end
                 

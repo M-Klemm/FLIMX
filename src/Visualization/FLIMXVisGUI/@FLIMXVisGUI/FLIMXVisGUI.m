@@ -279,7 +279,7 @@ classdef FLIMXVisGUI < handle
                     switch get(this.visHandles.(sprintf('var_mode_%s_pop',s)),'Value')
                         case 1 %univariate
                             %add cluster objects to channel object string
-                            chObj = unique([chObj;MVGroupNames]);
+                            %chObj = unique([chObj;MVGroupNames]);
                             set(this.visHandles.(sprintf('subject_%s_pop',s)),'Visible','on');
                             set(this.visHandles.(sprintf('subject_%s_dec_button',s)),'Visible','on');
                             set(this.visHandles.(sprintf('subject_%s_inc_button',s)),'Visible','on');
@@ -388,7 +388,7 @@ classdef FLIMXVisGUI < handle
             %colorbar
             this.objHandles.(sprintf('%sdo',s)).updateColorbar();                               
             %arithmetic images
-            this.objHandles.AI.updateCtrls();            
+            this.objHandles.AI.updateCtrls();
         end %setupGUI
         
         function updateGUI(this,side)
@@ -436,8 +436,7 @@ classdef FLIMXVisGUI < handle
                 switch var
                     case 1
                         if(strncmp(dType,'MVGroup',7))
-                            %we have a cluster object in univariate mode
-                            
+                            %we have a cluster object in univariate mode                            
                             clf = true;
                         end
                     case 3
@@ -1527,6 +1526,8 @@ classdef FLIMXVisGUI < handle
                     thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
                     otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
                     if(~isempty(cpMain))
+%                         cpMain(1,1) = thisROIObj.myHFD.xLbl2Pos(cpMain(1,1));
+%                         cpMain(2,1) = thisROIObj.myHFD.yLbl2Pos(cpMain(2,1));
                         if(this.dynParams.mouseButtonIsLeft)%strcmp('normal',get(hObject,'SelectionType'))
                             %left click
                             if(this.dynParams.mouseButtonDown == 1)

@@ -251,7 +251,7 @@ classdef FDTChannel < FDTreeNode
                 out = this.myParent.getROICoordinates(dType,ROIType);
             else
                 %this FLIM item (chunk) has a different size than the subject
-                chunk = this.getChild(ROIType);
+                chunk = this.getChild(dType);
                 if(isempty(chunk))
                     out = [];                    
                 else
@@ -413,10 +413,15 @@ classdef FDTChannel < FDTreeNode
             %get FLIM item for x-axis (reference)
             [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
             %get ROI coordinates for current subject
-            ROICoordinates = this.myParent.getROICoordinates(dType{1},cMVs.ROI.ROIType);
-            if(~any(ROICoordinates(:)))
-                cMVs.ROI.ROIType = 0; %no ROI set -> use whole image
-            end            
+            if(cMVs.ROI.ROIType > 0)
+                ROICoordinates = this.myParent.getROICoordinates(dType{1},cMVs.ROI.ROIType);
+                if(~any(ROICoordinates(:)))
+                    cMVs.ROI.ROIType = 0; %no ROI set -> use whole image
+                end
+            else
+                %ROI group
+                ROICoordinates = [];
+            end
             hfd = this.myParent.getFDataObj(str2double(this.name),dType{1},dTypeNr(1),1); %only linear data
             if(isempty(hfd))
                 return
