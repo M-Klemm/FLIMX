@@ -544,6 +544,7 @@ classdef FDTSubject < fluoSubject
                currentChannel = ch;
             elseif(any((currentChannel - ch) < eps))
                 %this channel is currently being loaded
+                success = true;
                 return
             else %new channel -> add it to currentChannel
                 currentChannel = [currentChannel, ch];

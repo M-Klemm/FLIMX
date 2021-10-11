@@ -520,6 +520,7 @@ classdef AICtrl < handle
                 objStr = [objStr; subjectInfoColumns];
                 %remove current arithmetic image from channel objects
                 objStr = objStr(~strcmp(objStr,this.curAIName));
+                % remove also arithmetic images, which contain the current arithmetic image
                 popupHandleStr = sprintf('FLIMItem%s',layer);
             elseif(strcmp(targetType,'ROI'))
                 objStr = AICtrl.getDefROIString(); 

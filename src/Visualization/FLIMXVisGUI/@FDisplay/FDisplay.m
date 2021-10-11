@@ -827,14 +827,15 @@ classdef FDisplay < handle
                         colors = max(colors,1);
                         colors = min(colors,size(cm,1));
                         if(strncmp(hfd{i}.dType,'MVGroup',7)  || strncmp(hfd{i}.dType,'ConditionMVGroup',16))
-                            originalrgb = this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)); %replace by whatever rgb colour you want
-                            originalhsv = rgb2hsv(originalrgb);  %get the HSV values of your original colour. We really only care about the hue
-                            ciL10 = 1+double(log10(max(current_img(:))));
-                            logCM = log10(linspace(1,10^ciL10,256))'/ciL10;                            
-                            maphsv = rgb2hsv(repmat(logCM,1,3)); %rgb2hsv(gray(256));  convert to hsv
-                            maphsv(:, 1) = originalhsv(1);  %replace gray hue by original hue
-                            maphsv(:, 2) = originalhsv(2); %replace saturation. Anything but 0 will work
-                            cm = hsv2rgb(maphsv);
+                            cm = FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,max(current_img(:)));
+%                             originalrgb = this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)); %replace by whatever rgb colour you want
+%                             originalhsv = rgb2hsv(originalrgb);  %get the HSV values of your original colour. We really only care about the hue
+%                             ciL10 = 1+double(log10(max(current_img(:))));
+%                             logCM = log10(linspace(1,10^ciL10,256))'/ciL10;
+%                             maphsv = rgb2hsv(repmat(logCM,1,3)); %rgb2hsv(gray(256));  convert to hsv
+%                             maphsv(:, 1) = originalhsv(1);  %replace gray hue by original hue
+%                             maphsv(:, 2) = originalhsv(2); %replace saturation. Anything but 0 will work
+%                             cm = hsv2rgb(maphsv);
                             cMin = zMin(i);
                             cMax = zMax(i);
                             colors = current_img - cMin;
@@ -851,7 +852,6 @@ classdef FDisplay < handle
                             %set NaN to black
                             colors(repmat(isnan(current_img),[1 1 3])) = 0;
                             colors(repmat(isinf(current_img),[1 1 3])) = 0;
-
 %                             cm = repmat([0:1/(size(cm,1)-1):1]',1,3);
 %                             conditionColor = this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide));
 %                             cm = [cm(:,1).*conditionColor(1) cm(:,2).*conditionColor(2) cm(:,3).*conditionColor(3)];
@@ -907,7 +907,7 @@ classdef FDisplay < handle
                         zMin(isnan(zMin)) = 0;
                         zMax(isnan(zMax)) = zMin(isnan(zMax))+1;
                         caxis(hAx,[zMin(end) zMax(end)]);
-                        set(hAx,'YDir',ydir,'XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)]);
+                        set(hAx,'YDir',ydir,'XLim',[1 max(size(current_img,2),1.1)],'YLim',[1 max(size(current_img,1),1.1)]);
                         %draw crossSections
 %                         %MVGroup hack
 %                         if(strcmp(this.mySide,'r') && strcmp(this.visObj.getStudy('l'),this.visObj.getStudy('r')) && strcmp(this.visObj.getSubject('l'),this.visObj.getSubject('r')) && int8(this.visObj.getChannel('l')) == int8(this.visObj.getChannel('r')))
@@ -1310,7 +1310,7 @@ classdef FDisplay < handle
                     yFullRange = hfd.getCIySz(rc,rt,rs,ri);
 %                 end
             end
-            if(isempty(xFullRange) || isempty(yFullRange) || xFullRange < 1 || yFullRange < 1)
+            if(isempty(xFullRange) || isempty(yFullRange) || xFullRange <= 1 || yFullRange <= 1)
                 return
             end
             zoom = this.mZoomFactor;
@@ -1750,6 +1750,10 @@ classdef FDisplay < handle
             elseif(strcmp(hfd.dType,'Intensity'))
                 temp(:,1,:) = dp.cmIntensity;
                 ytick = (0:0.25:1).*size(temp,1);
+            elseif(strncmp(hfd.dType,'MVGroup',7))
+                temp(:,1,:) = FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,hfd.rawImgZSz);
+%             elseif(strncmp(hfd.dType,'ConditionMVGroup',16))
+%             elseif(strncmp(hfd.dType,'GlobalMVGroup',13))
             else
                 temp(:,1,:) = dp.cm;
                 ytick = (0:0.25:1).*size(temp,1);
@@ -2245,6 +2249,18 @@ classdef FDisplay < handle
             %     ticks = zeros(1,length(ticks1)+length(ticks2));
             %     lbls = lbls1(1:end);
             % end
+        end
+        
+        function out = makeMVGroupColorMap(colorRGB,cmSize,dataMax)
+            %make a color map from a single RGB color, using a logarithmic scaling of the brightness
+            originalrgb = colorRGB; %replace by whatever rgb colour you want
+            originalhsv = rgb2hsv(originalrgb);  %get the HSV values of your original colour. We really only care about the hue
+            ciL10 = 1+double(log10(dataMax));
+            logCM = log10(linspace(1,10^ciL10,cmSize))'/ciL10;
+            maphsv = rgb2hsv(repmat(logCM,1,3)); %rgb2hsv(gray(256));  convert to hsv
+            maphsv(:, 1) = originalhsv(1);  %replace gray hue by original hue
+            maphsv(:, 2) = originalhsv(2); %replace saturation. Anything but 0 will work
+            out = hsv2rgb(maphsv);
         end
     end
     
