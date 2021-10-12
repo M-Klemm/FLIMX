@@ -1437,6 +1437,24 @@ classdef FDTree < FDTreeNode
             end
         end
         
+        function out = arithmeticImagesRequiredFor(this,studyID,aiNameTarget)
+            %return list of arithmetic images, which are needed to compute aiNameTarget
+            out = cell(0,0);
+            study = this.getChild(studyID);
+            if(~isempty(study))
+                out = study.arithmeticImagesRequiredFor(aiNameTarget);
+            end
+        end
+        
+        function out = arithmeticImagesDependingOn(this,studyID,aiNameUT,aiNameTarget)
+            %return list of arithmetic images from aiNameUT (under test; if empty, test all arithmetic images), which depend on aiNameTarget (= which need aiNameTarget to be computed)            
+            out = cell(0,0);
+            study = this.getChild(studyID);
+            if(~isempty(study))
+                out = study.arithmeticImagesDependingOn(aiNameUT,aiNameTarget);
+            end            
+        end
+        
         function out = getColorMap(this)
             %get color map from FLIMXVisGUI
             %out = this.myParent.FLIMVisGUIObj.dynParams.cm;

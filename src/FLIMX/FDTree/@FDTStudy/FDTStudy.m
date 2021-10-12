@@ -1015,6 +1015,106 @@ classdef FDTStudy < FDTreeNode
             out = sum(idx) == 1;
         end
         
+        function out = arithmeticImagesRequiredFor(this,aiNameTarget)
+            %return list of arithmetic images, which are needed to compute aiNameTarget
+            out = cell(0,0);
+            if(~this.isArithmeticImage(aiNameTarget))
+                return
+            end
+            [allAiNames, aiParams] = this.myStudyInfoSet.getArithmeticImageDefinition();
+            idx = strcmp(aiNameTarget,allAiNames);
+            aiParams = aiParams{idx};
+            if(this.isArithmeticImage(aiParams.FLIMItemA))
+                out = union(aiParams.FLIMItemA,this.arithmeticImagesRequiredFor(aiParams.FLIMItemA));
+            end
+            if(strcmp(aiParams.compAgainstB,'FLIMItem') && ~strcmp(aiParams.opA,'-no op-') && this.isArithmeticImage(aiParams.FLIMItemB))
+                %check FLIMItemC
+                out = union(aiParams.FLIMItemB,out);
+                out = union(out,this.arithmeticImagesRequiredFor(aiParams.FLIMItemB));
+            elseif(strcmp(aiParams.compAgainstC,'FLIMItem') && ~strcmp(aiParams.opB,'-no op-') && ~strcmp(aiParams.FLIMItemC,aiNameTarget))
+                %check FLIMItemC
+                out = union(aiParams.FLIMItemC,out);
+                out = union(out,this.arithmeticImagesRequiredFor(aiParams.FLIMItemC));
+            end
+            out = unique(out);
+        end
+        
+        function out = arithmeticImagesDependingOn(this,aiNameUT,aiNameTarget)
+            %return list of arithmetic images from aiNameUT (under test; if empty, test all arithmetic images), which depend on aiNameTarget (= which need aiNameTarget to be computed)
+            out = cell(0,0);
+            if(~isempty(aiNameUT) && ~this.isArithmeticImage(aiNameUT) || ~this.isArithmeticImage(aiNameTarget))
+                return
+            end
+            [allAiNames, allAiParams] = this.myStudyInfoSet.getArithmeticImageDefinition();
+            if(~isempty(aiNameUT))
+                %investigate only specific ai
+                idx = strcmp(aiNameUT,allAiNames);
+                allAiNames = allAiNames(idx);
+                allAiParams = allAiParams(idx);
+            end            
+            %find direct hits
+            for i = 1:length(allAiNames)
+                p = allAiParams{i};
+                if(strcmp(p.FLIMItemA,aiNameTarget) || strcmp(p.compAgainstB,'FLIMItem') && ~strcmp(p.opA,'-no op-') && strcmp(p.FLIMItemB,aiNameTarget) ||...
+                        strcmp(p.compAgainstC,'FLIMItem') && ~strcmp(p.opB,'-no op-') && strcmp(p.FLIMItemC,aiNameTarget))
+                    out(end+1,1) = allAiNames(i);
+                    continue
+                end
+            end
+            out = unique(out);
+            if(isempty(out))
+                return
+            end
+            %check indirect hits
+            while true
+                indirectHitFound = false;
+                for i = 1:length(allAiNames)
+                    tmp = this.arithmeticImagesRequiredFor(allAiNames(i));
+                    if(any(ismember(tmp,out)) && ~any(ismember(allAiNames(i),out)))
+                        out(end+1,1) = allAiNames(i);
+                        indirectHitFound = true;
+                    end
+                    
+%                     p = allAiParams{i};
+%                     if(~strcmp(p.FLIMItemA,aiNameTarget) && this.isArithmeticImage(p.FLIMItemA))
+%                         %check dependencies of FLIMItemB
+%                         tmp = this.arithmeticImagesRequiredFor(p.FLIMItemA);
+%                         if(any(ismember(tmp,out)) && ~any(ismember(allAiNames(i),out)))
+%                             out(end+1,1) = allAiNames(i);
+%                             indirectHitFound = true;
+%                         end
+%                     elseif(strcmp(p.compAgainstB,'FLIMItem') && ~strcmp(p.opA,'-no op-') && ~strcmp(p.FLIMItemB,aiNameTarget) && this.isArithmeticImage(p.FLIMItemB))
+%                         %check dependencies of FLIMItemB
+%                         tmp = this.arithmeticImagesRequiredFor(p.FLIMItemB);
+%                         if(any(ismember(tmp,out)) && ~any(ismember(allAiNames(i),out)))
+%                             out(end+1,1) = allAiNames(i);
+%                             indirectHitFound = true;
+%                         end
+%                         %                     tmp = this.arithmeticImagesDependingOn(p.FLIMItemB,aiNameTarget);
+%                         %                     if(~isempty(tmp))
+%                         %                         tmp(end+1,1) = allAiNames(i);
+%                         %                         out = union(out,tmp);
+%                         %                     end
+%                     elseif(strcmp(p.compAgainstC,'FLIMItem') && ~strcmp(p.opB,'-no op-') && ~strcmp(p.FLIMItemC,aiNameTarget) && this.isArithmeticImage(p.FLIMItemC))
+%                         %check dependencies of FLIMItemC
+%                         tmp = this.arithmeticImagesRequiredFor(p.FLIMItemC);
+%                         if(any(ismember(tmp,out)) && ~any(ismember(allAiNames(i),out)))
+%                             out(end+1,1) = allAiNames(i);
+%                             indirectHitFound = true;
+%                         end
+%                         %                     tmp = this.arithmeticImagesDependingOn(p.FLIMItemC,aiNameTarget);
+%                         %                     if(~isempty(tmp))
+%                         %                         tmp(end+1,1) = allAiNames(i);
+%                         %                         out = union(out,tmp);
+%                         %                     end
+%                     end
+                end
+                if(~indirectHitFound)
+                    break
+                end
+            end
+        end
+        
         function out = getSubject4Approx(this,subjectID,createNewSubjectFlag)
             %get subject object which includes measurements and results
             if(~this.isLoaded)

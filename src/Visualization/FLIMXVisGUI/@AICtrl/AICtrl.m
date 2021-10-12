@@ -169,7 +169,7 @@ classdef AICtrl < handle
         function updateCtrls(this)
             %updates controls to current values 
             %get arithmetic images for current study
-            [aiStr, aiParam] = this.visObj.fdt.getArithmeticImageDefinition(this.curStudy);
+            [aiStr, aiParam] = this.visObj.fdt.getArithmeticImageDefinition(this.curStudy);            
             idx = find(strcmp(aiStr,this.curAIName));
             if(isempty(idx))
                 idx = min(length(aiStr),this.aiSel.Value);
@@ -507,6 +507,11 @@ classdef AICtrl < handle
             objStr = '';
             if(strcmp(targetType,'FLIMItem'))
                 objStr = this.visObj.fdt.getChObjStr(this.curStudy,this.curSubjectName,max(1,chNr));
+                %prevent endless loop: user could change an arithmetic image definition to
+                %contain another arithmietic image, which depends on the current arithmetic image
+                toRemove = this.visObj.fdt.arithmeticImagesDependingOn(this.curStudy,[],this.curAIName);
+                idxRemove = ismember(objStr,toRemove);
+                objStr = objStr(~idxRemove,1);
                 subjectInfoColumns = this.visObj.fdt.getDataFromStudyInfo(this.curStudy,'subjectInfoRegularNumericColumnNames');
                 for i = 1:length(subjectInfoColumns)
                     subjectInfoColumns{i} = sprintf('subjectInfo->%s',subjectInfoColumns{i});
