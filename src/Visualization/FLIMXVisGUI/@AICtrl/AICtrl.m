@@ -235,6 +235,8 @@ classdef AICtrl < handle
                 this.opA.Visible = 'on';
                 set(this.ROIB,'Enable','on','Visible','on');
                 set(this.ROIVicinityB,'Enable','on','Visible','on');
+                %find selected ROI
+                this.updateItemPopup(this.chA.Value-1,'ROI','B',aiParam{idx});
                 return
             end
             this.normalizeA.Value = aiParam{idx}.normalizeA;
@@ -463,9 +465,9 @@ classdef AICtrl < handle
             this.ROIC = this.visObj.visHandles.ai_roi_c_pop;
             set(this.ROIC,'Callback',@this.ui_Callback,'TooltipString','Select Region of Interest (ROI), its mean value will be used for the arithmetic image calculation');
             this.ROIVicinityB = this.visObj.visHandles.ai_roi_vic_b_pop;
-            set(this.ROIVicinityB,'Callback',@this.ui_Callback,'TooltipString','Select ''inside'' for the area inside the ROI coordinates, ''invert'' to exclude the ROI area from further analysis or ''vicinity'' to use the area surrounding the ROI');
+            set(this.ROIVicinityB,'Callback',@this.ui_Callback,'String',{'Inside';'Outside';'Vicinity'},'TooltipString','Select ''Inside'' for the area inside the ROI coordinates, ''Outside'' to exclude the ROI area from further analysis or ''Vicinity'' to use the area surrounding the ROI');
             this.ROIVicinityC = this.visObj.visHandles.ai_roi_vic_c_pop;
-            set(this.ROIVicinityC,'Callback',@this.ui_Callback,'TooltipString','Select ''inside'' for the area inside the ROI coordinates, ''invert'' to exclude the ROI area from further analysis or ''vicinity'' to use the area surrounding the ROI');
+            set(this.ROIVicinityC,'Callback',@this.ui_Callback,'String',{'Inside';'Outside';'Vicinity'},'TooltipString','Select ''Inside'' for the area inside the ROI coordinates, ''Outside'' to exclude the ROI area from further analysis or ''Vicinity'' to use the area surrounding the ROI');
             this.targetSelB = this.visObj.visHandles.ai_targetSel_b_pop;
             set(this.targetSelB,'Callback',@this.ui_Callback,'TooltipString','Select target for arithmetic operation: FLIM parameter (e.g. Tau1), mean value of region of interest (ROI) or a numeric value (e.g. for comparison with a threshold)');
             this.targetSelC = this.visObj.visHandles.ai_targetSel_c_pop;
@@ -527,8 +529,27 @@ classdef AICtrl < handle
                 objStr = objStr(~strcmp(objStr,this.curAIName));
                 % remove also arithmetic images, which contain the current arithmetic image
                 popupHandleStr = sprintf('FLIMItem%s',layer);
-            elseif(strcmp(targetType,'ROI'))
-                objStr = AICtrl.getDefROIString(); 
+            elseif(strcmp(targetType,'ROI'))                
+                allROT = this.visObj.fdt.getResultROICoordinates(this.curStudy,this.curSubjectName,'',[]);
+                if(isempty(allROT))
+                    allROT = ROICtrl.getDefaultROIStruct();
+                end
+                allROIStr = arrayfun(@ROICtrl.ROIType2ROIItem,[0;allROT(:,1,1)],'UniformOutput',false);
+                %ROI groups are not yet supported
+%                 grps = this.visObj.fdt.getResultROIGroup(this.curStudy,[]);
+%                 if(~isempty(grps) && ~isempty(grps{1,1}))
+%                     allROIStr = [allROIStr; sprintfc('Group: %s',string(grps(:,1)))];
+%                 end
+                %delete -none-
+                allROIStr = allROIStr(2:end,1);
+                %flaten ETDRS grids
+                ETRDSids = strncmp('ETDRS Grid #',allROIStr,12);
+                nEDTRS = sum(ETRDSids);
+                allROIStr = allROIStr(~ETRDSids,1);
+                for i = 1:nEDTRS
+                    allROIStr = [AICtrl.getDefROIString(i); allROIStr];
+                end
+                objStr = allROIStr; 
                 popupHandleStr = sprintf('ROI%s',layer);
             end
             if(~isempty(objStr))
@@ -593,29 +614,31 @@ classdef AICtrl < handle
             out = {'+','-','.*','./','<','>','<=','>=','==','!=','AND','OR','!AND','!OR','XOR','dilate','erode','open','close','fill'};
         end
         
-        function out = getDefROIString()
+        function out = getDefROIString(idxETDRS)
             %return string with possible ROIs
-            out = {'ETDRS->central';
-                'ETDRS->inner superior';
-                'ETDRS->inner nasal';
-                'ETDRS->inner inferior';
-                'ETDRS->inner temporal';
-                'ETDRS->outer superior';
-                'ETDRS->outer nasal';
-                'ETDRS->outer inferior';
-                'ETDRS->outer temporal';
-                'ETDRS->inner ring';
-                'ETDRS->outer ring';
-                'ETDRS->full circle';
-                'ETDRS->center + inner ring';
-                'ETDRS->center + outer ring';
-                'ETDRS->inner + outer ring';
-                'Rectangle #1';
-                'Rectangle #2';
-                'Circle #1';
-                'Circle #2';
-                'Polygon #1';
-                'Polygon #2'};
+            if(~isnumeric(idxETDRS))
+                out = [];
+                return
+            end
+            idxETDRS = uint16(idxETDRS);
+            out = {'ETDRS Grid#%d->central';
+                'ETDRS Grid#%d->inner superior';
+                'ETDRS Grid#%d->inner nasal';
+                'ETDRS Grid#%d->inner inferior';
+                'ETDRS Grid#%d->inner temporal';
+                'ETDRS Grid#%d->outer superior';
+                'ETDRS Grid#%d->outer nasal';
+                'ETDRS Grid#%d->outer inferior';
+                'ETDRS Grid#%d->outer temporal';
+                'ETDRS Grid#%d->inner ring';
+                'ETDRS Grid#%d->outer ring';
+                'ETDRS Grid#%d->full circle';
+                'ETDRS Grid#%d->center + inner ring';
+                'ETDRS Grid#%d->center + outer ring';
+                'ETDRS Grid#%d->inner + outer ring'};
+            for i = 1:15
+                out{i,1} = sprintf(out{i,1},idxETDRS);
+            end
         end
         
         function out = targetTypeID2Str(tID)

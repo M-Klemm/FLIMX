@@ -1039,16 +1039,36 @@ classdef FDTSubject < fluoSubject
                 if(strcmp(aiParams.opA,'srcPixel') && strncmp(aiParams.FLIMItemA,'MVGroup',7))
                     %special method to determine the source pixels of an mv group scatter plot (2D histogram)                    
                     %get mvgroup roi and determine which pixels are not zero / NaN
-                    ROIs = AICtrl.getDefROIString();
-                    if(strncmp(aiParams.ROIB,'ETDRS->',7))
-                        ROIType = 1001;
-                        ROISubtype = find(strcmp(ROIs,aiParams.ROIB));
+                    allGrps = this.getROIGroup([]);
+                    grpID = find(strcmp(allGrps(:,1),aiParams.ROIB));
+                    if(~isempty(grpID))
+                        %we found a ROI group
+                        %ROI groups are not yet supported
+                        %ROIType = -grpID;
+                        ROIType = 0;
+                        ROISubtype = 0;
+                    elseif(strncmp(aiParams.ROIB,'ETDRS Grid#',11))
+                        iETDRS = strfind(aiParams.ROIB,'->');
+                        if(~isempty(iETDRS))
+                            iETDRS = str2double(aiParams.ROIB(isstrprop(aiParams.ROIB,'digit')));
+                            ROIType = 1000 + iETDRS;
+                            eROIs = AICtrl.getDefROIString(iETDRS);
+                            ROISubtype = find(strcmp(eROIs,aiParams.ROIB));
+                        else
+                            %should not happen
+                            ROIType = 0;
+                            ROISubtype = 0;
+                        end
                     else
+                        %circle, rectangle or polygon
                         ROIType = ROICtrl.ROIItem2ROIType(aiParams.ROIB);
                         ROISubtype = 0;
                     end
                     [dTypeA, dTypeANr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
                     mvg_hfd = this.getFDataObj(chBList(chIdx),dTypeA{1},dTypeANr(1),1);
+                    if(isempty(mvg_hfd))
+                        return
+                    end
                     sd = mvg_hfd.getSupplementalData();
                     %get ROI in mv group
                     [mvg_roi,roi_idx] = FData.getImgSeg(mvg_hfd.getFullImage(),this.getROICoordinates(dTypeA{1},ROIType),ROIType,ROISubtype,aiParams.ROIVicinityB,[],this.getVicinityInfo());

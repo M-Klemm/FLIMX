@@ -1015,7 +1015,9 @@ classdef FDisplay < handle
                                         idx = find(ROICtrl.decodeROIType(rt) == ROICtrl.decodeROIType(allROI(:,1,1)));                                        
                                         for j = 1:length(idx)
                                             ROICoord = hfd{i}.getROICoordinates(allROI(idx(j),1,1));
-                                            this.drawROI(allROI(idx(j),1,1),ROICoord(:,1),ROICoord(:,2:end),true);
+                                            if(~isempty(ROICoord))
+                                                this.drawROI(allROI(idx(j),1,1),ROICoord(:,1),ROICoord(:,2:end),true);
+                                            end
                                         end
                                     end
                                 else
@@ -1431,7 +1433,7 @@ classdef FDisplay < handle
             xtemp = [cStartClass cEndClass];
             ytemp = this.h_s_ax.YLim;
             dp = this.getDynVisParams();
-            temp = zeros(1,length(dp.cm), 3);
+            %temp = zeros(1,length(dp.cm), 3);
             if(hfd.rawImgIsLogical)
                 temp(1,:,:) = gray(2);
             elseif(strcmp(hfd.dType,'Intensity'))
