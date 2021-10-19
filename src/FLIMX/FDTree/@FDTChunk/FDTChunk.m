@@ -106,59 +106,6 @@ classdef FDTChunk < FDTreeNode
             this.dType = val;
         end
         
-        function setResultROICoordinates(this,ROIType,ROICoord)
-            %set the ROI
-            if(isempty(ROICoord))
-                ROICoord = zeros(2,3,'uint16');
-            elseif(size(ROICoord,1) == 2 && size(ROICoord,2) == 1)
-                ROICoord(:,2:3) = zeros(2,2,'like',ROICoord);
-            end
-            tmp = this.resultROICoordinates;
-            if(isempty(ROIType))
-                %set all ROI coordinates at once
-                if(size(ROICoord,1) >= 7 && size(ROICoord,2) >= 3 && size(ROICoord,3) >= 2)
-                    tmp = int16(ROICoord);
-                end
-            else
-                if(isempty(tmp) || size(tmp,1) < 7 || size(tmp,2) < 3)
-                    tmp = ROICtrl.getDefaultROIStruct();
-                end
-                ROIType = int16(ROIType);
-                idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
-                if(isempty(idx))
-                    %new ROI
-                    tmp = FDTChunk.addResultROIType(tmp,ROIType);
-                    idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
-                end
-                if(ROIType >= 1000 && ROIType < 4000 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
-                    %ETDRS, rectangle or cricle                    
-                    tmp(idx,1:3,1:2) = int16(ROICoord');                    
-                elseif(ROIType > 4000 && ROIType < 5000 && size(ROICoord,1) == 2)
-                    %polygons
-                    if(size(ROICoord,2) > size(tmp,2))
-                        tmpNew = zeros(size(tmp,1),size(ROICoord,2),2,'int16');
-                        tmpNew(:,1:size(tmp,2),:) = tmp;
-                        tmpNew(idx,1:size(ROICoord,2),:) = int16(ROICoord');
-                        tmp = tmpNew;
-                    else
-                        tmp(idx,1:size(ROICoord,2),1:2) = int16(ROICoord');
-                        tmp(idx,max(4,size(ROICoord,2)+1):end,:) = 0;
-                    end
-                    %polygon could have shrinked, remove trailing zeros
-                    idxZeros = squeeze(any(any(tmp,1),3));
-                    idxZeros(1:3) = true;
-                    tmp(:,find(idxZeros,1,'last')+1:end,:) = [];
-                end
-                %store ROIType just to be sure it is correct
-                tmp(idx,1,1) = ROIType;
-            end
-            this.resultROICoordinates = tmp;           
-            
-%             for i = 1:this.nrChildren
-%                 this.getChildAtPos(i).setResultROICoordinates(ROIType,ROICoord);
-%             end
-        end
-        
         function setResultCrossSection(this,dim,csDef)
             %set the cross section for dimension dim
             for i = 1:this.nrChildren
@@ -326,16 +273,7 @@ classdef FDTChunk < FDTreeNode
         
         function out = getROICoordinates(this,ROIType)
             %get coordinates of ROI
-            if(this.isSubjectDefaultSize)
-                %ask the study for the ROI coordinates
-                out = this.myParent.getROICoordinates(this.dType,ROIType);
-            else
-                %use local ROI coordinates
-                if(isempty(this.resultROICoordinates))
-                    this.resultROICoordinates = ROICtrl.getDefaultROIStruct();
-                end
-                out = FDTChunk.extractROICoordinates(this.resultROICoordinates,ROIType);
-            end
+            out = this.myParent.getROICoordinates(this.dType,ROIType);
         end
         
         function out = getZScaling(this,dTypeNr)
@@ -395,21 +333,6 @@ classdef FDTChunk < FDTreeNode
     end
     
     methods(Static)
-        function ROICoord = addResultROIType(ROICoord,ROIType)
-            %add an empty ROIType
-            if(isempty(ROICoord))
-                ROICoord = ROICtrl.getDefaultROIStruct();
-            end
-            [val,idx] = min(abs(ROICoord(:,1,1) - ROIType));
-            if(val > 0)
-                tmpNew = zeros(size(ROICoord,1)+val,size(ROICoord,2),size(ROICoord,3),'int16');
-                tmpNew(1:idx,:,:) = ROICoord(1:idx,:,:);
-                tmpNew(idx+val+1:end,:,:) = ROICoord(idx+1:end,:,:);
-                tmpNew(idx+1:idx+val,1,1) = (ROICoord(idx,1,1)+1 : 1 : ROICoord(idx,1,1)+val)';
-                ROICoord = tmpNew;
-            end
-        end
-        
         function ROICoordinates = extractROICoordinates(ROICoordinates,ROIType)
             %return ROI coordinates for a specific ROI type
             ROICoordinates = double(ROICoordinates);

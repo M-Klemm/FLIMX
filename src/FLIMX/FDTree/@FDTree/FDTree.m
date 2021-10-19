@@ -450,11 +450,11 @@ classdef FDTree < FDTreeNode
             end
         end
         
-        function deleteResultROICoordinates(this,studyName,dType,dTypeNr,ROIType)
-            %delete the ROI coordinates for study studyName at subject subjectID and ROIType
+        function removeResultROIType(this,studyName,ROIType)
+            %remove ROIType from all subjects from study studyName
             study = this.getChild(studyName);
             if(~isempty(study))
-                study.deleteResultROICoordinates(dType,dTypeNr,ROIType);
+                study.removeResultROIType(ROIType);
             end
         end
         

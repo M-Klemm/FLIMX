@@ -385,7 +385,7 @@ classdef ROICtrl < handle
 %                 elseif(strncmp('GlobalMVGroup',hfd.dType,13))
 %                     hfd.setROICoordinates(this.ROIType,ROIInfo);
 %                 else
-                    this.visObj.fdt.deleteResultROICoordinates(this.visObj.getStudy(this.mySide),hfd.dType,hfd.id,rt);
+                    this.visObj.fdt.removeResultROIType(this.visObj.getStudy(this.mySide),rt);
 %                 end
                 this.ROIType = rt-1;
                 this.setupGUI();

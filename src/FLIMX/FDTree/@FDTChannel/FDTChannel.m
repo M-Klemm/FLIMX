@@ -132,25 +132,6 @@ classdef FDTChannel < FDTreeNode
             this.renameChild(dType,val);
         end        
         
-        function setResultROICoordinates(this,dType,ROIType,ROICoord)
-            %set the ROI
-            chunk = this.getChild(dType);
-            if(isempty(chunk))
-                return
-            end
-%             if(chunk.isSubjectDefaultSize)
-%                 %set ROI vec for all global scaled chunks
-%                 for i = 1:this.nrChildren
-%                     if(this.getChildAtPos(i).isSubjectDefaultSize)
-%                         this.getChildAtPos(i).setResultROICoordinates(ROIType,ROICoord);
-%                     end
-%                 end
-%             else
-                %set ROI vec only for specific chunk
-                chunk.setResultROICoordinates(ROIType,ROICoord);
-%             end
-        end
-        
         function setResultCrossSection(this,dim,csDef)
             %set the cross section for dimension dim
             for i = 1:this.nrChildren
@@ -247,17 +228,7 @@ classdef FDTChannel < FDTreeNode
         
         function out = getROICoordinates(this,dType,ROIType)
             %get coordinates of ROI
-            if(isempty(ROIType) || this.getDefaultSizeFlag(dType))
-                out = this.myParent.getROICoordinates(dType,ROIType);
-            else
-                %this FLIM item (chunk) has a different size than the subject
-                chunk = this.getChild(dType);
-                if(isempty(chunk))
-                    out = [];                    
-                else
-                    out = chunk.getROICoordinates(ROIType);
-                end                
-            end
+            out = this.myParent.getROICoordinates(dType,ROIType);
         end
         
         function out = getZScaling(this,dType,dTypeNr)
@@ -485,7 +456,6 @@ classdef FDTChannel < FDTreeNode
     methods(Access = protected)        
     end %methods(Access = protected)
     
-    methods(Static)
-        
+    methods(Static)        
     end %methods(static)
 end %classdef

@@ -75,8 +75,8 @@ classdef FDTSubject < fluoSubject
         end
 
         %% input methods
-
-
+        
+        
         function importMeasurementObj(this, obj)
             %import a measurement object to FDTree
 %             ROIVec = obj.ROICoord; %save old ROIVec if there is one
@@ -544,12 +544,20 @@ classdef FDTSubject < fluoSubject
                currentChannel = ch;
             elseif(any((currentChannel - ch) < eps))
                 %this channel is currently being loaded
-                success = true;
+                %success = true;
                 return
             else %new channel -> add it to currentChannel
                 currentChannel = [currentChannel, ch];
             end
-            hfd = this.getFDataObj(ch,'Intensity',0,1); %check only linear data
+            %check if there is an intensity image available
+            chObj = this.getChild(ch);
+            if(isempty(chObj))
+                hfd = [];                
+            else
+                hfd = chObj.getFDataObj('Intensity',0,1); %check only linear data
+            end
+            intImage = [];
+            %hfd = this.getFDataObj(ch,'Intensity',0,1);
             if(any(this.nonEmptyChannelList(:)) && any(ch == this.nonEmptyChannelList(:)) && (isempty(hfd) || ~this.channelResultIsLoaded(ch) || forceLoadFlag))
                 this.updateShortProgress(0.33,sprintf('Load Ch %s',num2str(ch)));
                 %add empty channel objects
@@ -567,18 +575,18 @@ classdef FDTSubject < fluoSubject
 %                 end
                 %try to load intensity image
                 if(isempty(hfd) || forceLoadFlag)
-                    int = this.getROIDataFlat(ch,true);
+                    intImage = this.getROIDataFlat(ch,true);
                     allItems = this.myParent.getAllFLIMItems(this.name,ch);
-                    if(~isempty(int) && (isempty(this.YSz) || isempty(this.XSz)) || ~isempty(int) && (size(int,1) == this.YSz && size(int,2) == this.XSz))
-                        this.addObjID(0,ch,'Intensity',1,int);
+                    if(~isempty(intImage) && (isempty(this.YSz) || isempty(this.XSz)) || ~isempty(intImage) && (size(intImage,1) == this.YSz && size(intImage,2) == this.XSz))
+                        this.addObjID(0,ch,'Intensity',1,intImage);
                         if(isempty(allItems))
                             this.myParent.setAllFLIMItems(this.name,ch,{'Intensity'});
                         end
                     else
                         %try raw data
-                        int = this.getRawDataFlat(ch);
-                        if(~isempty(int) && ~isempty(this.YSz) && ~isempty(this.XSz) && size(int,1) == this.YSz && size(int,2) == this.XSz)
-                            this.addObjID(0,ch,'Intensity',1,int);
+                        intImage = this.getRawDataFlat(ch);
+                        if(~isempty(intImage) && ~isempty(this.YSz) && ~isempty(this.XSz) && size(intImage,1) == this.YSz && size(intImage,2) == this.XSz)
+                            this.addObjID(0,ch,'Intensity',1,intImage);
                             if(isempty(allItems))
                                 this.myParent.setAllFLIMItems(this.name,ch,{'Intensity'});
                             end
@@ -589,6 +597,8 @@ classdef FDTSubject < fluoSubject
                             %return
                         end
                     end
+                else
+                    intImage = hfd.rawImage;
                 end
                 %load result
                 if(~this.channelResultIsLoaded(ch) || forceLoadFlag)
@@ -698,23 +708,23 @@ classdef FDTSubject < fluoSubject
                         chObj.setIgnoredPixelsMask(ignoreMask);
                     end
                     this.updateShortProgress(1,sprintf('Load Ch %s',num2str(ch))); %0.5
-                    %intensity image
-                    int = this.getPixelFLIMItem(ch,'Intensity');
+                    %check intensity image stored in result file
+                    intImageResult = this.getPixelFLIMItem(ch,'Intensity');
                     %hfd = this.getFDataObj(ch,'Intensity',0,1); %check only linear data
-                    if(isempty(int) && isASCIIResult)
+                    if(isASCIIResult && isempty(intImage) && isempty(intImageResult))
                         %no intensity image -> approximate it from amplitudes
                         ampItems = allItems(cellfun(@length,allItems) == 10);
                         ampItems = ampItems(strncmp('Amplitude',ampItems,9));
                         if(~isempty(ampItems))
-                            int = this.getPixelFLIMItem(ch,ampItems{1});
+                            intImage = this.getPixelFLIMItem(ch,ampItems{1});
                             for i = 2:length(ampItems)
                                 %no checking if dimensions agree - todo?!
-                                int = int + this.getPixelFLIMItem(ch,ampItems{i});
+                                intImage = intImage + this.getPixelFLIMItem(ch,ampItems{i});
                             end
                             if(isASCIIResult)
-                                int = int.*10000;
+                                intImage = intImage.*10000;
                             end
-                            this.addObjID(0,ch,'Intensity',1,int);
+                            this.addObjID(0,ch,'Intensity',1,intImage);
                         end
                     end
                 end
@@ -753,12 +763,12 @@ classdef FDTSubject < fluoSubject
             end
         end
 
-        function setResultROICoordinates(this,dType,ROIType,ROICoord)
-            %set the ROI for all channels
-            for i = 1:this.nrChildren
-                this.getChildAtPos(i).setResultROICoordinates(dType,ROIType,ROICoord);
-            end
-        end
+%         function setResultROICoordinates(this,dType,ROIType,ROICoord)
+%             %set the ROI for all channels
+%             for i = 1:this.nrChildren
+%                 this.getChildAtPos(i).setResultROICoordinates(dType,ROIType,ROICoord);
+%             end
+%         end
 
         function setResultCrossSection(this,dim,csDef)
             %set the cross section for dimension dim
@@ -892,22 +902,22 @@ classdef FDTSubject < fluoSubject
 
         function out = getROICoordinates(this,dType,ROIType)
             %get coordinates of ROI
-            if(isempty(ROIType) || this.getDefaultSizeFlag(dType))
+%             if(isempty(ROIType) || this.getDefaultSizeFlag(dType))
                 out = this.myParent.getResultROICoordinates(this.name,dType,ROIType);
-            else
-                %this FLIM item (chunk) has a different size than the subject
-                for ch = 1:this.nrChildren
-                    if(~this.channelResultIsLoaded(ch))
-                        this.loadChannel(ch,false);
-                    end
-                    chObj = this.getChild(ch);
-                    if(~isempty(chObj))
-                        %both channels should have the same ROi coordinates -> first non-empty channel is good enough
-                        out = chObj.getROICoordinates(dType,ROIType);
-                        return
-                    end
-                end
-            end
+%             else
+%                 %this FLIM item (chunk) has a different size than the subject
+%                 for ch = 1:this.nrChildren
+%                     if(~this.channelResultIsLoaded(ch))
+%                         this.loadChannel(ch,false);
+%                     end
+%                     chObj = this.getChild(ch);
+%                     if(~isempty(chObj))
+%                         %both channels should have the same ROi coordinates -> first non-empty channel is good enough
+%                         out = chObj.getROICoordinates(dType,ROIType);
+%                         return
+%                     end
+%                 end
+%             end
         end
 
         function out = getZScaling(this,ch,dType,dTypeNr)
@@ -980,6 +990,16 @@ classdef FDTSubject < fluoSubject
                 end
             end
         end
+        
+%         function out = getNonDefaultSizeROICoordinates(this)
+%             %get all FLIM items (dType; FDTChunk objects), which do not have the default subject image size
+%             out = cell(0,0);
+%             if(this.nrChildren < 1)
+%                 return
+%             end
+%             %first channel in list is enough, as both channels have identical ROI coordinates
+%             out = this.getChildAtPos(1).getNonDefaultSizeROICoordinates();
+%         end
 
         function out = get.FLIMXParamMgrObj(this)
             %get handle to parameter manager object
@@ -1052,8 +1072,8 @@ classdef FDTSubject < fluoSubject
                         continue
                     end
                     dataB = this.getArithmeticImageData(aiParams,'B',chBList(chIdx));
-                    [opA, negA] = studyIS.str2logicOp(aiParams.opA);
-                    [opB, negB] = studyIS.str2logicOp(aiParams.opB);
+                    [opA, negA] = FDTStudy.str2logicOp(aiParams.opA);
+                    [opB, negB] = FDTStudy.str2logicOp(aiParams.opB);
                     if(isempty(opB))
                         data = FDTSubject.calculateArithmeticImage(dataA,dataB,opA,negA);
                     else

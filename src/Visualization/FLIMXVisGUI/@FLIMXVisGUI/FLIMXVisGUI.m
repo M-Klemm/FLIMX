@@ -378,15 +378,15 @@ classdef FLIMXVisGUI < handle
                 %set arbitrary initial color value for new study
                 cColor = this.fdt.getConditionColor(curStudy,curCondition);
                 if(isempty(cColor) || length(cColor) ~= 3)
-                    newColor = studyIS.makeRndColor();
+                    newColor = FDTStudy.makeRndColor();
                     set(this.visHandles.(sprintf('study_color_%s_button',s)),'Backgroundcolor',newColor);
                     this.fdt.setConditionColor(curStudy,curCondition,newColor);
                 else
                     set(this.visHandles.(sprintf('study_color_%s_button',s)),'Backgroundcolor',cColor);
                 end
+                %colorbar
+                this.objHandles.(sprintf('%sdo',s)).updateColorbar();
             end
-            %colorbar
-            this.objHandles.(sprintf('%sdo',s)).updateColorbar();                               
             %arithmetic images
             this.objHandles.AI.updateCtrls();
         end %setupGUI

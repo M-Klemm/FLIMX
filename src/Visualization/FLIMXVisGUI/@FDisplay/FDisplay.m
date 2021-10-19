@@ -1396,11 +1396,12 @@ classdef FDisplay < handle
         end
         
         function drawColorbarOnSuppPlot(this)
-            %draw colobar behind histogram on supllemental axes
+            %draw colobar behind histogram on supplemental axes
             hfd = this.myhfdSupp;
             if(isempty(hfd{1}))
                 return
             end
+            hfd = hfd{1};
             cTmp = single(this.myColorScaleObj.getCurCSInfo());
             if(isempty(cTmp) || length(cTmp) ~= 3)
                 %should not happen
@@ -1411,7 +1412,7 @@ classdef FDisplay < handle
             rt = this.ROIType;
             rs = this.ROISubType;
             ri = this.ROIVicinity;
-            [~, centers] = hfd{1}.getCIHist(rc,rt,rs,ri);            
+            [~, centers] = hfd.getCIHist(rc,rt,rs,ri);            
             if(length(centers) > 1)
                 classWidth = centers(2)-centers(1);
                 cStartClass = round((cTmp(2)-centers(1))./classWidth)+1;
@@ -1429,13 +1430,31 @@ classdef FDisplay < handle
             %add colorbar either in full axes or at specified location, put it behind the bar
             xtemp = [cStartClass cEndClass];
             ytemp = this.h_s_ax.YLim;
-            if(strcmp(hfd{1}.dType,'Intensity'))
-                temp = zeros(1,length(this.dynVisParams.cmIntensity), 3);
-                temp(1,:,:) = this.dynVisParams.cmIntensity;
+            dp = this.getDynVisParams();
+            temp = zeros(1,length(dp.cm), 3);
+            if(hfd.rawImgIsLogical)
+                temp(1,:,:) = gray(2);
+            elseif(strcmp(hfd.dType,'Intensity'))
+                temp(1,:,:) = dp.cmIntensity;
+            elseif(strncmp(hfd.dType,'MVGroup',7))
+                if(length(hfd.rawImgZSz) < 2)
+                    %MVGroup computation failed
+                    temp(1,:,:) = FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,1);
+                else
+                    temp(1,:,:) = FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,hfd.rawImgZSz(2));
+                end
+%             elseif(strncmp(hfd.dType,'ConditionMVGroup',16))
+%             elseif(strncmp(hfd.dType,'GlobalMVGroup',13))
             else
-                temp = zeros(1,length(this.dynVisParams.cm), 3);
-                temp(1,:,:) = this.dynVisParams.cm;
+                temp(1,:,:) = dp.cm;
             end
+%             if(strcmp(hfd{1}.dType,'Intensity'))
+%                 temp = zeros(1,length(this.dynVisParams.cmIntensity), 3);
+%                 temp(1,:,:) = this.dynVisParams.cmIntensity;
+%             else
+%                 temp = zeros(1,length(this.dynVisParams.cm), 3);
+%                 temp(1,:,:) = this.dynVisParams.cm;
+%             end
             if(~isempty(this.h_cmImage) && ishghandle(this.h_cmImage) && this.h_cmImage > 0)
                 try
                     delete(this.h_cmImage);
@@ -1751,7 +1770,12 @@ classdef FDisplay < handle
                 temp(:,1,:) = dp.cmIntensity;
                 ytick = (0:0.25:1).*size(temp,1);
             elseif(strncmp(hfd.dType,'MVGroup',7))
-                temp(:,1,:) = FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,hfd.rawImgZSz);
+                if(length(hfd.rawImgZSz) < 2)
+                    %MVGroup computation failed
+                    temp(:,1,:) = FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,1);
+                else
+                    temp(:,1,:) = FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,hfd.rawImgZSz(2));
+                end
 %             elseif(strncmp(hfd.dType,'ConditionMVGroup',16))
 %             elseif(strncmp(hfd.dType,'GlobalMVGroup',13))
             else
@@ -1825,10 +1849,15 @@ classdef FDisplay < handle
             if(isempty(hfd{1}))
                 return
             end
-            if(strcmp(this.dynVisParams.cmType,'SpectrumFixed') && ~strcmp(hfd{1}.dType,'Intensity'))
+            hfd = hfd{1};
+            if(strcmp(this.dynVisParams.cmType,'SpectrumFixed') && ~strcmp(hfd.dType,'Intensity'))
                 cs = [1 380 780];
-            elseif(strncmp(hfd{1}.dType,'MVGroup',7))
-                cs = [1 hfd{1}.rawImgZSz];
+            elseif(strncmp(hfd.dType,'MVGroup',7))
+                if(isempty(hfd.rawImgZSz))
+                    cs = [1 0 1];
+                else
+                    cs = [1 hfd.rawImgZSz];
+                end
             else
                 cs = this.myColorScaleObj.getCurCSInfo();
             end

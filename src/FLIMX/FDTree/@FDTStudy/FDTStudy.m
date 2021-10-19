@@ -31,26 +31,47 @@ classdef FDTStudy < FDTreeNode
     %
     % @brief    A class to represent a study (contains subjectDataSets)
     %
-    properties(SetAccess = protected,GetAccess = public)        
+    properties(SetAccess = protected, GetAccess = public)        
         revision = [];              %revision of the study code/dataformat
-        myStudyInfoSet = [];        %subject info in study
+        %myStudyInfoSet = [];        %subject info in study
         myConditionStatistics = []; %merged objects to save statistics
         IRFInfo = [];               %struct to save information on the used IRF
         dirtyFlag = false;          %flag is true if something of the study was changed
         isLoaded = false;           %flag is true if study was loaded from disk        
     end
+    properties(SetAccess = private, GetAccess = private)
+        subjectNames = cell(0,0);                           %list of subject names
+        subjectInfoColumnNames = cell(0,0);                 %descriptions of patient data columns
+        filesHeaders = {'Subject' 'Meas. Chs' 'Result Chs'};%descriptions of channel data columns
+        subjectInfo = cell(0,0);                            %additional patient data
+        subjectInfoConditionDefinition = cell(0,0);         %condition / combination between patient data
+        resultFileChs = cell(0,0);                          %result channels of each subject
+        measurementFileChs = cell(0,0);                     %measurement channels of each subject
+        MVGroupTargets = cell(0,0);                         %cluster parameters for this study
+        resultCrossSection = cell(0,0);                     %cross sections for each subject
+        resultROICoordinates = cell(0,0);                   %rois for each subject
+        nonDefaultSizeROICoordinates = cell(0,0);           %rois for each subject and FLIM item with non-default size
+        resultROIGroups = cell(0,0);                        %groups of rois defined per study
+        resultZScaling = cell(0,0);                         %z scaling for each subject
+        resultColorScaling = cell(0,0);                     %color scaling for each subject
+        allFLIMItems = cell(0,0);                           %selected FLIM parameters, for each subject and channel
+        arithmeticImageInfo = cell(0,2);                    %arithmetic image definition
+        conditionColors = cell(2,0);                        %colors for conditions
+        
+    end
     properties (Dependent = true)
-        hashEngine = [];            %engine for md5 hash
-        myDir = '';                 %study's working directory
-        FLIMXParamMgrObj = [];
-        isDirty = false;            %flag is true if something of the study was changed
+        hashEngine                  %engine for md5 hash
+        myDir                       %study's working directory
+        FLIMXParamMgrObj
+        isDirty                     %flag is true if something of the study was changed
+        nrSubjects        
     end
     
     methods
         function this = FDTStudy(parent,name)
             % Constructor for FDTStudy
             this = this@FDTreeNode(parent,name);
-            this.revision = 32;
+            this.revision = 33;
             %check my directory
             sDir = this.myDir;
             if(~isfolder(sDir))
@@ -59,8 +80,12 @@ classdef FDTStudy < FDTreeNode
                     error('FLIMX:FDTStudy','Could not create study working folder: %s\n%s',sDir,message);
                 end
             end
-            this.myStudyInfoSet = studyIS(this);
-            this.myConditionStatistics = LinkedList();            
+            %this.myStudyInfoSet = studyIS(this);
+            this.myConditionStatistics = LinkedList();
+            this.subjectInfoColumnNames(1,1) = {'column 1'};
+            this.subjectInfoConditionDefinition(1,1) = {[]};
+            this.conditionColors(1,1) = {FDTree.defaultConditionName()};
+            this.conditionColors(2,1) = {FDTStudy.makeRndColor()};
         end
         
         function  pingLRUCacheTable(this,obj)
@@ -124,9 +149,32 @@ classdef FDTStudy < FDTreeNode
                 %version problem
                 import = this.updateStudyVer(import);
             end            
-            dirty = this.dirtyFlag; %loadStudyIS may reset dirty flag from revision update
+            %dirtyOld = this.dirtyFlag; %loadStudyIS may reset dirty flag from revision update
             this.name = import.name;
-            this.myStudyInfoSet.loadStudyIS(import);            
+            %this.myStudyInfoSet.loadStudyIS(import);
+            %load study info set
+            [import,dirty] = FDTStudy.checkStudyConsistency(import);            
+            this.subjectNames = import.subjectNames;
+            this.subjectInfoColumnNames = import.subjectInfoColumnNames;
+            %             this.subjectFilesHeaders = import.subjectFilesHeaders;
+            this.subjectInfo = import.subjectInfo;
+            this.subjectInfoConditionDefinition = import.subjectInfoConditionDefinition;
+            this.allFLIMItems = import.allFLIMItems;
+            this.resultFileChs = import.resultFileChs;
+            this.measurementFileChs = import.measurementFileChs;
+            this.MVGroupTargets = import.MVGroupTargets;
+            this.resultROIGroups = import.resultROIGroups;
+            this.resultROICoordinates = import.resultROICoordinates;
+            this.nonDefaultSizeROICoordinates = import.nonDefaultSizeROICoordinates;
+            this.resultZScaling = import.resultZScaling;
+            this.resultColorScaling = import.resultColorScaling;
+            this.resultCrossSection = import.resultCrossSection;
+            this.IRFInfo = import.IRFInfo;
+            this.arithmeticImageInfo = import.arithmeticImageInfo;
+            this.conditionColors = import.conditionColors;
+            this.sortSubjects();
+            %this.setDirty(dirty);
+            
             %this.checkSubjectFiles('');
             this.setDirty(dirty || this.dirtyFlag);
             if(this.dirtyFlag)
@@ -134,10 +182,8 @@ classdef FDTStudy < FDTreeNode
                 this.save();
             end            
             %create subjects (but load them on demand)
-            subjects = this.myStudyInfoSet.getAllSubjectNames();
+            subjects = this.subjectNames;
             for i=1:length(subjects)
-                %add subject to mySubjects
-                %channels = this.myStudyInfoSet.getFileChs(i);
                 %add empty subject
                 this.addSubject(subjects{i});                
             end
@@ -207,7 +253,25 @@ classdef FDTStudy < FDTreeNode
                 end
                 subject = FDTSubject(this,subjectName);
                 this.addChildByName(subject,subjectName);
-                this.myStudyInfoSet.addSubject(subjectName);                
+                % add a subject to this study
+                if(~isempty(this.subName2idx(subjectName)))
+                    %this is already a subject
+                    return
+                end
+                this.subjectNames(end+1,1) = {subjectName};
+                this.resultFileChs(end+1,:) = cell(1,max(1,size(this.resultFileChs,2)));
+                this.measurementFileChs(end+1,:) = cell(1,max(1,size(this.measurementFileChs,2)));
+                this.subjectInfo(end+1,:) = cell(1,max(1,size(this.subjectInfo,2)));
+                this.resultROICoordinates(end+1) = cell(1,1);
+                this.nonDefaultSizeROICoordinates(end+1) = cell(1,1);
+                this.resultZScaling(end+1) = cell(1,1);
+                this.resultColorScaling(end+1) = cell(1,1);
+                this.resultCrossSection(end+1) = cell(1,1);
+                this.allFLIMItems(end+1,:) = cell(1,max(1,size(this.resultFileChs,2)));
+                %sort subjects
+                this.sortSubjects();
+                this.checkConditionRef([]);
+                this.setDirty(true);
             end
         end
         
@@ -221,9 +285,19 @@ classdef FDTStudy < FDTreeNode
                 %set name in tree
                 subject.setSubjectName(newName);
                 %set name in study info set
-                this.myStudyInfoSet.setSubjectName(newName,idx);
+                %this.myStudyInfoSet.setSubjectName(newName,idx);
+                if(isempty(idx))
+                    %set all subjects (initial cas)
+                    this.subjectNames = [];
+                    this.subjectNames = newName;
+                else
+                    %set a single subject
+                    this.subjectNames(idx,1) = {newName};
+                    this.setDirty(true);
+                end
+                
                 this.renameChild(subjectID,newName);
-                this.myStudyInfoSet.sortSubjects();
+                this.sortSubjects();
                 %save because study info on disk was changed
                 this.save();
             end
@@ -235,7 +309,23 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.setMVGroupTargets(MVGroupID,targets);
+            if(nargin < 2)
+                %set all MVGroup parameter (initial case)
+                this.MVGroupTargets = [];
+                this.MVGroupTargets = targets;
+            else
+                %set single value
+                MVGroupNr = this.MVGroupName2idx(MVGroupID);
+                if(isempty(MVGroupNr))
+                    %add MVGroup
+                    this.MVGroupTargets(:,end+1) = cell(2,1);
+                    MVGroupNr = size(this.MVGroupTargets,2);
+                    this.MVGroupTargets(1,MVGroupNr) = {MVGroupID};
+                end
+                %set targets
+                this.MVGroupTargets(2,MVGroupNr) = {targets};
+                this.setDirty(true);
+            end
         end
         
         function setMVGroupName(this,MVGroupID,val)
@@ -252,7 +342,7 @@ classdef FDTStudy < FDTreeNode
                 end
             end
             %set name of condition MVGroup objects
-            conditionStr = this.myStudyInfoSet.getDataFromStudyInfo('subjectInfoConditionalColumnNames');
+            conditionStr = this.getDataFromStudyInfo('subjectInfoConditionalColumnNames');
             conditionMVGroupID = sprintf('Condition%s',MVGroupID);
             for i=1:length(conditionStr)
                 condition = this.getConditionObj(conditionStr{i});
@@ -261,7 +351,10 @@ classdef FDTStudy < FDTreeNode
                 end
             end
             %set name in study info set
-            this.myStudyInfoSet.setMVGroupName(MVGroupID,val);
+            MVGroupNr = this.MVGroupName2idx(MVGroupID);
+            if(~isempty(MVGroupNr))
+                this.MVGroupTargets(1,MVGroupNr) = {val};
+            end
             this.setDirty(true);
         end
         
@@ -392,7 +485,32 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.setResultROIGroup(grpName,grpMembers);
+            %set the ROI group members for this study
+            if(isempty(grpName))
+                if(isempty(grpMembers))
+                    %deleted last group
+                    this.resultROIGroups = [];
+                elseif(size(grpMembers,2) == 2)
+                    %set all groups at once
+                    this.resultROIGroups = grpMembers;
+                end
+            else
+                if(isempty(this.resultROIGroups))
+                    this.resultROIGroups = cell(1,2);
+                    this.resultROIGroups{1,1} = grpName;
+                    this.resultROIGroups(1,2) = grpMembers;
+                else
+                    idx = find(strcmp(this.resultROIGroups(:,1),grpName),1,'first');
+                    if(isempty(idx))
+                        this.resultROIGroups{end+1,1} = grpName;
+                        idx = size(this.resultROIGroups,1);
+                    end
+                    this.resultROIGroups(idx,2) = grpMembers;
+                    [~,i] = sort(this.resultROIGroups(:,1));
+                    this.resultROIGroups = this.resultROIGroups(i,:);
+                end
+            end
+            this.setDirty(true);
             %clear results?!
             this.clearAllCIs([]);
             this.clearArithmeticRIs(); %todo: check if an AI uses an ROI
@@ -408,27 +526,144 @@ classdef FDTStudy < FDTreeNode
             if(isempty(subject))
                 return
             end
-            if(isempty(ROIType) || subject.getDefaultSizeFlag(dType))
-                this.myStudyInfoSet.setResultROICoordinates(subjectID,ROIType,ROICoord);
-            else
+                sizeFlag = subject.getDefaultSizeFlag(dType);
+                %set the ROI vector for subject
+                subIdx = this.subName2idx(subjectID);
+                if(isempty(subIdx))
+                    %subject not in study or ROIVec size is wrong
+                    return
+                end                
+                if(isempty(ROICoord))
+                    ROICoord = zeros(2,3,'uint16');
+                elseif(size(ROICoord,1) == 2 && size(ROICoord,2) == 1)
+                    ROICoord(:,2:3) = zeros(2,2,'like',ROICoord);
+                end
+                if(isempty(ROIType))
+                    %set all ROI coordinates at once
+                    if(size(ROICoord,1) >= 7 && size(ROICoord,2) >= 3 && size(ROICoord,3) >= 2)
+                        roiTmp = int16(ROICoord);
+                    end
+                else
+                    if(sizeFlag)
+                        roiTmp = this.resultROICoordinates{subIdx};
+                    else
+                        subTmp = this.nonDefaultSizeROICoordinates{subIdx};
+                        if(isempty(subTmp))
+                            dTIdx = [];
+                        else
+                            dTIdx = find(strcmp(subTmp(:,1),dType),1);
+                        end
+                        if(isempty(dTIdx))
+                            roiTmp = [];
+                        else
+                            roiTmp = subTmp{dTIdx,2};
+                        end
+                    end
+                    if(isempty(roiTmp) || size(roiTmp,1) < 7 || size(roiTmp,2) < 3)
+                        roiTmp = ROICtrl.getDefaultROIStruct();
+                    end
+                    ROIType = int16(ROIType);
+                    idx = find(abs(roiTmp(:,1,1) - ROIType) < eps,1,'first');
+                    if(isempty(idx))
+                        %new ROI
+                        this.addResultROIType(ROIType);
+                        if(sizeFlag)
+                            roiTmp = this.resultROICoordinates{subIdx};
+                        else
+                            subTmp = this.nonDefaultSizeROICoordinates{subIdx};
+                            if(isempty(subTmp))
+                                dTIdx = [];
+                            else
+                                dTIdx = find(strcmp(subTmp(:,1),dType),1);
+                            end
+                            if(isempty(dTIdx))
+                                roiTmp = [];
+                            else
+                                roiTmp = subTmp{dTIdx,2};
+                            end
+                        end
+                        idx = find(abs(roiTmp(:,1,1) - ROIType) < eps,1,'first');
+                    end
+                    if(ROIType >= 1000 && ROIType < 4000 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
+                        %ETDRS, rectangle or cricle
+                        roiTmp(idx,1:3,1:2) = int16(ROICoord');
+                    elseif(ROIType > 4000 && ROIType < 5000 && size(ROICoord,1) == 2)
+                        %polygons
+                        if(size(ROICoord,2) > size(roiTmp,2))
+                            tmpNew = zeros(size(roiTmp,1),size(ROICoord,2),2,'int16');
+                            tmpNew(:,1:size(roiTmp,2),:) = roiTmp;
+                            tmpNew(idx,1:size(ROICoord,2),:) = int16(ROICoord');
+                            roiTmp = tmpNew;
+                        else
+                            roiTmp(idx,1:size(ROICoord,2),1:2) = int16(ROICoord');
+                            roiTmp(idx,max(4,size(ROICoord,2)+1):end,:) = 0;
+                        end
+                        %polygon could have shrinked, remove trailing zeros
+                        idxZeros = squeeze(any(any(roiTmp,1),3));
+                        idxZeros(1:3) = true;
+                        roiTmp(:,find(idxZeros,1,'last')+1:end,:) = [];
+                    end
+                    %store ROIType just to be sure it is correct
+                    roiTmp(idx,1,1) = ROIType;
+                end
+                if(sizeFlag)
+                    this.resultROICoordinates(subIdx) = {roiTmp};
+                else
+                    subTmp = this.nonDefaultSizeROICoordinates{subIdx};
+                    if(isempty(subTmp))
+                        dTIdx = [];
+                    else
+                        dTIdx = find(strcmp(subTmp(:,1),dType),1);
+                    end
+                    if(isempty(dTIdx))
+                        %dType not found -> add it
+                        subTmp{end+1,1} = dType;
+                        dTIdx = size(subTmp,1);
+                    end
+                    subTmp(dTIdx,2) = {roiTmp};
+                    this.nonDefaultSizeROICoordinates(subIdx) = {subTmp};
+                end                
+                this.setDirty(true);
+%             else
                 %this FLIM item (chunk) has a different size than the subject
-                subject.setResultROICoordinates(dType,ROIType,ROICoord);
-            end
+                %subject.setResultROICoordinates(dType,ROIType,ROICoord);
+
+%             end
             this.clearArithmeticRIs(); %todo: check if an AI uses an ROI
             this.clearObjMerged();
             this.clearMVGroups(subjectID,dType,dTypeNr);
         end
         
-        function deleteResultROICoordinates(this,dType,dTypeNr,ROIType)
-            %delete the ROI coordinates for ROIType
+        function removeResultROIType(this,ROIType)
+            %remove ROIType from all subjects
             if(~this.isLoaded)
                 this.load();
             end
-%             subject = this.getChild(subjectID);
-%             if(isempty(subject))
-%                 return
-%             end
-            this.myStudyInfoSet.deleteResultROICoordinates(ROIType);
+            for i = 1:this.nrSubjects
+                tmp = this.resultROICoordinates{i};
+                if(isempty(tmp))
+                    continue
+                end
+                idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
+                if(~isempty(idx))
+                    tmp(idx,:,:) = [];
+                    this.resultROICoordinates(i) = {tmp};
+                end
+                %update all existing non default size ROIs
+                ndsr = this.nonDefaultSizeROICoordinates{i};
+                if(~isempty(ndsr) && iscell(ndsr) && size(ndsr,2) == 2)
+                    for j = 1:size(ndsr,1)
+                        %loop over non default size data types
+                        tmp = ndsr{j,2};
+                        idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
+                        if(~isempty(idx))
+                            tmp(idx,:,:) = [];
+                            ndsr{j,2} = tmp;
+                        end
+                    end
+                    this.nonDefaultSizeROICoordinates{i} = ndsr;
+                end
+            end
             this.clearArithmeticRIs(); %todo: check if an AI uses an ROI
             this.clearObjMerged();
 %             this.clearMVGroups(subjectID,dType,dTypeNr);
@@ -443,7 +678,48 @@ classdef FDTStudy < FDTreeNode
             if(isempty(subject))
                 return
             end
-            this.myStudyInfoSet.setResultZScaling(subjectID,ch,dType,dTypeNr,zValues);
+            %set the ROI vector for subject
+            idx = this.subName2idx(subjectID);
+            if(isempty(idx) || isempty(dType) || length(zValues) ~= 3)
+                %subject not in study or z values size is wrong
+                return
+            end
+            tmp = this.resultZScaling{idx};
+            if(isempty(tmp))
+                tmp = cell(0,4);
+            end
+            idxCh = ch == [tmp{:,1}];
+            idxCh = idxCh(:);
+            if(~any(idxCh))
+                %channel not found
+                idxCh(end+1,1) = true;
+                tmp{idxCh,1} = ch;
+                tmp{idxCh,2} = dType;
+                tmp{idxCh,3} = dTypeNr;
+            end
+            idxType = strcmp(dType,tmp(:,2));
+            idxType = idxType(:) & idxCh(:);
+            if(~any(idxType))
+                %dType not found
+                idxCh(end+1,1) = true;
+                idxType(end+1,1) = true;
+                tmp{idxType,1} = ch;
+                tmp{idxType,2} = dType;
+                tmp{idxType,3} = dTypeNr;
+            end
+            idxNr = dTypeNr == [tmp{:,3}];
+            idxNr = idxNr(:) & idxType(:) & idxCh(:);
+            if(~any(idxNr))
+                %dType number not found
+                idxNr(end+1,1) = true;
+                tmp{idxNr,1} = ch;
+                tmp{idxNr,2} = dType;
+                tmp{idxNr,3} = dTypeNr;
+            end
+            tmp{find(idxNr,1),4} = single(zValues);
+            this.resultZScaling(idx) = {tmp};
+            this.setDirty(true);
+            %clean up
             this.clearObjMerged();
             this.clearMVGroups(subjectID,dType,dTypeNr);
         end
@@ -454,19 +730,88 @@ classdef FDTStudy < FDTreeNode
                 this.load();
             end
             %check if target is a condition
-            allConditions = [{FDTree.defaultConditionName()}; this.getDataFromStudyInfo('subjectInfoConditionalColumnNames');];            
+            allConditions = [{FDTree.defaultConditionName()}; this.getDataFromStudyInfo('subjectInfoConditionalColumnNames');];
             idx = strcmp(allConditions,subjectID);
             if(any(idx) || ~isempty(this.getChild(subjectID)))
-                this.myStudyInfoSet.setResultColorScaling(subjectID,ch,dType,dTypeNr,colorBorders);
+                %set the color scaling at subject subjectID
+                %check if target is a condition
+                if(strcmp(subjectID,FDTree.defaultConditionName()))
+                    %default condition: all subjects
+                    subIdx = 1:this.nrSubjects;
+                elseif(any(strcmp(subjectID,this.getDataFromStudyInfo('subjectInfoConditionalColumnNames'))))
+                    %specific condition
+                    subInfo = this.getSubjectInfo([]);
+                    subIdx = find(cell2mat(subInfo(:,this.subjectInfoColumnName2idx(subjectID))));
+                else
+                    %single subject
+                    subIdx = this.subName2idx(subjectID);
+                end
+                if(isempty(subIdx) || isempty(dType) || length(colorBorders) ~= 3)
+                    %subject not in study or color values size is wrong
+                    return
+                end
+                for i = 1:length(subIdx)
+                    tmp = this.resultColorScaling{subIdx(i)};
+                    if(isempty(tmp))
+                        tmp = cell(0,4);
+                    end
+                    idxCh = ch == [tmp{:,1}];
+                    idxCh = idxCh(:);
+                    if(~any(idxCh))
+                        %channel not found
+                        idxCh(end+1,1) = true;
+                        tmp{idxCh,1} = ch;
+                        tmp{idxCh,2} = dType;
+                        tmp{idxCh,3} = dTypeNr;
+                    end
+                    idxType = strcmp(dType,tmp(:,2));
+                    idxType = idxType(:) & idxCh(:);
+                    if(~any(idxType))
+                        %dType not found
+                        idxCh(end+1,1) = true;
+                        idxType(end+1,1) = true;
+                        tmp{idxType,1} = ch;
+                        tmp{idxType,2} = dType;
+                        tmp{idxType,3} = dTypeNr;
+                    end
+                    idxNr = dTypeNr == [tmp{:,3}];
+                    idxNr = idxNr(:) & idxType(:) & idxCh(:);
+                    if(~any(idxNr))
+                        %dType number not found
+                        idxNr(end+1,1) = true;
+                        tmp{idxNr,1} = ch;
+                        tmp{idxNr,2} = dType;
+                        tmp{idxNr,3} = dTypeNr;
+                    end
+                    if(isempty(tmp) || isempty(tmp{find(idxNr,1),4}) || any(tmp{find(idxNr,1),4} ~= colorBorders,'all'))
+                        tmp{find(idxNr,1),4} = colorBorders;
+                        this.resultColorScaling(subIdx(i)) = {tmp};
+                        this.setDirty(true);
+                    end
+                end
             end
         end
         
         function setResultCrossSection(this,subjectID,dim,csDef)
-            %set the cross section for subject subName and dimension dim
+            %set the cross section for subject subjectID and dimension dim
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.setResultCrossSection(subjectID,dim,csDef);
+            %set the cross section for subject
+            idx = this.subName2idx(subjectID);
+            if(isempty(idx) || length(csDef) ~= 3)
+                %subject not in study or csDef size is wrong
+                return
+            end
+            tmp = this.resultCrossSection{idx};
+            switch upper(dim)
+                case 'X'
+                    tmp(1:3) = csDef;
+                case 'Y'
+                    tmp(4:6) = csDef;
+            end
+            this.resultCrossSection(idx) = {tmp};
+            this.setDirty(true);
             subject = this.getChild(subjectID);
             if(~isempty(subject))
                 subject.setResultCrossSection(dim,csDef);
@@ -478,13 +823,63 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.setAllFLIMItems(subjectID,ch,items);
+            %set selected FLIM parameters for subject
+            idx = this.subName2idx(subjectID);
+            if(isempty(idx) || ch < 1)
+                %subject not in study
+                return
+            end
+            this.allFLIMItems(idx,ch) = {items};
+            this.setDirty(true);
         end
         
-        function subjectObj = insertSubject(this,subName,subjectInfo)
+        function subjectObj = insertSubject(this,subjectID,subInfo)
             %create a new subject and store its subject info
-            subjectObj = this.addSubject(subName);
-            this.myStudyInfoSet.insertSubject(subName,subjectInfo);
+            subjectObj = this.addSubject(subjectID);
+            %insert subject data into study info
+            %from clipboard or while importing studies            
+            subjectPos = this.subName2idx(subjectID);
+            this.resultFileChs(subjectPos,1:length(subInfo.resultFileChs)) = subInfo.resultFileChs;
+            this.measurementFileChs(subjectPos,1:length(subInfo.measurementFileChs)) = subInfo.measurementFileChs;
+            this.allFLIMItems(subjectPos,1:length(subInfo.allFLIMItems)) = subInfo.allFLIMItems;            
+            %fill subject info fields with data
+            for i = 1:length(subInfo.subjectInfoColumnNames)
+                str = subInfo.subjectInfoColumnNames{i,1};
+                [~, idx] = ismember(str,this.subjectInfoColumnNames);
+                this.subjectInfo(subjectPos,idx) = subInfo.subjectInfo(1,i);
+            end
+            %update ROICoordinates, if neccessary
+            subVec = 1:this.nrSubjects;
+            subVec(subjectPos) = [];
+            if(~isempty(subVec))
+                roiStudy = this.resultROICoordinates{subVec(1)};
+                roiSubject = subInfo.resultROICoordinates{1,1};
+                if(~isempty(roiStudy) && ~isempty(roiSubject))
+                    %check which ROIs are missing in the subject
+                    d = setdiff(roiStudy(:,1,1),roiSubject(:,1,1));
+                    for i = 1:length(d)
+                        [val,idx] = min(abs(roiSubject(:,1,1) - d(i)));
+                        if(val > 0)
+                            tmpNew = zeros(size(roiSubject,1)+val,size(roiSubject,2),size(roiSubject,3),'int16');
+                            tmpNew(1:idx,:,:) = roiSubject(1:idx,:,:);
+                            tmpNew(idx+val+1:end,:,:) = roiSubject(idx+1:end,:,:);
+                            tmpNew(idx+1:idx+val,1,1) = (roiSubject(idx,1,1)+1 : 1 : roiSubject(idx,1,1)+val)';
+                            roiSubject = tmpNew;
+                        end
+                    end
+                    subInfo.resultROICoordinates{1,1} = roiSubject;
+                    %check which ROIs are missing in the study
+                    d = setdiff(roiSubject(:,1,1),roiStudy(:,1,1));
+                    for i = 1:length(d)
+                        this.addResultROIType(d(i));
+                    end
+                end
+            end
+            this.resultROICoordinates(subjectPos) = subInfo.resultROICoordinates;
+            this.resultZScaling(subjectPos) = subInfo.resultZScaling;
+            this.resultColorScaling(subjectPos) = subInfo.resultColorScaling;
+            this.resultCrossSection(subjectPos) = subInfo.resultCrossSection;
+            this.setDirty(true);
         end
         
         function addColumn(this,name)
@@ -492,7 +887,11 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.addColumn(name);
+            %insert new column at the end of the table            
+            this.subjectInfoColumnNames(end+1,1)= {name};
+            this.subjectInfo(:,end+1)= cell(max(1,size(this.subjectInfo,1)),1);
+            this.subjectInfoConditionDefinition(end+1,1) = cell(1,1);
+            this.setDirty(true);
         end
         
         function addConditionalColumn(this,val)
@@ -500,15 +899,48 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.addConditionalColumn(val);
+            %create a new conditional column out of two existing columns
+            ref.colA = val.list{val.colA};      %column A
+            ref.colB = val.list{val.colB};      %column B
+            ref.logOp = val.ops{val.logOp};     %logical operator
+            ref.relA = val.ops{val.relA + 6};   %relational operator of colA
+            ref.relB = val.ops{val.relB + 6};   %relational operator of colB
+            ref.valA = val.valA;                %relation value of colA
+            ref.valB = val.valB;                %relation value of colB            
+            this.addColumn(val.name);
+            %save reference for condition / combination
+            n = this.subjectInfoColumnName2idx(val.name);
+            this.subjectInfoConditionDefinition{n,1} = ref;
+            this.setConditionColor(val.name,[]);
+            %update conditions / combinations
+            this.checkConditionRef(n);
+            this.setDirty(true);
         end
         
-        function setConditionalColumnDefinition(this,colName,opt)
+        function setConditionalColumnDefinition(this,colName,val)
             %set definition for conditional column
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.setConditionalColumnDefinition(colName,opt);
+            n = this.subjectInfoColumnName2idx(colName);
+            if(isempty(val))
+                %delete condition
+                ref = [];
+                this.subjectInfo(:,n) = cell(this.nrSubjects,1);
+            else
+                ref.colA = val.list{val.colA};      %column A
+                ref.colB = val.list{val.colB};      %column B
+                ref.logOp = val.ops{val.logOp};     %logical operator
+                ref.relA = val.ops{val.relA + 6};   %relational operator of colA
+                ref.relB = val.ops{val.relB + 6};   %relational operator of colB
+                ref.valA = val.valA;                %relation value of colA
+                ref.valB = val.valB;                %relation value of colB
+            end
+            %save new reference for condition / combination
+            this.subjectInfoConditionDefinition{n,1} = ref;            
+            %update conditions / combinations
+            this.checkConditionRef([]);
+            this.setDirty(true);
         end
         
         function setSubjectInfoColumnName(this,newColumnName,idx)
@@ -517,8 +949,8 @@ classdef FDTStudy < FDTreeNode
                 this.load();
             end
             %check if idx is a conditional column
-            conditions = this.myStudyInfoSet.getDataFromStudyInfo('subjectInfoConditionalColumnNames');
-            allColumnNames = this.myStudyInfoSet.getDataFromStudyInfo('subjectInfoAllColumnNames');
+            conditions = this.getDataFromStudyInfo('subjectInfoConditionalColumnNames');
+            allColumnNames = this.getDataFromStudyInfo('subjectInfoAllColumnNames');
             colName = allColumnNames{idx};
             if(ismember(colName,conditions))
                 condition = this.getConditionObj(colName);
@@ -528,7 +960,35 @@ classdef FDTStudy < FDTreeNode
                 end
             end
             %set column name in study info data
-            this.myStudyInfoSet.setSubjectInfoColumnName(newColumnName,idx);
+            %give column at idx a new name
+            if(isempty(idx))
+                %set all subjectInfoColumnNames (initial case)
+                this.subjectInfoColumnNames = newColumnName;
+            else
+                %set a single subjectInfoHeader
+                oldName = this.subjectInfoColumnNames{idx,1};
+                %check if renamed colum is a reference for a conditional column
+                for i=1:length(this.subjectInfoColumnNames)
+                    ref = this.subjectInfoConditionDefinition{i,1};
+                    if(isempty(ref))
+                        %column is not a conditional column
+                        continue
+                    end
+                    if(strcmp(ref.colA,oldName))
+                        %reference found
+                        ref.colA = newColumnName;
+                        this.subjectInfoConditionDefinition{i,1} = ref;
+                    end
+                    if(strcmp(ref.colB,oldName))
+                        %reference found
+                        ref.colB = newColumnName;
+                        this.subjectInfoConditionDefinition{i,1} = ref;
+                    end
+                end
+                %set new column name
+                this.subjectInfoColumnNames{idx,1} = newColumnName;
+                this.setDirty(true);
+            end
         end
         
         function setSubjectInfo(this,irow,icol,newData)
@@ -536,7 +996,18 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.setSubjectInfo(irow,icol,newData);
+            %set data in subject info at specific row and column
+            idx = find(~cellfun(@isempty,this.subjectInfo(:,icol)));
+            if(isempty(idx) && (~isnumeric(newData) && all(isstrprop(newData,'digit')) || ischar(newData) && length(newData) >= 2 && strcmp(newData(1),'-') && all(isstrprop(newData(2:end),'digit'))))
+                %the subject info column is empty and the data seems to be numeric -> convert it
+                newData = str2double(newData);
+            elseif(~isempty(idx) && ~isnumeric(newData) && isnumeric(this.subjectInfo{idx(1),icol}))
+                %there is old data, which is numeric -> also convert the new data (if this is a string it will become NaN)
+                newData = str2double(newData);
+            end
+            this.subjectInfo(irow,icol) = {newData};
+            this.checkConditionRef([]);
+            this.setDirty(true);
         end
         
         function setSubjectInfoConditionalColumnDefinition(this,def,idx)
@@ -544,7 +1015,12 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.setSubjectInfoConditionalColumnDefinition(def,idx);
+            %set definition def of a conditional column with the index idx
+            if(idx <= size(this.subjectInfoConditionDefinition,1))
+                %set single definition
+                this.subjectInfoConditionDefinition(idx,1) = def;
+                this.setDirty(true);
+            end
         end
         
         function importStudyInfo(this,file,mode)
@@ -578,37 +1054,72 @@ classdef FDTStudy < FDTreeNode
             %make sure we have only strings as subjects
             idx = cellfun(@ischar,xlsSubs);
             xlsSubs = xlsSubs(idx);
-            newSubs = setdiff(xlsSubs,this.getAllSubjectNames(FDTree.defaultConditionName()));            
+            newSubs = setdiff(xlsSubs,this.getAllSubjectNames(FDTree.defaultConditionName()));
             %add new subjects
             for i=1:length(newSubs)
                 this.addSubject(newSubs{i});
-            end            
-            this.myStudyInfoSet.importStudyInfo(raw,mode);
+            end
+            %import study info (subject info table) from excel file, mode 1: delete all old, mode 2: update old & add new
+            %get subject and header names
+            xlsSubs = raw(2:end,1);
+            %make sure we have only strings as subjects
+            idx = cellfun(@ischar,xlsSubs);
+            xlsSubs = xlsSubs(idx);
+            %make sure we have only strings as headers
+            xlsHeads = raw(1,2:end);
+            idx = cellfun(@ischar,xlsHeads);
+            xlsHeads = xlsHeads(idx);
+            xlsFile = raw(1,1);
+            if(~ischar(xlsFile{1,1}))
+                xlsFile = {'File'};
+            end
+            switch mode
+                case 1 %Delete Old Info
+                    this.subjectInfoColumnNames = xlsHeads;
+                    this.subjectInfo = cell(0,0);
+                    this.subjectInfoConditionDefinition = cell(size(this.subjectInfoColumnNames));
+                case 2 %Update and Add New
+                    %remove existing conditional columns from import
+                    for i = length(xlsHeads):-1:1
+                        if(~isempty(this.getConditionalColumnDefinition(this.subjectInfoColumnName2idx(xlsHeads{i}))))
+                            xlsHeads(i) = [];
+                        end
+                    end
+                    %determine already existing info headers
+                    newHeads = setdiff(xlsHeads,this.subjectInfoColumnNames);
+                    diff = length(newHeads);
+                    if(diff > 0) %add new info columns
+                        this.subjectInfoColumnNames(end+1:end+diff,1) = cell(diff,1);
+                        this.subjectInfo(:,end+1:end+diff) = cell(size(this.subjectInfo,1),diff);
+                        this.subjectInfoConditionDefinition(end+1:end+diff,1) = cell(diff,1);
+                    end
+                    %add new info headers
+                    this.subjectInfoColumnNames(end+1-diff:end,1) = newHeads;
+            end
+            %update existing subjects and add new info
+            for i = 1:length(this.subjectNames)
+                idxXls = find(strcmp(this.subjectNames{i},xlsSubs),1);
+                if(~isempty(idxXls)) %should not be empty...
+                    if(size(this.subjectInfo,2) < length(this.subjectInfoColumnNames))
+                        diff = length(this.subjectInfoColumnNames) - size(this.subjectInfo,2);
+                        this.subjectInfo(:,end+1:end+diff) = cell(size(this.subjectInfo,1),diff);
+                    elseif(size(this.subjectInfo,2) > length(this.subjectInfoColumnNames)) %should not happen
+                        this.subjectInfo = this.subjectInfo(:,1:length(this.subjectInfoColumnNames));
+                    end
+                    %this.subjectInfo(i,:) = cell(1,length(this.subjectInfoColumnNames));
+                    %add info data for specific subject
+                    for j = 1:length(xlsHeads)
+                        idxHeadThis = find(strcmp(xlsHeads{j},this.subjectInfoColumnNames),1);
+                        idxHeadImport = find(strcmp(xlsHeads{j},raw(1,:)),1);
+                        this.subjectInfo(i,idxHeadThis) = raw(idxXls+1,idxHeadImport);
+                    end
+                end
+            end
+            this = FDTStudy.checkStudyConsistency(this);
+            this.sortSubjects();
+            this.checkConditionRef([]); %update conditional columns
+            this.setDirty(true);
         end
-        
-%         function importResultStruct(this,subjectID,result,itemsTarget)
-%             %import a new subject
-%             subject = this.getSubject(subjectID);
-%             if(isempty(subject))
-%                 subject = this.addSubject(subjectID);
-%             end            
-%             chan = result.channel;
-%             sfile = sprintf('result_ch%02d.mat',chan);
-%             try
-%                 save(fullfile(this.myDir,subjectID,sfile),'result');
-%             catch ME
-%                 %file saving failed
-%                 %todo: better error handling / messaging
-%                 return
-%             end
-%             this.myStudyInfoSet.setAllFLIMItems(subjectID,chan,removeNonVisItems(fieldnames(result.results.pixel)));
-%             this.myStudyInfoSet.setSelFLIMItems(subjectID,chan,itemsTarget);
-%             this.myStudyInfoSet.setResultOnHDD(subjectID,chan);
-%             this.checkIRFInfo(chan);
-%             %add empty channel
-%             this.addObj(subjectID,chan,[],[],[]);
-% %             subject.loadChannelResult(chan);
-%         end
         
         function importSubject(this,importSubject)
             %import a new subject object (and possibly study)
@@ -652,47 +1163,7 @@ classdef FDTStudy < FDTreeNode
                     end
                 end
             end
-        end        
-        
-%         function importResultObj(this,resultObj,subjectName)
-%             %import a result of a new subject (and possibly study)
-%             subject = this.getSubject(subjectID);
-%             if(isempty(subject))
-%                 subject = this.addSubject(subjectID);
-%             end
-%             subject.importResultStruct(subjectName,resultObj.makeExportStruct(1),[]);
-%                 %this.removeObjMerged();
-%             
-%         end
-%         
-%         function importMeasurementObj(this,fluoFileObj)
-%             %import a measurement of a new subject (and possibly study)
-%             subjectID = fluoFileObj.getDatasetName();
-%             subject = this.getSubject(subjectID);
-%             if(isempty(subject))
-%                 subject = this.addSubject(subjectID);
-%             end
-%             
-%             fluoFileObj.save2Disk([],fullfile(this.myDir,subjectID));
-%             this.checkSubjectFiles(subjectID);
-% %             sfile = sprintf('measurement_ch%02d.mat',chan);
-% %             try
-% %                 save(fullfile(sDir,sfile),'import');
-% %             catch ME
-% %                 %file saving failed
-% %                 %todo: better error handling / messaging
-% %                 return
-% %             end 
-% %             this.myStudyInfoSet.setResultOnHDD(subjectID,chan);
-% %             this.checkIRFInfo(chan);
-%             chs = fluoFileObj.getNonEmptyChannelList();
-%             if(~isempty(chs))
-%                 for ch = chs
-%                     subject.removeResultChannelFromMemory(ch);
-%                 end
-%                 subject.loadChannelMeasurement(chs(1));
-%             end
-%         end
+        end
         
         function setArithmeticImageDefinition(this,aiName,aiParam)
             %set name and definition of arithmetic image for a study
@@ -700,7 +1171,25 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.setArithmeticImageDefinition(aiName,aiParam);
+            %set arithmetic image info
+            if(isempty(aiName))
+                return
+            end
+            idx = find(strcmp(aiName,this.arithmeticImageInfo(:,1)));
+            if(isempty(idx))
+                %new image
+                if(isempty(this.arithmeticImageInfo) || isempty(this.arithmeticImageInfo{1,1}))
+                    %first arithmetic image for this study
+                    this.arithmeticImageInfo(1,1) = {aiName};
+                    this.arithmeticImageInfo(1,2) = {aiParam};
+                else
+                    this.arithmeticImageInfo(end+1,1) = {aiName};
+                    this.arithmeticImageInfo(end,2) = {aiParam};
+                end
+            else
+                this.arithmeticImageInfo(idx,2) = {aiParam};
+            end
+            this.setDirty(true);
         end
         
         function setConditionColor(this,cName,val)
@@ -708,7 +1197,22 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.setConditionColor(cName,val);
+            %set condition color
+            if(isempty(val) || length(val) ~= 3)
+                val = FDTStudy.makeRndColor();
+            end
+            if(strcmp(cName,FDTree.defaultConditionName()))
+                this.conditionColors(2,1) = {val};
+            else
+                idx = find(strcmp(cName,this.conditionColors(1,:)), 1);
+                if(isempty(idx))
+                    this.conditionColors(1,end+1) = {cName};
+                    this.conditionColors(2,end) = {val};
+                else
+                    this.conditionColors(2,idx) = {val};
+                end
+            end
+            this.setDirty(true);
         end
         
         %% removing functions
@@ -717,7 +1221,14 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.removeArithmeticImageDefinition(aiName);
+            idx = find(strcmp(aiName,this.arithmeticImageInfo(:,1)));
+            if(~isempty(idx))
+                this.arithmeticImageInfo(idx,:) = [];
+                if(isempty(this.arithmeticImageInfo))
+                    this.arithmeticImageInfo = cell(1,2);
+                end
+                this.setDirty(true);
+            end
             %remove the arithmetic image from each subject
             %do NOT load subjects from disk
             for i = 1:this.nrChildren
@@ -773,33 +1284,11 @@ classdef FDTStudy < FDTreeNode
                 %end
                 if(strcmp(type,'result'))
                     subject.removeResultChannelFromMemory([]);
-                    this.myStudyInfoSet.removeSubjectResult(subjectID);
+                    this.removeSubjectResult(subjectID);
                     this.clearObjMerged(ch);
                 end
             end
         end
-        
-%         function removeSubjectResult(this,subjectID)
-%             %remove all results of a subject
-%             if(~this.isLoaded)
-%                 this.load();
-%             end
-%             subject = this.getChild(subjectID);
-%             if(~isempty(subject))
-%                 subject.removeResultChannelFromMemory([]);
-%                 this.myStudyInfoSet.removeSubjectResult(subjectID);
-%                 %find result files
-%                 subDir = fullfile(this.myDir,subject.name);
-%                 files = rdir(sprintf('%s%sresult_ch*.mat',subDir,filesep));
-%                 for i = 1:length(files)
-%                     try
-%                         delete(files(i).name);
-%                     catch ME
-%                         %todo
-%                     end
-%                 end
-%             end
-%         end
         
         function removeSubject(this,subjectID)
             %remove a subject
@@ -810,7 +1299,39 @@ classdef FDTStudy < FDTreeNode
             if(~isempty(subject))
                 subject.delete();
                 this.deleteChildByPos(subjectPos);
-                this.myStudyInfoSet.removeSubject(subjectID);                
+                %remove subject subjectID from this study
+                idx = this.subName2idx(subjectID);
+                if(isempty(idx))
+                    %subject not in study
+                    return
+                end
+                if(length(this.subjectNames) > 1)
+                    %remove arbitrary subject
+                    this.resultFileChs(idx,:) = [];
+                    this.measurementFileChs(idx,:) = [];
+                    this.resultROICoordinates(idx) = [];
+                    this.nonDefaultSizeROICoordinates(idx) = [];
+                    this.resultZScaling(idx) = [];
+                    this.resultColorScaling(idx) = [];
+                    this.resultCrossSection(idx) = [];
+                    this.subjectNames(idx) = [];
+                    this.subjectInfo(idx,:) = [];
+                    this.allFLIMItems(idx,:) = [];
+                else
+                    %remove last subject
+                    this.resultFileChs = cell(0,0);
+                    this.measurementFileChs = cell(0,0);
+                    this.resultROICoordinates = cell(0,0);
+                    this.nonDefaultSizeROICoordinates = cell(0,0);
+                    this.resultZScaling = cell(0,0);
+                    this.resultColorScaling = cell(0,0);
+                    this.resultCrossSection = cell(0,0);
+                    this.subjectNames = cell(0,0);
+                    this.subjectInfo = cell(0,0);
+                    this.allFLIMItems = cell(0,0);
+                end
+                this.setDirty(true);
+                %clean up
                 this.clearObjMerged();
             end
             %new
@@ -834,7 +1355,7 @@ classdef FDTStudy < FDTreeNode
                 end
             end
             %delete condition MVGroup objects
-            conditionStr = this.myStudyInfoSet.getDataFromStudyInfo('subjectInfoConditionalColumnNames');
+            conditionStr = this.getDataFromStudyInfo('subjectInfoConditionalColumnNames');
             conditionMVGroupID = sprintf('Condition%s',MVGroupID);
             for i=1:length(conditionStr)
                 condition = this.getConditionObj(conditionStr{i});
@@ -845,8 +1366,21 @@ classdef FDTStudy < FDTreeNode
                     end
                 end
             end
-            %delete MVGroup parameter in study info set
-            this.myStudyInfoSet.removeMVGroup(MVGroupID);
+            %delete MVGroup parameter in study info
+            MVGroupNr = this.MVGroupName2idx(MVGroupID);
+            this.MVGroupTargets(:,MVGroupNr) = [];
+            %delete saved ROIs
+            for i = 1:this.nrSubjects
+                tmp = this.nonDefaultSizeROICoordinates{i};
+                idx = find(strcmp(MVGroupID,tmp(:,1)),1);
+                if(~isempty(idx))
+                    tmp(idx,:) = [];
+                    if(isempty(tmp))
+                        tmp = cell(1,1);
+                    end
+                end
+                this.nonDefaultSizeROICoordinates{i} = tmp;
+            end
             this.setDirty(true);
         end
         
@@ -924,7 +1458,7 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            cond = this.myStudyInfoSet.getColumnDependencies(colName);
+            cond = this.getColumnDependencies(colName);
             if(~isempty(cond))
                 %we have a reference column
                 choice = questdlg(sprintf('"%s" is a reference column. All corresponding conditions will be deleted! Do you want to continue?',...
@@ -940,7 +1474,22 @@ classdef FDTStudy < FDTreeNode
             end
             %remove it from merged objects
             this.myConditionStatistics.removeID(colName);
-            this.myStudyInfoSet.removeColumn(colName);
+            %delete column in table study data
+            col = this.subjectInfoColumnName2idx(colName);
+            if(isempty(this.subjectInfo))
+                %special case: first header has to be deleted when
+                %importing study
+                this.subjectInfoColumnNames(col,:) = [];
+            else
+                this.subjectInfoColumnNames(col,:) = [];
+                this.subjectInfo(:,col) = [];
+                this.subjectInfoConditionDefinition(col,:) = [];
+                idx = find(strcmp(colName,this.conditionColors(1,:)), 1);
+                if(~isempty(idx))
+                    this.conditionColors(:,idx) = [];
+                end
+            end
+            this.setDirty(true);
         end
         
         %% output functions
@@ -949,7 +1498,7 @@ classdef FDTStudy < FDTreeNode
             if(~this.isDirty || isMultipleCall())
                 return
             end
-            export = this.myStudyInfoSet.makeExportStruct([]);
+            export = this.makeExportStruct([]);
             export.name = this.name;
             export.revision = this.revision;
             matFile = fullfile(this.myDir,'studyData.mat');
@@ -977,7 +1526,6 @@ classdef FDTStudy < FDTreeNode
             end
             save(matFile,'export','checksum');
             %remove unnecessary files
-            %this.checkStudyFiles(); %this will set dirty flag to false
             this.dirtyFlag = false;
             if(this.isDirty)
                 %there are changes in subjects -> save them
@@ -1010,7 +1558,7 @@ classdef FDTStudy < FDTreeNode
         
         function out = isArithmeticImage(this,dType)
             %return true, if dType is an arithmetic image
-            aiNames = this.myStudyInfoSet.getArithmeticImageDefinition();
+            aiNames = this.getArithmeticImageDefinition();
             idx = strcmp(dType,aiNames);
             out = sum(idx) == 1;
         end
@@ -1021,7 +1569,7 @@ classdef FDTStudy < FDTreeNode
             if(~this.isArithmeticImage(aiNameTarget))
                 return
             end
-            [allAiNames, aiParams] = this.myStudyInfoSet.getArithmeticImageDefinition();
+            [allAiNames, aiParams] = this.getArithmeticImageDefinition();
             idx = strcmp(aiNameTarget,allAiNames);
             aiParams = aiParams{idx};
             if(this.isArithmeticImage(aiParams.FLIMItemA))
@@ -1045,7 +1593,7 @@ classdef FDTStudy < FDTreeNode
             if(~isempty(aiNameUT) && ~this.isArithmeticImage(aiNameUT) || ~this.isArithmeticImage(aiNameTarget))
                 return
             end
-            [allAiNames, allAiParams] = this.myStudyInfoSet.getArithmeticImageDefinition();
+            [allAiNames, allAiParams] = this.getArithmeticImageDefinition();
             if(~isempty(aiNameUT))
                 %investigate only specific ai
                 idx = strcmp(aiNameUT,allAiNames);
@@ -1074,40 +1622,6 @@ classdef FDTStudy < FDTreeNode
                         out(end+1,1) = allAiNames(i);
                         indirectHitFound = true;
                     end
-                    
-%                     p = allAiParams{i};
-%                     if(~strcmp(p.FLIMItemA,aiNameTarget) && this.isArithmeticImage(p.FLIMItemA))
-%                         %check dependencies of FLIMItemB
-%                         tmp = this.arithmeticImagesRequiredFor(p.FLIMItemA);
-%                         if(any(ismember(tmp,out)) && ~any(ismember(allAiNames(i),out)))
-%                             out(end+1,1) = allAiNames(i);
-%                             indirectHitFound = true;
-%                         end
-%                     elseif(strcmp(p.compAgainstB,'FLIMItem') && ~strcmp(p.opA,'-no op-') && ~strcmp(p.FLIMItemB,aiNameTarget) && this.isArithmeticImage(p.FLIMItemB))
-%                         %check dependencies of FLIMItemB
-%                         tmp = this.arithmeticImagesRequiredFor(p.FLIMItemB);
-%                         if(any(ismember(tmp,out)) && ~any(ismember(allAiNames(i),out)))
-%                             out(end+1,1) = allAiNames(i);
-%                             indirectHitFound = true;
-%                         end
-%                         %                     tmp = this.arithmeticImagesDependingOn(p.FLIMItemB,aiNameTarget);
-%                         %                     if(~isempty(tmp))
-%                         %                         tmp(end+1,1) = allAiNames(i);
-%                         %                         out = union(out,tmp);
-%                         %                     end
-%                     elseif(strcmp(p.compAgainstC,'FLIMItem') && ~strcmp(p.opB,'-no op-') && ~strcmp(p.FLIMItemC,aiNameTarget) && this.isArithmeticImage(p.FLIMItemC))
-%                         %check dependencies of FLIMItemC
-%                         tmp = this.arithmeticImagesRequiredFor(p.FLIMItemC);
-%                         if(any(ismember(tmp,out)) && ~any(ismember(allAiNames(i),out)))
-%                             out(end+1,1) = allAiNames(i);
-%                             indirectHitFound = true;
-%                         end
-%                         %                     tmp = this.arithmeticImagesDependingOn(p.FLIMItemC,aiNameTarget);
-%                         %                     if(~isempty(tmp))
-%                         %                         tmp(end+1,1) = allAiNames(i);
-%                         %                         out = union(out,tmp);
-%                         %                     end
-%                     end
                 end
                 if(~indirectHitFound)
                     break
@@ -1121,7 +1635,7 @@ classdef FDTStudy < FDTreeNode
                 this.load();
             end
             if(~ischar(subjectID))
-                subjectID = this.myStudyInfoSet.idx2SubName(subjectID);
+                subjectID = this.idx2SubName(subjectID);
             end
             out = this.getChild(subjectID);
             if(isempty(out) && createNewSubjectFlag)
@@ -1137,18 +1651,10 @@ classdef FDTStudy < FDTreeNode
                 this.load();
             end
             if(~ischar(subjectID))
-                subjectID = this.myStudyInfoSet.idx2SubName(subjectID);
+                subjectID = this.idx2SubName(subjectID);
             end
             out = subject4Import(this,subjectID);
         end
-        
-%         function [ROIType, ROISubType, ROICustomCoordinates] = getResultROIInfo(this,subjectID)
-%             %get all info on result ROI definition of subject
-%             ROIType = this.getResultROIType(subjectID);
-%             ROISubType = this.getResultROISubType(subjectID);
-%             %ROISubTypeAnchor = this.getResultROISubTypeAnchor(subjectID);
-%             ROICustomCoordinates = this.getResultROI(subjectID,[]);
-%         end
         
         function [resultObj, isBH, chNrs] = getResultObj(this,subjectID,chan)
             %get fluoDecayFitResult object, chan = [] loads all channels
@@ -1157,7 +1663,7 @@ classdef FDTStudy < FDTreeNode
             end
             %get all FLIM data for subject subjectID
             resultObj = []; isBH = false;
-            chNrs = cell2mat(this.myStudyInfoSet.getResultFileChs(subjectID));
+            chNrs = cell2mat(this.getResultFileChs(subjectID));
             if(isempty(chan) && ~isempty(chNrs))
                 chan = chNrs;
             elseif(~any(chNrs == chan) || (isempty(chan) && isempty(chNrs)))
@@ -1165,7 +1671,7 @@ classdef FDTStudy < FDTreeNode
                 return
             end
             if(~ischar(subjectID))
-                subjectID = this.myStudyInfoSet.idx2SubName(subjectID);
+                subjectID = this.idx2SubName(subjectID);
             end
             resultObj = fluoSubject(this,subjectID);
             chNrs = resultObj.getNonEmptyChannelList('result');
@@ -1193,48 +1699,6 @@ classdef FDTStudy < FDTreeNode
                 resultObj = [];
             end
         end
-        
-%         function mObj = getMeasurementObj(this,varargin)
-%             %get fluoFile object containing measurement data, chan = [] loads all channels
-%             mObj = [];
-%             if(length(varargin) == 2)
-%                 subjectID = varargin{1};
-%                 chan = varargin{2};
-%             elseif(length(varargin) == 3)
-%                 study = this.myParent.getStudy(varargin{1});
-%                 if(~isempty(study))
-%                     mObj = study.getMeasurementObj(varargin{2:3});
-%                 end
-%                 return
-%             else
-%                 return
-%             end            
-%             if(~ischar(subjectID))
-%                 subjectID = this.myStudyInfoSet.idx2SubName(subjectID);
-%             end
-%             chNrs = cell2mat(this.myStudyInfoSet.getMeasurementFileChs(subjectID));
-%             if(isempty(chNrs))
-%                 %no data in subject or subject not in study
-%                 return
-%             elseif(isempty(chan))
-%                 chan = chNrs;
-%             elseif(~any(chNrs == chan))
-%                 %channel not found
-%                 return                
-%             end            
-%             mObj = measurementInFDTree(this.FLIMXParamMgrObj,fullfile(this.myDir,subjectID));
-% %             mObj.setStudyName(this.name);            
-% %             for ch = chan
-% %                 goOn = mObj.loadFromDisk(fullfile(this.myDir,subjectID,sprintf('measurement_ch%02d.mat',ch)));
-% %                 if(~goOn)
-% %                     mObj = [];
-% %                     break;
-% %                 end
-% %             end
-% %             if(isempty(chNrs) || ~strcmp(mObj.getDatasetName(),subjectID))
-% %                 mObj.setDatasetName(subjectID);
-% %             end
-%         end
         
         function out = getStudyObjs(this,cName,chan,dType,id,sType)
             %get all fData objects of datatype dType and with id from a study
@@ -1379,7 +1843,7 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            nr = this.myStudyInfoSet.subName2idx(subjectID);
+            nr = this.subName2idx(subjectID);
         end
         
         function [measurementChs, resultChs, position, resolution] = getSubjectFilesStatus(this,subjectID)
@@ -1404,7 +1868,19 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getMVGroupTargets(MVGroupID);
+            %get multivariate targets of a MVGroup
+            MVGroupNr = this.MVGroupName2idx(MVGroupID);
+            if(isempty(MVGroupNr))
+                out = [];
+                return
+            end
+            targets = this.MVGroupTargets{2,MVGroupNr};
+            if(isempty(targets))
+                %no targets
+                out = cell(0,0);
+            else
+                out = targets;
+            end
         end
         
         function nr = getNrSubjects(this,cName)
@@ -1417,9 +1893,9 @@ classdef FDTStudy < FDTreeNode
                 nr = this.nrChildren;
             else
                 %get number according to conditional column
-                idx = this.myStudyInfoSet.subjectInfoColumnName2idx(cName);
-                subjectInfo = this.myStudyInfoSet.getSubjectInfo([]);
-                col = cell2mat(subjectInfo(:,idx));
+                idx = this.subjectInfoColumnName2idx(cName);
+                si = this.getSubjectInfo([]);
+                col = cell2mat(si(:,idx));
                 nr = sum(col);
             end
         end
@@ -1435,9 +1911,9 @@ classdef FDTStudy < FDTreeNode
                 return
             end
             %show only subjects which fulfill the conditional column
-            idx = this.myStudyInfoSet.subjectInfoColumnName2idx(cName);
-            subjectInfo = this.myStudyInfoSet.getSubjectInfo([]);
-            col = cell2mat(subjectInfo(:,idx));
+            idx = this.subjectInfoColumnName2idx(cName);
+            si = this.getSubjectInfo([]);
+            col = cell2mat(si(:,idx));
             dStr = dStr(col);
         end
         
@@ -1482,23 +1958,6 @@ classdef FDTStudy < FDTreeNode
                 str = unique([str; MVGroupNames]);
             end            
         end
-                
-%         function str = getMVGroupNames(this,subjectID,ch)
-%             %get a string of all MVGroup objects in channel ch in subject
-%             if(~this.isLoaded)
-%                 this.load();
-%             end
-%             subject = this.getChild(subjectID);
-%             if(isempty(subject))
-%                 str = [];
-%                 return
-%             end
-% %             if(~subject.subjectIsLoaded(ch))
-% %                 subject.loadChannel(ch,false);
-% %             end
-%             %get existing FLIMitems in channel + arithmetic images (which may have not been computed yet)
-%             str = subject.getMVGroupNames(ch);
-%         end
         
         function out = getHeight(this,subjectID)
             %get image height in subject
@@ -1561,9 +2020,8 @@ classdef FDTStudy < FDTreeNode
                     case 'median'
                         data(i) = median(tmp(~isinf(tmp)),'omitnan'); %tmp(~isnan(tmp) & ~isinf(tmp))
                     otherwise
-                        data = [data; tmp(:)]; 
+                        data = [data; tmp(:)];
                 end
-                       
             end
         end
         
@@ -1676,17 +2134,24 @@ classdef FDTStudy < FDTreeNode
         end
         
         function items = getAllFLIMItems(this,subjectID,ch)
-            %
+            %return all FLIM items (FDTChunk names) of a specific subject or the whole study
             if(~this.isLoaded)
                 this.load();
             end
-            items = this.myStudyInfoSet.getAllFLIMItems(subjectID,ch);
+            if(isempty(subjectID))
+                %get FLIM parameters for all subjects
+                items = this.allFLIMItems;
+            else
+                %get FLIM parameters for subject subjectID
+                idx = this.subName2idx(subjectID);
+                if(isempty(idx) || ch < 1 || ch > size(this.resultFileChs,2))
+                    %subject not in study or channel not valid
+                    items = [];
+                    return
+                end
+                items = this.allFLIMItems{idx,ch};
+            end
         end
-                        
-%         function out = getResultFileChs(this,j)
-%             %
-%             out = this.myStudyInfoSet.getResultFileChs(j);
-%         end
         
         function out = getMVGroupNames(this,mode)
             %get list of MVGroups in study
@@ -1695,7 +2160,23 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getMVGroupNames(mode);
+            out = cell(0,0);
+            if(isempty(this.MVGroupTargets))
+                return
+            end            
+            MVGroupStr = this.MVGroupTargets(1,:);
+            MVGroupT = this.MVGroupTargets(2,:);
+            if(mode == 0)
+                out = MVGroupStr;
+                return
+            end            
+            %get only computable MVGroups
+            for i = 1:length(MVGroupStr)
+                if(isempty(MVGroupT{i}.x) || isempty(MVGroupT{i}.y))
+                    continue
+                end
+                out(end+1,1) = MVGroupStr(i);
+            end
         end
         
         function out = getConditionalColumnDefinition(this,idx)
@@ -1703,15 +2184,26 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getConditionalColumnDefinition(idx);
+            if(~isempty(idx) && ~isempty(this.subjectInfoColumnNames) && length(this.subjectInfoConditionDefinition) >= idx)
+                out = this.subjectInfoConditionDefinition{idx,1};
+            else
+                out = [];
+            end
         end
                 
-        function out = getSubjectInfo(this,subName)
+        function out = getSubjectInfo(this,subjectID)
             %return the data of all columns in subject info
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getSubjectInfo(subName);
+            if(isempty(subjectID))
+                out = this.subjectInfo;
+            else
+                if(~isempty(this.subjectInfo))
+                    %todo: check if subjectID is valid!
+                    out = this.subjectInfo(subjectID,:);
+                end
+            end
         end
         
         function out = getSubjectInfoConditionalColumnDefinitions(this)
@@ -1719,7 +2211,7 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getSubjectInfoConditionalColumnDefinitions();
+            out = this.subjectInfoConditionDefinition;
         end
         
         function out = getResultROIGroup(this,grpName)
@@ -1727,82 +2219,232 @@ classdef FDTStudy < FDTreeNode
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getResultROIGroup(grpName);
-        end        
+            if(isempty(grpName))
+                out = this.resultROIGroups;
+            else
+                idx = find(strcmp(this.resultROIGroups(:,1),grpName),1,'first');
+                if(isempty(idx))
+                    out = [];
+                else
+                    out = this.resultROIGroups(idx,2);
+                end
+            end
+        end
         
         function [ids, str] = getResultROITypes(this)
             %return the different ROI types for a study
             if(~this.isLoaded)
                 this.load();
             end
-            [ids, str] = this.myStudyInfoSet.getResultROITypes();
+            idx = find(~cellfun(@isempty,this.resultROICoordinates),1,'first');
+            if(isempty(idx))
+                allROT = ROICtrl.getDefaultROIStruct();
+                ids = allROT(:,1,1);
+                str = arrayfun(@ROICtrl.ROIType2ROIItem,ids,'UniformOutput',false);
+            else
+                ids = this.resultROICoordinates{idx,1}(:,1,1);
+                str = arrayfun(@ROICtrl.ROIType2ROIItem,ids,'UniformOutput',false);
+            end
         end
         
-        function out = getResultROICoordinates(this,subName,dType,ROIType)
+        function out = getResultROICoordinates(this,subjectID,dType,ROIType)
             %return ROI coordinates for ROIType in a subject
             if(~this.isLoaded)
                 this.load();
             end
-            subject = this.getChild(subName);
+            subject = this.getChild(subjectID);
             if(isempty(subject))
                 return
             end
             if(isempty(ROIType) || subject.getDefaultSizeFlag(dType))
-                out = this.myStudyInfoSet.getResultROICoordinates(subName,ROIType);
+                %return ROI coordinates for specific subject and ROI type
+                if(isempty(subjectID))
+                    out = this.resultROICoordinates;
+                else
+                    if(~isnumeric(subjectID))
+                        subjectID = this.subName2idx(subjectID);
+                        if(isempty(subjectID))
+                            out = [];
+                            return
+                        end
+                    end
+                    %out = double(cell2mat(this.resultROICoordinates(subjectID)));
+                    out = FDTChunk.extractROICoordinates(cell2mat(this.resultROICoordinates(subjectID)),ROIType);
+                    %                 if(~isempty(out) && ~isempty(ROIType) && isscalar(ROIType) && ROIType > 1000)
+                    %                     idx = find(abs(out(:,1,1) - ROIType) < eps,1,'first');
+                    %                     if(~isempty(idx))
+                    %                         out = squeeze(out(idx,:,:))';
+                    %                         out = out(1:2,2:end);
+                    %                         if(ROIType < 4000)
+                    %                             out = out(1:2,1:2);
+                    %                         elseif(ROIType > 4000 && ROIType < 5000)
+                    %                             %remove potential trailing zeros
+                    %                             idx = any(out,1);
+                    %                             idx(1:3) = true;
+                    %                             out(:,find(idx,1,'last')+1:end) = [];
+                    %                         end
+                    %                     else
+                    %                         out = [];
+                    %                     end
+                    %                 elseif(isempty(ROIType))
+                    %                     %return all ROI coordinates
+                    %                 else
+                    %                     out = [];
+                    %                 end
+                end
             else
                 %this FLIM item (chunk) has a different size than the subject
-                out = subject.getROICoordinates(dType,ROIType);
+                if(isempty(subjectID))
+                    out = this.nonDefaultSizeROICoordinates;
+                else
+                    out = [];
+                    if(~isnumeric(subjectID))
+                        subjectID = this.subName2idx(subjectID);
+                        if(isempty(subjectID))
+                            return
+                        end
+                    end
+                    tmp = this.nonDefaultSizeROICoordinates{subjectID};
+                    if(isempty(tmp))
+                        return
+                    end
+                    idx = find(strcmp(dType,tmp(:,1)),1);
+                    if(isempty(idx))
+                        %dType not found
+                        return
+                    end
+                    out = FDTChunk.extractROICoordinates(cell2mat(tmp(idx,2)),ROIType);
+                end
+                %out = subject.getROICoordinates(dType,ROIType);
             end
         end
         
-        function out = getResultZScaling(this,subName,ch,dType,dTypeNr)
-            %
+        function out = getResultZScaling(this,subjectID,ch,dType,dTypeNr)
+            %return z scaling values for specific subject and data type
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getResultZScaling(subName,ch,dType,dTypeNr);
+            if(isempty(subjectID))
+                out = this.resultZScaling;
+            else
+                if(~isnumeric(subjectID))
+                    subjectID = this.subName2idx(subjectID);
+                    if(isempty(subjectID))
+                        out = [];
+                        return
+                    end
+                end
+                out = [];
+                tmp = this.resultZScaling{subjectID};
+                if(isempty(tmp))
+                    return
+                end
+                idxCh = ch == [tmp{:,1}];
+                if(~any(idxCh))
+                    %channel number not found
+                    return
+                end
+                idxType = strcmp(dType,tmp(:,2));
+                idxType = idxType(:) & idxCh(:);
+                if(~any(idxType))
+                    %dType not found
+                    return
+                end
+                idxNr = dTypeNr == [tmp{:,3}];
+                idxNr = idxNr(:) & idxType(:) & idxCh(:);
+                if(~any(idxNr))
+                    %dType number not found
+                    return
+                end
+                out = tmp{find(idxNr,1),4};
+            end
         end
         
-        function out = getResultColorScaling(this,subName,ch,dType,dTypeNr)
-            %
+        function out = getResultColorScaling(this,subjectID,ch,dType,dTypeNr)
+            %return color scaling values for specific subject and data type
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getResultColorScaling(subName,ch,dType,dTypeNr);
+            if(isempty(subjectID))
+                out = this.resultColorScaling;
+            else
+                if(~isnumeric(subjectID))
+                    subjectID = this.subName2idx(subjectID);
+                    if(isempty(subjectID))
+                        out = [];
+                        return
+                    end
+                end
+                out = [];
+                tmp = this.resultColorScaling{subjectID};
+                if(isempty(tmp))
+                    return
+                end
+                idxCh = ch == [tmp{:,1}];
+                if(~any(idxCh))
+                    %channel number not found
+                    return
+                end
+                idxType = strcmp(dType,tmp(:,2));
+                idxType = idxType(:) & idxCh(:);
+                if(~any(idxType))
+                    %dType not found
+                    return
+                end
+                idxNr = dTypeNr == [tmp{:,3}];
+                idxNr = idxNr(:) & idxType(:) & idxCh(:);
+                if(~any(idxNr))
+                    %dType number not found
+                    return
+                end
+                out = tmp{find(idxNr,1),4};
+            end
         end
                 
-        function out = getResultCrossSection(this,subName)
+        function out = getResultCrossSection(this,subjectID)
             %return cross section defintion for subject
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getResultCrossSection(subName);
+            if(isempty(subjectID))
+                out = this.resultCrossSection;
+            else
+                if(~isnumeric(subjectID))
+                    subjectID = this.subName2idx(subjectID);
+                    if(isempty(subjectID))
+                        out = [];
+                        return
+                    end
+                end
+                out = cell2mat(this.resultCrossSection(subjectID));
+            end
         end
         
-        function data = makeInfoSetExportStruct(this,subName)
-            %
+        function data = makeInfoSetExportStruct(this,subjectID)
+            %create a struct, which contains all the study info
             if(~this.isLoaded)
                 this.load();
             end
-            data = this.myStudyInfoSet.makeExportStruct(subName);
+            data = this.makeExportStruct(subjectID);
         end
-        
-%         function out = getSubjectFilesHeaders(this)
-%             %
-%             out = this.myStudyInfoSet.getSubjectFilesHeaders();
-%         end
         
         function idx = subjectInfoColumnName2idx(this,columnName)
             %get the index of a subject info column or check if index is valid
             if(~this.isLoaded)
                 this.load();
             end
-            idx = this.myStudyInfoSet.subjectInfoColumnName2idx(columnName);
+            idx = [];
+            if(ischar(columnName))
+                idx = find(strcmp(columnName,this.subjectInfoColumnNames),1);
+            elseif(isnumeric(columnName))
+                if(columnName <= length(this.subjectInfoColumnNames))
+                    idx = columnName;
+                end
+            end
         end
         
         function data = getSubjectFilesData(this)
             %return a cell with subject names, their measurement and result channels
-            %data = this.myStudyInfoSet.getSubjectFilesData();
             if(~this.isLoaded)
                 this.load();
             end            
@@ -1849,37 +2491,46 @@ classdef FDTStudy < FDTreeNode
             this.updateStudyMgrProgress(0,'');            
         end
         
-        function out = getDataFromStudyInfo(this,descriptor,subName,colName)
-            %get data from study info defined by descriptor
-            if(~this.isLoaded)
-                this.load();
-            end
-            switch nargin
-                case 2
-                    out = this.myStudyInfoSet.getDataFromStudyInfo(descriptor);
-                case 3
-                    out = this.myStudyInfoSet.getDataFromStudyInfo(descriptor,subName);
-                case 4
-                    out = this.myStudyInfoSet.getDataFromStudyInfo(descriptor,subName,colName);
-                otherwise
-                    out = [];
-            end
-        end
-        
         function exportStudyInfo(this,file)
             %export study info (subject info table) to excel file
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.exportStudyInfo(file);
+            %export study info (subject info table) to excel file
+            if(isfile(file))
+                [~, desc] = xlsfinfo(file);
+                idx = find(strcmp('Subjectinfo',desc),1);
+                if(~isempty(idx))
+                    %spreadsheet is already in the selected file
+                    [~, ~, raw] = xlsread(file,'Subjectinfo');
+                    if(size(raw,1)>(size(this.subjectInfo,1)+1))...
+                            ||(size(raw,2)>(size(this.subjectInfo,2)+1))
+                        %delete old data in the spreadsheet
+                        ex = cell(size(raw));
+                    end
+                end
+            end
+            %Get Subjects
+            ex(1,1) = this.filesHeaders(1,1);
+            if(size(this.subjectNames,1)<size(this.subjectNames,2))
+                %check dimension
+                ex(2:size(this.subjectNames,2)+1,1) = this.subjectNames(1,:)';
+            else
+                ex(2:size(this.subjectNames,1)+1,1) = this.subjectNames(:,1);
+            end
+            %Get Subject Info
+            ex(1,2:length(this.subjectInfoColumnNames)+1) = this.subjectInfoColumnNames;
+            ex(2:size(this.subjectInfo,1)+1,2:length(this.subjectInfoColumnNames)+1) = this.subjectInfo;
+            %Save to file
+            exportExcel(file,ex,'','','Subjectinfo','');
         end
         
         function out = getAllIRFInfo(this)
-            %
+            %returns the IRFInfo struct
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getAllIRFInfo();
+            out = this.IRFInfo;
         end
         
         function out = getIRFMgr(this)
@@ -1902,20 +2553,35 @@ classdef FDTStudy < FDTreeNode
 %             out = this.myParent.getIRFStr(timeChannels);
 %         end
         
-        function [aiStr, aiParam] = getArithmeticImageDefinition(this)
+        function [aiNames, aiParams] = getArithmeticImageDefinition(this)
             %get names and definitions of arithmetic images for a study
             if(~this.isLoaded)
                 this.load();
             end
-            [aiStr, aiParam] = this.myStudyInfoSet.getArithmeticImageDefinition();
+            if(isempty(this.arithmeticImageInfo) || isempty(this.arithmeticImageInfo{1,1}))
+                aiNames = {''}; 
+                aiParams = {''};
+                return
+            end
+            aiNames = this.arithmeticImageInfo(:,1);
+            aiParams = this.arithmeticImageInfo(:,2);
         end
         
         function out = getConditionColor(this,cName)
-            %get color of condition
+            %returns study condition color
             if(~this.isLoaded)
                 this.load();
             end
-            out = this.myStudyInfoSet.getConditionColor(cName);
+            if(strcmp(cName,FDTree.defaultConditionName()))
+                idx = 1;
+            else
+                idx = find(strcmp(cName,this.conditionColors(1,:)), 1);
+            end
+            if(isempty(idx)) %we don't know that condition
+                out = FDTStudy.makeRndColor();
+            else
+                out = this.conditionColors{2,idx};
+            end
         end
         
         function out = isMember(this,subjectID,chan,dType)
@@ -1943,41 +2609,69 @@ classdef FDTStudy < FDTreeNode
             out = this.FLIMXParamMgrObj.getParamSection('about');
         end
         
-        function out = get.FLIMXParamMgrObj(this)
-            %get handle to parameter manager object
-            out = this.myParent.FLIMXParamMgrObj;
-        end
-        
-        function out = get.isDirty(this)
-            %return true if something in the study has changed
-            out = this.dirtyFlag;
-            if(~out)
-                %check if subjects have changes
-                tmp = this.getChildenDirtyFlags();
-                if(isempty(tmp))
-                    return
-                end
-                if(iscell(tmp))
-                    tmp = cell2mat(tmp);
-                    out = any(tmp(:));
-                end
-            end
-        end
-        
-        function out = get.myDir(this)
-            %return this studies working directory
-            out = fullfile(this.myParent.getWorkingDirectory(),this.name);
-        end
-        
-        function out = get.hashEngine(this)
-            %return FLIMX hash engine
-            out = this.myParent.hashEngine;
-        end
-        
         function out = getWorkingDirectory(this)
             %return this studies working directory
             out = this.myDir;
         end
+        
+        function out = getDataFromStudyInfo(this,descriptor,subjectID,colName)
+            %get data from study info defined by descriptor
+            if(~this.isLoaded)
+                this.load();
+            end
+            switch descriptor
+                case 'subjectInfoData'
+                    out = this.subjectInfo;
+                    if(nargin >= 3)
+                        %return subject info only for specific subject
+                        idx = this.subName2idx(subjectID);
+                        if(isempty(idx))
+                            %subject does not exist
+                            out = [];
+                            return
+                        else
+                            out = out(idx,:);
+                        end
+                    end
+                    if(nargin == 4)
+                        %return subject info only for specific column
+                        idx = this.subjectInfoColumnName2idx(colName);
+                        if(isempty(idx))
+                            %column does not exist
+                            out = [];
+                            return
+                        else
+                            out = out{1,idx};
+                        end
+                    end
+                case 'resultFileChannels'
+                    out = this.resultFileChs;
+                case 'measurementFileChannels'
+                    out = this.measurementFileChs;
+                case 'subjectInfoAllColumnNames'
+                    out = this.subjectInfoColumnNames;
+                case 'subjectInfoConditionalColumnNames'
+                    ref = this.getSubjectInfoConditionalColumnDefinitions();
+                    idx = ~(cellfun('isempty',ref));
+                    out = this.subjectInfoColumnNames(idx,1);
+                case 'subjectInfoRegularColumnNames'
+                    ref = this.getSubjectInfoConditionalColumnDefinitions();
+                    idx = cellfun('isempty',ref);
+                    out = this.subjectInfoColumnNames(idx,1);
+                case 'subjectInfoRegularNumericColumnNames'                    
+                    ref = this.getSubjectInfoConditionalColumnDefinitions();
+                    idx = cellfun('isempty',ref);
+                    tmp = cellfun(@isnumeric,this.subjectInfo) & ~cellfun(@isempty,this.subjectInfo);
+                    if(isempty(tmp))
+                        out = cell(0,0);
+                    else
+                        idx = idx & any(tmp,1)';
+                        out = this.subjectInfoColumnNames(idx,1);
+                    end
+                otherwise
+                    out = [];
+            end
+        end        
         
         %% compute functions and other methods
         function [cimg, lblx, lbly, cw] = makeConditionMVGroupObj(this,cName,chan,MVGroupID)
@@ -2040,41 +2734,6 @@ classdef FDTStudy < FDTreeNode
             condition.addObjMergeID(id,chan,dType,1,ciMerged);
         end
         
-%         function [subject, subjectPos] = getSubject(this,subjectID)
-%             %check if subjectID is in mySubjects and return the subject
-%             subject = [];
-%             subjectPos = [];
-%             if(ischar(subjectID))
-%                 subjectPos = this.myStudyInfoSet.subName2idx(subjectID);
-%             elseif(isnumeric(subjectID))
-%                 if(subjectID > this.nrChildren)
-%                     return
-%                 else
-%                     subjectPos = subjectID;
-%                 end
-%             end
-%             if(~isempty(subjectPos))
-%                 subject = this.mySubjects.getDataByPos(subjectPos);
-%             end
-%         end
-        
-%         function checkStudyFiles(this)
-%             %check study and its corresponding files on hard disk
-%             curDir = dir(this.myDir);
-%             SubFiles = {curDir.name};
-%             for i = 3:size(SubFiles,2)
-%                 subDir = fullfile(this.myDir,SubFiles{i});
-%                 if(isfolder(subDir))
-%                     idx = this.myStudyInfoSet.subName2idx(SubFiles{i});
-%                     if(isempty(idx))
-%                         %something on disk, but we don't know the subject
-%                         %[status, message, messageid] = rmdir(subDir,'s');
-%                     end
-%                 end
-%             end
-%             %this.dirtyFlag = false;
-%         end
-        
         function checkSubjectFiles(this,subjectID)
             %check data files on disk for subject and update this.subjectFiles
             if(~this.isLoaded)
@@ -2083,67 +2742,67 @@ classdef FDTStudy < FDTreeNode
             if(isempty(subjectID))
                 %check all subjects
                 %clear all old results
-                nrSubjects = this.myStudyInfoSet.nrSubjects;
-                subjects = this.myStudyInfoSet.getAllSubjectNames();
-                this.myStudyInfoSet.clearFilesList([]);
-                for i = 1:nrSubjects
+                %nrSubjects = this.myStudyInfoSet.nrSubjects;
+                subjects = this.subjectNames;
+                this.clearFilesList([]);
+                for i = 1:this.nrSubjects
                     this.checkSubjectFiles(subjects{i});
                 end
             else
                 %check specific subject
                 subDir = fullfile(this.myDir,subjectID);
-                idx = this.myStudyInfoSet.subName2idx(subjectID);
+                idx = this.subName2idx(subjectID);
                 if(isempty(idx))
                     %we don't know this subject, try to clear it
                     %this.clearSubjectFiles(subjectID)
                     return
                 elseif(~isempty(idx) && ~isfolder(subDir))
                     %we know the subject but there is nothing on disk
-                    this.myStudyInfoSet.clearFilesList(idx);
-                    this.myStudyInfoSet.clearROI(idx);
-                    this.myStudyInfoSet.clearZScaling(idx);
-                    this.myStudyInfoSet.clearCrossSections(idx);
+                    this.clearFilesList(idx);
+                    this.clearROI(idx);
+                    this.clearZScaling(idx);
+                    this.clearCrossSections(idx);
                     return
                 else
                     %we know the subject and there is something on disk
-                    this.myStudyInfoSet.clearFilesList(idx);
+                    this.clearFilesList(idx);
                     %find result files
                     files = rdir(sprintf('%s%sresult_ch*.mat',subDir,filesep));
                     for i = 1:length(files)
                         [~,sn] = fileparts(files(i,1).name);
                         id = str2double(sn(isstrprop(sn, 'digit')));
-                        this.myStudyInfoSet.setResultOnHDD(subjectID,id);
+                        this.setResultOnHDD(subjectID,id);
                     end
                     %find measurement files
                     files = rdir(sprintf('%s%smeasurement_ch*.mat',subDir,filesep));
                     for i = 1:length(files)
                         [~,sn] = fileparts(files(i,1).name);
                         id = str2double(sn(isstrprop(sn, 'digit')));
-                        this.myStudyInfoSet.setMeasurementOnHDD(subjectID,id);
+                        this.setMeasurementOnHDD(subjectID,id);
                     end
                 end                
             end
         end
         
-        function clearSubjectFiles(this,subName)
+        function clearSubjectFiles(this,subjectID)
             %delete data files for subject
-            if(isempty(subName))
+            if(isempty(subjectID))
                 %clear all subjects
-                nrSubjects = this.myStudyInfoSet.nrSubjects;
-                subjects = this.myStudyInfoSet.getAllSubjectNames();
-                for i = 1:nrSubjects
+                %nrSubjects = this.myStudyInfoSet.nrSubjects;
+                subjects = this.subjectNames;
+                for i = 1:this.nrSubjects
                     this.clearSubjectFiles(subjects{i});
                 end
             else
                 %clear specific subject
-                idx = this.myStudyInfoSet.subName2idx(subName);
+                idx = this.subName2idx(subjectID);
                 if(~isempty(idx))
-                    this.myStudyInfoSet.clearFilesList(idx);
-                    this.myStudyInfoSet.clearROI(idx);
-                    this.myStudyInfoSet.clearZScaling(idx);
-                    this.myStudyInfoSet.clearCrossSections(idx);
+                    this.clearFilesList(idx);
+                    this.clearROI(idx);
+                    this.clearZScaling(idx);
+                    this.clearCrossSections(idx);
                 end
-                subDir = fullfile(this.myDir,subName);
+                subDir = fullfile(this.myDir,subjectID);
                 if(~isfolder(subDir))
                     return
                 end
@@ -2153,29 +2812,1382 @@ classdef FDTStudy < FDTreeNode
         end
         
         function checkConditionRef(this,colN)
-            %
+            %update combinations columns
             if(~this.isLoaded)
                 this.load();
             end
-            this.myStudyInfoSet.checkConditionRef(colN);
+            if(isempty(this.subjectInfo) || all(all(cellfun('isempty',this.subjectInfo))))
+                return
+            end
+            if(isempty(colN))
+                %check all columns
+                for i=1:length(this.subjectInfoColumnNames)
+                    this.checkConditionRef(i);
+                end
+            else
+                ref = this.getConditionalColumnDefinition(colN);
+                if(isempty(ref))
+                    %column is not a combination
+                    return
+                end
+                %convert logical operators
+                [op, neg] = this.str2logicOp(ref.logOp);
+                %create condition result for reference column A
+                switch ref.relA
+                    case '!='
+                        ref.relA = '~=';
+                end
+                a = this.subjectInfoColumnName2idx(ref.colA);
+                if((a > colN) && (~isempty(this.getConditionalColumnDefinition(a))))
+                    %reference is a non-updated condition column
+                    this.checkConditionRef(a);
+                end
+                colA = this.subjectInfo(:,a);
+                %determine column class
+                cellclass = cellfun(@ischar,colA);
+                if(any(cellclass))
+                    colADoubleFlag = false;
+                else
+                    colADoubleFlag = true;
+                end
+                for j=1:size(colA,1)
+                    if(isempty(colA{j,1}) || all(isnan(colA{j,1})))
+                        if(isempty(this.getConditionalColumnDefinition(a)))
+                            %non logical reference
+                            if(colADoubleFlag)
+                                colA(j,1) = {0};
+                            else
+                                colA(j,1) = {''};
+                            end
+                        else
+                            %logical reference
+                            colA(j,1) = {false};
+                        end
+                    end
+                end
+                if(colADoubleFlag)
+                    colA = cell2mat(colA);
+                    if(~(isa(colA,'double') || isa(colA,'logical')))
+                        %try to convert to double
+                        colA = str2num(colA);
+                    end
+                    if(ischar(ref.valA))
+                        %try to convert
+                        tmp = str2num(ref.valA);
+                        if(~isempty(tmp))
+                            ref.valA = tmp;
+                        end
+                    end
+                    if(ischar(ref.valA))
+                        %comparison value for A does not fit
+                        colA = false(size(colA));
+                    else
+                        eval(sprintf('colA = colA %s %f;',ref.relA,ref.valA));
+                    end
+                else
+                    if(~ischar(ref.valA))
+                        %try to convert to char
+                        ref.valA = num2str(ref.valA);
+                    end
+                    %column of characters
+                    if(strcmp(ref.relA,'=='))
+                        colA = strcmp(colA,ref.valA);
+                    else
+                        colA = ~strcmp(colA,ref.valA);
+                    end
+                end
+                %conditional column with 2 reference columns
+                if(~isempty(op))
+                    %create condition result for reference coulmn B
+                    switch ref.relB
+                        case '!='
+                            ref.relB = '~=';
+                    end
+                    b = this.subjectInfoColumnName2idx(ref.colB);
+                    if((b > colN) && (~isempty(this.getConditionalColumnDefinition(b))))
+                        %reference is a non-updated condition column
+                        this.checkConditionRef(b);
+                    end
+                    colB = this.subjectInfo(:,b);
+                    cellclass = cellfun(@ischar,colB);
+                    if(any(cellclass))
+                        colBDoubleFlag = false;
+                    else
+                        colBDoubleFlag = true;
+                    end
+                    for j=1:size(colB,1)
+                        if(isempty(colB{j,1}) || isnan(colB{j,1}))
+                            if(isempty(this.getConditionalColumnDefinition(b)))
+                                %non-logical reference
+                                if(colBDoubleFlag)
+                                    colB(j,1) = {0};
+                                else
+                                    colB(j,1) = {''};
+                                end
+                            else
+                                %logical reference
+                                colB(j,1) = {false};
+                            end
+                        end
+                    end
+                    if(colBDoubleFlag)
+                        colB = cell2mat(colB);
+                        if(~(isa(colB,'double') || isa(colB,'logical')))
+                            %try to convert to double
+                            colB = str2num(colB);
+                        end
+                        if(ischar(ref.valB))
+                            %try to convert
+                            tmp = str2num(ref.valB);
+                            if(~isempty(tmp))
+                                ref.valB = tmp;
+                            end
+                        end
+                        if(ischar(ref.valB))
+                            %comparison value for A does not fit
+                            colB = false(size(colB));
+                        else
+                            if(strcmpi(ref.relB,'xor'))
+                                eval(sprintf('colB = %s(colB,%f);',lower(ref.relB),ref.valB));
+                            else
+                                eval(sprintf('colB = colB %s %f;',ref.relB,ref.valB));
+                            end
+                        end
+                    else
+                        if(~ischar(ref.valB))
+                            %try to convert to char
+                            ref.valB = num2str(ref.valB);
+                        end
+                        %column of characters
+                        if(strcmp(ref.relB,'=='))
+                            colA = strcmp(colB,ref.valB);
+                        else
+                            colA = ~strcmp(colB,ref.valB);
+                        end
+                    end
+                    if(strcmpi(op,'xor'))
+                        eval(sprintf('colA = %s%s(colA,colB);',neg,lower(op)));
+                    else
+                        eval(sprintf('colA = %s(colA %s colB);',neg,op));
+                    end
+                end
+                %update values in conditional column
+                this.subjectInfo(:,colN) = num2cell(colA);
+            end
         end
         
         function swapColumn(this,col,n)
-            %
+            %swap column with its nth neighbor
             if(~this.isLoaded)
                 this.load();
+            end            
+            if(((n + col) < 1) || ((n + col) > length(this.subjectInfoColumnNames)))
+                %out of index
+                return
             end
-            this.myStudyInfoSet.swapColumn(col,n);
+            %swap subjectInfoColumnNames
+            temp = this.subjectInfoColumnNames(col,1);
+            this.subjectInfoColumnNames(col,1) = this.subjectInfoColumnNames(col+n,1);
+            this.subjectInfoColumnNames(col+n,1) = temp;
+            %swap Data
+            temp = this.subjectInfo(:,col);
+            this.subjectInfo(:,col) = this.subjectInfo(:,col+n);
+            this.subjectInfo(:,col+n) = temp;
+            temp = this.subjectInfoConditionDefinition(col,1);
+            this.subjectInfoConditionDefinition(col,1) = this.subjectInfoConditionDefinition(col+n,1);
+            this.subjectInfoConditionDefinition(col+n,1) = temp;
+            this.setDirty(true);
         end
         
         function oldStudy = updateStudyVer(this,oldStudy)
             %make old study data compatible with current version
-            oldStudy = this.myStudyInfoSet.updateStudyInfoSet(oldStudy);
+            %             if(oldStudy.revision < 2)
+            %                 oldStudy.subjects = oldStudy.subjects(:);
+            %             end
+            %
+            %             if(oldStudy.revision < 4)
+            %                 %make study compatible for combinations
+            %                 oldStudy.subjectInfoCombi = cell(1,size(oldStudy.subjectInfoHeaders,2));
+            %             end
+            %
+            %             if(oldStudy.revision < 6)
+            %                 %file format of saved datafiles has changed - convert them
+            %                 dirStruct = rdir(sprintf('%s\\**\\*.mat',this.myParent.myDir));
+            %                 hwb = waitbar(0,'study update');
+            %                 tStart = clock;
+            %                 for i = 1:length(dirStruct)
+            %                     [~, fn] = fileparts(dirStruct(i).name);
+            %                     if(~strcmp(fn,'studyData'))
+            %                         try
+            %                             export = load(dirStruct(i).name);
+            %                             export = updateFitResultsStruct(export.export);
+            %                             save(dirStruct(i).name,'export');
+            %                         end
+            %                     end
+            %                     [~, minutes secs] = secs2hms(etime(clock,tStart)/i*(length(dirStruct)-i)); %mean cputime for finished runs * cycles left
+            %                     waitbar(i/length(dirStruct), hwb,[sprintf('study update: %03.1f',i/length(dirStruct)*100) '% done - Time left: ' num2str(minutes,'%02.0f') 'min ' num2str(secs,'%02.0f') 'sec'] );
+            %                 end
+            %                 close(hwb);
+            %             end
+            %
+            %             if(oldStudy.revision < 7)
+            %                 %check subject cuts
+            %                 oldStudy.subjectCuts = cell(length(oldStudy.subjects),1);
+            %             end
+            %
+            %             if(oldStudy.revision < 8)
+            %                 %add IRF struct
+            %                 oldStudy.IRFInfo = [];
+            %                 %re-scale B&H amplitudes
+            %                 dirStruct = rdir(sprintf('%s\\**\\*.mat',this.myParent.myDir));
+            %                 hwb = waitbar(0,'study update');
+            %                 tStart = clock;
+            %                 for i = 1:length(dirStruct)
+            %                     [~, fn] = fileparts(dirStruct(i).name);
+            %                     if(~strcmp(fn,'studyData'))
+            %                         try
+            %                             export = load(dirStruct(i).name);
+            %                             export = export.export;
+            %                             if(isempty(export.data.fluo.roi))
+            %                                 %this is a B&H result
+            %                                 amps = fieldnames(export.results.pixel);
+            %                                 idx = find(strncmpi('Amplitude',amps,9));
+            %                                 for j = 1:length(idx)
+            %                                     export.results.pixel.(amps{j}) = export.results.pixel.(amps{j})./100000; %100000 was fixed multiplicator for B&H results
+            %                                 end
+            %                                 save(dirStruct(i).name,'export');
+            %                             else
+            %                                 %read IRF info
+            %                                 this.setIRFInfo(export.data.fluo.curChannel,export.parameters.basic.curIRFID,export.parameters.dynamic.timeChans,export.parameters.basic.curIRFID);
+            %                                 oldStudy.IRFInfo = this.IRFInfo;
+            %                             end
+            %                         end
+            %                     end
+            %                     [~, minutes secs] = secs2hms(etime(clock,tStart)/i*(length(dirStruct)-i)); %mean cputime for finished runs * cycles left
+            %                     waitbar(i/length(dirStruct), hwb,[sprintf('study update: %03.1f',i/length(dirStruct)*100) '% done - Time left: ' num2str(minutes,'%02.0f') 'min ' num2str(secs,'%02.0f') 'sec'] );
+            %                 end
+            %                 close(hwb);
+            %             end
+            
+            if(oldStudy.revision < 9)
+                oldStudy.arithmeticImageInfo = [];
+            end
+            
+            if(oldStudy.revision < 11)
+                oldStudy.studyClusters = cell(0,0);
+                tmp = jet(256);
+                oldStudy.color = tmp(round(rand*255+1),:);
+            end
+            
+            if(oldStudy.revision < 12)
+                if(isfield(oldStudy,'color'))
+                    old = oldStudy.color;
+                    oldStudy = rmfield(oldStudy,'color');
+                else
+                    tmp = jet(256);
+                    old = tmp(round(rand*255+1),:);
+                end
+                %save color not per study but per view now
+                oldStudy.viewColors = cell(2,1);
+                oldStudy.viewColors(1,1) = {FDTree.defaultConditionName()};
+                oldStudy.viewColors(2,1) = {old};
+            end
+            
+            if(oldStudy.revision < 13)
+                %file format of saved datafiles has changed - convert them
+                dirStruct = rdir(sprintf('%s\\**\\*.mat',this.myParent.myDir));
+                hwb = waitbar(0,'study update');
+                tStart = clock;
+                for i = 1:length(dirStruct)
+                    [~, fn] = fileparts(dirStruct(i).name);
+                    if(~strcmp(fn,'studyData'))
+                        try
+                            export = load(dirStruct(i).name);
+                            result = resultFile.updateFitResultsStruct(export,this.getAboutInfo());
+                            save(strrep(dirStruct(i).name,'file','result_ch'),'result');
+%                             if(~isempty(measurement))
+%                                 save(strrep(dirStruct(i).name,'file','measurement_ch'),'measurement');
+%                             end
+                            delete(dirStruct(i).name); %remove old file
+                        catch
+                            %todo: notify user that update failed 
+                        end
+                    end
+                    [~, minutes, secs] = secs2hms(etime(clock,tStart)/i*(length(dirStruct)-i)); %mean cputime for finished runs * cycles left
+                    waitbar(i/length(dirStruct), hwb,[sprintf('study update: %03.1f',i/length(dirStruct)*100) '% done - Time left: ' num2str(minutes,'%02.0f') 'min ' num2str(secs,'%02.0f') 'sec'] );
+                end
+                close(hwb);
+            end
+            
+            if(oldStudy.revision < 15)
+                %study info set was updated
+                if(isfield(oldStudy,'subjectInfoHeaders'))
+                    oldStudy.infoHeaders = oldStudy.subjectInfoHeaders;
+                    oldStudy = rmfield(oldStudy,'subjectInfoHeaders');
+                end
+                if(isfield(oldStudy,'subjectFilesHeaders'))
+                    %                     oldStudy.filesHeaders = oldStudy.subjectFilesHeaders;
+                    oldStudy = rmfield(oldStudy,'subjectFilesHeaders');
+                end
+                if(isfield(oldStudy,'subjectFiles'))
+                    oldStudy.resultFileChs = oldStudy.subjectFiles;
+                    oldStudy.measurementFileChs = cell(size(oldStudy.subjectFiles));
+                    oldStudy = rmfield(oldStudy,'subjectFiles');
+                end
+                if(isfield(oldStudy,'subjectScalings'))
+                    oldStudy.resultROI = oldStudy.subjectScalings;
+                    oldStudy = rmfield(oldStudy,'subjectScalings');
+                end
+                if(isfield(oldStudy,'subjectCuts'))
+                    oldStudy.resultCuts = oldStudy.subjectCuts;
+                    oldStudy = rmfield(oldStudy,'subjectCuts');
+                end
+            end 
+            
+            if(oldStudy.revision < 16)
+                %new fields resultROIType, resultROISubType, resultROISubTypeAnchor; renamed resultROI to resultROICoordinates
+                if(isfield(oldStudy,'resultROI'))
+                    oldStudy.resultROICoordinates = oldStudy.resultROI;
+                    oldStudy.resultROIType = cell(size(oldStudy.resultROI));
+                    oldStudy.resultROISubType = cell(size(oldStudy.resultROI));
+                    oldStudy.resultROISubTypeAnchor = cell(size(oldStudy.resultROI));
+                    oldStudy = rmfield(oldStudy,'resultROI');
+                end
+            end
+            
+            if(oldStudy.revision < 17)
+                %changed the way ROI coordinates are saved, remove resultROISubTypeAnchor
+                new = [];
+                if(isfield(oldStudy,'resultROICoordinates'))
+                    old = oldStudy.resultROICoordinates;
+                    new = cell(size(old));
+                    for i = 1:size(new,1)                        
+                        if(~isempty(old{i,1}) && length(old{i,1}) == 6)
+                            tmp = zeros(7,3,2,'int16'); %7 ROI types; enable/invert flags, coordinates, parameters; y, x
+                            tmp(2,1,1) = 1;
+                            tmp(2,2:3,1) = old{i,1}(5:6); %y coordinates
+                            tmp(2,2:3,2) = old{i,1}(2:3); %x coordinates
+                            new(i,1) = {tmp};
+                        end                        
+                    end
+                end
+                if(isfield(oldStudy,'resultROISubTypeAnchor'))
+                    old = oldStudy.resultROISubTypeAnchor;
+                    if(isempty(new))
+                        new = cell(size(old));
+                    end
+                    for i = 1:min(size(new,1),size(old,1))
+                        if(~isempty(old{i,1}) && length(old{i,1}) == 2)
+                            if(isempty(new{i,1}))
+                                tmp = zeros(7,3,2,'int16');%7 ROI types; enable/invert flags, coordinates, parameters; y, x
+                            else
+                                tmp = new{i,1};
+                            end
+                            tmp(1,1,1) = 1;
+                            tmp(1,2,:) = old{i,1};
+                            new(i,1) = {tmp};
+                        end
+                    end
+                    oldStudy = rmfield(oldStudy,'resultROISubTypeAnchor');
+                end
+                if(~isempty(new))
+                    oldStudy.resultROICoordinates = new;
+                end
+            end
+            
+            if(oldStudy.revision < 18)
+                if(isfield(oldStudy,'resultROIType'))
+                    oldStudy = rmfield(oldStudy,'resultROIType');
+                end
+                if(isfield(oldStudy,'resultROISubType'))
+                    oldStudy = rmfield(oldStudy,'resultROISubType');
+                end
+                if(isfield(oldStudy,'studyClusters')) %add default ROI info to MVGroups
+                    ROI.ROIType = 0;
+                    ROI.ROISubType = 1;
+                    ROI.ROIInvertFlag = 0;
+                    for i = 1:size(oldStudy.studyClusters,2)
+                        if(strncmp(oldStudy.studyClusters{1,i},'Cluster',7))
+                            %clusters have been renamed to MVGroup
+                            oldStudy.studyClusters{1,i}(1:7) = 'MVGroup';
+                        end
+                        %now we need ROI info for MVGroups
+                        oldStudy.studyClusters{2,i}.ROI = ROI;
+                    end                    
+                end
+            end
+            
+            if(oldStudy.revision < 19)
+                if(isfield(oldStudy,'selFLIMItems'))
+                    oldStudy = rmfield(oldStudy,'selFLIMItems');
+                end
+            end
+            
+            if(oldStudy.revision < 20)
+                if(isfield(oldStudy,'arithmeticImageInfo'))
+                    for i = 1:size(oldStudy.arithmeticImageInfo,1)
+                        tmp = oldStudy.arithmeticImageInfo{i,2};
+                        tmp.normalizeA = 0;
+                        tmp.normalizeB = 0;
+                        oldStudy.arithmeticImageInfo{i,2} = tmp;
+                    end
+                end                
+            end
+            
+            if(oldStudy.revision < 21)
+                %new field resultZScaling
+                if(isfield(oldStudy,'resultROICoordinates'))
+                    oldStudy.resultZScaling = cell(size(oldStudy.resultROICoordinates));
+                end
+            end
+            
+            if(oldStudy.revision < 22)
+                %add channel to resultZScaling
+                if(isfield(oldStudy,'resultZScaling'))
+                    tmp = oldStudy.resultZScaling;
+                    idx = ~cellfun(@isempty,tmp);
+                    if(any(idx))
+                        idx = find(idx);
+                        for i = 1:length(idx)
+                            tmp3 = tmp{idx(i)};
+                            tmp3(:,2:end+1) = tmp3;
+                            tmp3(:,1) = {1}; %set old z scaling to channel 1
+                            tmp(idx(i)) = {tmp3};
+                        end
+                        oldStudy.resultZScaling = tmp;
+                    end
+                end
+            end
+            
+            if(oldStudy.revision < 23)
+                %change name of default column
+                if(isfield(oldStudy,'viewColors') && size(oldStudy.viewColors,1) > 1 && size(oldStudy.viewColors,2) > 1 && strcmp(oldStudy.viewColors(1,1),'-'))
+                    oldStudy.viewColors(1,1) = {FDTree.defaultConditionName()};
+                end                
+            end
+            
+            if(oldStudy.revision < 24)
+                %new field resultColorScaling
+                if(isfield(oldStudy,'resultZScaling'))
+                    oldStudy.resultColorScaling = cell(size(oldStudy.resultZScaling));
+                end
+            end
+            
+            if(oldStudy.revision < 25)
+                %change name of condition color field
+                if(isfield(oldStudy,'viewColors'))
+                    oldStudy.conditionColors = oldStudy.viewColors;
+                    oldStudy = rmfield(oldStudy,'viewColors');
+                end
+            end
+            
+            if(oldStudy.revision < 26)
+                %change names of a few fields
+                if(isfield(oldStudy,'subjects'))
+                    oldStudy.subjectNames = oldStudy.subjects;
+                    oldStudy = rmfield(oldStudy,'subjects');
+                end
+                if(isfield(oldStudy,'subjectInfoCombi'))
+                    oldStudy.subjectInfoConditionDefinition = oldStudy.subjectInfoCombi;
+                    oldStudy = rmfield(oldStudy,'subjectInfoCombi');
+                end
+                if(isfield(oldStudy,'resultCuts'))
+                    oldStudy.resultCrossSection = oldStudy.resultCuts;
+                    oldStudy = rmfield(oldStudy,'resultCuts');
+                end
+                if(isfield(oldStudy,'infoHeaders'))
+                    oldStudy.subjectInfoColumnNames = oldStudy.infoHeaders;
+                    oldStudy = rmfield(oldStudy,'infoHeaders');
+                end
+            end
+            
+            if(oldStudy.revision < 27)
+                %update arithmetic image info
+                if(isfield(oldStudy,'arithmeticImageInfo'))
+                    for i = 1:size(oldStudy.arithmeticImageInfo,1)
+                        tmp = oldStudy.arithmeticImageInfo{i,2};
+                        if(isfield(tmp,'valCombi') && strcmp(tmp.valCombi,'-'))
+                            tmp.valCombi = '-no op-';
+                        end
+                        oldStudy.arithmeticImageInfo{i,2} = tmp;
+                    end
+                end
+            end
+                        
+            if(oldStudy.revision < 28)
+                %update arithmetic image info                
+                if(isfield(oldStudy,'arithmeticImageInfo'))
+                    def = AICtrl.getDefStruct;
+                    for i = 1:size(oldStudy.arithmeticImageInfo,1)
+                        tmp = oldStudy.arithmeticImageInfo{i,2};
+                        if(isfield(tmp,'valCombi'))
+                            if(strcmp(tmp.valCombi,'-none-'))
+                                tmp.opB = '-no op-';
+                            else
+                                tmp.opB = tmp.valCombi;
+                            end
+                        end
+                        if(isfield(tmp,'compAgainst'))
+                            tmp.compAgainstB = tmp.compAgainst;
+                        end
+                        if(isfield(tmp,'valB'))
+                            tmp.valC = tmp.valB;
+                        end
+                        if(isfield(tmp,'valA'))
+                            tmp.valB = tmp.valA;
+                        end
+                        tmp = orderfields(checkStructConsistency(tmp,def));
+                        oldStudy.arithmeticImageInfo{i,2} = tmp;
+                    end
+                end
+            end
+            
+            if(oldStudy.revision < 29)
+                %update arithmetic image info                
+                if(isfield(oldStudy,'arithmeticImageInfo'))
+                    def = AICtrl.getDefStruct;
+                    for i = 1:size(oldStudy.arithmeticImageInfo,1)
+                        tmp = oldStudy.arithmeticImageInfo{i,2};
+                        tmp = orderfields(checkStructConsistency(tmp,def));
+                        oldStudy.arithmeticImageInfo{i,2} = tmp;
+                    end
+                end
+            end
+            
+            if(oldStudy.revision < 30)
+                %ROIs now get IDs
+                if(isfield(oldStudy,'resultROICoordinates'))
+                    for i = 1:size(oldStudy.resultROICoordinates,1)
+                        tmp = oldStudy.resultROICoordinates{i,1};
+                        if(size(tmp,1) == 7)
+                            %each ROI Type gets an ID (ETDRS: 1000, rectange: 2000, circle: 3000, polygon: 4000) and a running number
+                            tmp(:,1,1) = [1001,2001,2002,3001,3002,4001,4002];
+                        else
+                            %should not happen -> delete invalid ROI
+                            tmp = zeros(7,3,2,'int16');
+                            tmp(:,1,1) = [1001,2001,2002,3001,3002,4001,4002];
+                        end
+                        oldStudy.resultROICoordinates{i,1} = tmp;
+                    end
+                end
+                if(isfield(oldStudy,'studyClusters'))
+                    oldStudy.MVGroupTargets = oldStudy.studyClusters;
+                    ROIVec = [1001,2001,2002,3001,3002,4001,4002];
+                    for i = 1:size(oldStudy.MVGroupTargets,2)                        
+                        if(~isempty(oldStudy.MVGroupTargets(:,i)))                            
+                            oldStudy.MVGroupTargets{2,i}.ROI.ROIVicinity = 1;
+                            if(oldStudy.MVGroupTargets{2,i}.ROI.ROIType >= 1 && oldStudy.MVGroupTargets{2,i}.ROI.ROIType <= 7)
+                                oldStudy.MVGroupTargets{2,i}.ROI.ROIType = ROIVec(oldStudy.MVGroupTargets{2,i}.ROI.ROIType);
+%                             else
+%                                 oldStudy.MVGroupTargets{2,i}.ROI.ROIType = 0;
+                            end
+                        end
+                    end
+                    oldStudy = rmfield(oldStudy,'studyClusters');
+                end
+            end
+            
+            if(oldStudy.revision < 31)
+                %update conditional columns
+                if(isfield(oldStudy,'subjectInfoConditionDefinition'))
+                    for i = 1:size(oldStudy.subjectInfoConditionDefinition,1)
+                        tmp = oldStudy.subjectInfoConditionDefinition{i,1};
+                        if(isempty(tmp))
+                            continue
+                        end
+                        if(isfield(tmp,'logOp') && strcmp(tmp.logOp,'-'))
+                            tmp.logOp = '-no op-';
+                            oldStudy.subjectInfoConditionDefinition{i,1} = tmp;
+                        end
+                    end
+                end
+            end
+            
+            if(oldStudy.revision < 32)
+                %add ROI groups
+                oldStudy.resultROIGroups = cell(0,0);                
+            end
+            
+            if(oldStudy.revision < 33)
+                %add nonDefaultSizeROICoordinates
+                oldStudy.nonDefaultSizeROICoordinates = cell(0,0);                
+            end
+            
+            this.setDirty(true);
         end
         
         function setDirty(this,flag)
             %set dirty flag for this study
             this.dirtyFlag = logical(flag);
         end
+        
+        function flag = eq(s1,s2)
+            %compare two study objects
+            if(ischar(s2))
+                flag = strcmp(s1.name,s2);
+            else
+                flag = strcmp(s1.name,s2.name);
+            end
+        end
+        
+        %% dependent properties
+        function nr = get.nrSubjects(this)
+            %how many subjects are in this study?
+            nr = length(this.subjectNames);
+        end        
+                
+        function out = get.FLIMXParamMgrObj(this)
+            %get handle to parameter manager object
+            out = this.myParent.FLIMXParamMgrObj;
+        end
+        
+        function out = get.isDirty(this)
+            %return true if something in the study has changed
+            out = this.dirtyFlag;
+            if(~out)
+                %check if subjects have changes
+                tmp = this.getChildenDirtyFlags();
+                if(isempty(tmp))
+                    return
+                end
+                if(iscell(tmp))
+                    tmp = cell2mat(tmp);
+                    out = any(tmp(:));
+                end
+            end
+        end
+        
+        function out = get.myDir(this)
+            %return this studies working directory
+            out = fullfile(this.myParent.getWorkingDirectory(),this.name);
+        end
+        
+        function out = get.hashEngine(this)
+            %return FLIMX hash engine
+            out = this.myParent.hashEngine;
+        end
+        
     end %methods
+    
+    methods(Access = private)
+        function out = sortSubjects(this,varargin)
+            %sort subjects and connected fields
+            if(isempty(this.subjectNames))
+                out = [];
+                return
+            end            
+            if(isempty(varargin))
+                %sort subjects of current study
+                [this.subjectNames, idx] = sort(this.subjectNames);
+                if(~all(idx(:) == (1:this.nrSubjects)'))
+                    %study was not already sorted
+                    this.resultFileChs = this.resultFileChs(idx,:);
+                    this.measurementFileChs = this.measurementFileChs(idx,:);
+                    this.subjectInfo = this.subjectInfo(idx,:);
+                    this.resultROICoordinates = this.resultROICoordinates(idx);
+                    this.nonDefaultSizeROICoordinates = this.nonDefaultSizeROICoordinates(idx);
+                    this.resultZScaling = this.resultZScaling(idx);
+                    this.resultColorScaling = this.resultColorScaling(idx);
+                    this.resultCrossSection = this.resultCrossSection(idx);
+                    this.allFLIMItems = this.allFLIMItems(idx,:);
+                    this.setDirty(true);
+                end
+            else
+                %sort subjects of imported study
+                oldStudy = varargin{1};
+                [oldStudy.subjectNames, idx] = sort(oldStudy.subjectNames);
+                oldStudy.resultFileChs = oldStudy.resultFileChs(idx,:);
+                oldStudy.measurementFileChs = oldStudy.measurementFileChs(idx,:);
+                oldStudy.subjectInfo = oldStudy.subjectInfo(idx,:);
+                oldStudy.resultROICoordinates = oldStudy.resultROICoordinates(idx);
+                oldStudy.nonDefaultSizeROICoordinates = oldStudy.nonDefaultSizeROICoordinates(idx);
+                oldStudy.resultZScaling = oldStudy.resultZScaling(idx);
+                oldStudy.resultColorScaling = oldStudy.resultColorScaling(idx);
+                oldStudy.resultCrossSection = oldStudy.resultCrossSection(idx);
+                oldStudy.allFLIMItems = oldStudy.allFLIMItems(idx,:);
+                out = oldStudy;
+            end
+        end
+        
+        function setSubjectFileHeaders(this,subjectFileHeaders,idx)
+            %set subjectFileHeaders
+            if(isempty(idx))
+                %set all subjectFileHeaders (initial case)
+                this.subjectFileHeaders = [];
+                this.subjectFileHeaders = subjectFileHeaders;
+            else
+                %set a single subjectFileHeader
+                this.subjectFileHeaders(idx) = subjectFileHeaders;
+                this.setDirty(true);
+            end
+        end        
+        
+        function clearFilesList(this,idx)
+            %clear lists of result and measurement files which keep track of the channels on HDD
+            if(isempty(idx))
+                this.resultFileChs = cell(this.nrSubjects,max(1,size(this.resultFileChs,2)));
+                this.measurementFileChs = cell(this.nrSubjects,max(1,size(this.measurementFileChs,2)));
+            else
+                %set single value
+                idx = this.subName2idx(idx);
+                if(~isempty(idx))
+                    this.resultFileChs(idx,:) = cell(1,max(1,size(this.resultFileChs,2)));
+                    this.measurementFileChs(idx,:) = cell(1,max(1,size(this.measurementFileChs,2)));
+                    this.setDirty(true);
+                end
+            end
+        end
+        
+        function clearROI(this,idx)
+            %reset ROI for subject
+            if(isempty(idx))
+                this.resultROICoordinates = [];
+                this.resultROICoordinates = cell(size(this.subjectNames));
+                %also delete non default size ROIs?
+                %this.nonDefaultSizeROICoordinates = [];
+                %this.nonDefaultSizeROICoordinates = cell(size(this.subjectNames));
+            else
+                %set single value
+                idx = this.subName2idx(idx);
+                if(~isempty(idx))
+                    this.resultROICoordinates(idx) = cell(1,1);
+                    %also delete non default size ROIs?
+                    %this.nonDefaultSizeROICoordinates(idx) = cell(1,1);
+                    this.setDirty(true);
+                end
+            end
+        end
+        
+        function clearZScaling(this,idx)
+            %reset z scaling for subject
+            if(isempty(idx))
+                this.resultZScaling = [];
+                this.resultZScaling = cell(size(this.subjectNames));
+            else
+                %set single value
+                idx = this.subName2idx(idx);
+                if(~isempty(idx))
+                    this.resultZScaling(idx) = cell(1,1);
+                    this.setDirty(true);
+                end
+            end
+        end
+        
+        function clearColorScaling(this,idx)
+            %reset color scaling for subject
+            if(isempty(idx))
+                this.resultColorScaling = [];
+                this.resultColorScaling = cell(size(this.subjectNames));
+            else
+                %set single value
+                idx = this.subName2idx(idx);
+                if(~isempty(idx))
+                    this.resultColorScaling(idx) = cell(1,1);
+                    this.setDirty(true);
+                end
+            end
+        end
+        
+        function clearCrossSections(this,idx)
+            %reset cross sections
+            if(isempty(idx))
+                this.resultCrossSection = cell(size(this.subjectNames));
+            else
+                %set single value
+                idx = this.subName2idx(idx);
+                if(~isempty(idx))
+                    this.resultCrossSection(idx) = cell(1,1);
+                    this.setDirty(true);
+                end
+            end
+        end
+        
+        function setResultOnHDD(this,subjectID,ch)
+            %mark a channel ch as loaded for subject subjectID
+            idx = this.subName2idx(subjectID);
+            if(isempty(idx))
+                %subject not in study
+                return
+            end
+            this.resultFileChs(idx,ch) = {ch};
+            this.setDirty(true);
+        end
+        
+        function setMeasurementOnHDD(this,subjectID,ch)
+            %mark a channel ch as loaded for subject subjectID
+            idx = this.subName2idx(subjectID);
+            if(isempty(idx))
+                %subject not in study
+                return
+            end
+            this.measurementFileChs(idx,ch) = {ch};
+            this.setDirty(true);
+        end
+        
+        function addResultROIType(this,ROIType)
+            %add an empty ROIType to all subjects in this study
+            %this.resultROICoordinates = cellfun(@(x)FDTChunk.addResultROIType(x,ROIType),this.resultROICoordinates);
+            for i = 1:this.nrSubjects
+                this.resultROICoordinates{i} = FDTStudy.insertResultROIType(this.resultROICoordinates{i},ROIType);
+                %update all existing non default size ROIs
+                tmp = this.nonDefaultSizeROICoordinates{i};
+                if(~isempty(tmp) && iscell(tmp) && size(tmp,2) == 2)
+                    for j = 1:size(tmp,1)
+                        tmp{j,2} = FDTStudy.insertResultROIType(tmp{j,2},ROIType);
+                    end
+                    this.nonDefaultSizeROICoordinates{i} = tmp;
+                end
+            end
+        end
+        
+        function setIRFInfo(this,ch,id,timeChannels,irf)
+            %set IRF info
+            this.IRFInfo.timeChannels = timeChannels;
+            this.IRFInfo.id = id;
+            if(isnumeric(ch) && ~isempty(irf))
+                irf = irf./max(irf(:))*15000; % 15000 is defined by B&H
+                this.IRFInfo.integral(ch) = {sum(irf(:))};
+            end
+        end
+        
+        %% output methods                
+        function export = makeExportStruct(this,subjectID)
+            %store all data of this study in a struct
+            idx = this.subName2idx(subjectID);
+            if(isempty(idx))
+                idx = ':';
+            end
+            export.subjectNames = this.subjectNames(idx,:);
+            export.subjectInfoColumnNames = this.subjectInfoColumnNames;
+            export.subjectInfo = this.subjectInfo(idx,:);
+            export.subjectInfoConditionDefinition = this.subjectInfoConditionDefinition;
+            export.resultFileChs = this.resultFileChs(idx,:);
+            export.measurementFileChs = this.measurementFileChs(idx,:);
+            export.MVGroupTargets = this.MVGroupTargets;
+            export.resultROIGroups = this.resultROIGroups;
+            export.resultROICoordinates = this.resultROICoordinates(idx);
+            export.nonDefaultSizeROICoordinates = this.nonDefaultSizeROICoordinates(idx);
+            export.resultZScaling = this.resultZScaling(idx);
+            export.resultColorScaling = this.resultColorScaling(idx);
+            export.resultCrossSection = this.resultCrossSection(idx);
+            export.allFLIMItems = this.allFLIMItems(idx,:);
+            export.IRFInfo = this.IRFInfo;
+            export.arithmeticImageInfo = this.arithmeticImageInfo;
+            export.conditionColors = this.conditionColors;            
+        end
+        
+        function out = getColumnDependencies(this,columnName)
+            %return names of all conditions which use columnName as a reference
+            if(~isempty(this.subjectInfoColumnNames))
+                out = cell(0,0);
+                n = this.subjectInfoColumnName2idx(columnName);
+                for i=1:length(this.subjectInfoColumnNames)
+                    ref = this.getConditionalColumnDefinition(i);
+                    if(isempty(ref))
+                        continue
+                    end
+                    a = this.subjectInfoColumnName2idx(ref.colA);
+                    if(strcmp(ref.logOp,'-no op-'))
+                        %second reference is inactive
+                        b = 0;
+                    else
+                        b = this.subjectInfoColumnName2idx(ref.colB);
+                    end
+                    if((a == n) || (b == n))
+                        %column n is a reference column
+                        out(end+1) = this.subjectInfoColumnNames(i,1);
+                    end
+                end
+            end
+        end
+
+        function out = getResultFileChs(this,subjectID)
+            %get indices channels which carry a result
+            if(isempty(subjectID))
+                out = this.resultFileChs;
+            else
+                if(~isnumeric(subjectID))
+                    subjectID = this.subName2idx(subjectID);
+                    if(isempty(subjectID))
+                        out = [];
+                        return
+                    end
+                end
+                out = this.resultFileChs(subjectID,:);
+            end
+        end
+        
+        function out = getMeasurementFileChs(this,subjectID)
+            %get indices channels which carry a measurement
+            if(isempty(subjectID))
+                out = this.measurementFileChs;
+            else
+                if(~isnumeric(subjectID))
+                    subjectID = this.subName2idx(subjectID);
+                    if(isempty(subjectID))
+                        out = [];
+                        return
+                    end
+                end
+                out = this.measurementFileChs(subjectID,:);
+            end
+        end
+        
+        function out = getFileChs(this,subjectID)
+            %get indices channels which carry a measurement, a result or both for a subject
+            m = this.getMeasurementFileChs(subjectID);
+            r = this.getResultFileChs(subjectID);
+            if(size(m,1) ~= size(r,1))
+                out = [];
+                return
+            end
+            out = cell(size(m,1),max(size(m,2),size(r,2)));
+            for i = 1:size(m,1)
+                tmp = unique([m{i,:},r{i,:}]);
+                if(~isempty(tmp))
+                    out(i,tmp) = num2cell(tmp);
+                end
+            end
+        end
+        
+        function out = getStudyMVGroups(this)
+            %get study MVGroups
+            out = this.MVGroupTargets;
+        end
+       
+        function [integral, id, timeChannels] = getIRFInfo(this,ch)
+            %get info on used IRF for channel chStr
+            integral = [];
+            id = [];
+            timeChannels = [];
+            if(~isempty(this.IRFInfo))
+                if(isnumeric(ch) && isfield(this.IRFInfo,'integral') && ch <= length(this.IRFInfo.integral))
+                    integral = this.IRFInfo.integral{ch};
+                end
+                id = this.IRFInfo.id;
+                timeChannels = this.IRFInfo.timeChannels;
+            end
+        end        
+        
+        function out = getAllArithmeticImageInfo(this)
+            %
+            out = this.arithmeticImageInfo;
+        end
+        
+        function removeSubjectResult(this,subjectID)
+            %remove the results of subject subjectID from this study
+            idx = this.subName2idx(subjectID);
+            if(~isempty(idx))
+                this.resultFileChs(idx,:) = cell(1,max(1,size(this.resultFileChs,2)));
+                this.resultROICoordinates(idx) = cell(1,1);
+                this.nonDefaultSizeROICoordinates(idx) = cell(1,1);
+                this.resultZScaling(idx) = cell(1,1);
+                this.resultColorScaling(idx) = cell(1,1);
+                this.resultCrossSection(idx) = cell(1,1);
+                this.allFLIMItems(idx) = cell(1,1);
+                this.setDirty(true);
+            end            
+        end
+        
+        function idx = subName2idx(this,subjectID)
+            %get the index of a subject or check if index is valid
+            idx = [];
+            if(ischar(subjectID))
+                idx = find(strcmp(subjectID,this.subjectNames),1);
+            elseif(isnumeric(subjectID))
+                if(subjectID <= this.nrSubjects)
+                    idx = subjectID;
+                end
+            end
+        end
+        
+        function idx = MVGroupName2idx(this,MVGroupName)
+            %get the index of a MVGroup or check if index is valid
+            idx = [];
+            if(isempty(this.MVGroupTargets))
+                return
+            end
+            if(ischar(MVGroupName))
+                idx = find(strcmp(MVGroupName,this.MVGroupTargets(1,:)),1);
+            elseif(isnumeric(MVGroupName))
+                if(MVGroupName <= length(this.MVGroupTargets(1,:)))
+                    idx = MVGroupName;
+                end
+            end
+        end       
+       
+        function name = idx2SubName(this,id)
+            %get the index of a subject or check if index is valid
+            name = '';
+            if(ischar(id))
+                idx = find(strcmp(id,this.subjectNames),1);
+                if(~isempty(idx))
+                    %valid subject name
+                    name = id;
+                end
+            elseif(isnumeric(id) && ~isempty(id))
+                if(id <= this.nrSubjects && id > 0)
+                    name = this.subjectNames{id};
+                end
+            end
+        end
+        
+    end %methods(Access = private)
+    
+    methods(Static)
+        function [testStudy,dirty] = checkStudyConsistency(testStudy)
+            %make sure study is not corrput
+            dirty = false;
+            if(isstruct(testStudy) && ~isfield(testStudy,'IRFInfo'))
+                testStudy.IRFInfo = [];
+            end
+            nrSubjects = length(testStudy.subjectNames);
+            %result files
+            tmpLen = size(testStudy.resultFileChs,1);
+            if(tmpLen < nrSubjects)
+                testStudy.resultFileChs(end+1:end+nrSubjects-tmpLen,:) = cell(nrSubjects-tmpLen,size(testStudy.resultFileChs,2));
+                dirty = true;
+            elseif(tmpLen > nrSubjects)
+                testStudy.resultFileChs = testStudy.resultFileChs(1:nrSubjects,:);
+                dirty = true;
+            end
+            %measurement files
+            tmpLen = size(testStudy.measurementFileChs,1);
+            if(tmpLen < nrSubjects)
+                testStudy.measurementFileChs(end+1:end+nrSubjects-tmpLen,:) = cell(nrSubjects-tmpLen,size(testStudy.measurementFileChs,2));
+                dirty = true;
+            elseif(tmpLen > nrSubjects)
+                testStudy.measurementFileChs = testStudy.measurementFileChs(1:nrSubjects,:);
+                dirty = true;
+            end
+            %arithmeticImageInfo
+            if(isstruct(testStudy) && ~isfield(testStudy,'arithmeticImageInfo') || ~iscell(testStudy.arithmeticImageInfo))
+                testStudy.arithmeticImageInfo = cell(0,2);
+            end
+            if(size(testStudy.arithmeticImageInfo,2) < 2)
+                testStudy.arithmeticImageInfo(:,2) = cell(size(testStudy.arithmeticImageInfo,1),1);
+                dirty = true;
+            elseif(size(testStudy.arithmeticImageInfo,2) > 2)
+                testStudy.arithmeticImageInfo = testStudy.arithmeticImageInfo(:,1:2);
+                dirty = true;
+            end
+            %subjectInfo
+            tmpLen = size(testStudy.subjectInfo,1);
+            if(tmpLen < nrSubjects)
+                testStudy.subjectInfo(end+1:end+nrSubjects-tmpLen,:) = cell(nrSubjects-tmpLen,size(testStudy.subjectInfo,2));
+                dirty = true;
+            elseif(tmpLen > nrSubjects)
+                testStudy.subjectInfo = testStudy.subjectInfo(1:nrSubjects,:);
+                dirty = true;
+            end
+            nrInfoCols = size(testStudy.subjectInfo,2);%isstrprop
+            tmpTestChar = cellfun(@ischar,testStudy.subjectInfo);
+            tmpTestCharSum = sum(tmpTestChar,1);
+            idx = find(tmpTestCharSum > 0 & tmpTestCharSum < size(tmpTestChar,1));
+            for i = 1:length(idx)
+                %we've found columns which have chars in only a few rows
+                if(sum(cellfun(@(x) isempty(x) || ~any(isstrprop(x,'alpha')),testStudy.subjectInfo(tmpTestChar(:,idx(i)),idx(i)))) == tmpTestCharSum(idx(i)))
+                    %all rows with char datatype actually do not contain any usefull text
+                    testStudy.subjectInfo(tmpTestChar(:,idx(i)),idx(i)) = num2cell(cellfun(@str2double,testStudy.subjectInfo(tmpTestChar(:,idx(i)),idx(i))));
+                end                
+            end
+            %subjectInfoColumnNames
+            if(size(testStudy.subjectInfoColumnNames,2) > 1)
+                testStudy.subjectInfoColumnNames = testStudy.subjectInfoColumnNames(:);
+                dirty = true;
+            end
+            tmpLen = length(testStudy.subjectInfoColumnNames);
+            if(tmpLen < nrInfoCols)
+                testStudy.subjectInfoColumnNames(end+1:end+nrInfoCols-tmpLen,1) = cell(nrInfoCols-tmpLen,1);
+                dirty = true;
+            elseif(tmpLen > nrInfoCols)
+                testStudy.subjectInfoColumnNames = testStudy.subjectInfoColumnNames(1:nrInfoCols);
+                dirty = true;
+            end
+            %subjectInfoConditionDefinition
+            if(size(testStudy.subjectInfoConditionDefinition,2) > 1)
+                testStudy.subjectInfoConditionDefinition = testStudy.subjectInfoConditionDefinition(:);
+                dirty = true;
+            end
+            tmpLen = length(testStudy.subjectInfoConditionDefinition);
+            if(tmpLen < nrInfoCols)
+                testStudy.subjectInfoConditionDefinition(end+1:end+nrInfoCols-tmpLen,1) = cell(nrInfoCols-tmpLen,1);
+                dirty = true;
+            elseif(tmpLen > nrInfoCols)
+                testStudy.subjectInfoConditionDefinition = testStudy.subjectInfoConditionDefinition(1:nrInfoCols);
+                dirty = true;
+            end
+            %check subject info data types, logical is allowed only for conditional columns
+            conditionCol = cellfun('isempty',testStudy.subjectInfoConditionDefinition);
+            for i = 1:length(conditionCol)
+                if(conditionCol(i)) %normal column
+                    cellclass = cellfun('isclass',testStudy.subjectInfo(:,i),'char');
+                    if(any(cellclass))
+                        cTypeDouble = false;
+                    else
+                        cellclass = cellfun('isclass',testStudy.subjectInfo(:,i),'double');
+                        cTypeDouble = true;
+                    end
+                    if(~all(cellclass))
+                        %not all elemtents are double -> convert them
+                        idx = find(~cellclass);
+                        for j = 1:length(idx)
+                            if(cTypeDouble)
+                                testStudy.subjectInfo(idx(j),i) = {double(testStudy.subjectInfo{idx(j),i})};
+                            else
+                                testStudy.subjectInfo(idx(j),i) = {char(testStudy.subjectInfo{idx(j),i})};
+                            end
+                        end
+                        dirty = true;
+%                     elseif(all(cellclass) && ~cTypeDouble)
+%                         %check if we can convert all chars to double
+%                         %testDouble = zeros(size(cellclass));
+%                         cellempty = cellfun('isempty',testStudy.subjectInfo(:,i));
+%                         testStr = [testStudy.subjectInfo{:,i}];
+%                         testStr(isstrprop(testStr,'punct')) = '.';
+%                         testStr(isstrprop(testStr,'wspace')) = '0';
+%                         testDouble = zeros(size(cellclass));
+%                         converted = str2num(testStr);
+%                         if(length(converted) == sum(~cellempty))
+%                             testDouble(~cellempty) = converted;
+%                             if(any(testDouble) && all(~isnan(testDouble)) && length(testDouble) == length(cellclass))
+%                                 testStudy.subjectInfo(:,i) = num2cell(testDouble);
+%                                 dirty = true;
+%                             end
+%                         end
+                    end
+                else %condition colum
+                    %not all elemtents are logical -> convert them
+                    cellclass = cellfun('isclass',testStudy.subjectInfo(:,i),'logical');
+                    if(~all(cellclass))
+                        %not all elemtents are logical -> convert them
+                        idx = find(~cellclass);
+                        for j = 1:length(idx)
+                            if(isempty(testStudy.subjectInfo{idx(j),i}))
+                                testStudy.subjectInfo(idx(j),i) = {false(1,1)};
+                            else
+                                testStudy.subjectInfo(idx(j),i) = {logical(testStudy.subjectInfo{idx(j),i})};
+                            end
+                        end
+                        dirty = true;
+                    end
+                end
+            end            
+            %check content of subjectInfoColumnNames
+            if(isempty(testStudy.subjectInfoColumnNames))
+                %no element --> add first info header
+                testStudy.subjectInfoColumnNames(1,1) = {'column 1'};
+                testStudy.subjectInfoConditionDefinition(1,1) = {[]};
+                testStudy.subjectInfo(:,1) = cell(max(1,size(testStudy.subjectInfo,1)),1);
+                dirty = true;
+            else
+                %column header exist -> check names
+                for i = 1:length(testStudy.subjectInfoColumnNames)
+                    if(isempty(testStudy.subjectInfoColumnNames{i,1}))
+                        %there is no validate name
+                        colname = sprintf('column %d',i);
+                        testStudy.subjectInfoColumnNames(i,1)= {colname};
+                        dirty = true;
+                    end
+                    %check if we have a corresponding field in subjectInfoConditionDefinition
+                    if(length(testStudy.subjectInfoConditionDefinition) < i)
+                        testStudy.subjectInfoConditionDefinition(i,1) = cell(1,1);
+                        dirty = true;
+                    end
+                end
+            end
+            %resultROICoordinates
+            if(size(testStudy.resultROICoordinates,2) > 1)
+                testStudy.resultROICoordinates = testStudy.resultROICoordinates(:);
+                dirty = true;
+            end
+            tmpLen = length(testStudy.resultROICoordinates);
+            if(tmpLen < nrSubjects)
+                testStudy.resultROICoordinates(end+1:end+nrSubjects-tmpLen,1) = cell(nrSubjects-tmpLen,1);
+                dirty = true;
+            elseif(tmpLen > nrSubjects)
+                testStudy.resultROICoordinates = testStudy.resultROICoordinates(1:nrSubjects);
+                dirty = true;
+            end
+            %nonDefaultSizeROICoordinates
+            if(size(testStudy.nonDefaultSizeROICoordinates,2) > 1)
+                testStudy.nonDefaultSizeROICoordinates = testStudy.nonDefaultSizeROICoordinates(:);
+                dirty = true;
+            end
+            tmpLen = size(testStudy.nonDefaultSizeROICoordinates,1);
+            if(tmpLen < nrSubjects)
+                testStudy.nonDefaultSizeROICoordinates(end+1:end+nrSubjects-tmpLen,1) = cell(nrSubjects-tmpLen,1);
+                dirty = true;
+            elseif(tmpLen > nrSubjects)
+                testStudy.nonDefaultSizeROICoordinates = testStudy.nonDefaultSizeROICoordinates(1:nrSubjects);
+                dirty = true;
+            end
+            %resultZScaling
+            if(size(testStudy.resultZScaling,2) > 1)
+                testStudy.resultZScaling = testStudy.resultZScaling(:);
+                dirty = true;
+            end
+            tmpLen = length(testStudy.resultZScaling);
+            if(tmpLen < nrSubjects)
+                testStudy.resultZScaling(end+1:end+nrSubjects-tmpLen) = cell(nrSubjects-tmpLen,1);
+                dirty = true;
+            elseif(tmpLen > nrSubjects)
+                testStudy.resultZScaling = testStudy.resultZScaling(1:nrSubjects);
+                dirty = true;
+            end
+            %resultColorScaling
+            if(size(testStudy.resultColorScaling,2) > 1)
+                testStudy.resultColorScaling = testStudy.resultColorScaling(:);
+                dirty = true;
+            end
+            tmpLen = length(testStudy.resultColorScaling);
+            if(tmpLen < nrSubjects)
+                testStudy.resultColorScaling(end+1:end+nrSubjects-tmpLen) = cell(nrSubjects-tmpLen,1);
+                dirty = true;
+            elseif(tmpLen > nrSubjects)
+                testStudy.resultColorScaling = testStudy.resultColorScaling(1:nrSubjects);
+                dirty = true;
+            end
+            %resultCrossSection
+            if(size(testStudy.resultCrossSection,2) > 1)
+                testStudy.resultCrossSection = testStudy.resultCrossSection(:);
+                dirty = true;
+            end
+            tmpLen = length(testStudy.resultCrossSection);
+            if(tmpLen < nrSubjects)
+                testStudy.resultCrossSection(end+1:end+nrSubjects-tmpLen) = cell(nrSubjects-tmpLen,1);
+                dirty = true;
+            elseif(tmpLen > nrSubjects)
+                testStudy.resultCrossSection = testStudy.resultCrossSection(1:nrSubjects);
+                dirty = true;
+            end
+            %all FLIMItems
+            nrChannels = size(testStudy.resultFileChs,2);
+            tmpLen = size(testStudy.allFLIMItems,2);
+            if(tmpLen < nrChannels)
+                testStudy.allFLIMItems(:,end+1:end+nrChannels-tmpLen) = cell(nrSubjects,nrChannels-tmpLen);
+                idx = ~cellfun('isempty',testStudy.resultFileChs(:,1)); %assume channel 1 as reference
+                testStudy.allFLIMItems(idx,tmpLen+1:nrChannels) = repmat(testStudy.allFLIMItems(idx,1),1,nrChannels-tmpLen);
+                dirty = true;
+            elseif(tmpLen > nrChannels)
+                testStudy.allFLIMItems = testStudy.allFLIMItems(:,1:nrChannels);
+                dirty = true;
+            end
+            tmpLen = size(testStudy.allFLIMItems,1);
+            if(tmpLen < nrSubjects)
+                testStudy.allFLIMItems(end+1:end+nrSubjects-tmpLen) = cell(nrSubjects-tmpLen,nrChannels);
+                dirty = true;
+            elseif(tmpLen > nrSubjects)
+                testStudy.allFLIMItems = testStudy.allFLIMItems(1:nrSubjects,:);
+                dirty = true;
+            end
+            %             [testStudy.allFLIMItems,dTmp] = studyIS.checkFLIMItems(testStudy.allFLIMItems);
+            %             dirty = dirty || dTmp;
+            %condition colors            
+            newColors = setdiff(testStudy.subjectInfoColumnNames(~conditionCol,1),testStudy.conditionColors(1,:));
+            for i = 1:length(newColors)
+                testStudy.conditionColors(1,end+1) = newColors(i);
+                testStudy.conditionColors(2,end) = {FDTStudy.makeRndColor()};
+            end
+            delColors = setdiff(testStudy.conditionColors(1,:),testStudy.subjectInfoColumnNames(~conditionCol,1));
+            delColors = delColors(~strcmp(delColors,FDTree.defaultConditionName()));
+            for i = 1:length(delColors)
+                idx = find(strcmp(delColors{i},testStudy.conditionColors(1,:)), 1);
+                if(~isempty(idx))
+                    testStudy.conditionColors(:,idx) = [];
+                end
+            end
+            if(~isempty(newColors) || ~isempty(delColors))
+                dirty = true;
+            end
+            if(isempty(testStudy.conditionColors))
+                %set color for "default" condition
+                testStudy.conditionColors(1,1) = {FDTree.defaultConditionName()};
+                testStudy.conditionColors(2,1) = {FDTStudy.makeRndColor()};
+                dirty = true;
+            end            
+        end
+        
+        %         function [FLIMItems,dirty] = checkFLIMItems(FLIMItems)
+        %             %check and repair FLIMItems cell array
+        %             dirty = false;
+        %             if(length(FLIMItems)>1)
+        %                 t1 = FLIMItems(:,1);
+        %                 t2 = FLIMItems;
+        %                 t2(1:end,1) = {[]};
+        %                 %create correct cell array
+        %                 FLIMItems = cell(size(FLIMItems,1)...
+        %                     +size(FLIMItems,2)-1,1);
+        %                 FLIMItems(1:length(t1),1) = t1;
+        %                 %move corrupt data entrys
+        %                 dn = ~cellfun('isempty',t2);
+        %                 loc = find(dn);     %find positions of corrupt entrys
+        %                 if(~isempty(loc))
+        %                     for i=1:length(loc)
+        %                         FLIMItems(loc(i),1) = t2(loc(i));
+        %                     end
+        %                 end
+        %                 dirty = true;
+        %             end
+        %         end
+        
+        function [op, neg, opWeight] = str2logicOp(str)
+            %convert a (descriptive) string to a logical operand
+            neg = '';
+            opWeight = inf;
+            switch str
+                case {'-no op-','-none-'} %no combination
+                    op = '';
+                case 'AND'
+                    op = '&';
+                    opWeight = 4;
+                case 'OR'
+                    op = '|';
+                    opWeight = 5;
+                case '!AND'
+                    op = '&';
+                    neg = '~';
+                    opWeight = 4;
+                case '!OR'
+                    op = '|';
+                    neg = '~';
+                    opWeight = 5;
+                case 'XOR'
+                    op = 'xor';
+                    neg = '';
+                    opWeight = 1;
+                case {'+','-','.*','./'}
+                    op = str;
+                    opWeight = 2;
+                case '!='
+                    op = '~=';
+                    neg = '';
+                    opWeight = 3;
+                otherwise % <,<=,>,>=,==
+                    op = str;
+                    opWeight = 3;
+            end
+        end
+        
+        function out = makeRndColor()
+            %generate random RGB color from jet colormap
+            tmp = jet(256);
+            out = tmp(round(rand*255+1),:);
+        end
+        
+        function ROICoord = insertResultROIType(ROICoord,ROIType)
+            %add an empty ROIType
+            if(isempty(ROICoord))
+                ROICoord = ROICtrl.getDefaultROIStruct();
+            end
+            [val,idx] = min(abs(ROICoord(:,1,1) - ROIType));
+            if(val > 0)
+                tmpNew = zeros(size(ROICoord,1)+val,size(ROICoord,2),size(ROICoord,3),'int16');
+                tmpNew(1:idx,:,:) = ROICoord(1:idx,:,:);
+                tmpNew(idx+val+1:end,:,:) = ROICoord(idx+1:end,:,:);
+                tmpNew(idx+1:idx+val,1,1) = (ROICoord(idx,1,1)+1 : 1 : ROICoord(idx,1,1)+val)';
+                ROICoord = tmpNew;
+            end
+        end
+    end %methods(static)
 end %classdef
