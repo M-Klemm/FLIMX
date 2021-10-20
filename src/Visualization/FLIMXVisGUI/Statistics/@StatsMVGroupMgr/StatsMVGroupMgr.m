@@ -179,7 +179,18 @@ classdef StatsMVGroupMgr < handle
                     if(ischar(pStr))
                         pStr = {pStr};
                     end
-                    newStr = ROICtrl.ROIType2ROIItem(cMVs.ROI.ROIType);
+                    if(cMVs.ROI.ROIType < 0)
+                        %ROI group
+                        grps = this.visObj.fdt.getResultROIGroup(this.curStudyName,[]);
+                        if(size(grps,1) >= abs(cMVs.ROI.ROIType))
+                            newStr = ['Group: ' grps{abs(cMVs.ROI.ROIType),1}];
+                        else
+                            newStr = '-none-';
+                        end
+                    else
+                        %regular ROI
+                        newStr = ROICtrl.ROIType2ROIItem(cMVs.ROI.ROIType);
+                    end
                     idx = find(strcmp(pStr,newStr),1,'first');
                     if(~isempty(idx))
                         this.visHandles.popupROIType.Value = idx;
