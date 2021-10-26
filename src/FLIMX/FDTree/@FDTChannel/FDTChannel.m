@@ -371,7 +371,7 @@ classdef FDTChannel < FDTreeNode
             end
             
             allMVG = this.getMVGroupNames(0);
-            if(isempty(gMVs.y) && all(ismember(gMVs.x,allMVG)))
+            if(~isempty(gMVs.x) && isempty(gMVs.y) && all(ismember(gMVs.x,allMVG)))
                 %MV group made of MV groups
                 out = gMVs;
             else
@@ -404,7 +404,7 @@ classdef FDTChannel < FDTreeNode
             cimg = []; lblx = []; lbly = []; cw = []; binNrs = []; colorMVGroup = []; logColorMVGroup = [];
             allMVG = this.getMVGroupNames(0);
             cMVs = this.getMVGroupTargets(MVGroupID);
-            if(isempty(cMVs.y) && all(ismember(cMVs.x,allMVG)))
+            if(~isempty(cMVs.x) && isempty(cMVs.y) && all(ismember(cMVs.x,allMVG)))
                 %special case: (MIS) MV Group made by merging other MV Groups
                 %this.updateLongProgress(0.01,'Scatter Plot...');
                 %MVGroupObjs = this.getStudyObjs(cName,str2double(this.name),MVGroupID,0,1);

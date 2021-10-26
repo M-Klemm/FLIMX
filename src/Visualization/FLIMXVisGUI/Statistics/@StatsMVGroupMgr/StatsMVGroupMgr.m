@@ -129,7 +129,7 @@ classdef StatsMVGroupMgr < handle
             curChNr = this.visObj.getChannel('l');
             cMV = this.curMVGroup;
             allMVG = this.visHandles.popupMVGroups.String;
-            if(isempty(cMV.y) && all(ismember(cMV.x,allMVG)))
+            if(~isempty(cMV.x) && isempty(cMV.y) && all(ismember(cMV.x,allMVG)))
                 %current MV group is a MIS MV group
                 this.enDisAblePanels('off','','');
 %                 cMV.x = cellstr('-none-');
@@ -179,8 +179,6 @@ classdef StatsMVGroupMgr < handle
                 for i=1:length(cMV.y)
                     idx(strcmpi(cMV.y{i},allObjs)) = 1;
                 end
-                allObjs = allObjs(~idx);
-                
                 set(this.visHandles.lblHeadingY,'String',sprintf('y-axis\n(Used classwidth: %d)',this.cwY));
             else
                 set(this.visHandles.lblHeadingY,'String',sprintf('y-axis\n(Used classwidth: -)'));
@@ -189,7 +187,7 @@ classdef StatsMVGroupMgr < handle
             if(isempty(allObjs))
                 set(this.visHandles.listboxRemaining,'String','','Value',1);
             else
-                set(this.visHandles.listboxRemaining,'String',allObjs,'Value',min(get(this.visHandles.listboxRemaining,'Value'),length(allObjs)));
+                set(this.visHandles.listboxRemaining,'String',allObjs,'Value',max(1,min(get(this.visHandles.listboxRemaining,'Value'),length(allObjs))));
             end
             set(this.visHandles.listboxSelectedX,'String',cMV.x,'Value',min(get(this.visHandles.listboxSelectedX,'Value'),length(cMV.x)));
             set(this.visHandles.listboxSelectedY,'String',cMV.y,'Value',min(get(this.visHandles.listboxSelectedY,'Value'),length(cMV.y)));
@@ -348,7 +346,7 @@ classdef StatsMVGroupMgr < handle
                 set(this.visHandles.tableMVGroupsSelectedMIS,'Data',[],'Enable','Off');
             else
                 %check if current MV group consists of other MV groups                
-                if(isempty(cMV.y) && all(ismember(cMV.x,allMVG)))
+                if(~isempty(cMV.x) && isempty(cMV.y) && all(ismember(cMV.x,allMVG)))
                     %this is a valid MIS MV group
                     set(this.visHandles.tableMVGroupsSelectedMIS,'Data',cMV.x,'Enable','On');
                     idx = ~ismember(allMVG,cMV.x);
