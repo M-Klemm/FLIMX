@@ -40,8 +40,10 @@ classdef StatsMVGroupMgr < handle
         cwY = [];                   %classwidth of selected target on y axis
         oldMVs = [];
         curAxis = [];               %indicates axis for target selection (x or y)
-        conditionSelectionTableIdx = []; %current selection in condition table
-        studyConditionTableIdx = [];     %current selection in study condition table
+        MMSSelectedTableIdx = []; %current selection in condition table
+        MMSAvailableTableIdx = [];     %current selection in study condition table
+        MISAvailableTableIdx = [];  %current selection in MIS available table
+        MISSelectedTableIdx = [];  %current selection in MIS selected table
         lLB = [];
         xLB = [];
         yLB = [];
@@ -51,6 +53,7 @@ classdef StatsMVGroupMgr < handle
     end
     properties (Dependent = true)
         allROITypes
+        curMVGroup
     end
     
     methods
@@ -63,32 +66,39 @@ classdef StatsMVGroupMgr < handle
         function createVisWnd(this)
             %initialize and create GUI
             this.visHandles = StatsMVGroupMgrFigure();
+            %radio buttons
+            this.visHandles.radioFLIMItem.Callback = @this.GUI_switchMVGroupGeneration;
+            this.visHandles.radioMIS.Callback = @this.GUI_switchMVGroupGeneration;
+            this.visHandles.radioMMS.Callback = @this.GUI_switchMVGroupGeneration;
             %buttons
-            set(this.visHandles.buttonAddCluster,'Callback',@this.GUI_addMVGroupCallback);
-            set(this.visHandles.buttonDeleteCluster,'Callback',@this.GUI_deleteMVGroupCallback);
-            set(this.visHandles.buttonRenameCluster,'Callback',@this.GUI_renameMVGroupCallback);
-            set(this.visHandles.buttonClose,'Callback',@this.closeCallback);
+            set(this.visHandles.buttonAddMVGroup,'Callback',@this.GUI_addMVGroupCallback);
+            set(this.visHandles.buttonDeleteMVGroup,'Callback',@this.GUI_deleteMVGroupCallback);
+            set(this.visHandles.buttonRenameMVGroup,'Callback',@this.GUI_renameMVGroupCallback);
+            %set(this.visHandles.buttonClose,'Callback',@this.closeCallback);
             set(this.visHandles.buttonSelectX,'Callback',@this.addMVCallback);
             set(this.visHandles.buttonSelectY,'Callback',@this.addMVCallback);
-            set(this.visHandles.buttonDeselect,'Callback',@this.removeMVCallback);
-            set(this.visHandles.buttonSelectView,'Callback',@this.addConditionCallback);
-            set(this.visHandles.buttonDeselectView,'Callback',@this.removeConditionCallback);
+            set(this.visHandles.buttonDeselectFLIMItem,'Callback',@this.removeMVCallback);
+            set(this.visHandles.buttonSelectMIS,'Callback',@this.addMISCallback);
+            set(this.visHandles.buttonDeselectMIS,'Callback',@this.removeMISCallback);
+            set(this.visHandles.buttonSelectMMS,'Callback',@this.addMMSCallback);
+            set(this.visHandles.buttonDeselectMMS,'Callback',@this.removeMMSCallback);
             %popups
-            set(this.visHandles.popupStudies,'Callback',@this.GUI_popupStudiesCallback,'String', this.visObj.fdt.getAllStudyNames(),'Value',1);
+            set(this.visHandles.popupStudySel,'Callback',@this.GUI_popupStudySelCallback,'String', this.visObj.fdt.getAllStudyNames(),'Value',1);
             set(this.visHandles.popupMVGroups,'Callback',@this.GUI_popupMVGroupsCallback);
             %listbox            
             set(this.visHandles.listboxSelectedX,'Callback',@this.selectAxisCallback);
             set(this.visHandles.listboxSelectedY,'Callback',@this.selectAxisCallback);
             %table
-            set(this.visHandles.tableSelectedViews,'CellSelectionCallback',@this.tableSelectedConditionsCallback);
-            set(this.visHandles.tableStudyViews,'CellSelectionCallback',@this.tableStudyConditionsCallback);
+            set(this.visHandles.tableMVGroupsSelectedMIS,'CellSelectionCallback',@this.tableSelectedMISCallback);
+            set(this.visHandles.tableMVGroupsAvailableMIS,'CellSelectionCallback',@this.tableAvailableMISCallback);
+            set(this.visHandles.tableMVGroupsSelectedMMS,'CellSelectionCallback',@this.tableSelectedMMSCallback);
+            set(this.visHandles.tableMVGroupsAvailableMMS,'CellSelectionCallback',@this.tableAvailableMMSCallback);
             %ROI handling
             set(this.visHandles.popupROIType,'Callback',@this.GUI_ROICallback);
             set(this.visHandles.popupROISubType,'Callback',@this.GUI_ROICallback);
             set(this.visHandles.popupROIVicinity,'Callback',@this.GUI_ROICallback);
             %initialize other values
             this.curAxis = 'x';
-            this.setUIHandles();
             %initialize listbox with study from left side of FIMXVisGUI
             this.setCurStudy(this.visObj.getStudy('l'));
         end
@@ -103,7 +113,7 @@ classdef StatsMVGroupMgr < handle
             figure(this.visHandles.StatsMVGroupMgrFigure);
         end
         
-        function updateCtrls(this)
+        function updateFICtrls(this)
             %updates controls to current values
             %pick first subject and first channel if current subject is empty (e.g. not loaded from disk)
             curSubName = this.visObj.fdt.getAllSubjectNames(this.curStudyName,FDTree.defaultConditionName());
@@ -112,109 +122,77 @@ classdef StatsMVGroupMgr < handle
             else
                 curSubName = curSubName{1};
             end
-            [~, curChNr] = this.visObj.fdt.getChStr(this.curStudyName,curSubName);
-            if(~isempty(curChNr))
-                curChNr = curChNr(1);
-            end
+%             [~, curChNr] = this.visObj.fdt.getChStr(this.curStudyName,curSubName);
+%             if(~isempty(curChNr))
+%                 curChNr = curChNr(1);
+%             end
             curChNr = this.visObj.getChannel('l');
-            allObjs = this.visObj.fdt.getChObjStr(this.curStudyName,curSubName,curChNr);
-            if(~isempty(this.curMVGroupName))
-                cMVs = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
-            else
-                cMVs.x = [];
-                cMVs.y = [];
-                cMVs.ROI.ROIType = 0;
-                cMVs.ROI.ROISubType = 1;
-                cMVs.ROI.ROIVicinity = 1;
+            cMV = this.curMVGroup;
+            allMVG = this.visHandles.popupMVGroups.String;
+            if(isempty(cMV.y) && all(ismember(cMV.x,allMVG)))
+                %current MV group is a MIS MV group
+                this.enDisAblePanels('off','','');
+%                 cMV.x = cellstr('-none-');
+%                 cMV.y = cellstr('-none-');
+                allObjs = [];
+            else                
+                allObjs = this.visObj.fdt.getChObjStr(this.curStudyName,curSubName,curChNr);
             end
             %remove all current targets from allObjs
             if(isempty(allObjs))
                 allObjs = cellstr('-none-');
-                cMVs.x = cellstr('-none-');
-                cMVs.y = cellstr('none-');
+                cMV.x = cellstr('-none-');
+                cMV.y = cellstr('none-');
+                idx = false(1,1);
             else
-                if(isempty(cMVs.x))
-                    cMVs.x = cellstr('-none-');
+                if(isempty(cMV.x))
+                    cMV.x = cellstr('-none-');
                 end
-                if(isempty(cMVs.y))
-                    cMVs.y = cellstr('-none-');
+                if(isempty(cMV.y))
+                    cMV.y = cellstr('-none-');
                 end
                 idx = false(length(allObjs),1);
-                if(~strcmp(cMVs.x{1},'-none-'))
+                if(~strcmp(cMV.x{1},'-none-'))
                     %remove reference target (x-axis)
-                    idx = idx | strcmpi(cMVs.x{1}, allObjs);
+                    idx = idx | strcmpi(cMV.x{1}, allObjs);
                     %get corresponding class width
-                    [dType, dTypeNr] = this.visObj.FLIMItem2TypeAndID(cMVs.x{1});
+                    [dType, dTypeNr] = this.visObj.FLIMItem2TypeAndID(cMV.x{1});
                     this.cwX = getHistParams(this.visObj.getStatsParams(),curChNr,dType{1},dTypeNr);
                     set(this.visHandles.lblHeadingX,'String',sprintf('x-axis\n(Used classwidth: %d)',this.cwX));
-                    set(this.xButton,'Enable','Off');
-                    set(this.yButton,'Enable','On');
-                    set(this.dButton,'Enable','On');
+                    set(this.visHandles.buttonSelectX,'Enable','Off');
+                    set(this.visHandles.buttonSelectY,'Enable','On');
+                    set(this.visHandles.buttonDeselectFLIMItem,'Enable','On');
                 else
-                    set(this.xButton,'Enable','On');
-                    set(this.yButton,'Enable','Off');
-                    set(this.dButton,'Enable','Off');
+                    set(this.visHandles.buttonSelectX,'Enable','On');
+                    set(this.visHandles.buttonSelectY,'Enable','Off');
+                    set(this.visHandles.buttonDeselectFLIMItem,'Enable','Off');
                     set(this.visHandles.lblHeadingX,'String',sprintf('x-axis\n(Used classwidth: -)'));
-                end                
-                if(~strcmp(cMVs.y{1},'-none-'))
-                    [dType, dTypeNr] = this.visObj.FLIMItem2TypeAndID(cMVs.y{1});
-                    this.cwY = getHistParams(this.visObj.getStatsParams(),curChNr,dType{1},dTypeNr);
-                    %add whitespace to distinguish between all FLIM items
-                    dType{1} = sprintf('%s ',dType{1});
-                    %show only targets with same dType
-                    idx = idx | ~strncmpi(dType,allObjs,length(dType{1}));
-                    for i=1:length(cMVs.y)
-                        idx(strcmpi(cMVs.y{i},allObjs)) = 1;
-                    end
-                    set(this.visHandles.lblHeadingY,'String',sprintf('y-axis\n(Used classwidth: %d)',this.cwY));
-                else
-                    set(this.visHandles.lblHeadingY,'String',sprintf('y-axis\n(Used classwidth: -)'));
+                end
+            end
+            if(~strcmp(cMV.y{1},'-none-'))
+                [dType, dTypeNr] = this.visObj.FLIMItem2TypeAndID(cMV.y{1});
+                this.cwY = getHistParams(this.visObj.getStatsParams(),curChNr,dType{1},dTypeNr);
+                %add whitespace to distinguish between all FLIM items
+                dType{1} = sprintf('%s ',dType{1});
+                %show only targets with same dType
+                idx = idx | ~strncmpi(dType,allObjs,length(dType{1}));
+                for i=1:length(cMV.y)
+                    idx(strcmpi(cMV.y{i},allObjs)) = 1;
                 end
                 allObjs = allObjs(~idx);
-                %set ROI controls
-                if(cMVs.ROI.ROIType == 0)
-                    this.visHandles.popupROIType.Value = cMVs.ROI.ROIType+1;
-                else
-                    pStr = this.visHandles.popupROIType.String;
-                    if(ischar(pStr))
-                        pStr = {pStr};
-                    end
-                    if(cMVs.ROI.ROIType < 0)
-                        %ROI group
-                        grps = this.visObj.fdt.getResultROIGroup(this.curStudyName,[]);
-                        if(size(grps,1) >= abs(cMVs.ROI.ROIType))
-                            newStr = ['Group: ' grps{abs(cMVs.ROI.ROIType),1}];
-                        else
-                            newStr = '-none-';
-                        end
-                    else
-                        %regular ROI
-                        newStr = ROICtrl.ROIType2ROIItem(cMVs.ROI.ROIType);
-                    end
-                    idx = find(strcmp(pStr,newStr),1,'first');
-                    if(~isempty(idx))
-                        this.visHandles.popupROIType.Value = idx;
-                    else
-                        %ROI Type not in popup menu
-                        %todo: add ROI Type to popup? It is not yet in the study!
-                        this.visHandles.popupROIType.Value = 1;
-                    end
-                end
-                if(cMVs.ROI.ROIType > 1000 && cMVs.ROI.ROIType < 2000)
-                    visFlag = 'on';
-                else
-                    visFlag = 'off';
-                end
-                set(this.visHandles.popupROISubType,'Value',cMVs.ROI.ROISubType,'Visible',visFlag);
-                set(this.visHandles.popupROIVicinity,'Value',cMVs.ROI.ROIVicinity,'Visible',visFlag);
-            end
-            if(isempty(allObjs))
-                set(this.lLB,'String','','Value',1);
+                
+                set(this.visHandles.lblHeadingY,'String',sprintf('y-axis\n(Used classwidth: %d)',this.cwY));
             else
-                set(this.lLB,'String',allObjs,'Value',min(get(this.lLB,'Value'),length(allObjs)));
+                set(this.visHandles.lblHeadingY,'String',sprintf('y-axis\n(Used classwidth: -)'));
             end
-            set(this.xLB,'String',cMVs.x,'Value',min(get(this.xLB,'Value'),length(cMVs.x)));
-            set(this.yLB,'String',cMVs.y,'Value',min(get(this.yLB,'Value'),length(cMVs.y)));
+            allObjs = allObjs(~idx);
+            if(isempty(allObjs))
+                set(this.visHandles.listboxRemaining,'String','','Value',1);
+            else
+                set(this.visHandles.listboxRemaining,'String',allObjs,'Value',min(get(this.visHandles.listboxRemaining,'Value'),length(allObjs)));
+            end
+            set(this.visHandles.listboxSelectedX,'String',cMV.x,'Value',min(get(this.visHandles.listboxSelectedX,'Value'),length(cMV.x)));
+            set(this.visHandles.listboxSelectedY,'String',cMV.y,'Value',min(get(this.visHandles.listboxSelectedY,'Value'),length(cMV.y)));
             %             if(this.cwX ~= this.cwY)
             %                 %show warning message
             %                 warndlg('The classwidths of the selected targets do not match. Results may be corrupted.','Classwidths do not match');
@@ -239,42 +217,177 @@ classdef StatsMVGroupMgr < handle
                 MVGroupStr = get(this.visHandles.popupMVGroups,'String');
                 this.curMVGroupName = MVGroupStr{get(this.visHandles.popupMVGroups,'Value')};
             end
-            %enable / disable UI controls
-            if(isempty(this.curMVGroupName))
-                set(this.visHandles.buttonDeselect,'Enable','Off');
-                set(this.lLB,'Enable','Off');
-                set(this.xLB,'Enable','Off');
-                set(this.yLB,'Enable','Off');
+            cMVs = this.curMVGroup;
+            %set ROI controls
+            if(cMVs.ROI.ROIType == 0)
+                this.visHandles.popupROIType.Value = cMVs.ROI.ROIType+1;
+                this.visHandles.popupROIVicinity.Visible = 'off'; 
             else
-                set(this.visHandles.buttonDeselect,'Enable','On');
-                set(this.lLB,'Enable','On');
-                set(this.xLB,'Enable','On');
-                set(this.yLB,'Enable','On');
+                set(this.visHandles.popupROIVicinity,'Value',cMVs.ROI.ROIVicinity,'Visible','on');
+                pStr = this.visHandles.popupROIType.String;
+                if(ischar(pStr))
+                    pStr = {pStr};
+                end
+                if(cMVs.ROI.ROIType < 0)
+                    %ROI group
+                    grps = this.visObj.fdt.getResultROIGroup(this.curStudyName,[]);
+                    if(size(grps,1) >= abs(cMVs.ROI.ROIType))
+                        newStr = ['Group: ' grps{abs(cMVs.ROI.ROIType),1}];
+                    else
+                        newStr = '-none-';
+                    end
+                else
+                    %regular ROI
+                    newStr = ROICtrl.ROIType2ROIItem(cMVs.ROI.ROIType);
+                end
+                idx = find(strcmp(pStr,newStr),1,'first');
+                if(~isempty(idx))
+                    this.visHandles.popupROIType.Value = idx;
+                else
+                    %ROI Type not in popup menu
+                    %todo: add ROI Type to popup? It is not yet in the study!
+                    this.visHandles.popupROIType.Value = 1;
+                end
             end
-            %update target selection controls
-            this.updateCtrls();
-            this.updateGlobalCtrls();
+            if(cMVs.ROI.ROIType > 1000 && cMVs.ROI.ROIType < 2000)
+                visFlag = 'on';
+            else
+                visFlag = 'off';
+            end
+            set(this.visHandles.popupROISubType,'Value',cMVs.ROI.ROISubType,'Visible',visFlag);                        
+                
+            if(this.visHandles.radioFLIMItem.Value) %FI
+                this.visHandles.radioMIS.Value = 0; 
+                this.visHandles.radioMMS.Value = 0;
+                this.enDisAblePanels('on','off','off');
+                this.updateFICtrls();
+                %enable / disable UI controls
+                if(isempty(this.curMVGroupName))
+                    set(this.visHandles.buttonDeselectFLIMItem,'Enable','Off');
+                    set(this.visHandles.listboxRemaining,'Enable','Off');
+                    set(this.visHandles.listboxSelectedX,'Enable','Off');
+                    set(this.visHandles.listboxSelectedY,'Enable','Off');
+                else
+                    set(this.visHandles.buttonDeselectFLIMItem,'Enable','On');
+                    set(this.visHandles.listboxRemaining,'Enable','On');
+                    set(this.visHandles.listboxSelectedX,'Enable','On');
+                    set(this.visHandles.listboxSelectedY,'Enable','On');
+                end
+                %clear MIS
+                set(this.visHandles.tableMVGroupsAvailableMIS,'Data',[],'Enable','Off');
+                set(this.visHandles.tableMVGroupsSelectedMIS,'Data',[],'Enable','Off');
+                %clear MMS
+                set(this.visHandles.tableMVGroupsAvailableMMS,'Data',[],'Enable','Off');
+                set(this.visHandles.tableMVGroupsSelectedMMS,'Data',[],'Enable','Off');
+            elseif(this.visHandles.radioMIS.Value) %MIS
+                this.visHandles.radioFLIMItem.Value = 0;
+                this.visHandles.radioMMS.Value = 0;
+                this.enDisAblePanels('off','on','off');
+                this.updateMISCtrls();
+                %clear FI
+                this.visHandles.listboxRemaining.String = '';
+                this.visHandles.listboxSelectedX.String = '';
+                this.visHandles.listboxSelectedY.String = '';
+                %clear MMS
+                set(this.visHandles.tableMVGroupsAvailableMMS,'Data',[],'Enable','Off');
+                set(this.visHandles.tableMVGroupsSelectedMMS,'Data',[],'Enable','Off');
+            else %MMS
+                this.visHandles.radioFLIMItem.Value = 0;
+                this.visHandles.radioMIS.Value = 0;
+                this.enDisAblePanels('off','off','on');
+                this.updateMMSCtrls();
+                %clear FI
+                this.visHandles.listboxRemaining.String = '';
+                this.visHandles.listboxSelectedX.String = '';
+                this.visHandles.listboxSelectedY.String = '';
+                %clear MIS
+                set(this.visHandles.tableMVGroupsAvailableMIS,'Data',[],'Enable','Off');
+                set(this.visHandles.tableMVGroupsSelectedMIS,'Data',[],'Enable','Off');
+            end
         end
         
-        function updateGlobalCtrls(this)
+        function enDisAblePanels(this,FIFlag,MISFlag,MMSFlag)
+            %
+            validFlags = {'on','off'};
+            if(ismember(FIFlag,validFlags))
+                this.visHandles.listboxRemaining.Enable = FIFlag;
+                this.visHandles.buttonSelectX.Enable = FIFlag;
+                this.visHandles.buttonSelectY.Enable = FIFlag;
+                this.visHandles.buttonDeselectFLIMItem.Enable = FIFlag;
+                this.visHandles.listboxSelectedX.Enable = FIFlag;
+                this.visHandles.listboxSelectedY.Enable = FIFlag;
+            end            
+            if(ismember(MISFlag,validFlags))
+                this.visHandles.textMISleft.Enable = MISFlag;
+                this.visHandles.tableMVGroupsAvailableMIS.Enable = MISFlag;
+                this.visHandles.textMISright.Enable = MISFlag;
+                this.visHandles.tableMVGroupsSelectedMIS.Enable = MISFlag;
+                this.visHandles.buttonSelectMIS.Enable = MISFlag;
+                this.visHandles.buttonDeselectMIS.Enable = MISFlag;
+            end
+            if(ismember(MISFlag,validFlags))
+                this.visHandles.textMMSWarning.Enable = MMSFlag;
+                this.visHandles.textMMSleft.Enable = MMSFlag;
+                this.visHandles.tableMVGroupsAvailableMMS.Enable = MMSFlag;
+                this.visHandles.tableMVGroupsSelectedMMS.Enable = MMSFlag;
+                this.visHandles.textGlobalMVGroups.Enable = MMSFlag;
+                this.visHandles.buttonSelectMMS.Enable = MMSFlag;
+                this.visHandles.buttonDeselectMMS.Enable = MMSFlag;
+            end
+        end
+        
+        function updateMISCtrls(this)
+            %update UI controls for merged MV groups inside a study
+            allMVG = this.visHandles.popupMVGroups.String;
+            idx = strcmp(allMVG,this.curMVGroupName);
+            allMVG = allMVG(~idx);
+            cMV = this.curMVGroup;
+            if(isempty(allMVG) || ~isempty(cMV.y) && ~isempty(cMV.x))
+                %this is an FLIM item MV group -> nothing to do here
+                set(this.visHandles.tableMVGroupsAvailableMIS,'Data',[],'Enable','Off');
+                set(this.visHandles.tableMVGroupsSelectedMIS,'Data',[],'Enable','Off');
+            else
+                %check if current MV group consists of other MV groups                
+                if(isempty(cMV.y) && all(ismember(cMV.x,allMVG)))
+                    %this is a valid MIS MV group
+                    set(this.visHandles.tableMVGroupsSelectedMIS,'Data',cMV.x,'Enable','On');
+                    idx = ~ismember(allMVG,cMV.x);
+                elseif(isempty(cMV.y) && isempty(cMV.x))
+                    %current MV group is empty and may become and MIS MV group
+                    set(this.visHandles.tableMVGroupsSelectedMIS,'Data',[],'Enable','On');
+                    idx = true(length(allMVG),1);
+                end                
+                %remove empty MV groups and MV groups which are merged from other MV groups
+                for i = 1:length(allMVG)                    
+                    cMVs = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,allMVG{i});
+                    if(isempty(cMVs) || isempty(cMVs.x) && isempty(cMVs.y) || any(ismember(cMVs.x,allMVG)) && any(ismember(cMVs.y,allMVG)))
+                        idx(i) = false;
+                    end
+                end
+                allMVG = allMVG(idx);
+                set(this.visHandles.tableMVGroupsAvailableMIS,'Data',allMVG,'Enable','On');                
+            end            
+        end
+        
+        function updateMMSCtrls(this)
             %update UI controls for global MVGroup selection
             %enable / disable UI controls
             if(isempty(this.curMVGroupName))
-                set(this.visHandles.tableStudyViews,'Data',[],'Enable','Off');
-                set(this.visHandles.tableSelectedViews,'Data',[],'Enable','Off');
-                set(this.visHandles.buttonSelectView,'Enable','Off');
-                set(this.visHandles.buttonDeselectView,'Enable','Off');
-                set(this.visHandles.textGlobalClusterViews,'String','Selected Conditions:');
+                set(this.visHandles.tableMVGroupsAvailableMMS,'Data',[],'Enable','Off');
+                set(this.visHandles.tableMVGroupsSelectedMMS,'Data',[],'Enable','Off');
+                set(this.visHandles.buttonSelectMMS,'Enable','Off');
+                set(this.visHandles.buttonDeselectMMS,'Enable','Off');
+                set(this.visHandles.textGlobalMVGroups,'String','Selected Conditions:');
                 return
             end
-            set(this.visHandles.tableStudyViews,'Enable','On');
+            set(this.visHandles.tableMVGroupsAvailableMMS,'Enable','On');
             selectedConditions = this.visObj.fdt.getGlobalMVGroupTargets(this.curMVGroupName);
-            set(this.visHandles.tableSelectedViews,'Data',selectedConditions,'Enable','On');
+            set(this.visHandles.tableMVGroupsSelectedMMS,'Data',selectedConditions,'Enable','On');
             studyStr = this.visObj.fdt.getAllStudyNames();
             tableData = cell(0,2);
             if(~isempty(selectedConditions))
                 %show name of global MVGroup
-                set(this.visHandles.textGlobalClusterViews,'String',sprintf('Selected Conditions (%s):',this.curMVGroupName));
+                set(this.visHandles.textGlobalMVGroups,'String',sprintf('Selected Conditions (%s):',this.curMVGroupName));
                 %show conditions of all studies
                 for i = 1:length(studyStr)
                     studyConditions = this.visObj.fdt.getStudyConditionsStr(studyStr{i});
@@ -285,8 +398,8 @@ classdef StatsMVGroupMgr < handle
                 end
             else
                 %show only conditions of currently selected study (initial case)
-                set(this.visHandles.textGlobalClusterViews,'String','Selected Conditions:');
-                studyNr = get(this.visHandles.popupStudies,'Value');
+                set(this.visHandles.textGlobalMVGroups,'String','Selected Conditions:');
+                studyNr = get(this.visHandles.popupStudySel,'Value');
                 studyConditions = this.visObj.fdt.getStudyConditionsStr(studyStr{studyNr});
                 for j = 1:length(studyConditions)
                     tableData(end+1,1) = studyStr(studyNr);
@@ -307,17 +420,17 @@ classdef StatsMVGroupMgr < handle
                 tf1 = ismember(tableData(:,1),selectedConditions(:,1));
                 tf2 = ismember(tableData(:,2),selectedConditions(:,2));
                 idx = tf1 & tf2;
-                set(this.visHandles.buttonDeselectView,'Enable','On');
+                set(this.visHandles.buttonDeselectMMS,'Enable','On');
             else
-                set(this.visHandles.buttonDeselectView,'Enable','Off');
+                set(this.visHandles.buttonDeselectMMS,'Enable','Off');
             end
             %show selectable study conditions
             tableData = tableData(~idx,:);
-            set(this.visHandles.tableStudyViews,'Data',tableData,'Enable','On');
+            set(this.visHandles.tableMVGroupsAvailableMMS,'Data',tableData,'Enable','On');
             if(~isempty(studyConditions))
-                set(this.visHandles.buttonSelectView,'Enable','On');
+                set(this.visHandles.buttonSelectMMS,'Enable','On');
             else
-                set(this.visHandles.buttonSelectView,'Enable','Off');
+                set(this.visHandles.buttonSelectMMS,'Enable','Off');
             end
         end
         
@@ -358,8 +471,22 @@ classdef StatsMVGroupMgr < handle
             end
         end
         
+        function out = get.curMVGroup(this)
+            %return definition (struct) of current MVGroup
+            if(~isempty(this.curMVGroupName))
+                out = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
+            else
+                out.x = [];
+                out.y = [];
+                out.ROI.ROIType = 0;
+                out.ROI.ROISubType = 1;
+                out.ROI.ROIVicinity = 1;
+            end
+        end
+        
+        
         %% GUI callbacks
-        function GUI_popupStudiesCallback(this,hObject,eventdata)
+        function GUI_popupStudySelCallback(this,hObject,eventdata)
             %select study
             studyStr = get(hObject,'String');
             this.curStudyName = studyStr{get(hObject,'Value')};
@@ -392,7 +519,8 @@ classdef StatsMVGroupMgr < handle
             for i=1:length(studies)
                 if(ismember(this.curMVGroupName,this.visObj.fdt.getMVGroupNames(studies{i},0)))
                     this.visObj.fdt.setStudyMVGroupTargets(studies{i},this.curMVGroupName,cMVs);
-                    this.visObj.fdt.clearAllRIs(studies{i},this.curMVGroupName);
+                    %this.visObj.fdt.clearAllRIs(studies{i},this.curMVGroupName);
+                    this.visObj.fdt.clearAllMVGroupIs();
                 end
             end
             this.visObj.setupGUI();
@@ -402,6 +530,25 @@ classdef StatsMVGroupMgr < handle
         
         function GUI_popupMVGroupsCallback(this,hObject,eventdata)
             %select MVGroup
+            this.updateGUI();
+        end
+        
+        function GUI_switchMVGroupGeneration(this,hObject,eventdata)
+            %change the way MVGroup are created
+            switch hObject.Tag
+                case 'radioFLIMItem'
+                    this.visHandles.radioFLIMItem.Value = 1;
+                    this.visHandles.radioMIS.Value = 0;
+                    this.visHandles.radioMMS.Value = 0;
+                case 'radioMIS'
+                    this.visHandles.radioFLIMItem.Value = 0;
+                    this.visHandles.radioMIS.Value = 1;
+                    this.visHandles.radioMMS.Value = 0;
+                case 'radioMMS'
+                    this.visHandles.radioFLIMItem.Value = 0;
+                    this.visHandles.radioMIS.Value = 0;
+                    this.visHandles.radioMMS.Value = 1;
+            end
             this.updateGUI();
         end
         
@@ -416,12 +563,12 @@ classdef StatsMVGroupMgr < handle
         
         function addMVCallback(this,hObject,eventdata)
             %callback function of the add (select) button
-            selStr = get(this.lLB,'String');
+            selStr = get(this.visHandles.listboxRemaining,'String');
             if(isempty(selStr))
-                this.updateCtrls();
+                this.updateFICtrls();
                 return
             end
-            selStr = selStr(get(this.lLB,'Value'));
+            selStr = selStr(get(this.visHandles.listboxRemaining,'Value'));
             cMVs = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
             if(strcmp('buttonSelectX',get(hObject,'Tag')))
                 %add MVGroup target to x axis
@@ -435,18 +582,22 @@ classdef StatsMVGroupMgr < handle
             for i=1:length(studies)
                 if(ismember(this.curMVGroupName,this.visObj.fdt.getMVGroupNames(studies{i},0)))
                     this.visObj.fdt.setStudyMVGroupTargets(studies{i},this.curMVGroupName,cMVs);
-                    this.visObj.fdt.clearAllRIs(studies{i},this.curMVGroupName);
+                    %this.visObj.fdt.clearAllRIs(studies{i},this.curMVGroupName);
+                    this.visObj.fdt.clearAllMVGroupIs();
                 end
             end
             this.visObj.setupGUI();
             this.visObj.updateGUI([]);
-            this.updateCtrls();
+            this.updateFICtrls();
         end
         
         function removeMVCallback(this,hObject,eventdata)
             %callback function from the remove (deselect) button
-            selStr = get(this.(sprintf('%sLB',this.curAxis)),'String');
-            selStr = selStr(get(this.(sprintf('%sLB',this.curAxis)),'Value'));
+            selStr = get(this.visHandles.(sprintf('listboxSelected%s',upper(this.curAxis))),'String');
+            selStr = selStr(get(this.visHandles.(sprintf('listboxSelected%s',upper(this.curAxis))),'Value'));
+            if(any(strcmp(selStr,'-none-')))
+                return
+            end
             cMVs = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
             if(strcmp('x',this.curAxis))
                 %remove all targets
@@ -462,12 +613,13 @@ classdef StatsMVGroupMgr < handle
             for i=1:length(studies)
                 if(ismember(this.curMVGroupName,this.visObj.fdt.getMVGroupNames(studies{i},0)))
                     this.visObj.fdt.setStudyMVGroupTargets(studies{i},this.curMVGroupName,cMVs);
-                    this.visObj.fdt.clearAllRIs(studies{i},this.curMVGroupName);
+                    %this.visObj.fdt.clearAllRIs(studies{i},this.curMVGroupName);
+                    this.visObj.fdt.clearAllMVGroupIs();
                 end
             end
             this.visObj.setupGUI();
             this.visObj.updateGUI([]);
-            this.updateCtrls();
+            this.updateFICtrls();
         end
         
         function GUI_addMVGroupCallback(this,hObject,eventdata)
@@ -575,57 +727,115 @@ classdef StatsMVGroupMgr < handle
             this.updateGUI();
         end
         
-        function addConditionCallback(this,hObject,eventdata)
-            %add study condition to global MVGroup selection
-            if(isempty(this.studyConditionTableIdx))
+        function addMISCallback(this,hObject,eventdata)
+            %
+            if(isempty(this.MISAvailableTableIdx))
                 return
             end
-            studyConditions = get(this.visHandles.tableStudyViews,'Data'); %study views and corresponding studies
+            MVs = get(this.visHandles.tableMVGroupsAvailableMIS,'Data');
+            cMV = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
+            new = MVs(this.MISAvailableTableIdx,1);
+            cMV.x(end+1:end+length(new),1) = new;
+            cMV.x = sort(cMV.x);
+            %update MVGroups in all studies
+            studies = this.visObj.fdt.getAllStudyNames();
+            for i=1:length(studies)
+                if(ismember(this.curMVGroupName,this.visObj.fdt.getMVGroupNames(studies{i},0)))
+                    this.visObj.fdt.setStudyMVGroupTargets(studies{i},this.curMVGroupName,cMV);
+                    %this.visObj.fdt.clearAllRIs(studies{i},this.curMVGroupName);
+                    this.visObj.fdt.clearAllMVGroupIs();
+                end
+            end
+            this.updateMISCtrls();
+            this.visObj.setupGUI();
+            this.visObj.updateGUI([]);         
+        end
+        
+        function removeMISCallback(this,hObject,eventdata)
+            %remove MV group from merged MV group
+            cMV = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
+            if(isempty(this.MISSelectedTableIdx) || isempty(cMV) || length(this.MISSelectedTableIdx) ~= length(cMV))
+                return
+            end
+            if(length(cMV.x) == 1)
+                cMV.x = cell(0,0);
+            else
+                cMV.x(this.MISSelectedTableIdx) = [];
+            end
+            %update MVGroups in all studies
+            studies = this.visObj.fdt.getAllStudyNames();
+            for i=1:length(studies)
+                if(ismember(this.curMVGroupName,this.visObj.fdt.getMVGroupNames(studies{i},0)))
+                    this.visObj.fdt.setStudyMVGroupTargets(studies{i},this.curMVGroupName,cMV);
+                    %this.visObj.fdt.clearAllRIs(studies{i},this.curMVGroupName);
+                    this.visObj.fdt.clearAllMVGroupIs();
+                end
+            end
+            this.updateMISCtrls();
+            this.visObj.setupGUI();
+            this.visObj.updateGUI([]);
+        end
+        
+        function addMMSCallback(this,hObject,eventdata)
+            %add study condition to global MVGroup selection
+            if(isempty(this.MMSAvailableTableIdx))
+                return
+            end
+            studyConditions = get(this.visHandles.tableMVGroupsAvailableMMS,'Data'); %study views and corresponding studies
             %check if MVGroup is available yet in selected study
-            MVGroupStr = this.visObj.fdt.getMVGroupNames(studyConditions{this.studyConditionTableIdx,1},0);
+            MVGroupStr = this.visObj.fdt.getMVGroupNames(studyConditions{this.MMSAvailableTableIdx,1},0);
             if(isempty(MVGroupStr) || ~ismember(this.curMVGroupName,MVGroupStr))
                 choice = questdlg(sprintf('%s is not available in %s. Add the selected MVGroup to this study?',...
-                    this.curMVGroupName,studyConditions{this.studyConditionTableIdx,1}),'MVGroup not available','Yes','No','Yes');
+                    this.curMVGroupName,studyConditions{this.MMSAvailableTableIdx,1}),'MVGroup not available','Yes','No','Yes');
                 switch choice
                     case 'No'
                         return
                 end                
                 %add current MVGroup to study
                 cMVs = this.visObj.fdt.getStudyMVGroupTargets(this.curStudyName,this.curMVGroupName);
-                this.visObj.fdt.setStudyMVGroupTargets(studyConditions{this.studyConditionTableIdx,1},this.curMVGroupName,cMVs);
+                this.visObj.fdt.setStudyMVGroupTargets(studyConditions{this.MMSAvailableTableIdx,1},this.curMVGroupName,cMVs);
             end
             selectedConditions = this.visObj.fdt.getGlobalMVGroupTargets(this.curMVGroupName);
             if(isempty(selectedConditions))
                 selectedConditions = cell(0,2);
             end
             selectedConditions(end+1,:) = cell(1,2);
-            selectedConditions(end,:) = studyConditions(this.studyConditionTableIdx,:);
+            selectedConditions(end,:) = studyConditions(this.MMSAvailableTableIdx,:);
             this.visObj.fdt.setGlobalMVGroupTargets(this.curMVGroupName,selectedConditions);
-            this.updateGlobalCtrls();
+            this.updateMMSCtrls();
             this.visObj.setupGUI();
             this.visObj.updateGUI([]);
         end
         
-        function removeConditionCallback(this,hObject,eventdata)
+        function removeMMSCallback(this,hObject,eventdata)
             %remove study condition from global MVGroup selection
-            if(~isempty(this.conditionSelectionTableIdx))
+            if(~isempty(this.MMSSelectedTableIdx))
                 selectedConditions = this.visObj.fdt.getGlobalMVGroupTargets(this.curMVGroupName);
-                selectedConditions(this.conditionSelectionTableIdx,:) = [];
+                selectedConditions(this.MMSSelectedTableIdx,:) = [];
                 this.visObj.fdt.setGlobalMVGroupTargets(this.curMVGroupName,selectedConditions);
             end
-            this.updateGlobalCtrls();
+            this.updateMMSCtrls();
             this.visObj.setupGUI();
             this.visObj.updateGUI([]);
         end
-        
-        function tableSelectedConditionsCallback(this,hObject,eventdata)
-            %set current indices of study condition in selection table
-            this.conditionSelectionTableIdx = eventdata.Indices(:,1);
+        function tableSelectedMISCallback(this,hObject,eventdata)
+            %set current indices of in MIS selection table
+            this.MISSelectedTableIdx = eventdata.Indices(:,1);
         end
         
-        function tableStudyConditionsCallback(this,hObject,eventdata)
+        function tableAvailableMISCallback(this,hObject,eventdata)
+            %set current indices of selectable MIS MV groups
+            this.MISAvailableTableIdx = eventdata.Indices(:,1);
+        end
+        
+        function tableSelectedMMSCallback(this,hObject,eventdata)
+            %set current indices of study condition in selection table
+            this.MMSSelectedTableIdx = eventdata.Indices(:,1);
+        end
+        
+        function tableAvailableMMSCallback(this,hObject,eventdata)
             %set current indices of selectable study conditions
-            this.studyConditionTableIdx = eventdata.Indices(:,1);
+            this.MMSAvailableTableIdx = eventdata.Indices(:,1);
         end
         
         function closeCallback(this,hObject,eventdata)
@@ -638,28 +848,18 @@ classdef StatsMVGroupMgr < handle
         function setCurStudy(this,val)
             %set current study
             if(this.isOpenVisWnd())
-                studies = get(this.visHandles.popupStudies,'String');
+                studies = get(this.visHandles.popupStudySel,'String');
                 idx = find(strcmp(val,studies),1);
                 if(~isempty(idx))
-                    set(this.visHandles.popupStudies,'Value',idx);
+                    set(this.visHandles.popupStudySel,'Value',idx);
                 end
-                this.GUI_popupStudiesCallback(this.visHandles.popupStudies,[]);
+                this.GUI_popupStudySelCallback(this.visHandles.popupStudySel,[]);
             end
         end
     end %methods
     
     methods(Access = protected)
-        %internal methods
-        function setUIHandles(this)
-            %builds the uicontrol handles for the target selection
-            this.lLB = this.visHandles.listboxRemaining;
-            this.xLB = this.visHandles.listboxSelectedX;
-            this.yLB = this.visHandles.listboxSelectedY;
-            this.xButton = this.visHandles.buttonSelectX;
-            this.yButton = this.visHandles.buttonSelectY;
-            this.dButton = this.visHandles.buttonDeselect;
-        end
-        
+        %internal methods        
         function out = isOpenVisWnd(this)
             %check if figure is still open
             out = ~(isempty(this.visHandles) || ~ishandle(this.visHandles.StatsMVGroupMgrFigure) || ~strcmp(get(this.visHandles.StatsMVGroupMgrFigure,'Tag'),'StatsMVGroupMgrFigure'));

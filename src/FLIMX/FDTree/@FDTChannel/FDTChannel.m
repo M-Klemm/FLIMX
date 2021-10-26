@@ -244,7 +244,18 @@ classdef FDTChannel < FDTreeNode
         function out = getStatsParams(this)
             %get statistics parameters
             out = this.FLIMXParamMgrObj.getParamSection('statistics');
-        end       
+        end
+        
+        function out = getColorMap(this)
+            %get color map from FLIMXVisGUI
+            %out = this.myParent.FLIMVisGUIObj.dynParams.cm;
+            gp = this.FLIMXParamMgrObj.generalParams;            
+            try
+                out = eval(sprintf('%s(256)',lower(gp.cmType)));
+            catch
+                out = jet(256);
+            end
+        end
         
         function out = getFileInfoStruct(this)
             %get fileinfo struct
@@ -285,6 +296,13 @@ classdef FDTChannel < FDTreeNode
                 end
             end
             %str = sort(str); %will be sorted by FDTSubject
+        end
+        
+        function out = getMVGroupNames(this,mode)
+            %get list of MVGroups in study
+            %mode 0 - get all subject MVGroups
+            %mode 1 - get only calculable MVGroups
+            out = this.myParent.getMVGroupNames(mode);
         end
         
 %         function str = getMVGroupNames(this)
@@ -351,17 +369,26 @@ classdef FDTChannel < FDTreeNode
                 warning('FDTChannel:getMVGroupTargets','Could not get MVGroup targets for subject ''%s'' in study ''%s''',this.myParent.name,this.myParent.myParent.name);
                 return
             end
-            out.ROI = gMVs.ROI;
-            for i = 1:length(gMVs.x)
-                idx = strcmpi(gMVs.x{i}, myObjs);
-                if(any(idx))
-                    out.x(end+1) = gMVs.x(i);
+            
+            allMVG = this.getMVGroupNames(0);
+            if(isempty(gMVs.y) && all(ismember(gMVs.x,allMVG)))
+                %MV group made of MV groups
+                out = gMVs;
+            else
+                %regular MV group
+                out.ROI = gMVs.ROI;
+                %check if targets are valid channel objects
+                for i = 1:length(gMVs.x)
+                    idx = strcmpi(gMVs.x{i}, myObjs);
+                    if(any(idx))
+                        out.x(end+1) = gMVs.x(i);
+                    end
                 end
-            end
-            for i = 1:length(gMVs.y)
-                idx = strcmpi(gMVs.y{i}, myObjs);
-                if(any(idx))
-                    out.y(end+1) = gMVs.y(i);
+                for i = 1:length(gMVs.y)
+                    idx = strcmpi(gMVs.y{i}, myObjs);
+                    if(any(idx))
+                        out.y(end+1) = gMVs.y(i);
+                    end
                 end
             end
         end
@@ -372,11 +399,100 @@ classdef FDTChannel < FDTreeNode
         end
         
         %% compute functions                
-        function [cimg, lblx, lbly, cw, binNrs] = makeMVGroupObj(this,MVGroupID)
+        function [cimg, lblx, lbly, cw, binNrs, colorMVGroup, logColorMVGroup] = makeMVGroupObj(this,MVGroupID)
             %make and update MVGroup for spectral channel using cMVs                
-            cimg = []; lblx = []; lbly = []; cw = []; binNrs = [];
+            cimg = []; lblx = []; lbly = []; cw = []; binNrs = []; colorMVGroup = []; logColorMVGroup = [];
+            allMVG = this.getMVGroupNames(0);
             cMVs = this.getMVGroupTargets(MVGroupID);
+            if(isempty(cMVs.y) && all(ismember(cMVs.x,allMVG)))
+                %special case: (MIS) MV Group made by merging other MV Groups
+                %this.updateLongProgress(0.01,'Scatter Plot...');
+                %MVGroupObjs = this.getStudyObjs(cName,str2double(this.name),MVGroupID,0,1);
+                %cMVs = this.getMVGroupTargets(MVGroupID);
+                %get reference classwidth
+                [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
+                cw = getHistParams(this.getStatsParams(),str2double(this.name),dType{1},dTypeNr(1));
+                %get  MVGroups from subject
+                for i=1:length(cMVs.x)
+                    [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{i});
+                    hfd = this.myParent.getFDataObj(str2double(this.name),dType{1},dTypeNr(1),1);
+                    if(isempty(hfd))
+                        return
+                    end                    
+                    %use whole image for scatter plots, ignore any ROIs
+                    if(~isempty(hfd.getROIImage([],0,1,0)))
+                        [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,hfd.getROIImage([],0,1,0),hfd.getCIXLbl([],0,1,0),hfd.getCIYLbl([],0,1,0),cw);
+                    end
+                    %this.updateLongProgress(i/length(MVGroupObjs),sprintf('Scatter Plot: %0.1f%%',100*i/length(MVGroupObjs)));
+                end
+                if(isempty(cimg))
+                    return
+                end
+                %create colored MVGroup
+                colorMVGroup = zeros(size(cimg,1),size(cimg,2),3);
+                logColorMVGroup = zeros(size(cimg,1),size(cimg,2),3);
+                cimgDummy = zeros(size(cimg));
+                for i = 1:length(cMVs.x)
+                    [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{i});
+                    hfd = this.myParent.getFDataObj(str2double(this.name),dType{1},dTypeNr(1),1);
+                    curImg = mergeScatterPlotData(cimgDummy,lblx,lbly,hfd.getROIImage([],0,1,0),hfd.getCIXLbl([],0,1,0),hfd.getCIYLbl([],0,1,0),cw);
+                    curImg = curImg/(max(curImg(:))-min(curImg(:)))*(size(this.getColorMap(),1)-1)+1;
+                    if(~any(curImg(:)))
+                        %all zero
+                        continue
+                    end
+                    %prepare MVGroup coloring
+                    %color = this.getMVGroupColor(cMVs.x{i});
+                    color = lines(i);
+                    color = color(i,:);
+                    cm = repmat([0:1/(size(this.getColorMap(),1)-1):1]',1,3);
+                    cm = [cm(:,1).*color(1) cm(:,2).*color(2) cm(:,3).*color(3)];
+                    %get merged colors
+                    colors = cm(round(reshape(curImg,[],1)),:);
+                    colors = reshape(colors,[size(curImg) 3]);
+                    if(sum(colorMVGroup(:)) > 0)
+                        colorMVGroup = imfuse(colors,colorMVGroup,'blend');
+                    else
+                        colorMVGroup = colors;
+                    end
+                    %                 idx = repmat(sum(colors,3) ~= 0 & sum(colorMVGroup,3) ~= 0, [1 1 3]);
+                    %                 colorMVGroup = colorMVGroup + colors;
+                    %                 colorMVGroup(idx) = colorMVGroup(idx)./2;
+                    %create log10 color MVGroup
+                    curImgLog = log10(curImg);
+                    tmp = curImgLog(curImgLog ~= -inf);
+                    tmp = min(tmp(:));
+                    curImgLog(curImgLog == -inf) = tmp;
+                    curImgLog = (curImgLog-tmp)/(max(curImgLog(:))-tmp)*(size(this.getColorMap(),1)-1)+1;
+                    colorsLog = cm(round(reshape(curImgLog,[],1)),:);
+                    colorsLog = reshape(colorsLog,[size(curImgLog) 3]);
+                    logColorMVGroup = logColorMVGroup + colorsLog;
+                    idxLog = repmat(sum(colorsLog,3) ~= 0 & sum(logColorMVGroup,3) ~= 0, [1 1 3]);
+                    logColorMVGroup(idxLog) = logColorMVGroup(idxLog)./2;
+                    %this.updateLongProgress(0.5+0.5*i/length(MVGroupTargets),sprintf('Scatter Plot: %0.1f%%',50+50*i/length(MVGroupTargets)));
+                end
+                %set brightness to max
+                %linear scaling
+                t = rgb2hsv(colorMVGroup);
+                t2 = t(:,:,3);
+                idx = logical(sum(colorMVGroup,3));
+                %t2(idx) = t2(idx) + 1-max(t2(:));
+                t2(idx) = 1;
+                t(:,:,3) = t2;
+                colorMVGroup = hsv2rgb(t);
+                %log scaling
+                t = rgb2hsv(logColorMVGroup);
+                t2 = t(:,:,3);
+                idx = logical(sum(logColorMVGroup,3));
+                %t2(idx) = t2(idx) + 1-max(t2(:));
+                t2(idx) = 1;
+                t(:,:,3) = t2;
+                logColorMVGroup = hsv2rgb(t);
+                %this.updateLongProgress(0,'');
+                return
+            end
             if(isempty(cMVs.x) || isempty(cMVs.y))
+                %nothing to do
                 return
             end
             CImaxs = zeros(length(cMVs.y)+1,1);

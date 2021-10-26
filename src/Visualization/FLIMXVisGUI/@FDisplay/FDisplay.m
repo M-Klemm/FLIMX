@@ -799,7 +799,7 @@ classdef FDisplay < handle
                         zMax = zMax + 0.1;
                     end
                     %color mapping
-                    if(dispDim == 1 || isempty(hfd{i}.getCIColor(rc,rt,rs,ri)))
+                    if(isempty(hfd{i}.getCIColor(rc,rt,rs,ri))) %dispDim == 1 || 
                         %cTmp = hfd{i}.getColorScaling();
                         cTmp = single(this.myColorScaleObj.getCurCSInfo());
                         if(isempty(cTmp) || length(cTmp) ~= 3 || nrFD > 1)

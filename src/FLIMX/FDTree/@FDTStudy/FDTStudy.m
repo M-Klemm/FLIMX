@@ -303,9 +303,32 @@ classdef FDTStudy < FDTreeNode
             end
         end
         
+%         function setMVGroupColor(this,MVGroupID,val)
+%             %set MVGroup color
+%             if(~this.isLoaded)
+%                 this.load();
+%             end
+%             if(isempty(MVGroupID))
+%                 return
+%             end
+%             %set condition color
+%             if(isempty(val) || length(val) ~= 3)
+%                 val = FDTStudy.makeRndColor();
+%             end            
+%             MVGroupNr = this.MVGroupName2idx(MVGroupID);
+%             if(isempty(MVGroupNr))
+%                 %add MVGroup
+%                 this.MVGroupTargets(:,end+1) = cell(3,1);
+%                 MVGroupNr = size(this.MVGroupTargets,2);
+%                 this.MVGroupTargets(1,MVGroupNr) = {MVGroupID};
+%             end
+%             %set color
+%             this.MVGroupTargets(3,MVGroupNr) = {val};
+%             this.setDirty(true);            
+%         end
+            
         function setMVGroupTargets(this,MVGroupID,targets)
             %set multivariate targets for MVGroup
-            %this.MVTargets = sort(val);
             if(~this.isLoaded)
                 this.load();
             end
@@ -632,6 +655,7 @@ classdef FDTStudy < FDTreeNode
             this.clearArithmeticRIs(); %todo: check if an AI uses an ROI
             this.clearObjMerged();
             this.clearMVGroups(subjectID,dType,dTypeNr);
+            this.clearAllMVGroupIs();
         end
         
         function removeResultROIType(this,ROIType)
@@ -2172,7 +2196,7 @@ classdef FDTStudy < FDTreeNode
             end            
             %get only computable MVGroups
             for i = 1:length(MVGroupStr)
-                if(isempty(MVGroupT{i}.x) || isempty(MVGroupT{i}.y))
+                if(isempty(MVGroupT{i}.x) || isempty(MVGroupT{i}.y) && ~all(ismember(MVGroupT{i}.x,MVGroupStr)))
                     continue
                 end
                 out(end+1,1) = MVGroupStr(i);
@@ -2681,14 +2705,14 @@ classdef FDTStudy < FDTreeNode
             end
             this.updateLongProgress(0.01,'Scatter Plot...');
             cimg = []; lblx = []; lbly = [];
-            MVGroupObjs = this.getStudyObjs(cName,chan,MVGroupID,0,1);            
+            MVGroupObjs = this.getStudyObjs(cName,chan,MVGroupID,0,1);
             cMVs = this.getMVGroupTargets(MVGroupID);
             if(isempty(cMVs.x) || isempty(cMVs.y))
                 return
             end
             %get reference classwidth
             [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{1});
-            cw = getHistParams(this.getStatsParams(),chan,dType{1},dTypeNr(1));            
+            cw = getHistParams(this.getStatsParams(),chan,dType{1},dTypeNr(1));
             %get merged MVGroups from subjects of condition
             for i=1:length(MVGroupObjs)
                 %use whole image for scatter plots, ignore any ROIs

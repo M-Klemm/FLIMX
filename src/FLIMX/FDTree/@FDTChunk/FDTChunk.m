@@ -149,23 +149,31 @@ classdef FDTChunk < FDTreeNode
             if(strncmp(this.dType,'MVGroup',7))
                 %check if MVGroup has to be computed
                 if(isempty(h))
-                    [cimg, lblx, lbly, cw, binNrs] = this.myParent.makeMVGroupObj(this.dType);
+                    [cimg, lblx, lbly, cw, binNrs, colors, logColors] = this.myParent.makeMVGroupObj(this.dType);
                     this.addChildByName(FDataNormal(this,id,cimg),num2str(id)); %,id,true);  %with overwrite flag
                     h = this.getChild(num2str(id));
                     %set labels for condition MVGroup computation
                     h.setupXLbl(lblx,cw);
                     h.setupYLbl(lbly,cw);
                     h.setSupplementalData(binNrs);
+                    if(~isempty(colors) && ~isempty(logColors))
+                        %set combined colors
+                        h.setColor_data(colors,logColors);
+                    end
                 else
                     if(isempty(h.getFullImage()))
-                        [cimg, lblx, lbly, cw, binNrs] = this.myParent.makeMVGroupObj(this.dType);
+                        [cimg, lblx, lbly, cw, binNrs, colors, logColors] = this.myParent.makeMVGroupObj(this.dType);
                         h.setRawData(cimg);
                         %set labels for condition MVGroup computation
                         h.setupXLbl(lblx,cw);
                         h.setupYLbl(lbly,cw);
                         h.setSupplementalData(binNrs);
+                        if(~isempty(colors) && ~isempty(logColors))
+                            %set combined colors
+                            h.setColor_data(colors,logColors);
+                        end
                     end
-                end
+                end                
             end
             if(strncmp(this.dType,'ConditionMVGroup',16))
                 %check if condition MVGroup has to be computed

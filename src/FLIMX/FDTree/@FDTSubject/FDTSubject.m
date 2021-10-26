@@ -861,19 +861,12 @@ classdef FDTSubject < fluoSubject
             end
         end
 
-%         function str = getMVGroupNames(this,ch)
-%             %get a string of all MVGroup objects in a channel
-%             if(~this.channelResultIsLoaded(ch))
-%                 this.loadChannel(ch,false);
-%             end
-%             chObj = this.getChild(ch);
-%             if(isempty(chObj))
-%                 str = '';
-%                 return
-%             else
-%                 str = chObj.getMVGroupNames();
-%             end
-%         end
+        function out = getMVGroupNames(this,mode)
+            %get list of MVGroups in study
+            %mode 0 - get all subject MVGroups
+            %mode 1 - get only calculable MVGroups
+            out = this.myParent.getMVGroupNames(mode);
+        end
 
         function out = getHeight(this)
             %get height of subject
