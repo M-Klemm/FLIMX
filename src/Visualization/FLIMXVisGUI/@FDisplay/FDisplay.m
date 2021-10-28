@@ -602,16 +602,19 @@ classdef FDisplay < handle
                     case 1 %single histogram
                         this.sethfdSupp(hfd);
                         hfdSupp = hfd;
-                    case 2 %study view histogram
-                        if(~(dTypeNr == 0))
-                            this.sethfdSupp(this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
-                                this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1,this.ROIType,this.ROISubType,this.ROIVicinity));
-                            hfdSupp = {this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
-                                this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1,this.ROIType,this.ROISubType,this.ROIVicinity)};
-                        else
-                            this.sethfdSupp({[]});
-                            hfdSupp = [];
-                        end
+                    case 2 %study condition histogram
+                        hfdSupp = {this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
+                            this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1,this.ROIType,this.ROISubType,this.ROIVicinity)};
+                        this.sethfdSupp(hfdSupp);
+%                         if(~(dTypeNr == 0))
+%                             this.sethfdSupp(this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
+%                                 this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1,this.ROIType,this.ROISubType,this.ROIVicinity));
+%                             hfdSupp = {this.visObj.fdt.getStudyObjMerged(this.visObj.getStudy(this.mySide),...
+%                                 this.visObj.getCondition(this.mySide),this.visObj.getChannel(this.mySide),dType{1},dTypeNr,1,this.ROIType,this.ROISubType,this.ROIVicinity)};
+%                         else
+%                             this.sethfdSupp({[]});
+%                             hfdSupp = [];
+%                         end
 %                     case 3 %global histogram
 %                         if(~isnan(dTypeNr))
 %                             this.sethfdSupp(this.visObj.fdt.getGlobalObjMerged(this.visObj.getChannel(this.mySide),dType{1},dTypeNr,this.ROIType,this.ROISubType,this.ROIVicinity));

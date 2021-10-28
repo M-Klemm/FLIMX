@@ -1892,7 +1892,7 @@ classdef FLIMXVisGUI < handle
             end
             if(contains(tag,'edit'))
                 this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.editCallback();
-                if(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
+                if(~isempty(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}) && this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1} == this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1})
                     this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                 end
             elseif(contains(tag,'check'))
@@ -1901,12 +1901,12 @@ classdef FLIMXVisGUI < handle
             elseif(contains(tag,'button'))
                 if(contains(tag,'in'))
                     this.objHandles.(sprintf('%sdo',thisSide)).zoomSuppXScale('in');
-                    if(isequal(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}, this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1}))
+                    if(~isempty(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}) && isequal(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}, this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1}))
                         this.objHandles.(sprintf('%sdo',otherSide)).zoomSuppXScale(this.objHandles.(sprintf('%sdo',thisSide)).mySuppXZoomScale);
                     end
                 elseif(contains(tag,'out'))
                     this.objHandles.(sprintf('%sdo',thisSide)).zoomSuppXScale('out');
-                    if(isequal(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}, this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1}))
+                    if(~isempty(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}) && isequal(this.objHandles.(sprintf('%sdo',thisSide)).myhfdMain{1}, this.objHandles.(sprintf('%sdo',otherSide)).myhfdMain{1}))
                         this.objHandles.(sprintf('%sdo',otherSide)).zoomSuppXScale(this.objHandles.(sprintf('%sdo',thisSide)).mySuppXZoomScale);
                     end
                 elseif(contains(tag,'misc'))

@@ -1033,7 +1033,11 @@ classdef FDTSubject < fluoSubject
                     %special method to determine the source pixels of an mv group scatter plot (2D histogram)                    
                     %get mvgroup roi and determine which pixels are not zero / NaN
                     allGrps = this.getROIGroup([]);
-                    grpID = find(strcmp(allGrps(:,1),aiParams.ROIB));
+                    if(~isempty(allGrps))
+                        grpID = find(strcmp(allGrps(:,1),aiParams.ROIB));
+                    else
+                        grpID = [];
+                    end
                     if(~isempty(grpID))
                         %we found a ROI group
                         %ROI groups are not yet supported
