@@ -926,7 +926,9 @@ classdef FData < handle
                 %todo: warning/error message
             end
             [y,x,z] = size(data);
-            if(ROIType > 1000 && ROIType < 2000)
+            if(ROIType  == 0)
+                idx = (1:uint32(numel(data)))';
+            elseif(ROIType > 1000 && ROIType < 2000)
                 %ETDRS grid
                 if(~isempty(fileInfo))
                     res = fileInfo.pixelResolution;

@@ -235,7 +235,7 @@ classdef FDataNormal < FData
                 iz = find(ci < zlim_min);
                 ci(iz) = NaN;%zlim_min;
                 idx(ismember(idx,iz)) = []; %remove deleted elements due to z scaling from index vector
-                iz = ci > zlim_max;
+                iz = find(ci > zlim_max);
                 ci(iz) = NaN;%zlim_max;
                 idx(ismember(idx,iz)) = []; %remove deleted elements due to z scaling from index vector
                 info.ZMin = zlim_min;
