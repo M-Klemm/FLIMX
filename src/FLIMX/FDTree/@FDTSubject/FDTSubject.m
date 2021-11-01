@@ -1192,11 +1192,19 @@ classdef FDTSubject < fluoSubject
                             idx = 1:numel(data);
                         end
                     case 'ROI'
-                        lStr = sprintf('ROI%s',layer);
-                        ROIs = AICtrl.getDefROIString();
-                        if(strncmp(aiParams.(lStr),'ETDRS->',7))
-                            ROIType = 1001;
-                            ROISubtype = find(strcmp(ROIs,aiParams.(lStr)));
+                        lStr = sprintf('ROI%s',layer);                        
+                        if(strncmp(aiParams.(lStr),'ETDRS Grid#',11))
+                            iETDRS = strfind(aiParams.(lStr),'->');
+                            if(~isempty(iETDRS))
+                                iETDRS = str2double(aiParams.(lStr)(isstrprop(aiParams.(lStr),'digit')));
+                                ROIType = 1000 + iETDRS;
+                                eROIs = AICtrl.getDefROIString(iETDRS);
+                                ROISubtype = find(strcmp(eROIs,aiParams.(lStr)));
+                            else
+                                %should not happen
+                                ROIType = 0;
+                                ROISubtype = 0;
+                            end
                         else
                             ROIType = ROICtrl.ROIItem2ROIType(aiParams.(lStr));
                             ROISubtype = 0;
@@ -1274,7 +1282,7 @@ classdef FDTSubject < fluoSubject
                         eval(sprintf('out = im%s(dataA,strel(''disk'',%d));',op,uint32(dataB(1))));
                         %out = logical(out);
                         idx = logical(out);
-                    case 'fill'
+                    case 'fillLargest'
                         %select largest region and fill it
                         dataA(~idxA) = 0;
                         rp = regionprops(logical(dataA),'FilledArea','FilledImage','BoundingBox');
@@ -1291,6 +1299,37 @@ classdef FDTSubject < fluoSubject
                                 out(~idx) = false;
                             end
                         end
+                    case 'fillAll'
+                        dataA(~idxA) = 0;
+                        rp = regionprops(logical(dataA),'FilledArea','FilledImage','BoundingBox');
+                        idx = false(size(dataA));
+                        if(isempty(rp))
+                            out = zeros(size(dataA),'like',dataA);
+                        else
+                            out = ones(size(dataA),'like',dataA);
+                            for i = 1:length(rp)
+                                idxTmp = false(size(dataA));
+                                idxTmp(ceil(rp(i).BoundingBox(2)):ceil(rp(i).BoundingBox(2))+rp(i).BoundingBox(4)-1,...
+                                    ceil(rp(i).BoundingBox(1)):ceil(rp(i).BoundingBox(1))+rp(i).BoundingBox(3)-1) = rp(i).FilledImage;
+                                idx = idx | idxTmp;
+                                %idx = imfill(idx,'holes');
+                            end
+                            if(islogical(out))
+                                out(~idx) = false;
+                            end
+                        end
+                    case 'remLocalMin'
+                        dataA(~idxA) = 0;
+                        out = imhmin(uint32(dataA),dataB(1));
+                        idx = logical(out);
+                    case 'min'
+                        dataA(~idxA) = 0;
+                        out = min(dataA(:));
+                        idx = logical(out);
+                    case 'max'
+                        dataA(~idxA) = 0;
+                        out = max(dataA(:));
+                        idx = logical(out);
                     otherwise %+,-,*,/,>,<,>=,<=,==,~=
                         if(~any(idxA(:)))
                             out = dataB;

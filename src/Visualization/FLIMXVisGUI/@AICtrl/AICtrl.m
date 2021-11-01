@@ -227,7 +227,7 @@ classdef AICtrl < handle
                 opNr = 1;
             end            
             this.opA.Value = opNr;
-            if(opNr == 22) %scrPixel
+            if(opNr == length(AICtrl.getDefOpString()) + 2) %srcPixel
                 %special op only for mv groups
                 this.inVisible('off');
                 this.FLIMItemA.Visible = 'on';
@@ -285,7 +285,7 @@ classdef AICtrl < handle
                     set(this.normalizeB,'Enable','off','Visible','off');
                     set(this.chB,'Enable','on','Visible','on');
             end
-            if(opNr == 20)
+            if(any(ismember({'fillLargest','fillAll'},aiParam{idx}.opA)))
                 %fill operation
                 this.valB.Visible = 'off';
                 this.targetSelB.Visible = 'off';
@@ -611,7 +611,7 @@ classdef AICtrl < handle
         
         function out = getDefOpString()
             %return string with possible numeric and logical operations
-            out = {'+','-','.*','./','<','>','<=','>=','==','!=','AND','OR','!AND','!OR','XOR','dilate','erode','open','close','fill'};
+            out = {'+','-','.*','./','<','>','<=','>=','==','!=','AND','OR','!AND','!OR','XOR','min','max','dilate','erode','open','close','fillLargest','fillAll','remLocalMin'};
         end
         
         function out = getDefROIString(idxETDRS)
