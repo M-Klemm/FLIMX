@@ -524,7 +524,7 @@ classdef FDTChannel < FDTreeNode
             xEdges = floor(CImins(1)/cw)*cw:cw:ceil(CImaxs(1)/cw)*cw;
             binNrs = zeros(size(temp,1),1+length(cMVs.y),'uint16');
             [~,binNrs(:,1)] = histc(temp(:,1),xEdges,1);
-            binNrs(:,1) = min(binNrs(:,1),length(xEdges));
+            %binNrs(:,1) = min(binNrs(:,1),length(xEdges));
             %get FLIM items for y-axis
             for yTargetNr = 1:length(cMVs.y)
                 [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.y{yTargetNr});
@@ -546,10 +546,10 @@ classdef FDTChannel < FDTreeNode
                         return
                     end
                     [~,binNrs(:,1+yTargetNr)] = histc(temp(:,yTargetNr+1),yEdges,1);
-                    binNrs(:,1+yTargetNr) = min(binNrs(:,1+yTargetNr),length(yEdges));
+                    %binNrs(:,1+yTargetNr) = min(binNrs(:,1+yTargetNr),length(yEdges));
+                    %remove zeros caused by NaN pixels
                     binNrs = binNrs(all(binNrs>0,2),:);
-                    % Combine the two vectors of 1D bin counts into a grid of 2D bin
-                    % counts.
+                    % Combine the two vectors of 1D bin counts into a grid of 2D bin counts.
                     ctemp = accumarray([binNrs(:,yTargetNr+1) binNrs(:,1)],1,[length(yEdges) length(xEdges)]);
                     %ctemp = hist3([reshape(temp(j+1,:,:),1,[])' ref],'Edges',{yEdges xEdges});
                     [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,ctemp,xEdges,yEdges,cw);

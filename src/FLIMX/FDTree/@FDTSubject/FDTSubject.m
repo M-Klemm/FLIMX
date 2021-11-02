@@ -1068,10 +1068,11 @@ classdef FDTSubject < fluoSubject
                     end
                     sd = mvg_hfd.getSupplementalData();
                     %get ROI in mv group
-                    [mvg_roi,roi_idx] = FData.getImgSeg(mvg_hfd.getFullImage(),this.getROICoordinates(dTypeA{1},ROIType),ROIType,ROISubtype,aiParams.ROIVicinityB,[],this.getVicinityInfo());
-                    mvg_roi = mvg_roi(~isnan(mvg_roi));
+                    [mvg_roi,roi_idx] = FData.getImgSeg(mvg_hfd.getFullImage(),this.getROICoordinates(dTypeA{1},ROIType),ROIType,ROISubtype,aiParams.ROIVicinityB,[],this.getVicinityInfo());                    
                     data = [];
-                    if(~isempty(roi_idx) && length(mvg_roi) == length(roi_idx))
+                    if(~isempty(roi_idx) && numel(mvg_roi) == length(roi_idx))
+                        %remove NaN and zeros from the ROI
+                        mvg_roi = mvg_roi(~isnan(mvg_roi));
                         roi_idx(~mvg_roi) = [];
                         [row,col] = ind2sub([mvg_hfd.rawImgYSz(2),mvg_hfd.rawImgXSz(2)],roi_idx);
                         data = false([this.YSz,this.XSz]);
