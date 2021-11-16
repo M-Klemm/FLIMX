@@ -681,7 +681,7 @@ classdef FData < handle
 
         function [hist,centers] = getCIHistStrict(this,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get histogram of current image using strict rules
-            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity) || isempty(this.cachedImage.statistics.histogramStrict))
+            if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity) || ~isfield(this.cachedImage.statistics,'histogramStrict') || isempty(this.cachedImage.statistics.histogramStrict))
                 [~, this.cachedImage.statistics.histogramStrict, this.cachedImage.statistics.histogramStrictCenters] = this.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,true);
             end
             hist = this.cachedImage.statistics.histogramStrict;
@@ -816,9 +816,12 @@ classdef FData < handle
             %make statistics
             if(~this.ROIIsCached(ROICoordinates,ROIType,ROISubType,ROIVicinity) || this.isEmptyStat)%calculate statistics only if necessary
                 [statistics.descriptive, statistics.histogram, statistics.histogramCenters] = this.makeStatistics(ROICoordinates,ROIType,ROISubType,ROIVicinity,false);
+                statistics.histogramStrict = [];
+                statistics.histogramStrictCenters = [];
                 if(isempty(statistics.histogramCenters) || sum(statistics.histogram(:)) == 0)
                     statistics.descriptive = [];
                     statistics.histogram = [];
+                    
                     this.cachedImage.statistics = statistics;
                     return
                 end
