@@ -1441,7 +1441,7 @@ classdef FDisplay < handle
                 temp(1,:,:) = gray(2);
             elseif(strcmp(hfd.dType,'Intensity'))
                 temp(1,:,:) = dp.cmIntensity;
-            elseif(strncmp(hfd.dType,'MVGroup',7))
+            elseif(strncmp(hfd.dType,'MVGroup',7) || strncmp(hfd.dType,'ConditionMVGroup',16))
                 if(length(hfd.rawImgZSz) < 2)
                     %MVGroup computation failed
                     temp(1,:,:) = FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,1);
@@ -1774,14 +1774,13 @@ classdef FDisplay < handle
             elseif(strcmp(hfd.dType,'Intensity'))
                 temp(:,1,:) = dp.cmIntensity;
                 ytick = (0:0.25:1).*size(temp,1);
-            elseif(strncmp(hfd.dType,'MVGroup',7))
+            elseif(strncmp(hfd.dType,'MVGroup',7) || strncmp(hfd.dType,'ConditionMVGroup',16))
                 if(length(hfd.rawImgZSz) < 2)
                     %MVGroup computation failed
                     temp(:,1,:) = FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,1);
                 else
                     temp(:,1,:) = FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,hfd.rawImgZSz(2));
-                end
-%             elseif(strncmp(hfd.dType,'ConditionMVGroup',16))
+                end                
 %             elseif(strncmp(hfd.dType,'GlobalMVGroup',13))
             else
                 temp(:,1,:) = dp.cm;
@@ -1857,7 +1856,7 @@ classdef FDisplay < handle
             hfd = hfd{1};
             if(strcmp(this.dynVisParams.cmType,'SpectrumFixed') && ~strcmp(hfd.dType,'Intensity'))
                 cs = [1 380 780];
-            elseif(strncmp(hfd.dType,'MVGroup',7))
+            elseif(strncmp(hfd.dType,'MVGroup',7) || strncmp(hfd.dType,'ConditionMVGroup',16) || strncmp(hfd.dType,'GlobalMVGroup',13))
                 if(isempty(hfd.rawImgZSz))
                     cs = [1 0 1];
                 else

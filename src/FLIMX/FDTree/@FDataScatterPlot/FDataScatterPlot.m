@@ -51,14 +51,15 @@ classdef FDataScatterPlot < FDataNormal
         
         function out = getROICoordinates(this,ROIType)
             %get coordinates of ROI
-            out = [];
-            if(~isempty(ROIType) && isscalar(ROIType) && ROIType < 5000 && ROIType > 1000)
-                out = squeeze(this.ROICoordinates(ROIType,:,:));
-                if(ROIType < 4000)
-                    %no polygons
-                    out = out(2:end,1:2)';
-                end                
-            end
+            out = FDTChunk.extractROICoordinates(this.ROICoordinates,ROIType);
+%             out = [];
+%             if(~isempty(ROIType) && isscalar(ROIType) && ROIType < 5000 && ROIType > 1000)
+%                 out = squeeze(this.ROICoordinates(ROIType,:,:));
+%                 if(ROIType < 4000)
+%                     %no polygons
+%                     out = out(2:end,1:2)';
+%                 end
+%             end
         end
         
         function out = getROIType(this)
