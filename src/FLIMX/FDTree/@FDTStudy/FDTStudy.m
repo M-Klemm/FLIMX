@@ -2037,6 +2037,9 @@ classdef FDTStudy < FDTreeNode
             for i = 1:length(hg)
                 %tmp = hg{i}.getFullImage();
                 ROICoordinates = this.getResultROICoordinates(hg{i}.subjectName,dType,ROIType);
+                if(isempty(ROICoordinates))
+                    ROICoordinates = [hg{i}.rawImgYSz; hg{i}.rawImgXSz];
+                end
                 tmp = hg{i}.getImgSeg(hg{i}.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,hg{i}.getFileInfoStruct(),this.getVicinityInfo());
                 switch dataProc
                     case 'mean'

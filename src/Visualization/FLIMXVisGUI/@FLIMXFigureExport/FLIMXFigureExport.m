@@ -110,9 +110,9 @@ classdef FLIMXFigureExport < FDisplay
 %                         %hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 150 175];
 %                     otherwise
                         hFig.Position(3) = hFig.Position(4);
-                        axSz = hFig.Position(4)-100;
-                        offsetX = 30;
-                        offsetY = 30;
+                        axSz = hFig.Position(4)-200;
+                        offsetX = 100;
+                        offsetY = 100;
                         %hFig.Position = this.myDynVisParams.mainAxesPosition + [0 0 150 75];
 %                 end
 %             else
@@ -137,8 +137,7 @@ classdef FLIMXFigureExport < FDisplay
                 %hAx = axes('Units','pixels','Position',[10,10,axSz,axSz]); %[70,50,axSz,axSz]
                 hAx = axes('Units','pixels','Position',[offsetX,offsetY,axSz,axSz],'Parent',hFig);
                 %hAx = axes('Units',this.myDynVisParams.mainAxesUnits,'Position',this.myDynVisParams.mainAxesPosition);
-                axis(hAx,'off');
-                hAx.FontSize = this.visObj.exportParams.labelFontSize;
+                axis(hAx,'off');                
             else
                 cla(this.myHMainAxes);
                 hAx = [];
@@ -154,7 +153,7 @@ classdef FLIMXFigureExport < FDisplay
                     this.makeMainPlot();
                     this.makeZoom();
                     %this.makeMainXYLabels();
-                    [~, ~, hfd] = this.gethfd();
+                    hfd = this.gethfd();
                     hfd = hfd{1};
                     if(isempty(hfd))
                         return
@@ -164,6 +163,14 @@ classdef FLIMXFigureExport < FDisplay
                         cbLabels = this.makeColorBarLbls(2);
                     elseif(strcmp(hfd.dType,'Intensity'))
                         colormap(hAx,this.dynVisParams.cmIntensity);
+                        cbLabels = this.makeColorBarLbls(3);
+                    elseif(strncmp(hfd.dType,'MVGroup',7))
+                        if(length(hfd.rawImgZSz) < 2)
+                            %MVGroup computation failed
+                            colormap(hAx,FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,1));
+                        else
+                            colormap(hAx,FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,hfd.rawImgZSz(2)));
+                        end
                         cbLabels = this.makeColorBarLbls(3);
                     else
                         colormap(hAx,this.dynVisParams.cm);
@@ -191,6 +198,7 @@ classdef FLIMXFigureExport < FDisplay
                             %idx = [1 get(this.myHColorBar,'XTick')];
                             set(this.myHColorBar,'Ticks',ticks,'TickLabels',cbLabels);
                             this.myHColorBar.Label.String = dType;
+                            this.myHColorBar.Label.Interpreter = 'none';
                             %xlabel(this.myHColorBar,dType);
 %                         else
 %                             %idx = [1 get(this.myHColorBar,'YTick')];
@@ -198,6 +206,11 @@ classdef FLIMXFigureExport < FDisplay
 %                             ylabel(this.myHColorBar,dType);
 %                         end
                         %set(hAx,'Units',this.myDynVisParams.mainAxesUnits,'Position',this.myDynVisParams.mainAxesPosition);                        
+                    end
+                    if(this.mDispDim == 3)
+                        if(~isempty(this.disp_view))
+                            view(hAx,this.disp_view);
+                        end
                     end
                 case 'supp'
                     if(isempty(hAx))
@@ -221,6 +234,7 @@ classdef FLIMXFigureExport < FDisplay
                 hAx.XAxis.Visible = 'off';
                 hAx.YAxis.Visible = 'off';
             end
+            hAx.FontSize = this.visObj.exportParams.labelFontSize;
             drawnow;
             this.screenshot = false;
         end
