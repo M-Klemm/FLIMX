@@ -767,6 +767,38 @@ classdef FDisplay < handle
                 if(isempty(current_img) || all(isnan(current_img(:))) || all(isinf(current_img(:))))
                     return
                 end
+                %                 if(strcmp(hfd{i}.dType,'aiZellMaskFA'))
+%                     hfdInt = this.getIntHfd();
+%                     intImg = hfdInt.rawImage; %histeq(
+%                     current_img(isnan(current_img)) = 0;
+%                     gmag = imgradient(intImg);
+%                     
+%                     D = bwdist(current_img);
+%                     DL = watershed(D);
+%                     bgm = DL == 0;
+%                     %                 figure; imshow(bgm)
+%                     %                 title('Watershed Ridge Lines')
+%                     
+%                     gmag2 = imimposemin(gmag, bgm | current_img);
+%                     %                 figure; imshow(gmag2)
+%                     
+%                     L = watershed(gmag2);
+%                     
+% %                     intImg = intImg ./max(intImg(:));
+% %                     labels = imdilate(L==0,ones(3,3)) + 2*bgm + 3*current_img;
+% %                     I4 = labeloverlay(intImg,labels);
+% %                     figure; imshow(I4)
+% %                     title('Markers and Object Boundaries Superimposed on Original Image')
+%                     if(any(bgm(:)))
+%                         t  = uint8(unique(L(bgm)));
+%                     else
+%                         t = unique(uint8(L(~current_img)));
+%                     end
+%                     for j = 1:length(t)
+%                         L(L == t(j)) = 0;
+%                     end
+%                     current_img = logical(L);
+%                 end
                 if(hfd{i}.rawImgIsLogical)
                     %logical data, e.g. a mask
                     current_img(isnan(current_img)) = 0;
@@ -802,7 +834,7 @@ classdef FDisplay < handle
                         zMax = zMax + 0.1;
                     end
                     %color mapping
-                    if(isempty(hfd{i}.getCIColor(rc,rt,rs,ri))) %dispDim == 1 || 
+                    if(dispDim == 1 && isempty(hfd{i}.getCIColor([],0,1,0)) || dispDim == 2 && isempty(hfd{i}.getCIColor(rc,rt,rs,ri))) %
                         %cTmp = hfd{i}.getColorScaling();
                         cTmp = single(this.myColorScaleObj.getCurCSInfo());
                         if(isempty(cTmp) || length(cTmp) ~= 3 || nrFD > 1)
@@ -878,7 +910,11 @@ classdef FDisplay < handle
                         end
                     else
                         %we have precomputed colors
-                        colors = hfd{i}.getCIColor(rc,rt,rs,ri);
+                        if(dispDim == 1)
+                            colors = hfd{i}.getCIColor([],0,1,0);
+                        else
+                            colors = hfd{i}.getCIColor(rc,rt,rs,ri);
+                        end
                         alphaData = ceil(sum(colors,3));
                     end
                 end
@@ -1055,170 +1091,183 @@ classdef FDisplay < handle
 %                         end
                         %save for export
                     case 3 %3D plot
-                        if(sVisParam.offset_m3d && nrFD > 1)
-                            %add offset to each 3d plot
+                        %martin hack
+                        hfdx = this.visObj.fdt.getFDataObj(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),1,'TauMean',1,1);
+                        hfdy = this.visObj.fdt.getFDataObj(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),2,'TauMean',1,1);
+                        hfdz = this.visObj.fdt.getFDataObj(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),2,'spectral',0,1);
+                        if(~isempty(hfdx) && ~isempty(hfdx.rawImage) && ~isempty(hfdy) && ~isempty(hfdy.rawImage) && ~isempty(hfdz) && ~isempty(hfdz.rawImage))
+                            h = scatter3(hAx,hfdx.rawImage(:),hfdy.rawImage(:),hfdz.rawImage(:),'filled');
+                            h.MarkerEdgeColor = 'k';
+                            h.SizeData = 36/3;
+                            xlabel(hAx,'TauMean ch1');
+                            ylabel(hAx,'TauMean ch2');
+                            zlabel(hAx,'spectral');
+                        else
+                            if(sVisParam.offset_m3d && nrFD > 1)
+                                %add offset to each 3d plot
+                                if(hfd{i}.sType == 2)
+                                    %log10
+                                    if(sVisParam.offset_sc)
+                                        %distribute plots equaly among axes
+                                        pos = get(hAx,'Position');
+                                        max_amp = pos(4)/nrFD;
+                                        if(i > 1)
+                                            offset = offset + max_amp;
+                                        end
+                                        %respect z scaling
+                                        current_img = (current_img-zMin(i)) / (zMax(i)-zMin(i)) * max_amp + offset;
+                                    else
+                                        %distribute plots based on their max-values
+                                        if(i > 1)
+                                            offset = offset + 10^zMax(i-1) - 10^zMin(i-1);
+                                        end
+                                        %add (linear) offset to linear data and log10 transform
+                                        current_img =  log10(10^hfd{i}.getROIImage(rc,rt,rs,ri) + offset);
+                                    end
+                                else
+                                    %linear
+                                    current_img = (current_img-zMin(i));
+                                    if(sVisParam.offset_sc)
+                                        %distribute plots equaly among axes
+                                        pos = get(hAx,'Position');
+                                        max_amp = pos(4)/nrFD;
+                                        if(i > 1)
+                                            offset = offset + max_amp;
+                                        end
+                                        %respect z scaling
+                                        current_img = current_img / (zMax(i)-zMin(i)) * max_amp;
+                                    else
+                                        %distribute plots based on their max-values
+                                        if(i > 1)
+                                            offset = offset + zMax(i-1) - zMin(i-1);
+                                        end
+                                    end
+                                    current_img = current_img + offset; %add offset
+                                end
+                            end
+                            %% crossSections
+                            crossSectionssWidth = 2;
+                            if(sVisParam.padd) %padd with zeros (-inf)
+                                if(hfd{i}.getCrossSectionX() && hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri) ~= 0)
+                                    if(hfd{i}.getCrossSectionXInv())
+                                        current_img(:,hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri)+1:end) = -inf;
+                                    else
+                                        current_img(:,1:hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri)-1) = -inf;
+                                    end
+                                    if(sVisParam.color_crossSections)
+                                        tmp = hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri);
+                                        colors(:,tmp:tmp+crossSectionssWidth-1,:) = permute(repmat(repmat(sVisParam.crossSectionXColor,size(colors,2),1),[1 1 crossSectionssWidth]),[1 3 2]);
+                                    end
+                                end
+                                if(hfd{1}.getCrossSectionY() && hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri) ~= 0)
+                                    if(hfd{1}.getCrossSectionYInv())
+                                        current_img(hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri)+1:end,:) = -inf;
+                                    else
+                                        current_img(1:hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri)-1,:) = -inf;%m.sVisParam.zlim_min;
+                                    end
+                                    if(sVisParam.color_crossSections)
+                                        tmp = hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri);
+                                        colors(tmp:tmp+crossSectionssWidth-1,:,:) = permute(repmat(repmat(sVisParam.crossSectionYColor,size(colors,2),1),[1 1 crossSectionssWidth]),[3 1 2]);
+                                    end
+                                end
+                            elseif(~sVisParam.padd)%no padding
+                                if(hfd{i}.getCrossSectionX() && hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri) ~= 0)
+                                    if(hfd{i}.getCrossSectionXInv())
+                                        current_img = current_img(:,1:hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri));
+                                        alphaData = alphaData(:,1:hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri));
+                                        colors = colors(:,1:hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri),:);
+                                        if(sVisParam.color_crossSections)
+                                            colors(:,end-crossSectionssWidth+1:end,:) = reshape(repmat(sVisParam.crossSectionXColor,size(colors,1),crossSectionssWidth),[size(colors,1) crossSectionssWidth 3]);
+                                        end
+                                    else
+                                        current_img = current_img(:,hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri):end);
+                                        alphaData = alphaData(:,hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri):end);
+                                        colors = colors(:,hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri):end,:);
+                                        if(sVisParam.color_crossSections)
+                                            colors(:,1:crossSectionssWidth,:) = reshape(repmat(sVisParam.crossSectionXColor,size(colors,1),crossSectionssWidth),[size(colors,1) crossSectionssWidth 3]);
+                                        end
+                                    end
+                                end
+                                if(hfd{i}.getCrossSectionY() && hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri) ~= 0)
+                                    if(hfd{i}.getCrossSectionYInv())
+                                        current_img = current_img(1:hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri),:);
+                                        alphaData = alphaData(1:hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri),:);
+                                        colors = colors(1:hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri),:,:);
+                                        if(sVisParam.color_crossSections)
+                                            colors(end-crossSectionssWidth+1:end,:,:) = reshape(repmat(sVisParam.crossSectionYColor,size(colors,2),crossSectionssWidth),[crossSectionssWidth size(colors,2) 3]);
+                                        end
+                                    else
+                                        current_img = current_img(hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri):end,:);
+                                        alphaData = alphaData(hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri):end,:);
+                                        colors = colors(hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri):end,:,:);
+                                        if(sVisParam.color_crossSections)
+                                            colors(1:crossSectionssWidth,:,:) = reshape(repmat(sVisParam.crossSectionYColor,size(colors,2),crossSectionssWidth),[crossSectionssWidth size(colors,2) 3]);
+                                        end
+                                    end
+                                end
+                            end
+                            %change cluster background color
+                            if((strncmp(hfd{i}.dType,'MVGroup',7) || strncmp(hfd{i}.dType,'ConditionMVGroup',16) ||strncmp(hfd{i}.dType,'GlobalMVGroup',13)) && (sum(sVisParam.cluster_grp_bg_color) ~= 0))
+                                c = reshape(colors,[],3);
+                                idx = c(:,1) == 0 & c(:,2) == 0 & c(:,3) == 0;
+                                c_neu = repmat(sVisParam.cluster_grp_bg_color,sum(idx),1);
+                                c(idx,:) = c_neu;
+                                colors = reshape(c,[size(current_img) 3]);
+                            end
+                            %finally plot
+                            surf(hAx,current_img,colors,'LineStyle','none','EdgeColor','none','FaceLighting','phong','AlphaDataMapping','none','AlphaData',alphaData);%,'FaceAlpha','flat'
+                            alim(hAx,[0 1]);
+                            cMM = [min(current_img(~isnan(current_img(:)) & ~isinf(current_img(:)))) max(current_img(~isnan(current_img(:)) & ~isinf(current_img(:))))];
+                            if(abs(cMM(1) - cMM(2)) < eps)
+                                %ensure a minimum dinstance
+                                cMM(2) = cMM(1)+1;
+                            end
+                            caxis(hAx,cMM);
+                            set(hAx,'YDir',ydir);
+                            %set view
+                            if(~isempty(this.disp_view))
+                                view(hAx,this.disp_view);
+                            end
+                            %make labels
                             if(hfd{i}.sType == 2)
                                 %log10
-                                if(sVisParam.offset_sc)
-                                    %distribute plots equaly among axes
-                                    pos = get(hAx,'Position');
-                                    max_amp = pos(4)/nrFD;
-                                    if(i > 1)
-                                        offset = offset + max_amp;
-                                    end
-                                    %respect z scaling
-                                    current_img = (current_img-zMin(i)) / (zMax(i)-zMin(i)) * max_amp + offset;
-                                else
-                                    %distribute plots based on their max-values
-                                    if(i > 1)
-                                        offset = offset + 10^zMax(i-1) - 10^zMin(i-1);
-                                    end
-                                    %add (linear) offset to linear data and log10 transform
-                                    current_img =  log10(10^hfd{i}.getROIImage(rc,rt,rs,ri) + offset);
-                                end                                
-                            else
-                                %linear
-                                current_img = (current_img-zMin(i));
-                                if(sVisParam.offset_sc)
-                                    %distribute plots equaly among axes
-                                    pos = get(hAx,'Position');
-                                    max_amp = pos(4)/nrFD;
-                                    if(i > 1)
-                                        offset = offset + max_amp;
-                                    end
-                                    %respect z scaling
-                                    current_img = current_img / (zMax(i)-zMin(i)) * max_amp;
-                                else
-                                    %distribute plots based on their max-values
-                                    if(i > 1)
-                                        offset = offset + zMax(i-1) - zMin(i-1);
-                                    end
-                                end
-                                current_img = current_img + offset; %add offset
-                            end
-                        end                        
-                        %% crossSections
-                        crossSectionssWidth = 2;
-                        if(sVisParam.padd) %padd with zeros (-inf)
-                            if(hfd{i}.getCrossSectionX() && hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri) ~= 0)
-                                if(hfd{i}.getCrossSectionXInv())
-                                    current_img(:,hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri)+1:end) = -inf;
-                                else
-                                    current_img(:,1:hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri)-1) = -inf;
-                                end
-                                if(sVisParam.color_crossSections)
-                                    tmp = hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri);
-                                    colors(:,tmp:tmp+crossSectionssWidth-1,:) = permute(repmat(repmat(sVisParam.crossSectionXColor,size(colors,2),1),[1 1 crossSectionssWidth]),[1 3 2]);
-                                end
-                            end
-                            if(hfd{1}.getCrossSectionY() && hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri) ~= 0)
-                                if(hfd{1}.getCrossSectionYInv())
-                                    current_img(hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri)+1:end,:) = -inf;
-                                else
-                                    current_img(1:hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri)-1,:) = -inf;%m.sVisParam.zlim_min;
-                                end
-                                if(sVisParam.color_crossSections)
-                                    tmp = hfd{1}.getCrossSectionYVal(true,true,rc,rt,rs,ri);
-                                    colors(tmp:tmp+crossSectionssWidth-1,:,:) = permute(repmat(repmat(sVisParam.crossSectionYColor,size(colors,2),1),[1 1 crossSectionssWidth]),[3 1 2]);
-                                end
-                            end
-                        elseif(~sVisParam.padd)%no padding
-                            if(hfd{i}.getCrossSectionX() && hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri) ~= 0)
-                                if(hfd{i}.getCrossSectionXInv())
-                                    current_img = current_img(:,1:hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri));
-                                    alphaData = alphaData(:,1:hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri));
-                                    colors = colors(:,1:hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri),:);
-                                    if(sVisParam.color_crossSections)
-                                        colors(:,end-crossSectionssWidth+1:end,:) = reshape(repmat(sVisParam.crossSectionXColor,size(colors,1),crossSectionssWidth),[size(colors,1) crossSectionssWidth 3]);
+                                if(sVisParam.offset_m3d && nrFD > 1)
+                                    %add offset to each 3d plot
+                                    [tick_i,ticklbl_i] = FDisplay.makeLogScaling([10^zMin(i) 10^zMax(i)]);
+                                    if(sVisParam.offset_sc)
+                                        %distribute plots equaly among axes
+                                        [ztick,zticklbl] = FDisplay.mergeTicksLbls(ztick, zticklbl,(tick_i-min(tick_i))/ (max(tick_i)-min(tick_i))* max_amp + offset, ticklbl_i);
+                                        if(any(isinf(ztick)))
+                                            ztick(1) = (ztick(end)-ztick(2))/(numel(ztick)-1);
+                                        end
+                                    else
+                                        %distribute plots based on their max-values
+                                        [ztick,zticklbl] = FDisplay.mergeTicksLbls(ztick, zticklbl,log10(10.^tick_i + offset), ticklbl_i);
                                     end
                                 else
-                                    current_img = current_img(:,hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri):end);
-                                    alphaData = alphaData(:,hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri):end);
-                                    colors = colors(:,hfd{i}.getCrossSectionXVal(true,true,rc,rt,rs,ri):end,:);
-                                    if(sVisParam.color_crossSections)
-                                        colors(:,1:crossSectionssWidth,:) = reshape(repmat(sVisParam.crossSectionXColor,size(colors,1),crossSectionssWidth),[size(colors,1) crossSectionssWidth 3]);
-                                    end
-                                end                                
-                            end
-                            if(hfd{i}.getCrossSectionY() && hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri) ~= 0)
-                                if(hfd{i}.getCrossSectionYInv())
-                                    current_img = current_img(1:hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri),:);
-                                    alphaData = alphaData(1:hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri),:);
-                                    colors = colors(1:hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri),:,:);
-                                    if(sVisParam.color_crossSections)
-                                        colors(end-crossSectionssWidth+1:end,:,:) = reshape(repmat(sVisParam.crossSectionYColor,size(colors,2),crossSectionssWidth),[crossSectionssWidth size(colors,2) 3]);
-                                    end
-                                else
-                                    current_img = current_img(hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri):end,:);
-                                    alphaData = alphaData(hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri):end,:);
-                                    colors = colors(hfd{i}.getCrossSectionYVal(true,true,rc,rt,rs,ri):end,:,:);
-                                    if(sVisParam.color_crossSections)
-                                        colors(1:crossSectionssWidth,:,:) = reshape(repmat(sVisParam.crossSectionYColor,size(colors,2),crossSectionssWidth),[crossSectionssWidth size(colors,2) 3]);
-                                    end
-                                end                                
-                            end
-                        end
-                        %change cluster background color
-                        if((strncmp(hfd{i}.dType,'MVGroup',7) || strncmp(hfd{i}.dType,'ConditionMVGroup',16) ||strncmp(hfd{i}.dType,'GlobalMVGroup',13)) && (sum(sVisParam.cluster_grp_bg_color) ~= 0))
-                            c = reshape(colors,[],3);
-                            idx = c(:,1) == 0 & c(:,2) == 0 & c(:,3) == 0;
-                            c_neu = repmat(sVisParam.cluster_grp_bg_color,sum(idx),1);
-                            c(idx,:) = c_neu;
-                            colors = reshape(c,[size(current_img) 3]);
-                        end
-                        %finally plot
-                        surf(hAx,current_img,colors,'LineStyle','none','EdgeColor','none','FaceLighting','phong','AlphaDataMapping','none','AlphaData',alphaData);%,'FaceAlpha','flat'
-                        alim(hAx,[0 1]);
-                        cMM = [min(current_img(~isnan(current_img(:)) & ~isinf(current_img(:)))) max(current_img(~isnan(current_img(:)) & ~isinf(current_img(:))))];
-                        if(abs(cMM(1) - cMM(2)) < eps)
-                            %ensure a minimum dinstance
-                            cMM(2) = cMM(1)+1;
-                        end
-                        caxis(hAx,cMM);
-                        set(hAx,'YDir',ydir);
-                        %set view
-                        if(~isempty(this.disp_view))
-                            view(hAx,this.disp_view);
-                        end                        
-                        %make labels
-                        if(hfd{i}.sType == 2)
-                            %log10
-                            if(sVisParam.offset_m3d && nrFD > 1)
-                                %add offset to each 3d plot
-                                [tick_i,ticklbl_i] = FDisplay.makeLogScaling([10^zMin(i) 10^zMax(i)]);
-                                if(sVisParam.offset_sc)
-                                    %distribute plots equaly among axes
-                                    [ztick,zticklbl] = FDisplay.mergeTicksLbls(ztick, zticklbl,(tick_i-min(tick_i))/ (max(tick_i)-min(tick_i))* max_amp + offset, ticklbl_i);
-                                    if(any(isinf(ztick)))
-                                        ztick(1) = (ztick(end)-ztick(2))/(numel(ztick)-1);
-                                    end
-                                else
-                                    %distribute plots based on their max-values
-                                    [ztick,zticklbl] = FDisplay.mergeTicksLbls(ztick, zticklbl,log10(10.^tick_i + offset), ticklbl_i);
-                                end
-                            else
-                                [ztick,zticklbl] = FDisplay.makeLogScaling([this.current_img_lbl_min this.current_img_lbl_max]);
-                            end
-                            set(hAx,'color',sVisParam.supp_plot_bg_color,'Box','off','XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)],'ZLim',[ztick(1) ztick(end)],'ZTick',ztick,'ZTickLabel',zticklbl);
-                        else
-                            %linear
-                            if(sVisParam.offset_m3d && nrFD > 1)
-                                %add offset to each 3d plot
-                                [tick_i,ticklbl_i] = FDisplay.makeLinScaling([zMin(i) zMax(i)]);
-                                if(sVisParam.offset_sc)
-                                    %distribute plots equaly among axes
-                                    [ztick,zticklbl] = FDisplay.mergeTicksLbls(ztick, zticklbl,(tick_i-zMin(i))/(zMax(i)-zMin(i))* max_amp + offset, ticklbl_i);
-                                else
-                                    %distribute plots based on their max-values
-                                    [ztick,zticklbl] = FDisplay.mergeTicksLbls(ztick, zticklbl,tick_i + offset, ticklbl_i);
+                                    [ztick,zticklbl] = FDisplay.makeLogScaling([this.current_img_lbl_min this.current_img_lbl_max]);
                                 end
                                 set(hAx,'color',sVisParam.supp_plot_bg_color,'Box','off','XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)],'ZLim',[ztick(1) ztick(end)],'ZTick',ztick,'ZTickLabel',zticklbl);
                             else
-                                set(hAx,'color',sVisParam.supp_plot_bg_color,'Box','off','XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)],'ZLim',[this.current_img_lbl_min this.current_img_lbl_max]);
-                            end                            
-                        end
-                        if(sVisParam.alpha ~= 1)
-                            alpha(sVisParam.alpha);
+                                %linear
+                                if(sVisParam.offset_m3d && nrFD > 1)
+                                    %add offset to each 3d plot
+                                    [tick_i,ticklbl_i] = FDisplay.makeLinScaling([zMin(i) zMax(i)]);
+                                    if(sVisParam.offset_sc)
+                                        %distribute plots equaly among axes
+                                        [ztick,zticklbl] = FDisplay.mergeTicksLbls(ztick, zticklbl,(tick_i-zMin(i))/(zMax(i)-zMin(i))* max_amp + offset, ticklbl_i);
+                                    else
+                                        %distribute plots based on their max-values
+                                        [ztick,zticklbl] = FDisplay.mergeTicksLbls(ztick, zticklbl,tick_i + offset, ticklbl_i);
+                                    end
+                                    set(hAx,'color',sVisParam.supp_plot_bg_color,'Box','off','XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)],'ZLim',[ztick(1) ztick(end)],'ZTick',ztick,'ZTickLabel',zticklbl);
+                                else
+                                    set(hAx,'color',sVisParam.supp_plot_bg_color,'Box','off','XLim',[1 size(current_img,2)],'YLim',[1 size(current_img,1)],'ZLim',[this.current_img_lbl_min this.current_img_lbl_max]);
+                                end
+                            end
+                            if(sVisParam.alpha ~= 1)
+                                alpha(sVisParam.alpha);
+                            end
                         end
                         if(sVisParam.grid)
                             grid(hAx,'on');
@@ -1230,7 +1279,7 @@ classdef FDisplay < handle
                         end
                         shading(hAx,sVisParam.shading);
                 end
-                clear current_img
+                %clear current_img
             end
             if(nrFD > 1)
                 hold(hAx,'off');
@@ -1321,20 +1370,22 @@ classdef FDisplay < handle
             zoom = this.mZoomFactor;
             %main plot
             hAxMain = this.h_m_ax;
-            if((zoom-1) < eps)
-                hAxMain.XLim = [1 xFullRange];
-                hAxMain.YLim = [1 yFullRange];
-            else
-                xNewRange = xFullRange./zoom;
-                xNewHalfRange = floor(xNewRange./2);
-                yNewRange = yFullRange./zoom;
-                yNewHalfRange = floor(yNewRange./2);
-                this.zoomAnchor(1) = max(xNewHalfRange+1,min(xFullRange-xNewHalfRange,this.zoomAnchor(1)));
-                this.zoomAnchor(2) = max(yNewHalfRange+1,min(yFullRange-yNewHalfRange,this.zoomAnchor(2)));
-                hAxMain.XLim = [max(1,this.zoomAnchor(1) - xNewHalfRange) min(xFullRange,this.zoomAnchor(1) + xNewHalfRange)];
-                hAxMain.YLim = [max(1,this.zoomAnchor(2) - yNewHalfRange) min(yFullRange,this.zoomAnchor(2) + yNewHalfRange)];
+            if(this.mDispDim ~= 3)  %martin hack
+                if((zoom-1) < eps)
+                    hAxMain.XLim = [1 xFullRange];
+                    hAxMain.YLim = [1 yFullRange];
+                else
+                    xNewRange = xFullRange./zoom;
+                    xNewHalfRange = floor(xNewRange./2);
+                    yNewRange = yFullRange./zoom;
+                    yNewHalfRange = floor(yNewRange./2);
+                    this.zoomAnchor(1) = max(xNewHalfRange+1,min(xFullRange-xNewHalfRange,this.zoomAnchor(1)));
+                    this.zoomAnchor(2) = max(yNewHalfRange+1,min(yFullRange-yNewHalfRange,this.zoomAnchor(2)));
+                    hAxMain.XLim = [max(1,this.zoomAnchor(1) - xNewHalfRange) min(xFullRange,this.zoomAnchor(1) + xNewHalfRange)];
+                    hAxMain.YLim = [max(1,this.zoomAnchor(2) - yNewHalfRange) min(yFullRange,this.zoomAnchor(2) + yNewHalfRange)];
+                end
+                this.makeMainXYLabels();
             end
-            this.makeMainXYLabels();
             %supplemental plot
             if(this.sDispMode == 4 && hfd.getCrossSectionX() && hfd.getCrossSectionXVal(true,true,rc,rt,rs,ri) ~= 0 )
                 this.h_s_ax.XLim = hAxMain.YLim;
@@ -1361,9 +1412,9 @@ classdef FDisplay < handle
                 axis(this.h_m_ax,'off');
                 return
             end
-%             if(~this.screenshot)
-%                 set(this.h_m_ax,'FontUnits','pixels','Fontsize',this.staticVisParams.fontsize);
-%             end
+            if(this.mDispDim == 3) %martin hack
+                return
+            end
             if(this.mDispDim == 1) %2Do
                 xlbl = hfd{1}.getRIXLbl();
                 ylbl = hfd{1}.getRIYLbl();
