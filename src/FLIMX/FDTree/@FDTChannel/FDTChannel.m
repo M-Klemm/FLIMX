@@ -488,6 +488,7 @@ classdef FDTChannel < FDTreeNode
                 t2(idx) = 1;
                 t(:,:,3) = t2;
                 logColorMVGroup = hsv2rgb(t);
+                logColorMVGroup = colorMVGroup;
                 %this.updateLongProgress(0,'');
                 return
             end
