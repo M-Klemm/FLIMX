@@ -2031,6 +2031,12 @@ classdef FLIMXVisGUI < handle
                 end                
                 studyName = this.getStudy(thisSide);
                 conditionName = this.getCondition(thisSide);
+                if(strncmp(hfd.dType,'ConditionMVGroup',16))
+                    %this is a merged MVGroup -> apply the ROI coordinates to the MVGoup of the subjects
+                    dType = hfd.dType(10:end);
+                else
+                    dType = hfd.dType;
+                end
                 sp1 = sprintf('Set ROI ''%s'' definition for all subjects\n\n',ROICtrl.ROIType2ROIItem(ROIInfo(1,1)));
                 if(strcmp(conditionName,FDTree.defaultConditionName))
                     %all subjects
@@ -2050,7 +2056,7 @@ classdef FLIMXVisGUI < handle
                 this.updateLongProgress(0.01,'0.0%% - ETA: -');
                 tStart = clock;
                 for i = 1:length(subNames)
-                    sHFD = this.fdt.getFDataObj(studyName,subNames{i},hfd.channel,hfd.dType,hfd.id,hfd.sType);
+                    sHFD = this.fdt.getFDataObj(studyName,subNames{i},hfd.channel,dType,hfd.id,hfd.sType);
                     if(isempty(sHFD) || hfd == sHFD)
                         continue
                     end
@@ -2058,7 +2064,7 @@ classdef FLIMXVisGUI < handle
                     %convert label ROI positions to matrix ROI positions
                     sROIInfo(1,2:end) = sHFD.yLbl2Pos(sROIInfo(1,2:end));
                     sROIInfo(2,2:end) = sHFD.xLbl2Pos(sROIInfo(2,2:end));
-                    this.fdt.setResultROICoordinates(studyName,subNames{i},hfd.dType,hfd.id,ROIInfo(1,1),sROIInfo);
+                    this.fdt.setResultROICoordinates(studyName,subNames{i},dType,hfd.id,ROIInfo(1,1),sROIInfo);
                     %update progress bar
                     [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(nSubjects-i)); %mean cputime for finished runs * cycles left
                     minutes = minutes + hours * 60; %unlikely to take hours
