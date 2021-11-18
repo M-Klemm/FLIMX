@@ -40,6 +40,7 @@ classdef ROICtrl < handle
         myFDisplayL = [];
         myFDisplayR = [];
         
+        roi_apply_button = [];
         roi_add_button = [];
         roi_del_button = [];
         
@@ -403,7 +404,7 @@ classdef ROICtrl < handle
             this.updateGUI(ROIInfo(:,2:end));
             this.save();
         end
-        
+                
         function popupCallback(this,type)
             %callback function of popup to change ROI type / subtype
             this.setupGUI();
@@ -498,6 +499,7 @@ classdef ROICtrl < handle
             rt = this.ROIType;
             if(rt > 1000 && rt < 2000)
                 %ETDRS grid
+                set(this.roi_apply_button,'Visible','on');
                 set(this.roi_add_button,'Visible','on');
                 set(this.roi_del_button,'Visible','on');
                 set(this.roi_vicinity_popup,'Visible','on');
@@ -516,6 +518,7 @@ classdef ROICtrl < handle
                 set(this.roi_table_clearAll_button,'Visible','on','String','Clear');
             elseif(rt > 2000 && rt < 3000)
                 %rectangle
+                set(this.roi_apply_button,'Visible','on');
                 set(this.roi_add_button,'Visible','on');
                 set(this.roi_del_button,'Visible','on');
                 set(this.roi_vicinity_popup,'Visible','on');
@@ -526,6 +529,7 @@ classdef ROICtrl < handle
                 set(this.roi_table_clearAll_button,'Visible','on','String','Clear');
             elseif(rt > 3000 && rt < 4000)
                 %circle
+                set(this.roi_apply_button,'Visible','on');
                 set(this.roi_add_button,'Visible','on');
                 set(this.roi_del_button,'Visible','on');
                 set(this.roi_vicinity_popup,'Visible','on');
@@ -541,6 +545,7 @@ classdef ROICtrl < handle
                 set(this.roi_table_clearAll_button,'Visible','on','String','Clear');
             elseif(rt > 4000 && rt < 5000)
                 %polygon
+                set(this.roi_apply_button,'Visible','on');
                 set(this.roi_add_button,'Visible','on');
                 set(this.roi_del_button,'Visible','on');
                 set(this.roi_vicinity_popup,'Visible','on');
@@ -551,6 +556,7 @@ classdef ROICtrl < handle
                 this.enDisAble('off','off');
             elseif(rt < 0)
                 %ROI group
+                set(this.roi_apply_button,'Visible','off');
                 set(this.roi_add_button,'Visible','off');
                 set(this.roi_del_button,'Visible','off');
                 set(this.roi_vicinity_popup,'Visible','on');
@@ -566,6 +572,7 @@ classdef ROICtrl < handle
                 set(this.roi_table_clearAll_button,'Visible','off');
             else
                 %switch to 'none'
+                set(this.roi_apply_button,'Visible','off');
                 set(this.roi_add_button,'Visible','off');
                 set(this.roi_del_button,'Visible','off');
                 set(this.roi_vicinity_popup,'Visible','off');
@@ -658,11 +665,16 @@ classdef ROICtrl < handle
             end
         end
         
-        function out = getCurROIInfo(this)
+        function out = getCurROIInfo(this,outputAsLabel)
             %get coordinates of current ROI
             %out = [invert,x1,x2]
             %      [enable,y1,y2]
-            %out is in matrix positions, not labels
+            %default: out is in matrix positions, not labels
+            if(nargin < 2)
+                outputAsLabel = false;
+            else
+                outputAsLabel = logical(outputAsLabel);
+            end
             out = zeros(2,3,'int16');
             hfd = this.myHFD;
             if(isempty(hfd))
@@ -681,6 +693,10 @@ classdef ROICtrl < handle
                 end
                 if(~isempty(hfd.rawImgXSz))
                     out(1,2:3) = hfd.rawImgXSz;
+                end
+                if(outputAsLabel)
+                    out(1,2:end) = hfd.yPos2Lbl(out(1,2:end));
+                    out(2,2:end) = hfd.xPos2Lbl(out(2,2:end));
                 end
                 return
             end
@@ -708,6 +724,10 @@ classdef ROICtrl < handle
                 %rectangles, circles
                 out(1,3) = hfd.yLbl2Pos(sscanf(this.y_u_edit.String,'%i',1));
                 out(2,3) = hfd.xLbl2Pos(sscanf(this.x_u_edit.String,'%i',1));
+            end
+            if(outputAsLabel)
+                out(1,2:end) = hfd.yPos2Lbl(out(1,2:end));
+                out(2,2:end) = hfd.xPos2Lbl(out(2,2:end));
             end
         end
         
@@ -855,6 +875,7 @@ classdef ROICtrl < handle
         function setUIHandles(this)
             %builds the uicontrol handles for the ROICtrl object for axis ax
             s = this.mySide;
+            this.roi_apply_button = this.visObj.visHandles.(sprintf('roi_apply_%s_button',s));
             this.roi_add_button = this.visObj.visHandles.(sprintf('roi_add_%s_button',s));
             this.roi_del_button = this.visObj.visHandles.(sprintf('roi_delete_%s_button',s));
             dims =['x','y','z'];

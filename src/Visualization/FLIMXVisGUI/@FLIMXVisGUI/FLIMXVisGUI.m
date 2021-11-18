@@ -819,7 +819,7 @@ classdef FLIMXVisGUI < handle
                             imwrite(imind,cm,fn,'gif','WriteMode','append');
                         end
                 end
-                updateLongProgress(this,0,'');                
+                %updateLongProgress(this,0,'');                
                 [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(nSubjects-i)); %mean cputime for finished runs * cycles left
                 minutes = minutes + hours * 60; %unlikely to take hours
                 this.updateLongProgress(i/nSubjects,sprintf('%02.1f%% - ETA: %02.0fm %02.0fs',i/nSubjects*100,minutes,secs));                
@@ -1986,7 +1986,7 @@ classdef FLIMXVisGUI < handle
             elseif(contains(tag,'roi_table_clearAll'))
                 this.objHandles.(sprintf('%sROI',thisSide)).buttonClearAllCallback();
                 this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
-            elseif(contains(tag,'button') && ~contains(tag,{'roi_table_clearAll','roi_add','roi_delete'}))
+            elseif(contains(tag,'button') && ~contains(tag,{'roi_table_clearAll','roi_add','roi_delete','roi_apply'}))
                 if(contains(tag,'_dec_'))
                     target = 'dec';
                 else
@@ -2019,6 +2019,55 @@ classdef FLIMXVisGUI < handle
                     case 'Cancel'
                         return
                 end
+            elseif(contains(tag,'button') && contains(tag,'roi_apply'))
+                hfd = this.objHandles.(sprintf('%sROI',thisSide)).myHFD;
+                if(isempty(hfd))
+                    return
+                end
+                ROIInfo = this.objHandles.(sprintf('%sROI',thisSide)).getCurROIInfo(true); %ROI coordinates are in matrix positions
+                if(ROIInfo(1,1) == 0)
+                    %no ROI selected
+                    return
+                end                
+                studyName = this.getStudy(thisSide);
+                conditionName = this.getCondition(thisSide);
+                sp1 = sprintf('Set ROI ''%s'' definition for all subjects\n\n',ROICtrl.ROIType2ROIItem(ROIInfo(1,1)));
+                if(strcmp(conditionName,FDTree.defaultConditionName))
+                    %all subjects
+                    sp2 = sprintf('in study ''%s''\n\n',studyName);
+                else
+                    %condition
+                    sp2 = sprintf('in study ''%s'' condition ''%s''\n\n',studyName,conditionName);
+                end
+                sp3 = sprintf('to the current definiton?\n\nTHIS WILL REPLACE ANY EXISTING DEFINITION FOR THIS ROI!');
+                choice = questdlg([sp1,sp2,sp3],'Set ROI Definition?','Yes','No','Yes');
+                switch choice
+                    case 'No'
+                        return
+                end
+                subNames = this.fdt.getAllSubjectNames(studyName,conditionName);
+                nSubjects = length(subNames);
+                this.updateLongProgress(0.01,'0.0%% - ETA: -');
+                tStart = clock;
+                for i = 1:length(subNames)
+                    sHFD = this.fdt.getFDataObj(studyName,subNames{i},hfd.channel,hfd.dType,hfd.id,hfd.sType);
+                    if(isempty(sHFD) || hfd == sHFD)
+                        continue
+                    end
+                    sROIInfo = ROIInfo;
+                    %convert label ROI positions to matrix ROI positions
+                    sROIInfo(1,2:end) = sHFD.yLbl2Pos(sROIInfo(1,2:end));
+                    sROIInfo(2,2:end) = sHFD.xLbl2Pos(sROIInfo(2,2:end));
+                    this.fdt.setResultROICoordinates(studyName,subNames{i},hfd.dType,hfd.id,ROIInfo(1,1),sROIInfo);
+                    %update progress bar
+                    [hours, minutes, secs] = secs2hms(etime(clock,tStart)/i*(nSubjects-i)); %mean cputime for finished runs * cycles left
+                    minutes = minutes + hours * 60; %unlikely to take hours
+                    this.updateLongProgress(i/nSubjects,sprintf('%02.1f%% - ETA: %02.0fm %02.0fs',i/nSubjects*100,minutes,secs));
+                end
+                this.updateLongProgress(0,'');
+                this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
+                %this.objHandles.(sprintf('%sROI',otherSide)).setupGUI();
+                this.objHandles.(sprintf('%sROI',otherSide)).updateGUI([]);
             elseif(contains(tag,'popup'))
                 if(contains(tag,'roi_subtype_'))
                     type = 'main';
@@ -2243,6 +2292,7 @@ classdef FLIMXVisGUI < handle
                 set(this.visHandles.(sprintf('roi_add_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Add new ROI');
                 set(this.visHandles.(sprintf('roi_delete_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Delete / clear ROI');
                 set(this.visHandles.(sprintf('roi_group_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Manage ROI groups');
+                set(this.visHandles.(sprintf('roi_apply_%s_button',ax)),'Callback',@this.GUI_roi_Callback,'TooltipString','Apply current ROI definition to all subjects in study condition');
                 %color scaling controls
                 set(this.visHandles.(sprintf('colormap_auto_%s_check',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Enable or disable automatic color scaling');
                 set(this.visHandles.(sprintf('colormap_low_%s_edit',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Enter lower border for color scaling');
@@ -2251,7 +2301,7 @@ classdef FLIMXVisGUI < handle
                     'String',sprintf('<html><img src="file:/%s" height="16" width="16"></html>',which('FLIMX_zoom_in.png')));
                 set(this.visHandles.(sprintf('colormap_zoom_out_%s_button',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Zoom out of histogram',...
                     'String',sprintf('<html><img src="file:/%s" height="14" width="14"></html>',which('FLIMX_zoom_out.png')));
-                set(this.visHandles.(sprintf('colormap_misc_%s_button',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Apply current color scaling to study condition')
+                set(this.visHandles.(sprintf('colormap_misc_%s_button',ax)),'Callback',@this.GUI_colorScale_Callback,'TooltipString','Apply current color scaling to all subjects in study condition')
             end
             %menu
             set(this.visHandles.FLIMXVisGUIFigure,'CloseRequestFcn',@this.menuExit_Callback);
