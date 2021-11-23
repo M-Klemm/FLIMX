@@ -39,6 +39,7 @@ classdef FLIMXVisGUI < handle
         myStatsDescr = [];
         myStatsGroupComp = [];
         myStatsMVGroup = [];
+        myStatsAdvanced = [];
     end
     properties(GetAccess = public, SetAccess = private)
         stopFlag = false;
@@ -603,8 +604,17 @@ classdef FLIMXVisGUI < handle
         end
         
         function menuClustering_Callback(this,hObject,eventdata)
-            %show clustering tool window
+            %show multivariate groups tool window
             this.myStatsMVGroup.checkVisWnd();
+        end
+        
+        function menuStatsAdvanced_Callback(this,hObject,eventdata)
+            %show advanced statistcs tool window
+            if(isempty(this.myStatsAdvanced) || ~isprop(this.myStatsAdvanced,'FLIMXStatsMultiGroupUIFigure') || ~isgraphics(this.myStatsAdvanced.FLIMXStatsMultiGroupUIFigure))
+                this.myStatsAdvanced = StatsMultiGroupComparison(this,this.getStudy('l'));
+            else
+                this.myStatsAdvanced.myStartupFcn(this,this.getStudy('l'));
+            end
         end
         
         function menuOpenStudyMgr_Callback(this,hObject,eventdata)
@@ -2317,6 +2327,8 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.menuExportOptions,'Callback',@this.menuExpOpt_Callback);
             set(this.visHandles.menuDescriptive,'Callback',@this.menuDescriptive_Callback);
             set(this.visHandles.menuHolmWilcoxon,'Callback',@this.menuHolmWilcoxon_Callback);
+            this.visHandles.menuStatsAdvanced = uimenu(this.visHandles.menuStatistics,'Text','Advanced Statistics');
+            set(this.visHandles.menuStatsAdvanced,'Callback',@this.menuStatsAdvanced_Callback);
             set(this.visHandles.menuClustering,'Callback',@this.menuClustering_Callback);
             set(this.visHandles.menuOpenStudyMgr,'Callback',@this.menuOpenStudyMgr_Callback);
             set(this.visHandles.menuExportFigureTL,'Callback',@this.menuExportFigure_Callback);
