@@ -450,8 +450,17 @@ classdef FDTChannel < FDTreeNode
                     %get merged colors
                     colors = cm(round(reshape(curImg,[],1)),:);
                     colors = reshape(colors,[size(curImg) 3]);
-                    if(sum(colorMVGroup(:)) > 0)
-                        colorMVGroup = imfuse(colors,colorMVGroup,'blend');
+                    if(sum(colorMVGroup(:)) > 0)                        
+                        %colorMVGroup = imfuse(colors,colorMVGroup,'blend');
+                        %replace existing colors
+                        cIdx = any(colors,3);
+                        for c = 1:3
+                            %overwrite existing colors
+                            ctm = colorMVGroup(:,:,c);
+                            ctc = colors(:,:,c);
+                            ctm(cIdx) = ctc(cIdx);
+                            colorMVGroup(:,:,c) = ctm;
+                        end
                     else
                         colorMVGroup = colors;
                     end
