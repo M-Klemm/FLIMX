@@ -179,7 +179,7 @@ classdef ColorCtrl < handle
             %convert a histogram class number to a real value            
             centers = this.curHistCenters;
             if(length(centers) <= 1)
-                out = [];
+                out = 0;
             else
                 cw = centers(2)-centers(1);
                 out = centers(1)+(val-1)*cw;
