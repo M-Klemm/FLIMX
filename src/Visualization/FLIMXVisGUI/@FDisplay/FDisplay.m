@@ -1567,7 +1567,7 @@ classdef FDisplay < handle
 %                                 [centers, histo] = this.visObj.fdt.getGlobalHistogram(...
 %                                     this.visObj.getChannel(this.mySide),dType{1},dTypeNr(1));
                         end
-                        if(isempty(centers))
+                        if(isempty(centers) || isempty(histo))
                             cla(this.h_s_ax);
                             axis(this.h_s_ax,'off');
                             return

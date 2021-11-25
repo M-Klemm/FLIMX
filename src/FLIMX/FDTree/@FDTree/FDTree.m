@@ -507,7 +507,7 @@ classdef FDTree < FDTreeNode
                 if(~isempty(newHeaders))
                     %add new columns at table end
                     for i = 1:length(newHeaders)
-                        destStudy.addColumn(newHeaders{i});
+                        destStudy.addColumn(newHeaders{i},originStudy.getSubjectInfoColumnDefaultValue(newHeaders{i}));
                     end
                 end
                 overWriteAllFlag = false;
@@ -600,6 +600,14 @@ classdef FDTree < FDTreeNode
             end
         end
         
+        function setSubjectInfoColumnDefaultValue(this,studyID,colName,val)
+            %set the default value for a regular column
+            study = this.getChild(studyID);
+            if(~isempty(study))
+                study.setSubjectInfoColumnDefaultValue(colName,val);
+            end
+        end
+        
         function importStudyInfo(this,studyName,file,mode)
             %import study info (subject info table) from excel file
             study = this.getChild(studyName);
@@ -689,11 +697,11 @@ classdef FDTree < FDTreeNode
 %             end
 %         end
         
-        function addColumn(this,studyID,name)
-            %add column to study info data
+        function addColumn(this,studyID,name,defaultVal)
+            %add column to study info data, fill column with a default value (otherwise set to [])
             study = this.getChild(studyID);
             if(~isempty(study))
-                study.addColumn(name);
+                study.addColumn(name,defaultVal);
             end
         end
         

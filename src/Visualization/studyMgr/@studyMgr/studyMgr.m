@@ -725,12 +725,18 @@ classdef studyMgr < handle
             opt.relB = 5;
             opt.valB = 1;
             opt.logOp = 1;
+            opt.checkPreFill = 0;
+            opt.valPreFill = 0;
             %start GUI
             opt = GUI_conditionalCol(opt);
             if(~isempty(opt))
                 %insert new column
                 if(~opt.cond)
-                    this.fdt.addColumn(this.curStudyName,opt.name);
+                    if(opt.checkPreFill)
+                        this.fdt.addColumn(this.curStudyName,opt.name,opt.valPreFill);
+                    else
+                        this.fdt.addColumn(this.curStudyName,opt.name,[]);
+                    end
                 else
                     this.fdt.addConditionalColumn(this.curStudyName,opt);
                     if(strcmp(this.FLIMXObj.curSubject.myParent.name,this.curStudyName))
@@ -786,7 +792,8 @@ classdef studyMgr < handle
                 [~, loc] = ismember(ref.logOp,opt.ops);
                 opt.logOp = max(1,min(opLen,loc));
             end
-            
+            opt.checkPreFill = 0;
+            opt.valPreFill = 0;
             %start GUI
             opt = GUI_conditionalCol(opt);
             if(~isempty(opt))
@@ -796,7 +803,11 @@ classdef studyMgr < handle
                     %set or update condition
                     this.fdt.setConditionalColumnDefinition(this.curStudyName,opt.name,opt);
                 else
-                    if(~isempty(ref))
+                    if(isempty(ref))
+                        if(opt.checkPreFill && ~isempty(opt.valPreFill))
+                            this.fdt.setSubjectInfoColumnDefaultValue(this.curStudyName,opt.name,opt.valPreFill);
+                        end
+                    else
                         %delete old condition and reset table values
                         this.fdt.setConditionalColumnDefinition(this.curStudyName,opt.name,[]);
                     end
