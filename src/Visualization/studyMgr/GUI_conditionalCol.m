@@ -33,7 +33,7 @@ function varargout = GUI_conditionalCol(varargin)
 %
 % GUI_CONDITIONALCOL M-file for GUI_conditionalCol.fig
 
-% Last Modified by GUIDE v2.5 20-Oct-2016 15:14:58
+% Last Modified by GUIDE v2.5 25-Nov-2021 10:07:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -80,7 +80,7 @@ if(isempty(opt.name))
     opt.name = name;
 else
     %edit exisiting column, adapt GUI
-    set(handles.lblHeading,'String','Edit Column');
+    set(handles.lblHeading,'String','Edit Subject Info Column');
     set(handles.FLIMXStudyMgrColumnCreationFigure,'Name','Edit Column');
     if(~opt.cond)
         %edit regular column
@@ -141,7 +141,7 @@ function updateGUI(handles)
 %set values
 opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 set(handles.editColName,'String',opt.name);
-%enable/disable GUI controls
+%enable/disable GUI controls for conditional column
 if(opt.cond)
     %conditinal column - set related GUI controls
     set(handles.editValA,'Enable','On');
@@ -154,7 +154,6 @@ if(opt.cond)
     set(handles.popupColA,'Value',opt.colA);
     set(handles.popupRelA,'Value',opt.relA);    
     set(handles.popupLogOp,'Value',opt.logOp);    
-    
     if(opt.logOp == 1)
         %no logical operation selected
         set(handles.popupColB,'Enable','Off');
@@ -169,6 +168,8 @@ if(opt.cond)
         set(handles.popupColB,'Value',opt.colB);
         set(handles.popupRelB,'Value',opt.relB);
     end
+    handles.checkPreFill.Visible = 'Off';
+    handles.editPreFill.Visible = 'Off';
 else
     %no conditional column - disable all corresponding GUI controls
     set(handles.editValA,'Enable','Off');
@@ -178,6 +179,14 @@ else
     set(handles.popupRelA,'Enable','Off');
     set(handles.popupRelB,'Enable','Off');
     set(handles.popupLogOp,'Enable','Off');
+    handles.checkPreFill.Visible = 'On';
+    handles.checkPreFill.Value = opt.checkPreFill;
+    if(opt.checkPreFill)
+        handles.editPreFill.Visible = 'On';
+    else
+        handles.editPreFill.Visible = 'Off';
+        handles.editPreFill.String = opt.valPreFill;
+    end
 end
 
 
@@ -244,6 +253,16 @@ opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 opt.relB = get(hObject,'Value');
 set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Check boxes
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --- Executes on button press in checkPreFill.
+function checkPreFill_Callback(hObject, eventdata, handles)
+%enable or disable pre-fill
+opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
+opt.checkPreFill = get(hObject,'Value');
+set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
+updateGUI(handles)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Edit boxes
@@ -266,19 +285,34 @@ if(~isempty(name))
 end
 set(hObject,'String',opt.name);
 
+function editPreFill_Callback(hObject, eventdata, handles)
+% get pre-fill value
+val = get(hObject,'String');
+opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
+if(isempty(val))
+    %input is not valid
+    errordlg('This is not a valid value! Please enter a number or a string!','Error entering value');
+else
+    %check if val is numeric
+    if(all(isstrprop(val, 'digit')))
+        val = str2double(val);
+    end
+    %save new value
+    opt.valPreFill = val;
+    set(handles.FLIMXStudyMgrColumnCreationFigure,'userdata',opt);
+end
+
 function editValA_Callback(hObject, eventdata, handles)
 % value for relational condition of column A
 val = get(hObject,'String');
 opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 if(isempty(val))
     %input is not valid
-    errordlg('This is not a valid value! Please insert another number or string!',...
-        'Error entering value');
+    errordlg('This is not a valid value! Please enter a number or a string!','Error entering value');
 else
     %check if val is numeric
-    tmp = str2num(val);
-    if(~isempty(val))
-        val = tmp;
+    if(all(isstrprop(val, 'digit')))
+        val = str2double(val);
     end
     %save new value
     opt.valA = val;
@@ -292,13 +326,11 @@ val = get(hObject,'String');
 opt = get(handles.FLIMXStudyMgrColumnCreationFigure,'userdata');
 if(isempty(val))
     %input is not valid
-    errordlg('This is not a valid value! Please insert another number or string!',...
-        'Error entering value');
+    errordlg('This is not a valid value! Please enter a number or a string!','Error entering value');
 else
     %check if val is numeric
-    tmp = str2num(val);
-    if(~isempty(val))
-        val = tmp;
+    if(all(isstrprop(val, 'digit')))
+        val = str2double(val);
     end
     %save new value
     opt.valB = val;
@@ -364,6 +396,11 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 function popupColA_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function editPreFill_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

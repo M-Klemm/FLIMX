@@ -41,7 +41,8 @@ classdef FDTStudy < FDTreeNode
     end
     properties(SetAccess = private, GetAccess = private)
         subjectNames = cell(0,0);                           %list of subject names
-        subjectInfoColumnNames = cell(0,0);                 %descriptions of patient data columns
+        subjectInfoColumnNames = cell(0,0);                 %descriptions of subject info columns
+        subjectInfoColumnDefaults = cell(0,0);              %default values for subject info columns
         filesHeaders = {'Subject' 'Meas. Chs' 'Result Chs'};%descriptions of channel data columns
         subjectInfo = cell(0,0);                            %additional patient data
         subjectInfoConditionDefinition = cell(0,0);         %condition / combination between patient data
@@ -71,7 +72,7 @@ classdef FDTStudy < FDTreeNode
         function this = FDTStudy(parent,name)
             % Constructor for FDTStudy
             this = this@FDTreeNode(parent,name);
-            this.revision = 33;
+            this.revision = 34;
             %check my directory
             sDir = this.myDir;
             if(~isfolder(sDir))
@@ -84,6 +85,7 @@ classdef FDTStudy < FDTreeNode
             this.myConditionStatistics = LinkedList();
             this.subjectInfoColumnNames(1,1) = {'column 1'};
             this.subjectInfoConditionDefinition(1,1) = {[]};
+            this.subjectInfoColumnDefaults(1,1) = {[]};
             this.conditionColors(1,1) = {FDTree.defaultConditionName()};
             this.conditionColors(2,1) = {FDTStudy.makeRndColor()};
         end
@@ -159,6 +161,7 @@ classdef FDTStudy < FDTreeNode
             %             this.subjectFilesHeaders = import.subjectFilesHeaders;
             this.subjectInfo = import.subjectInfo;
             this.subjectInfoConditionDefinition = import.subjectInfoConditionDefinition;
+            this.subjectInfoColumnDefaults = import.subjectInfoColumnDefaults;
             this.allFLIMItems = import.allFLIMItems;
             this.resultFileChs = import.resultFileChs;
             this.measurementFileChs = import.measurementFileChs;
@@ -262,6 +265,9 @@ classdef FDTStudy < FDTreeNode
                 this.resultFileChs(end+1,:) = cell(1,max(1,size(this.resultFileChs,2)));
                 this.measurementFileChs(end+1,:) = cell(1,max(1,size(this.measurementFileChs,2)));
                 this.subjectInfo(end+1,:) = cell(1,max(1,size(this.subjectInfo,2)));
+                %add default values
+                idx = ~cellfun(@isempty,this.subjectInfoColumnDefaults);
+                this.subjectInfo(end,idx) = this.subjectInfoColumnDefaults(idx,1);
                 this.resultROICoordinates(end+1) = cell(1,1);
                 this.nonDefaultSizeROICoordinates(end+1) = cell(1,1);
                 this.resultZScaling(end+1) = cell(1,1);
@@ -906,15 +912,17 @@ classdef FDTStudy < FDTreeNode
             this.setDirty(true);
         end
         
-        function addColumn(this,name)
+        function addColumn(this,colName,defaultVal)
             %add new column to study info
             if(~this.isLoaded)
                 this.load();
             end
             %insert new column at the end of the table            
-            this.subjectInfoColumnNames(end+1,1)= {name};
+            this.subjectInfoColumnNames(end+1,1)= {colName};
             this.subjectInfo(:,end+1)= cell(max(1,size(this.subjectInfo,1)),1);
             this.subjectInfoConditionDefinition(end+1,1) = cell(1,1);
+            this.subjectInfoColumnDefaults(end+1,1) = cell(1,1);
+            this.setSubjectInfoColumnDefaultValue(colName,defaultVal);
             this.setDirty(true);
         end
         
@@ -931,7 +939,7 @@ classdef FDTStudy < FDTreeNode
             ref.relB = val.ops{val.relB + 6};   %relational operator of colB
             ref.valA = val.valA;                %relation value of colA
             ref.valB = val.valB;                %relation value of colB            
-            this.addColumn(val.name);
+            this.addColumn(val.name,[]);
             %save reference for condition / combination
             n = this.subjectInfoColumnName2idx(val.name);
             this.subjectInfoConditionDefinition{n,1} = ref;
@@ -964,6 +972,25 @@ classdef FDTStudy < FDTreeNode
             this.subjectInfoConditionDefinition{n,1} = ref;            
             %update conditions / combinations
             this.checkConditionRef([]);
+            this.setDirty(true);
+        end
+        
+        function setSubjectInfoColumnDefaultValue(this,colName,val)
+            %set default value for a regular column
+            if(~this.isLoaded)
+                this.load();
+            end
+            n = this.subjectInfoColumnName2idx(colName);
+            %save new reference for condition / combination
+            this.subjectInfoColumnDefaults{n,1} = val;
+            %write default value to all subjects of than column
+            if(~isempty(val) && this.nrSubjects > 0)
+                if(isnumeric(val))
+                    this.subjectInfo(:,n) = num2cell(repmat(val,this.nrSubjects,1));
+                else
+                    this.subjectInfo(:,n) = repmat({val},this.nrSubjects,1);               
+                end
+            end
             this.setDirty(true);
         end
         
@@ -1102,6 +1129,7 @@ classdef FDTStudy < FDTreeNode
                     this.subjectInfoColumnNames = xlsHeads;
                     this.subjectInfo = cell(0,0);
                     this.subjectInfoConditionDefinition = cell(size(this.subjectInfoColumnNames));
+                    this.subjectInfoColumnDefaults = cell(size(this.subjectInfoColumnNames));
                 case 2 %Update and Add New
                     %remove existing conditional columns from import
                     for i = length(xlsHeads):-1:1
@@ -1116,6 +1144,7 @@ classdef FDTStudy < FDTreeNode
                         this.subjectInfoColumnNames(end+1:end+diff,1) = cell(diff,1);
                         this.subjectInfo(:,end+1:end+diff) = cell(size(this.subjectInfo,1),diff);
                         this.subjectInfoConditionDefinition(end+1:end+diff,1) = cell(diff,1);
+                        this.subjectInfoColumnDefaults(end+1:end+diff,1) = cell(diff,1);
                     end
                     %add new info headers
                     this.subjectInfoColumnNames(end+1-diff:end,1) = newHeads;
@@ -1508,6 +1537,7 @@ classdef FDTStudy < FDTreeNode
                 this.subjectInfoColumnNames(col,:) = [];
                 this.subjectInfo(:,col) = [];
                 this.subjectInfoConditionDefinition(col,:) = [];
+                this.subjectInfoColumnDefaults(col,:) = [];
                 idx = find(strcmp(colName,this.conditionColors(1,:)), 1);
                 if(~isempty(idx))
                     this.conditionColors(:,idx) = [];
@@ -2206,13 +2236,27 @@ classdef FDTStudy < FDTreeNode
             end
         end
         
-        function out = getConditionalColumnDefinition(this,idx)
+        function out = getConditionalColumnDefinition(this,colName)
             %return definition of a conditional column with index idx
             if(~this.isLoaded)
                 this.load();
             end
-            if(~isempty(idx) && ~isempty(this.subjectInfoColumnNames) && length(this.subjectInfoConditionDefinition) >= idx)
-                out = this.subjectInfoConditionDefinition{idx,1};
+            n = this.subjectInfoColumnName2idx(colName);
+            if(~isempty(n) && ~isempty(this.subjectInfoColumnNames) && length(this.subjectInfoConditionDefinition) >= n)
+                out = this.subjectInfoConditionDefinition{n,1};
+            else
+                out = [];
+            end
+        end
+        
+        function out = getSubjectInfoColumnDefaultValue(this,colName)
+            %return default value for a regular column with index idx
+            if(~this.isLoaded)
+                this.load();
+            end
+            n = this.subjectInfoColumnName2idx(colName);
+            if(~isempty(n) && ~isempty(this.subjectInfoColumnNames) && length(this.subjectInfoColumnDefaults) >= n)
+                out = this.subjectInfoColumnDefaults{n,1};
             else
                 out = [];
             end
@@ -3022,7 +3066,10 @@ classdef FDTStudy < FDTreeNode
             this.subjectInfo(:,col+n) = temp;
             temp = this.subjectInfoConditionDefinition(col,1);
             this.subjectInfoConditionDefinition(col,1) = this.subjectInfoConditionDefinition(col+n,1);
-            this.subjectInfoConditionDefinition(col+n,1) = temp;
+            this.subjectInfoConditionDefinition(col+n,1) = temp;            
+            temp = this.subjectInfoColumnDefaults(col,1);
+            this.subjectInfoColumnDefaults(col,1) = this.subjectInfoColumnDefaults(col+n,1);
+            this.subjectInfoColumnDefaults(col+n,1) = temp;            
             this.setDirty(true);
         end
         
@@ -3440,6 +3487,11 @@ classdef FDTStudy < FDTreeNode
                 oldStudy.nonDefaultSizeROICoordinates = cell(0,0);                
             end
             
+            if(oldStudy.revision < 34)
+                %add subjectInfoColumnDefaults
+                oldStudy.subjectInfoColumnDefaults = cell(size(oldStudy.subjectInfoColumnNames));
+            end
+            
             this.setDirty(true);
         end
         
@@ -3688,6 +3740,7 @@ classdef FDTStudy < FDTreeNode
             export.subjectInfoColumnNames = this.subjectInfoColumnNames;
             export.subjectInfo = this.subjectInfo(idx,:);
             export.subjectInfoConditionDefinition = this.subjectInfoConditionDefinition;
+            export.subjectInfoColumnDefaults = this.subjectInfoColumnDefaults;
             export.resultFileChs = this.resultFileChs(idx,:);
             export.measurementFileChs = this.measurementFileChs(idx,:);
             export.MVGroupTargets = this.MVGroupTargets;
@@ -3942,6 +3995,19 @@ classdef FDTStudy < FDTreeNode
                 dirty = true;
             elseif(tmpLen > nrInfoCols)
                 testStudy.subjectInfoConditionDefinition = testStudy.subjectInfoConditionDefinition(1:nrInfoCols);
+                dirty = true;
+            end
+            %subjectInfoColumnDefaults
+            if(size(testStudy.subjectInfoColumnDefaults,2) > 1)
+                testStudy.subjectInfoColumnDefaults = testStudy.subjectInfoColumnDefaults(:);
+                dirty = true;
+            end
+            tmpLen = length(testStudy.subjectInfoColumnDefaults);
+            if(tmpLen < nrInfoCols)
+                testStudy.subjectInfoColumnDefaults(end+1:end+nrInfoCols-tmpLen,1) = cell(nrInfoCols-tmpLen,1);
+                dirty = true;
+            elseif(tmpLen > nrInfoCols)
+                testStudy.subjectInfoColumnDefaults = testStudy.subjectInfoColumnDefaults(1:nrInfoCols);
                 dirty = true;
             end
             %check subject info data types, logical is allowed only for conditional columns
