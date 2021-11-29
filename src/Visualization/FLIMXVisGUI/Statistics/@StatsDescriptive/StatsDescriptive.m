@@ -548,7 +548,10 @@ classdef StatsDescriptive < handle
             %axes
             if(~isempty(this.statHist))
                 bar(this.visHandles.axesBar,this.statCenters,this.statHist);
-                boxplot(this.visHandles.axesBoxplot,this.subjectStats(:,this.statPos),'labels',this.statsDesc(this.statPos));
+                %boxplot(this.visHandles.axesBoxplot,this.subjectStats(:,this.statPos),'labels',this.statsDesc(this.statPos));
+                cla(this.visHandles.axesBoxplot);
+                axis(this.visHandles.axesBoxplot,'on');
+                violinplot(this.subjectStats(:,this.statPos), this.statsDesc(this.statPos),this.visHandles.axesBoxplot, [], 'ShowMean',true,'ViolinAlpha',0.5);
                 if(~isempty(this.normDistTests))
                     tmp = this.normDistTestsLegend;
                     tmp(:,2) = sprintfc('%1.4f',this.normDistTests(:,1));
