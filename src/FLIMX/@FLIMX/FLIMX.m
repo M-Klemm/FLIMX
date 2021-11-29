@@ -554,8 +554,8 @@ classdef FLIMX < handle
             %set current revisions HERE!
             out.config_revision = 276;
             out.client_revision_major = 5;
-            out.client_revision_minor = 7;
-            out.client_revision_fix = 4;
+            out.client_revision_minor = 8;
+            out.client_revision_fix = 0;
             out.core_revision = 503;
             out.results_revision = 256;
             out.measurement_revision = 206;
@@ -650,7 +650,7 @@ classdef FLIMX < handle
             else
                 dStr = '';
             end
-            out = {sprintf('Copyright (c) 2020%s, authors of FLIMX. All rights reserved.',dStr);
+            out = {sprintf('Copyright (c) 2014%s, authors of FLIMX. All rights reserved.',dStr);
                 char(13);
                 'Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:'
                 char(13);
@@ -1184,7 +1184,11 @@ classdef FLIMX < handle
                 'ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT';
                 '(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS';
                 'SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.';
-
+                
+                newline;
+                'This software uses ''Violinplot-Matlab'' by Bastian Bechtold from https://github.com/bastibe/Violinplot-Matlab, which is released under the terms of the BSD 3-clause license.';
+                
+                char(13);                
                 };
         end
 

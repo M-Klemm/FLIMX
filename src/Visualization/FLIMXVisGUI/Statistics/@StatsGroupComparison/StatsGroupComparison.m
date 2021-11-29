@@ -873,11 +873,14 @@ classdef StatsGroupComparison < handle
                     tmp2{6,1} = 'p Value CONTROLS';
                     tmp2{6,2} = num2str(pC,5);
                     tmp2{7,1} = ''; tmp2{7,2} = ''; 
-                    tmp(end+1:end+7,:) = tmp2;
-                    
+                    tmp(end+1:end+7,:) = tmp2;                    
                     set(this.visHandles.tableExtAnalysis,'Data',tmp,'ColumnWidth',{140 700});
                     if(~isempty(this.grpData))
-                        boxplot(this.visHandles.axesExtAnalysis,[this.grpData{1}; this.grpData{2}],[zeros(length(this.grpData{1}),1); ones(length(this.grpData{2}),1)],'labels',{'PATHOLOGIC';'CONTROLS'});                        
+                        %boxplot(this.visHandles.axesExtAnalysis,[this.grpData{1}; this.grpData{2}],[zeros(length(this.grpData{1}),1); ones(length(this.grpData{2}),1)],'labels',{'PATHOLOGIC';'CONTROLS'});                        
+                        cla(this.visHandles.axesExtAnalysis);
+                        vt.PATHOLOGIC = this.grpData{1};
+                        vt.CONTROLS = this.grpData{2};                        
+                        violinplot(vt, [], this.visHandles.axesExtAnalysis, [this.settings.colorPath; this.settings.colorControls], 'ShowMean',true,'ViolinAlpha',0.5);                        
                     end
                 else
                     %Holm-Bonferroni -> roc
