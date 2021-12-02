@@ -114,7 +114,7 @@ classdef Violin < handle
                 return
             end
 
-            hold('on');
+            hold(hax,'on');
 
             % calculate kernel density estimation for the violin
             [density, value] = ksdensity(data, 'bandwidth', args.Bandwidth);
@@ -129,7 +129,27 @@ classdef Violin < handle
             end
 
             width = args.Width/max(density);
-
+            % plot the violin
+            obj.ViolinPlot =  ... % plot color will be overwritten later
+                fill(hax, [pos+density*width pos-density(end:-1:1)*width], ...
+                [value value(end:-1:1)], [1 1 1]); %M.Klemm
+            
+            % plot the mini-boxplot within the violin
+            quartiles = quantile(data, [0.25, 0.5, 0.75]);
+            obj.BoxPlot = ... % plot color will be overwritten later
+                fill(hax, pos+[-1,1,1,-1]*args.BoxWidth, ...
+                [quartiles(1) quartiles(1) quartiles(3) quartiles(3)], ...
+                [0.5 0.5 0.5],'LineWidth',1.5); %M.Klemm
+            
+            IQR = quartiles(3) - quartiles(1);
+            lowhisker = quartiles(1) - 1.5*IQR;
+            lowhisker = max(lowhisker, min(data(data > lowhisker)));
+            hiwhisker = quartiles(3) + 1.5*IQR;
+            hiwhisker = min(hiwhisker, max(data(data < hiwhisker)));
+            if ~isempty(lowhisker) && ~isempty(hiwhisker)
+                obj.WhiskerPlot = plot(hax, [pos pos], [lowhisker hiwhisker],'Linewidth',2); %M.Klemm
+            end
+            
             % plot the data points within the violin area
             if length(density) > 1
                 jitterstrength = interp1(value, density*width, data);
@@ -140,18 +160,6 @@ classdef Violin < handle
             obj.ScatterPlot = ...
                 scatter(hax, pos + jitter.*jitterstrength, data, 'filled'); %M.Klemm
             obj.ScatterPlot.SizeData = 16;
-
-            % plot the violin
-            obj.ViolinPlot =  ... % plot color will be overwritten later
-                fill(hax, [pos+density*width pos-density(end:-1:1)*width], ...
-                     [value value(end:-1:1)], [1 1 1]); %M.Klemm
-
-            % plot the mini-boxplot within the violin
-            quartiles = quantile(data, [0.25, 0.5, 0.75]);         
-            obj.BoxPlot = ... % plot color will be overwritten later
-                fill(hax, pos+[-1,1,1,-1]*args.BoxWidth, ...
-                     [quartiles(1) quartiles(1) quartiles(3) quartiles(3)], ...
-                     [0.5 0.5 0.5],'LineWidth',1.5); %M.Klemm
                  
 %             obj.ScatterPlot = ...
 %                 scatter(pos + jitter.*jitterstrength, data, 'filled');     
@@ -169,15 +177,6 @@ classdef Violin < handle
             obj.MeanPlot = plot(hax, pos+[-1,1].*meanDensityWidth, ...
                                 [meanValue, meanValue],'Color',[0 0 0]); %M.Klemm
             obj.MeanPlot.LineWidth = 2;
-                 
-            IQR = quartiles(3) - quartiles(1);
-            lowhisker = quartiles(1) - 1.5*IQR;
-            lowhisker = max(lowhisker, min(data(data > lowhisker)));
-            hiwhisker = quartiles(3) + 1.5*IQR;
-            hiwhisker = min(hiwhisker, max(data(data < hiwhisker)));
-            if ~isempty(lowhisker) && ~isempty(hiwhisker)
-                obj.WhiskerPlot = plot(hax, [pos pos], [lowhisker hiwhisker],'Linewidth',2); %M.Klemm
-            end
             obj.MedianPlot = scatter(hax, pos, quartiles(2), [], [1 1 1], 'filled'); %M.Klemm
             %obj.MedianPlot.Marker = '*';
             %obj.MedianPlot.SizeData = 100;
@@ -204,10 +203,10 @@ classdef Violin < handle
             obj.DataColor = args.DataColor;
             obj.ShowNotches = args.ShowNotches;
             obj.ShowMean = args.ShowMean;
-            uistack(obj.ViolinPlot,'bottom');
-            uistack(obj.ScatterPlot,'top');
-            uistack(obj.MeanPlot,'top');
-            uistack(obj.MedianPlot,'top');
+%             uistack(obj.ViolinPlot,'bottom');
+%             uistack(obj.ScatterPlot,'top');
+%             uistack(obj.MeanPlot,'top');
+%             uistack(obj.MedianPlot,'top');
         end
 
         function set.EdgeColor(obj, color)

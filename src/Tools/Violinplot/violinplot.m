@@ -97,10 +97,10 @@ function violins = violinplot(data, cats, hax, grpColors, varargin)
             if(~isempty(grpColors))
                 idx = find(strcmp(varargin,'ViolinColor'));
                 if(~isempty(idx))
-                    varargin{idx+1} = grpColors(n,:);                
+                    varargin{idx+1} = grpColors(min(n,size(grpColors,1)),:);                
                 else
                     varargin{end+1} = 'ViolinColor';
-                    varargin{end+1} = grpColors(n,:); 
+                    varargin{end+1} = grpColors(min(n,size(grpColors,1)),:); 
                 end
             end
             violins(n) = Violin(thisData, n, hax, varargin{:});
