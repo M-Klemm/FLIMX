@@ -248,7 +248,6 @@ classdef FDTChannel < FDTreeNode
         
         function out = getColorMap(this)
             %get color map from FLIMXVisGUI
-            %out = this.myParent.FLIMVisGUIObj.dynParams.cm;
             gp = this.FLIMXParamMgrObj.generalParams;            
             try
                 out = eval(sprintf('%s(256)',lower(gp.cmType)));
@@ -403,7 +402,7 @@ classdef FDTChannel < FDTreeNode
             %make and update MVGroup for spectral channel using cMVs                
             cimg = []; lblx = []; lbly = []; cw = []; binNrs = []; colorMVGroup = []; logColorMVGroup = [];
             allMVG = this.getMVGroupNames(0);
-            cMVs = this.getMVGroupTargets(MVGroupID);
+            cMVs = this.getMVGroupTargets(MVGroupID);            
             if(~isempty(cMVs.x) && isempty(cMVs.y) && all(ismember(cMVs.x,allMVG)))
                 %special case: (MIS) MV Group made by merging other MV Groups
                 %this.updateLongProgress(0.01,'Scatter Plot...');
@@ -432,6 +431,7 @@ classdef FDTChannel < FDTreeNode
                 colorMVGroup = zeros(size(cimg,1),size(cimg,2),3);
                 logColorMVGroup = zeros(size(cimg,1),size(cimg,2),3);
                 cimgDummy = zeros(size(cimg));
+                brightnessScale = this.FLIMXParamMgrObj.getParamSection('flimvis_gui').MVGroupBrightnessScaling;
                 for i = 1:length(cMVs.x)
                     [dType, dTypeNr] = FLIMXVisGUI.FLIMItem2TypeAndID(cMVs.x{i});
                     hfd = this.myParent.getFDataObj(str2double(this.name),dType{1},dTypeNr(1),1);
@@ -454,21 +454,24 @@ classdef FDTChannel < FDTreeNode
                         colorMVGroup = imfuse(colors,colorMVGroup,'blend');
                     else
                         colorMVGroup = colors;
+                    end                   
+                    switch brightnessScale
+                        case 'log10'
+                            %create log10 color MVGroup
+                            curImgLog = log10(curImg);
+                            tmp = curImgLog(curImgLog ~= -inf);
+                            tmp = min(tmp(:));
+                            curImgLog(curImgLog == -inf) = tmp;
+                            curImgLog = (curImgLog-tmp)/(max(curImgLog(:))-tmp)*(size(this.getColorMap(),1)-1)+1;
+                            colorsLog = cm(round(reshape(curImgLog,[],1)),:);
+                            colorsLog = reshape(colorsLog,[size(curImgLog) 3]);
+                            logColorMVGroup = logColorMVGroup + colorsLog;
+                            idxLog = repmat(sum(colorsLog,3) ~= 0 & sum(logColorMVGroup,3) ~= 0, [1 1 3]);
+                            logColorMVGroup(idxLog) = logColorMVGroup(idxLog)./2;
+                        otherwise
+                            %linear
+                            logColorMVGroup = colorMVGroup;
                     end
-                    %                 idx = repmat(sum(colors,3) ~= 0 & sum(colorMVGroup,3) ~= 0, [1 1 3]);
-                    %                 colorMVGroup = colorMVGroup + colors;
-                    %                 colorMVGroup(idx) = colorMVGroup(idx)./2;
-                    %create log10 color MVGroup
-                    curImgLog = log10(curImg);
-                    tmp = curImgLog(curImgLog ~= -inf);
-                    tmp = min(tmp(:));
-                    curImgLog(curImgLog == -inf) = tmp;
-                    curImgLog = (curImgLog-tmp)/(max(curImgLog(:))-tmp)*(size(this.getColorMap(),1)-1)+1;
-                    colorsLog = cm(round(reshape(curImgLog,[],1)),:);
-                    colorsLog = reshape(colorsLog,[size(curImgLog) 3]);
-                    logColorMVGroup = logColorMVGroup + colorsLog;
-                    idxLog = repmat(sum(colorsLog,3) ~= 0 & sum(logColorMVGroup,3) ~= 0, [1 1 3]);
-                    logColorMVGroup(idxLog) = logColorMVGroup(idxLog)./2;
                     %this.updateLongProgress(0.5+0.5*i/length(MVGroupTargets),sprintf('Scatter Plot: %0.1f%%',50+50*i/length(MVGroupTargets)));
                 end
                 %set brightness to max
@@ -480,14 +483,20 @@ classdef FDTChannel < FDTreeNode
                 t2(idx) = 1;
                 t(:,:,3) = t2;
                 colorMVGroup = hsv2rgb(t);
-                %log scaling
-                t = rgb2hsv(logColorMVGroup);
-                t2 = t(:,:,3);
-                idx = logical(sum(logColorMVGroup,3));
-                %t2(idx) = t2(idx) + 1-max(t2(:));
-                t2(idx) = 1;
-                t(:,:,3) = t2;
-                logColorMVGroup = hsv2rgb(t);
+                switch brightnessScale
+                    case 'log10'
+                        %log scaling
+                        t = rgb2hsv(logColorMVGroup);
+                        t2 = t(:,:,3);
+                        idx = logical(sum(logColorMVGroup,3));
+                        %t2(idx) = t2(idx) + 1-max(t2(:));
+                        t2(idx) = 1;
+                        t(:,:,3) = t2;
+                        logColorMVGroup = hsv2rgb(t);
+                    otherwise
+                        %linear
+                        logColorMVGroup = colorMVGroup;
+                end
                 %this.updateLongProgress(0,'');
                 return
             end
