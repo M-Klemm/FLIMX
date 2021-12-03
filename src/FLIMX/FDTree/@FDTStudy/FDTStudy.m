@@ -2987,7 +2987,7 @@ classdef FDTStudy < FDTreeNode
                         colBDoubleFlag = true;
                     end
                     for j=1:size(colB,1)
-                        if(isempty(colB{j,1}) || isnan(colB{j,1}))
+                        if(isempty(colB{j,1}) || isnumeric(colB{j,1}) && isnan(colB{j,1}))
                             if(isempty(this.getConditionalColumnDefinition(b)))
                                 %non-logical reference
                                 if(colBDoubleFlag)
@@ -3031,9 +3031,9 @@ classdef FDTStudy < FDTreeNode
                         end
                         %column of characters
                         if(strcmp(ref.relB,'=='))
-                            colA = strcmp(colB,ref.valB);
+                            colB = strcmp(colB,ref.valB);
                         else
-                            colA = ~strcmp(colB,ref.valB);
+                            colB = ~strcmp(colB,ref.valB);
                         end
                     end
                     if(strcmpi(op,'xor'))
