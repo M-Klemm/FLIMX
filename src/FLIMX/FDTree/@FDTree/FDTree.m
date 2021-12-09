@@ -776,6 +776,33 @@ classdef FDTree < FDTreeNode
             end
         end
         
+        function saveAllStudies(this,askUser,varargin)
+            %save changes in all studies to disk
+            studies = this.getAllStudyNames();
+            if(nargin == 1)
+                askUser = false;
+            else
+                askUser = logical(askUser);
+            end
+            for i = 1:length(studies)
+                if(~isempty(studies{i}) && any(this.checkStudyDirtyFlag(studies{i})))
+                    if(askUser)
+                        choice = questdlg(sprintf('Save changes to study ''%s''?',studies{i}),'Save study?','Yes','All','No','Yes');
+                        switch choice
+                            case 'Yes'
+                                this.saveStudy(studies{i});
+                            case 'All'
+                                askUser = false;
+                                this.saveStudy(studies{i});
+                        end
+                    else
+                        %always save changes
+                        this.saveStudy(studies{i});
+                    end
+                end
+            end
+        end
+        
         function out = getWorkingDirectory(this)
             % get root directory of FDTree
             out = this.myDir;

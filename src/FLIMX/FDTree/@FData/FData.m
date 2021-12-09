@@ -1159,10 +1159,17 @@ classdef FData < handle
 
         function data = removeNaNBoundingBox(data)
             %return only valid data, remove surrounding NaNs
-            idx = any(~isnan(data),2);
-            data = data(find(idx,1,'first'):find(idx,1,'last'),:);
-            idx = any(~isnan(data),1);
-            data = data(:,find(idx,1,'first'):find(idx,1,'last'));
+            if(isempty(data))
+                return
+            end
+            try %workaround for rare error of unknown reason
+                idx = any(~isnan(data),2);
+                data = data(find(idx,1,'first'):find(idx,1,'last'),:);
+                idx = any(~isnan(data),1);
+                data = data(:,find(idx,1,'first'):find(idx,1,'last'));
+            catch ME
+                data = [];
+            end
         end
 
         function out = getNonInfMinMax(param,data)

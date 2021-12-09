@@ -578,6 +578,7 @@ classdef paramMgr < handle
             def.flimvis_gui.ETDRS_subfield_values   =   'none';
             def.flimvis_gui.ETDRS_subfield_bg_enable=   1;
             def.flimvis_gui.ETDRS_subfield_bg_color =   [0.3 0.3 0.3 0.33];
+            def.flimvis_gui.MVGroupBrightnessScaling=   'log10';
                                     
             def.statistics.amp1_lb        	=	[1 1];
             def.statistics.amp1_lim       	=	[0 0];
@@ -692,6 +693,7 @@ classdef paramMgr < handle
             def.general.flimParameterView       = 1; %1: simple, 2: expert, 3: all
             def.general.reverseYDir             = 0;
             def.general.maxMemoryCacheSize      = 500000000; %0.5 GB default cache size
+            def.general.autoSaveInterval        = 60; %seconds
         end
 
     end %methods

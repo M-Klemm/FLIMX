@@ -167,9 +167,9 @@ classdef FLIMXFigureExport < FDisplay
                     elseif(strncmp(hfd.dType,'MVGroup',7))
                         if(length(hfd.rawImgZSz) < 2)
                             %MVGroup computation failed
-                            colormap(hAx,FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,1));
+                            colormap(hAx,FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,1,this.visObj.visParams.MVGroupBrightnessScaling));
                         else
-                            colormap(hAx,FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,hfd.rawImgZSz(2)));
+                            colormap(hAx,FDisplay.makeMVGroupColorMap(this.visObj.fdt.getConditionColor(this.visObj.getStudy(this.mySide),this.visObj.getCondition(this.mySide)),256,hfd.rawImgZSz(2),this.visObj.visParams.MVGroupBrightnessScaling));
                         end
                         cbLabels = this.makeColorBarLbls(3);
                     else

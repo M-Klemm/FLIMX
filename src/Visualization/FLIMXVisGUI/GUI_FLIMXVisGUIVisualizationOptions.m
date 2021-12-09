@@ -35,7 +35,7 @@ function varargout = GUI_FLIMXVisGUIVisualizationOptions(varargin)
 % vargin - structure with preferences and defaults
 %output: same as input, but altered according to user input
 
-% Last Modified by GUIDE v2.5 15-Sep-2020 15:19:14
+% Last Modified by GUIDE v2.5 02-Dec-2021 23:55:03
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -151,6 +151,16 @@ else
     set(handles.popupShading3D,'Value',2);
 end
 set(handles.popupFLIMItems,'Value',data.general.flimParameterView);
+switch data.flimvis.MVGroupBrightnessScaling
+    case 'log10'
+        handles.popupMVGroupBrightnessScaling.Value = 2;
+    case 'square'
+        handles.popupMVGroupBrightnessScaling.Value = 3;
+    case 'exponential'
+        handles.popupMVGroupBrightnessScaling.Value = 4;    
+    otherwise
+        handles.popupMVGroupBrightnessScaling.Value = 1;
+end
 idx = find(strcmpi(regexprep(get(handles.popupColormapFLIMItems,'String'), '<html><.*">', ''),data.general.cmType),1);
 if(isempty(idx))
     idx = 10; %jet
@@ -317,8 +327,16 @@ updateGUI(handles,rdh);
 % --- Executes on selection change in popupFLIMItems.
 function popupFLIMItems_Callback(hObject, eventdata, handles)
 rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
-rdh.general.flimParameterView = get(hObject,'Value');       
+rdh.general.flimParameterView = get(hObject,'Value');
 rdh.isDirty(2) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+updateGUI(handles,rdh);
+
+% --- Executes on selection change in popupMVGroupBrightnessScaling.
+function popupMVGroupBrightnessScaling_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+rdh.flimvis.MVGroupBrightnessScaling = hObject.String{hObject.Value};
+rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
 
@@ -782,6 +800,11 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function editROIVicinityWidth_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupMVGroupBrightnessScaling_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
