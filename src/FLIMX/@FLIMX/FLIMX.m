@@ -55,6 +55,7 @@ classdef FLIMX < handle
         importMeasurementGUIObj = [];   %measurement import wizard
         importResultGUIObj = [];        %result import wizard
         matlabPoolTimer = [];           %timer to prevent MATLAB pool shutdown
+        fdtAutoSaveTimer = [];          %timer to automatically save changes in a fixed time interval
         splashScreenGUIObj = [];        %splash screen window for FLIMX startup
     end
 
@@ -125,8 +126,13 @@ classdef FLIMX < handle
                 this.updateSplashScreenLongProgress(0.8,'Looking for compatible GPUs...');
                 this.checkCompatibleGPUs();
             end
+            if(this.paramMgr.generalParams.autoSaveInterval > 0)
+                %setup timer to automatically save changes
+                this.fdtAutoSaveTimer = timer('ExecutionMode','fixedRate','Period',this.paramMgr.generalParams.autoSaveInterval,'TimerFcn',@this.FDTAutoSaveTimerCallback,'Tag','FLIMXFDTAutoSaveTimer');
+                start(this.fdtAutoSaveTimer);
+            end
             this.updateSplashScreenShortProgress(0,'');
-        end
+        end        
 
         function openFLIMXFitGUI(this)
             %open FLIMXFitGUI
@@ -219,30 +225,13 @@ classdef FLIMX < handle
             %delete FLIMX object if all windows are closed or if forceFlag == true
             warning('on','MATLAB:rankDeficientMatrix');
             if(forceFlag || (~this.FLIMFitGUI.isOpenVisWnd() && ~this.FLIMVisGUI.isOpenVisWnd()))
-                %do some cleanup
-                studies = this.fdt.getAllStudyNames();
-                askUser = false;
-                for i = 1:length(studies)
-                    if(~isempty(studies{i}) && any(this.fdt.checkStudyDirtyFlag(studies{i})))
-                        if(askUser)
-                            choice = questdlg(sprintf('Save changes to study ''%s''?',studies{i}),'Save study?','Yes','All','No','Yes');
-                            switch choice
-                                case 'Yes'
-                                    this.fdt.saveStudy(studies{i});
-                                case 'All'
-                                    askUser = false;
-                                    this.fdt.saveStudy(studies{i});
-                                    %                                 case 'No'
-                                    %                                     %load unmodified study and check files
-                                    %                                     this.fdt.loadStudy(studies{i});
-                            end
-                        else
-                            %always save changes
-                            this.fdt.saveStudy(studies{i});
-                        end
-                        %this.fdt.checkStudyFiles(studies{i});
-                    end
+                %do some cleanup and save changes
+                if(~isempty(this.fdtAutoSaveTimer) && this.fdtAutoSaveTimer.isvalid)
+                    stop(this.fdtAutoSaveTimer);
+                    delete(this.fdtAutoSaveTimer);
+                    this.fdtAutoSaveTimer = [];
                 end
+                this.fdt.saveAllStudies(false);
                 if(~isempty(this.sDDMgrObj) && this.sDDMgrObj.anyDirtySDDs())
                     choice = questdlg('Save changes to simulation parameter sets?','Save Parameter Sets?','Yes','No','Cancel','Yes');
                     switch choice
@@ -463,6 +452,13 @@ classdef FLIMX < handle
         end
 
     end %methods
+    
+    methods(Access = protected)        
+        function FDTAutoSaveTimerCallback(this,varargin)
+            %FDT auto save time callback
+            this.fdt.saveAllStudies(false);
+        end
+    end
 
     methods(Static)
         function out = getWorkingDir()
@@ -552,10 +548,10 @@ classdef FLIMX < handle
         function out = getVersionInfo()
             %get version numbers of FLIMX
             %set current revisions HERE!
-            out.config_revision = 277;
+            out.config_revision = 278;
             out.client_revision_major = 5;
-            out.client_revision_minor = 8;
-            out.client_revision_fix = 2;
+            out.client_revision_minor = 9;
+            out.client_revision_fix = 0;
             out.core_revision = 503;
             out.results_revision = 256;
             out.measurement_revision = 206;

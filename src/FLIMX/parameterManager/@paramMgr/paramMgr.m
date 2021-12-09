@@ -693,6 +693,7 @@ classdef paramMgr < handle
             def.general.flimParameterView       = 1; %1: simple, 2: expert, 3: all
             def.general.reverseYDir             = 0;
             def.general.maxMemoryCacheSize      = 500000000; %0.5 GB default cache size
+            def.general.autoSaveInterval        = 60; %seconds
         end
 
     end %methods
