@@ -239,7 +239,12 @@ classdef measurementReadRawData < measurementFile
                 %try to load this channel
                 this.updateProgress(0,'Loading SDT File');
                 if(this.isSDTFile)
-                    this.rawFluoData{channel} = this.SDTIOObj.ReadData(channel);
+                    try
+                        this.rawFluoData{channel} = this.SDTIOObj.ReadData(channel);
+                    catch ME
+                        %todo: handle error
+                        return
+                    end
                     this.updateProgress(0.5,'Loading SDT File');
                     this.rawFluoDataFlat(channel) = cell(1,1);
                     this.rawMaskData(channel) = cell(1,1);
