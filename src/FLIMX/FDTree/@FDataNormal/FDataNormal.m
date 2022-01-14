@@ -67,7 +67,7 @@ classdef FDataNormal < FData
                     this.crossSectionYVal = max(min(csDef(2),this.rawImgYSz(2)),1);
                     this.crossSectionYInv = logical(csDef(3));
             end
-            end
+        end
         
         %% output functions                        
         function out = getCrossSectionX(this)

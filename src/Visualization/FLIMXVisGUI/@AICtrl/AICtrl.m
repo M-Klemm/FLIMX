@@ -374,6 +374,9 @@ classdef AICtrl < handle
             end
             str = this.opA.String;
             aiParams.opA = str{this.opA.Value};
+            if(strcmp(aiParams.opA,'srcPixel'))
+                aiParams.chB = aiParams.chA;
+            end
             if(this.opA.Value >= 16)
                 %dilate, erode, open, close
                 this.targetSelB.Value = 3;

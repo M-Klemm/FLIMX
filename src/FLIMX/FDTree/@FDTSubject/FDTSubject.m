@@ -1062,7 +1062,7 @@ classdef FDTSubject < fluoSubject
                         ROISubtype = 0;
                     end
                     [dTypeA, dTypeANr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
-                    mvg_hfd = this.getFDataObj(chBList(chIdx),dTypeA{1},dTypeANr(1),1);
+                    mvg_hfd = this.getFDataObj(chAList(chIdx),dTypeA{1},dTypeANr(1),1);
                     if(isempty(mvg_hfd))
                         return
                     end

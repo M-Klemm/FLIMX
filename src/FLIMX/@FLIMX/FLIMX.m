@@ -44,7 +44,7 @@ classdef FLIMX < handle
         FLIMFitObj = [];    %approximation object
         sDDMgrObj = [];     %only temporary: manage synthetic datasets
         batchJobMgrObj = [];%batch job manager
-        hashEngineObj = []; %MD5 hash engine        
+        hashEngineObj = []; %MD5 hash engine
 
         %GUIs
         FLIMFitGUIObj = [];             %visualization of approximation
@@ -132,7 +132,7 @@ classdef FLIMX < handle
                 start(this.fdtAutoSaveTimer);
             end
             this.updateSplashScreenShortProgress(0,'');
-        end        
+        end
 
         function openFLIMXFitGUI(this)
             %open FLIMXFitGUI
@@ -182,7 +182,7 @@ classdef FLIMX < handle
                 start(this.matlabPoolTimer);
             end
         end
-        
+
         function checkCompatibleGPUs(this)
             %look for GPUs in the current system and store the IDs of compatible GPUs
             warning('off','parallel:gpu:DeviceCapability');
@@ -452,8 +452,8 @@ classdef FLIMX < handle
         end
 
     end %methods
-    
-    methods(Access = protected)        
+
+    methods(Access = protected)
         function FDTAutoSaveTimerCallback(this,varargin)
             %FDT auto save time callback
             this.fdt.saveAllStudies(false);
@@ -500,7 +500,7 @@ classdef FLIMX < handle
                 for i = length(cmPaths):-1:1
                     if(~isfile(cmPaths{i}))
                         %no color map icon found -> generate it
-                        map = shiftdim(FLIMX.getColormap(cmNames{i}),-1); 
+                        map = shiftdim(FLIMX.getColormap(cmNames{i}),-1);
                         if(~isempty(map) && any(map(:)))
                             map = repmat(map,7,1,1);
                             imwrite(map,cmPaths{i});
@@ -515,7 +515,7 @@ classdef FLIMX < handle
             mapNames = cmNames;
             iconPaths = cmPaths;
         end
-        
+
         function out = getColormap(mapName)
             %return a color map for use in FLIMX
             try
@@ -551,8 +551,7 @@ classdef FLIMX < handle
             out.config_revision = 278;
             out.client_revision_major = 5;
             out.client_revision_minor = 9;
-            out.client_revision_fix = 0;
-            out.core_revision = 503;
+            out.client_revision_fix = 0;            out.core_revision = 503;
             out.results_revision = 256;
             out.measurement_revision = 206;
         end
@@ -1151,7 +1150,7 @@ classdef FLIMX < handle
                 'LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,';
                 'OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE';
                 'SOFTWARE.';
-                
+
                 newline;
                 'This software uses ''MATLAB Color Tools'' by Steve Eddins from https://github.com/mathworks/matlab-color-tools, which is covered by the following license:';
                 'Copyright (c) 2018-2019, The MathWorks, Inc.';
@@ -1180,11 +1179,11 @@ classdef FLIMX < handle
                 'ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT';
                 '(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS';
                 'SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.';
-                
+
                 newline;
                 'This software uses ''Violinplot-Matlab'' by Bastian Bechtold from https://github.com/bastibe/Violinplot-Matlab, which is released under the terms of the BSD 3-clause license.';
-                
-                char(13);                
+
+                char(13);
                 };
         end
 
