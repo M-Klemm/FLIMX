@@ -204,7 +204,7 @@ classdef FDTSubject < fluoSubject
                 %save only result, we can assume we already have the measurement
                 this.myResult.saveMatFile2Disk(chList(i)); %force reload of result with new items
                 this.removeResultChannelFromMemory(chList(i));
-                this.myParent.myStudyInfoSet.setAllFLIMItems(this.name,chList(i),removeNonVisItems(this.getResultNames(chList(i),false),3));
+                this.myParent.setAllFLIMItems(this.name,chList(i),removeNonVisItems(this.getResultNames(chList(i),false),3));
             end
             this.initMode = false;
             %clear merged objects?!
