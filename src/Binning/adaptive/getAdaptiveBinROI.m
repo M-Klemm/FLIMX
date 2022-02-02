@@ -122,7 +122,7 @@ parfor px = 1:nPixel
         binLevelStart = int32(find(binFactor-1 == binRhoU,1,'first'));
         binLevelEnd = int32(find(binFactor == binRhoU,1,'first'));
         if(isempty(binLevelStart))
-            binLevelStart = int32(0);
+            binLevelStart = int32(1);
         end
         if(isempty(binLevelEnd))
             binLevelStart = int32(length(binRhoU));
@@ -134,7 +134,7 @@ parfor px = 1:nPixel
         val = sum(tile(allMasks(:,binLevel)),'native');
         roiFlat(px) = val;%pxYcoord(px),pxXcoord(px)
         binLevels(px) = binLevel;
-        if(val >= targetPhotons)            
+        if(val >= targetPhotons)
             break
         end
     end
