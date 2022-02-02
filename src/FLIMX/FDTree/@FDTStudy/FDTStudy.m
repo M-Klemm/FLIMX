@@ -2724,7 +2724,7 @@ classdef FDTStudy < FDTreeNode
                 case 'subjectInfoConditionalColumnNames'
                     ref = this.getSubjectInfoConditionalColumnDefinitions();
                     idx = ~(cellfun('isempty',ref));
-                    out = this.subjectInfoColumnNames(idx,1);
+                    out = sort(this.subjectInfoColumnNames(idx,1));
                 case 'subjectInfoRegularColumnNames'
                     ref = this.getSubjectInfoConditionalColumnDefinitions();
                     idx = cellfun('isempty',ref);
