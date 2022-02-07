@@ -555,88 +555,51 @@ classdef FDTStudy < FDTreeNode
             if(isempty(subject))
                 return
             end
-                sizeFlag = subject.getDefaultSizeFlag(dType);
-                %set the ROI vector for subject
-                subIdx = this.subName2idx(subjectID);
-                if(isempty(subIdx))
-                    %subject not in study or ROIVec size is wrong
-                    return
-                end                
-                if(isempty(ROICoord))
-                    ROICoord = zeros(2,3,'uint16');
-                elseif(size(ROICoord,1) == 2 && size(ROICoord,2) == 1)
-                    ROICoord(:,2:3) = zeros(2,2,'like',ROICoord);
+            
+            %set the ROI vector for subject
+            subIdx = this.subName2idx(subjectID);
+            if(isempty(subIdx))
+                %subject not in study or ROIVec size is wrong
+                return
+            end
+            if(isempty(ROICoord))
+                ROICoord = zeros(2,3,'uint16');
+            elseif(size(ROICoord,1) == 2 && size(ROICoord,2) == 1)
+                ROICoord(:,2:3) = zeros(2,2,'like',ROICoord);
+            end
+            if(isempty(ROIType))
+                %set all ROI coordinates at once
+                if(size(ROICoord,1) >= 7 && size(ROICoord,2) >= 3 && size(ROICoord,3) >= 2)
+                    this.resultROICoordinates(subIdx) = {int16(ROICoord)};
                 end
-                if(isempty(ROIType))
-                    %set all ROI coordinates at once
-                    if(size(ROICoord,1) >= 7 && size(ROICoord,2) >= 3 && size(ROICoord,3) >= 2)
-                        roiTmp = int16(ROICoord);
-                    end
+                return
+            end
+            sizeFlag = subject.getDefaultSizeFlag(dType);
+            if(sizeFlag)
+                roiTmp = this.resultROICoordinates{subIdx};
+            else
+                subTmp = this.nonDefaultSizeROICoordinates{subIdx};
+                if(isempty(subTmp))
+                    dTIdx = [];
                 else
-                    if(sizeFlag)
-                        roiTmp = this.resultROICoordinates{subIdx};
-                    else
-                        subTmp = this.nonDefaultSizeROICoordinates{subIdx};
-                        if(isempty(subTmp))
-                            dTIdx = [];
-                        else
-                            dTIdx = find(strcmp(subTmp(:,1),dType),1);
-                        end
-                        if(isempty(dTIdx))
-                            roiTmp = [];
-                        else
-                            roiTmp = subTmp{dTIdx,2};
-                        end
-                    end
-                    if(isempty(roiTmp) || size(roiTmp,1) < 7 || size(roiTmp,2) < 3)
-                        roiTmp = ROICtrl.getDefaultROIStruct();
-                    end
-                    ROIType = int16(ROIType);
-                    idx = find(abs(roiTmp(:,1,1) - ROIType) < eps,1,'first');
-                    if(isempty(idx))
-                        %new ROI
-                        this.addResultROIType(ROIType);
-                        if(sizeFlag)
-                            roiTmp = this.resultROICoordinates{subIdx};
-                        else
-                            subTmp = this.nonDefaultSizeROICoordinates{subIdx};
-                            if(isempty(subTmp))
-                                dTIdx = [];
-                            else
-                                dTIdx = find(strcmp(subTmp(:,1),dType),1);
-                            end
-                            if(isempty(dTIdx))
-                                roiTmp = [];
-                            else
-                                roiTmp = subTmp{dTIdx,2};
-                            end
-                        end
-                        idx = find(abs(roiTmp(:,1,1) - ROIType) < eps,1,'first');
-                    end
-                    if(ROIType >= 1000 && ROIType < 4000 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
-                        %ETDRS, rectangle or cricle
-                        roiTmp(idx,1:3,1:2) = int16(ROICoord');
-                    elseif(ROIType > 4000 && ROIType < 5000 && size(ROICoord,1) == 2)
-                        %polygons
-                        if(size(ROICoord,2) > size(roiTmp,2))
-                            tmpNew = zeros(size(roiTmp,1),size(ROICoord,2),2,'int16');
-                            tmpNew(:,1:size(roiTmp,2),:) = roiTmp;
-                            tmpNew(idx,1:size(ROICoord,2),:) = int16(ROICoord');
-                            roiTmp = tmpNew;
-                        else
-                            roiTmp(idx,1:size(ROICoord,2),1:2) = int16(ROICoord');
-                            roiTmp(idx,max(4,size(ROICoord,2)+1):end,:) = 0;
-                        end
-                        %polygon could have shrinked, remove trailing zeros
-                        idxZeros = squeeze(any(any(roiTmp,1),3));
-                        idxZeros(1:3) = true;
-                        roiTmp(:,find(idxZeros,1,'last')+1:end,:) = [];
-                    end
-                    %store ROIType just to be sure it is correct
-                    roiTmp(idx,1,1) = ROIType;
+                    dTIdx = find(strcmp(subTmp(:,1),dType),1);
                 end
+                if(isempty(dTIdx))
+                    roiTmp = [];
+                else
+                    roiTmp = subTmp{dTIdx,2};
+                end
+            end
+            if(isempty(roiTmp) || size(roiTmp,1) < 7 || size(roiTmp,2) < 3)
+                roiTmp = ROICtrl.getDefaultROIStruct();
+            end
+            ROIType = int16(ROIType);
+            idx = find(abs(roiTmp(:,1,1) - ROIType) < eps,1,'first');
+            if(isempty(idx))
+                %new ROI
+                this.addResultROIType(ROIType);
                 if(sizeFlag)
-                    this.resultROICoordinates(subIdx) = {roiTmp};
+                    roiTmp = this.resultROICoordinates{subIdx};
                 else
                     subTmp = this.nonDefaultSizeROICoordinates{subIdx};
                     if(isempty(subTmp))
@@ -645,25 +608,58 @@ classdef FDTStudy < FDTreeNode
                         dTIdx = find(strcmp(subTmp(:,1),dType),1);
                     end
                     if(isempty(dTIdx))
-                        %dType not found -> add it
-                        subTmp{end+1,1} = dType;
-                        dTIdx = size(subTmp,1);
+                        roiTmp = [];
+                    else
+                        roiTmp = subTmp{dTIdx,2};
                     end
-                    subTmp(dTIdx,2) = {roiTmp};
-                    this.nonDefaultSizeROICoordinates(subIdx) = {subTmp};
-                end                
-                this.setDirty(true);
-%             else
-                %this FLIM item (chunk) has a different size than the subject
-                %subject.setResultROICoordinates(dType,ROIType,ROICoord);
-
-%             end
+                end
+                idx = find(abs(roiTmp(:,1,1) - ROIType) < eps,1,'first');
+            end
+            if(ROIType >= 1000 && ROIType < 4000 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
+                %ETDRS, rectangle or cricle
+                roiTmp(idx,1:3,1:2) = int16(ROICoord');
+            elseif(ROIType > 4000 && ROIType < 5000 && size(ROICoord,1) == 2)
+                %polygons
+                if(size(ROICoord,2) > size(roiTmp,2))
+                    tmpNew = zeros(size(roiTmp,1),size(ROICoord,2),2,'int16');
+                    tmpNew(:,1:size(roiTmp,2),:) = roiTmp;
+                    tmpNew(idx,1:size(ROICoord,2),:) = int16(ROICoord');
+                    roiTmp = tmpNew;
+                else
+                    roiTmp(idx,1:size(ROICoord,2),1:2) = int16(ROICoord');
+                    roiTmp(idx,max(4,size(ROICoord,2)+1):end,:) = 0;
+                end
+                %polygon could have shrinked, remove trailing zeros
+                idxZeros = squeeze(any(any(roiTmp,1),3));
+                idxZeros(1:3) = true;
+                roiTmp(:,find(idxZeros,1,'last')+1:end,:) = [];
+            end
+            %store ROIType just to be sure it is correct
+            roiTmp(idx,1,1) = ROIType;
+            if(sizeFlag)
+                this.resultROICoordinates(subIdx) = {roiTmp};
+            else
+                subTmp = this.nonDefaultSizeROICoordinates{subIdx};
+                if(isempty(subTmp))
+                    dTIdx = [];
+                else
+                    dTIdx = find(strcmp(subTmp(:,1),dType),1);
+                end
+                if(isempty(dTIdx))
+                    %dType not found -> add it
+                    subTmp{end+1,1} = dType;
+                    dTIdx = size(subTmp,1);
+                end
+                subTmp(dTIdx,2) = {roiTmp};
+                this.nonDefaultSizeROICoordinates(subIdx) = {subTmp};
+            end
+            this.setDirty(true);
             this.clearArithmeticRIs(); %todo: check if an AI uses an ROI
             this.clearObjMerged();
             this.clearMVGroups(subjectID,dType,dTypeNr);
             this.clearAllMVGroupIs();
         end
-        
+
         function removeResultROIType(this,ROIType)
             %remove ROIType from all subjects
             if(~this.isLoaded)
