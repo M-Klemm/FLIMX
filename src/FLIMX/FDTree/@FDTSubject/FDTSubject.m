@@ -972,7 +972,7 @@ classdef FDTSubject < fluoSubject
         function out = getDefaultSizeFlag(this,dType)
             %return true, if FLIM item (of dType) has the subject's default size
             out = false;
-            for ch = 1:this.nrChildren
+            for ch = this.nonEmptyResultChannelList
                 if(~this.channelResultIsLoaded(ch))
                     this.loadChannel(ch,false);
                 end
