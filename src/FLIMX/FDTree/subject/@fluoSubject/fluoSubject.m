@@ -1581,7 +1581,7 @@ classdef fluoSubject < FDTreeNode
                 %save only result, we can assume we already have the measurement
                 %todo: make interface
                 this.myResult.saveMatFile2Disk(ch);
-                this.myParent.myStudyInfoSet.setAllFLIMItems(subjectID,ch,removeNonVisItems(this.getResultNames(ch,false),3));
+                this.myParent.setAllFLIMItems(subjectID,ch,removeNonVisItems(this.getResultNames(ch,false),3));
             elseif(strcmp(flag,'measurement'))
                 %todo: make interface
                 this.myMeasurement.saveMatFile2Disk(ch);
