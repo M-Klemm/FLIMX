@@ -519,6 +519,7 @@ classdef StatsMVGroupMgr < handle
                     this.visObj.fdt.setStudyMVGroupTargets(studies{i},this.curMVGroupName,cMVs);
                     %this.visObj.fdt.clearAllRIs(studies{i},this.curMVGroupName);
                     this.visObj.fdt.clearAllMVGroupIs();
+                    this.visObj.fdt.clearArithmeticRIs(studies{i}); %arithmetic images may depend on MV groups; todo: clear only affected AIs
                 end
             end
             this.visObj.setupGUI();

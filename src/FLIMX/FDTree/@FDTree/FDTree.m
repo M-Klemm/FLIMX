@@ -417,13 +417,13 @@ classdef FDTree < FDTreeNode
             this.myConditionsMerged.clearAllRIs('');
         end
         
-%         function clearArithmeticRIs(this,studyID)
-%             %clear raw images of arithmetic images in a study
-%             study = this.getChild(studyID);
-%             if(~isempty(study))
-%                 study.clearArithmeticRIs();
-%             end
-%         end
+        function clearArithmeticRIs(this,studyID)
+            %clear raw images of arithmetic images in a study
+            study = this.getChild(studyID);
+            if(~isempty(study))
+                study.clearArithmeticRIs();
+            end
+        end
         
         function clearMVGroups(this,studyID,subjectID,dType,dTypeNr)
             %clear MVGroups if ROI changes
