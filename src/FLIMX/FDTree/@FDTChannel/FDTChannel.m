@@ -399,7 +399,8 @@ classdef FDTChannel < FDTreeNode
         
         %% compute functions                
         function [cimg, lblx, lbly, cw, binNrs, colorMVGroup, logColorMVGroup] = makeMVGroupObj(this,MVGroupID)
-            %make and update MVGroup for spectral channel using cMVs                
+            %make and update MVGroup for spectral channel using cMVs
+            %binNrs are the indices of the pixels (in relation to the full image!)
             cimg = []; lblx = []; lbly = []; cw = []; binNrs = []; colorMVGroup = []; logColorMVGroup = [];
             allMVG = this.getMVGroupNames(0);
             cMVs = this.getMVGroupTargets(MVGroupID);            
@@ -531,8 +532,12 @@ classdef FDTChannel < FDTreeNode
             if(isempty(hfd))
                 return
             end
-            ci = hfd.getROIImage(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
-            temp(:,1) = ci(:); %ci(~isnan(ci(:)));
+            [ci, ciIdx] = hfd.getROIImage(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
+            fi = hfd.getFullImage();
+            fiMask = false(size(fi));
+            fiMask(ciIdx) = true;
+            fi(~fiMask) = NaN;
+            temp(:,1) = fi(:); %ci(~isnan(ci(:)));
             CImaxs(1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
             CImins(1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
             %get reference classwidth
@@ -550,8 +555,12 @@ classdef FDTChannel < FDTreeNode
                 if(isempty(hfd))
                     return
                 end
-                ci = hfd.getROIImage(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
-                temp(:,yTargetNr+1) = ci(:); %ci(~isnan(ci(:)));
+                [ci, ciIdx] = hfd.getROIImage(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
+                fi = hfd.getFullImage();
+                fiMask = false(size(fi));
+                fiMask(ciIdx) = true;
+                fi(~fiMask) = NaN;
+                temp(:,yTargetNr+1) = fi(:); %ci(~isnan(ci(:)));
                 CImaxs(yTargetNr+1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
                 CImins(yTargetNr+1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);                
                 %for j = 1:yTargets                    
@@ -566,9 +575,9 @@ classdef FDTChannel < FDTreeNode
                     [~,binNrs(:,1+yTargetNr)] = histc(temp(:,yTargetNr+1),yEdges,1);
                     %binNrs(:,1+yTargetNr) = min(binNrs(:,1+yTargetNr),length(yEdges));
                     %remove zeros caused by NaN pixels
-                    binNrs = binNrs(all(binNrs>0,2),:);
+                    binNrs2 = binNrs(all(binNrs>0,2),:);
                     % Combine the two vectors of 1D bin counts into a grid of 2D bin counts.
-                    ctemp = accumarray([binNrs(:,yTargetNr+1) binNrs(:,1)],1,[length(yEdges) length(xEdges)]);
+                    ctemp = accumarray([binNrs2(:,yTargetNr+1) binNrs2(:,1)],1,[length(yEdges) length(xEdges)]);
                     %ctemp = hist3([reshape(temp(j+1,:,:),1,[])' ref],'Edges',{yEdges xEdges});
                     [cimg, lblx, lbly] = mergeScatterPlotData(cimg,lblx,lbly,ctemp,xEdges,yEdges,cw);
                 %end
