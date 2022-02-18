@@ -1063,19 +1063,36 @@ classdef FDTSubject < fluoSubject
                     end
                     [dTypeA, dTypeANr] = FLIMXVisGUI.FLIMItem2TypeAndID(aiParams.FLIMItemA);
                     mvg_hfd = this.getFDataObj(chAList(chIdx),dTypeA{1},dTypeANr(1),1);
+                    data = false([this.YSz,this.XSz]);
                     if(isempty(mvg_hfd))
                         return
                     end
                     sd = mvg_hfd.getSupplementalData();
                     %get ROI in mv group
-                    [mvg_roi,roi_idx] = FData.getImgSeg(mvg_hfd.getFullImage(),this.getROICoordinates(dTypeA{1},ROIType),ROIType,ROISubtype,aiParams.ROIVicinityB,[],this.getVicinityInfo());                    
-                    data = [];
+                    roi = mvg_hfd.getROICoordinates(ROIType);
+%                     if(~isempty(ROIType) && strncmp(dTypeA{1},'MVGroup_',8) && ROIType == 2003)
+%                         %quantilRect
+%                         %force auto ROI coordinates
+%                         rp = this.FLIMXParamMgrObj.getParamSection('region_of_interest');
+%                         fd = this.getFDataObj(chAList(chIdx),dTypeA{1},dTypeANr(1),1);
+%                         tmp = fd.getFullImage();
+%                         xH = cumsum(sum(tmp,1));
+%                         yH = cumsum(sum(tmp,2));
+%                         roi(2,1) = find(xH >= xH(end)*rp.rectangle3Quantil(1)/100,1,'first');
+%                         roi(2,2) = find(xH >= xH(end)*rp.rectangle3Quantil(2)/100,1,'first');
+%                         roi(1,1) = find(yH >= yH(end)*rp.rectangle3Quantil(1)/100,1,'first');
+%                         roi(1,2) = find(yH >= yH(end)*rp.rectangle3Quantil(2)/100,1,'first');
+%                     else
+%                         roi = this.getROICoordinates(dTypeA{1},ROIType);
+%                     end
+                    [mvg_roi,roi_idx] = FData.getImgSeg(mvg_hfd.getFullImage(),roi,ROIType,ROISubtype,aiParams.ROIVicinityB,[],this.getVicinityInfo(),true);
+                    mvg_roi = mvg_roi(~isnan(mvg_roi));
+                    %data = [];
                     if(~isempty(roi_idx) && numel(mvg_roi) == length(roi_idx))
-                        %remove NaN and zeros from the ROI
-                        mvg_roi = mvg_roi(~isnan(mvg_roi));
+                        %remove NaN and zeros from the ROI                        
                         roi_idx(~mvg_roi) = [];
                         [row,col] = ind2sub([mvg_hfd.rawImgYSz(2),mvg_hfd.rawImgXSz(2)],roi_idx);
-                        data = false([this.YSz,this.XSz]);
+                        %data = false([this.YSz,this.XSz]);
                         for mi = 1:length(roi_idx)
                             idx = sd(:,1) == col(mi) & sd(:,2) == row(mi);
                             if(~isempty(idx))

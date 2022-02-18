@@ -554,8 +554,7 @@ classdef FDTStudy < FDTreeNode
             subject = this.getChild(subjectID);
             if(isempty(subject))
                 return
-            end
-            
+            end            
             %set the ROI vector for subject
             subIdx = this.subName2idx(subjectID);
             if(isempty(subIdx))
@@ -572,6 +571,11 @@ classdef FDTStudy < FDTreeNode
                 if(size(ROICoord,1) >= 7 && size(ROICoord,2) >= 3 && size(ROICoord,3) >= 2)
                     this.resultROICoordinates(subIdx) = {int16(ROICoord)};
                 end
+                return
+            end
+            if(~isempty(ROIType) && strncmp(dType,'MVGroup_',8) && ROIType == 2003)
+                %quantilRect
+                %don't save rectangle #3
                 return
             end
             sizeFlag = subject.getDefaultSizeFlag(dType);
@@ -2066,7 +2070,7 @@ classdef FDTStudy < FDTreeNode
                 if(isempty(ROICoordinates))
                     ROICoordinates = [hg{i}.rawImgYSz; hg{i}.rawImgXSz];
                 end
-                tmp = hg{i}.getImgSeg(hg{i}.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,hg{i}.getFileInfoStruct(),this.getVicinityInfo());
+                tmp = hg{i}.getImgSeg(hg{i}.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,hg{i}.getFileInfoStruct(),this.getVicinityInfo(),strncmp(hg{i}.dType,'MVGroup_',8));
                 switch dataProc
                     case 'mean'
                         data(i) = mean(tmp(~isinf(tmp)),'omitnan'); %tmp(~isnan(tmp) & ~isinf(tmp))

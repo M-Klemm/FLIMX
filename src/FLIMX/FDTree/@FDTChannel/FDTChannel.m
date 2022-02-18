@@ -541,7 +541,7 @@ classdef FDTChannel < FDTreeNode
             CImaxs(1) = hfd.getCImax(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
             CImins(1) = hfd.getCImin(ROICoordinates,cMVs.ROI.ROIType,cMVs.ROI.ROISubType,cMVs.ROI.ROIVicinity);
             %get reference classwidth
-            cw = getHistParams(this.getStatsParams(),double(this.getMyIDInParent()),dType{1},dTypeNr(1));            
+            cw = getHistParams(this.getStatsParams(),double(this.getMyIDInParent()),dType{1},dTypeNr(1));
             %define reference (i.e. x axis)
             %ref = reshape(temp(:,1),1,[])';
             xEdges = floor(CImins(1)/cw)*cw:cw:ceil(CImaxs(1)/cw)*cw;

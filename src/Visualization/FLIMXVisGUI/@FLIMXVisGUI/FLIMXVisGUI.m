@@ -530,6 +530,7 @@ classdef FLIMXVisGUI < handle
                 this.updateGUI([]);
             end  
         end
+
         function menuStatOpt_Callback(this,hObject,eventdata)
             %Open GUI to configure FLIMXVis statistics options
             this.FLIMXObj.paramMgr.readConfig();
@@ -546,6 +547,16 @@ classdef FLIMXVisGUI < handle
                 %instead?!
             end 
         end
+
+        function menuROIOpt_Callback(this,hObject,eventdata)
+            %open ROI options GUI
+            if(isempty(this.objHandles.ROIOpt) || ~isprop(this.objHandles.ROIOpt,'FLIMXROIOptionsUIFigure') || ~isgraphics(this.objHandles.ROIOpt.FLIMXROIOptionsUIFigure))
+                this.objHandles.ROIOpt = GUI_ROI_Options(this);
+            else
+                this.objHandles.ROIOpt.myStartupFcn(this);
+            end
+        end
+
         function menuVisOpt_Callback(this,hObject,eventdata)
             %Open GUI to configure FLIMXVis visualization options
             defaults.flimvis = this.visParams;
@@ -2323,6 +2334,7 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.FLIMXVisGUIFigure,'CloseRequestFcn',@this.menuExit_Callback);
             set(this.visHandles.menuFilterOptions,'Callback',@this.menuFiltOpt_Callback);
             set(this.visHandles.menuStatisticsOptions,'Callback',@this.menuStatOpt_Callback);
+            set(this.visHandles.menuROIOptions,'Callback',@this.menuROIOpt_Callback);
             set(this.visHandles.menuVisualzationOptions,'Callback',@this.menuVisOpt_Callback);
             set(this.visHandles.menuExportOptions,'Callback',@this.menuExpOpt_Callback);
             set(this.visHandles.menuDescriptive,'Callback',@this.menuDescriptive_Callback);
@@ -2402,6 +2414,7 @@ classdef FLIMXVisGUI < handle
             this.objHandles.lZScale.updateGUI([]);
             this.objHandles.rZScale.updateGUI([]);
             this.objHandles.ROIGM = []; %ROI group manager
+            this.objHandles.ROIOpt = []; %ROI options
             set(this.visHandles.FLIMXVisGUIFigure,'WindowButtonMotionFcn',@this.GUI_mouseMotion_Callback);
             %enable mouse button callbacks although 3d rotation is enabled
             %thanks to http://undocumentedmatlab.com/blog/enabling-user-callbacks-during-zoom-pan

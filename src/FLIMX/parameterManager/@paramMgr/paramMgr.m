@@ -198,7 +198,7 @@ classdef paramMgr < handle
             this.setParamSection('region_of_interest',val);
         end
         function def = getDefaults(this)
-            %get default FluoDecayFit parameters
+            %get default FLIMX parameters
             def.about.config_revision = this.about.config_revision;
             def.about.client_revision_major = this.about.client_revision_major;
             def.about.client_revision_minor = this.about.client_revision_minor;
@@ -677,6 +677,7 @@ classdef paramMgr < handle
 
             def.region_of_interest.vicinityDistance     =   1;
             def.region_of_interest.vicinityDiameter     =   3;
+            def.region_of_interest.rectangle3Quantil    =   [2 98];
 
             def.general.openFitGUIonStartup     = 1;
             def.general.openVisGUIonStartup     = 1;

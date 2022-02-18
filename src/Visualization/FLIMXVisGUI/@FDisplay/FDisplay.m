@@ -321,7 +321,15 @@ classdef FDisplay < handle
                 fileInfo.pixelResolution = this.pixelResolution;
                 fileInfo.position = this.measurementPosition;
                 mask = zeros(size(this.mainExportXls),'single');
-                [~,idx] = FData.getImgSeg(zeros(size(this.mainExportXls)),[op cp],ROIType,this.ROISubType,this.ROIVicinity,fileInfo,this.visObj.fdt.getVicinityInfo());
+                outsideFlag = false;
+                if(ROIType > 2000 && ROIType < 3000)
+                    hfd = this.gethfd();
+                    if(~isempty(hfd{1}))
+                        hfd = hfd{1};
+                        outsideFlag = strncmp(hfd.dType,'MVGroup_',8);
+                    end
+                end
+                [~,idx] = FData.getImgSeg(zeros(size(this.mainExportXls)),[op cp],ROIType,this.ROISubType,this.ROIVicinity,fileInfo,this.visObj.fdt.getVicinityInfo(),outsideFlag);
                 if(~isempty(idx))
                     mask(idx) = 1;
                     mask = repmat(mask,1,1,4);

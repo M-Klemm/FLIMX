@@ -362,7 +362,20 @@ classdef FData < handle
 
         function out = getROICoordinates(this,ROIType)
             %get coordinates of ROI
-            out = this.myParent.getROICoordinates(ROIType);
+            if(~isempty(ROIType) && strncmp(this.dType,'MVGroup_',8) && ROIType == 2003)
+                %quantilRect
+                %force auto ROI coordinates
+                rp = this.FLIMXParamMgrObj.getParamSection('region_of_interest');
+                tmp = this.getFullImage();
+                xH = cumsum(sum(tmp,1));
+                yH = cumsum(sum(tmp,2));
+                out(2,1) = find(xH >= xH(end)*rp.rectangle3Quantil(1)/100,1,'first');
+                out(2,2) = find(xH >= xH(end)*rp.rectangle3Quantil(2)/100,1,'first');
+                out(1,1) = find(yH >= yH(end)*rp.rectangle3Quantil(1)/100,1,'first');
+                out(1,2) = find(yH >= yH(end)*rp.rectangle3Quantil(2)/100,1,'first');
+            else
+                out = this.myParent.getROICoordinates(ROIType);
+            end
         end
 
         function out = getROIType(this)
@@ -743,7 +756,7 @@ classdef FData < handle
             ri = this.getFullImage();
             out = zeros(9,1);
             for i = 1:9
-                ci = this.getImgSeg(ri,ROICoord,ROIType,i,0,this.getFileInfoStruct(),this.getVicinityInfo());
+                ci = this.getImgSeg(ri,ROICoord,ROIType,i,0,this.getFileInfoStruct(),this.getVicinityInfo(),strncmp(this.dType,'MVGroup_',8));
                 ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
                 cim = FData.getNonInfMinMax(1,ci);
                 %set possible "-inf" in curImg to "cim"
@@ -911,10 +924,13 @@ classdef FData < handle
     end%methods(protected)
 
     methods(Static)
-        function [data,idx] = getImgSeg(data,ROICoord,ROIType,ROISubType,ROIVicinity,fileInfo,vicinityInfo)
+        function [data,idx] = getImgSeg(data,ROICoord,ROIType,ROISubType,ROIVicinity,fileInfo,vicinityInfo,reducedOutsideFlag)
             %make current data segment respecting x / y scaling
             %data can be 2- or 3- dimensional
             %also returns indices of data in full image
+            if(nargin < 7)
+                reducedOutsideFlag = false;
+            end
             idx = [];
             if(isempty(data) || isempty(ROICoord) || ~any(ROICoord(:)))
                 data = [];
@@ -1037,6 +1053,12 @@ classdef FData < handle
                     data(~mask) = NaN;
                     idx = find(mask);
                 elseif(ROIVicinity == 2)
+                    if(reducedOutsideFlag)
+                        mask(1:min(y,max(1,ROICoord(1,1)-1)),1:min(x,max(1,ROICoord(2,1)-1))) = true;
+                        mask(min(y,max(1,ROICoord(1,2)+1)):end,1:min(x,max(1,ROICoord(2,1)-1))) = true;
+                        mask(1:min(y,max(1,ROICoord(1,1)-1)),min(x,max(1,ROICoord(2,2)+1)):end) = true;
+                        mask(min(y,max(1,ROICoord(1,2)+1)):end,min(x,max(1,ROICoord(2,2)+1)):end) = true;
+                    end
                     data(mask) = NaN;
                     idx = find(~mask);
                 elseif(ROIVicinity == 3)

@@ -217,11 +217,22 @@ classdef FDataNormal < FData
                 end
             else
                 %cut ROI
-                [ci,idx] = this.getImgSeg(this.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
+%                 if(strncmp(this.dType,'MVGroup_',8) && ROIType == 2003)
+%                     %force auto ROI coordinates
+%                     q = 0.05;
+%                     tmp = this.getFullImage();
+%                     xH = cumsum(sum(tmp,1));
+%                     yH = cumsum(sum(tmp,2));
+%                     ROICoordinates(2,1) = find(xH >= xH(end)*q,1,'first');
+%                     ROICoordinates(2,2) = find(xH <= xH(end)*(1-q),1,'last');
+%                     ROICoordinates(1,1) = find(yH >= yH(end)*q,1,'first');
+%                     ROICoordinates(1,2) = find(yH <= yH(end)*(1-q),1,'last');
+%                 end
+                [ci,idx] = this.getImgSeg(this.getFullImage(),ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo(),strncmp(this.dType,'MVGroup_',8));
                 if(this.sType == 2)
-                    this.cachedImage.colors = this.getImgSeg(this.logColor_data,ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
+                    this.cachedImage.colors = this.getImgSeg(this.logColor_data,ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo(),strncmp(this.dType,'MVGroup_',8));
                 else
-                    this.cachedImage.colors = this.getImgSeg(this.color_data,ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo());
+                    this.cachedImage.colors = this.getImgSeg(this.color_data,ROICoordinates,ROIType,ROISubType,ROIVicinity,this.getFileInfoStruct(),this.getVicinityInfo(),strncmp(this.dType,'MVGroup_',8));
                 end
             end
             cim = FData.getNonInfMinMax(1,ci); %current image minimum
