@@ -440,7 +440,8 @@ classdef FDTStudy < FDTreeNode
         
         function clearAllMVGroupIs(this)
             %clear data of all MVGroups in all subjects
-            clearAllMVGroupIs@FDTreeNode(this); 
+            clearAllMVGroupIs@FDTreeNode(this);
+            this.clearArithmeticRIs(); %arithmetic images can depend on MVGroup data
             for i = 1:this.myConditionStatistics.queueLen
                 this.myConditionStatistics.getDataByPos(i).clearAllRIs('');
             end
