@@ -576,7 +576,10 @@ classdef FDTStudy < FDTreeNode
             end
             if(~isempty(ROIType) && strncmp(dType,'MVGroup_',8) && ROIType == 2003)
                 %quantilRect
-                %don't save rectangle #3
+                %make sure rectangle #3 is present in this study
+                this.addResultROIType(ROIType);
+                this.setDirty(true);
+                %don't save rectangle #3 ROI coordinates
                 return
             end
             sizeFlag = subject.getDefaultSizeFlag(dType);
