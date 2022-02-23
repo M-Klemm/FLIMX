@@ -357,9 +357,9 @@ classdef FDTChannel < FDTreeNode
             end
         end
         
-        function out = getMVGroupTargets(this,MVGroupNr)
+        function out = getMVGroupTargets(this,MVGroupID)
             %get multivariate targets
-            gMVs = this.myParent.getMVGroupTargets(MVGroupNr);
+            gMVs = this.myParent.getMVGroupTargets(MVGroupID);
             myObjs = this.myParent.getChObjStr(str2double(this.name));
             out.x = cell(0,0);
             out.y = cell(0,0);
@@ -367,8 +367,7 @@ classdef FDTChannel < FDTreeNode
                 %we did not get MVGroup targets
                 warning('FDTChannel:getMVGroupTargets','Could not get MVGroup targets for subject ''%s'' in study ''%s''',this.myParent.name,this.myParent.myParent.name);
                 return
-            end
-            
+            end            
             allMVG = this.getMVGroupNames(0);
             if(~isempty(gMVs.x) && isempty(gMVs.y) && all(ismember(gMVs.x,allMVG)))
                 %MV group made of MV groups

@@ -353,7 +353,12 @@ classdef FData < handle
         function out = getSupplementalData(this)
             %return support data, if available
             out = this.supplementalData;
-        end            
+        end
+
+        function out = getMVGroupTargets(this,MVGroupID)
+            %get multivariate targets
+            out = this.myParent.getMVGroupTargets(MVGroupID);
+        end
         
         function out = getROIGroup(this,grpName)
             %get the ROI group names and members
@@ -366,13 +371,34 @@ classdef FData < handle
                 %quantilRect
                 %force auto ROI coordinates
                 rp = this.FLIMXParamMgrObj.getParamSection('region_of_interest');
+                mvgt = this.getMVGroupTargets(this.dType);
+%                 rp.rectangle3Quantil_TauMean1
+%                 rp.rectangle3Quantil_spectral
                 tmp = this.getFullImage();
                 xH = cumsum(sum(tmp,1));
                 yH = cumsum(sum(tmp,2));
-                out(2,1) = find(xH >= xH(end)*rp.rectangle3Quantil(1)/100,1,'first');
-                out(2,2) = find(xH >= xH(end)*rp.rectangle3Quantil(2)/100,1,'first');
-                out(1,1) = find(yH >= yH(end)*rp.rectangle3Quantil(1)/100,1,'first');
-                out(1,2) = find(yH >= yH(end)*rp.rectangle3Quantil(2)/100,1,'first');
+                %x
+                if(strcmp(mvgt.x,'TauMean 1'))
+                    out(2,1) = find(xH >= xH(end)*rp.rectangle3Quantil_TauMean1(1)/100,1,'first');
+                    out(2,2) = find(xH >= xH(end)*rp.rectangle3Quantil_TauMean1(2)/100,1,'first');
+                elseif(strcmp(mvgt.x,'spectral'))
+                    out(2,1) = find(xH >= xH(end)*rp.rectangle3Quantil_spectral(1)/100,1,'first');
+                    out(2,2) = find(xH >= xH(end)*rp.rectangle3Quantil_spectral(2)/100,1,'first');
+                else
+                    out(2,1) = find(xH >= xH(end)*rp.rectangle3Quantil(1)/100,1,'first');
+                    out(2,2) = find(xH >= xH(end)*rp.rectangle3Quantil(2)/100,1,'first');
+                end
+                %y
+                if(strcmp(mvgt.y,'TauMean 1'))
+                    out(1,1) = find(yH >= yH(end)*rp.rectangle3Quantil_TauMean1(1)/100,1,'first');
+                    out(1,2) = find(yH >= yH(end)*rp.rectangle3Quantil_TauMean1(2)/100,1,'first');
+                elseif(strcmp(mvgt.y,'spectral'))
+                    out(1,1) = find(yH >= yH(end)*rp.rectangle3Quantil_spectral(1)/100,1,'first');
+                    out(1,2) = find(yH >= yH(end)*rp.rectangle3Quantil_spectral(2)/100,1,'first');
+                else
+                    out(1,1) = find(yH >= yH(end)*rp.rectangle3Quantil(1)/100,1,'first');
+                    out(1,2) = find(yH >= yH(end)*rp.rectangle3Quantil(2)/100,1,'first');
+                end
             else
                 out = this.myParent.getROICoordinates(ROIType);
             end

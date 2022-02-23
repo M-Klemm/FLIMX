@@ -817,9 +817,9 @@ classdef FDTSubject < fluoSubject
             nr = this.nrChildren;
         end
 
-        function out = getMVGroupTargets(this,MVGroupNr)
+        function out = getMVGroupTargets(this,MVGroupID)
             %get multivariate targets
-            out = this.myParent.getMVGroupTargets(MVGroupNr);
+            out = this.myParent.getMVGroupTargets(MVGroupID);
         end
 
 %         function nr = getMyChannelNr(this,caller)

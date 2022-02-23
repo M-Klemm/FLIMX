@@ -678,6 +678,8 @@ classdef paramMgr < handle
             def.region_of_interest.vicinityDistance     =   1;
             def.region_of_interest.vicinityDiameter     =   3;
             def.region_of_interest.rectangle3Quantil    =   [2 98];
+            def.region_of_interest.rectangle3Quantil_TauMean1 = [2 98];
+            def.region_of_interest.rectangle3Quantil_spectral = [2 98];
 
             def.general.openFitGUIonStartup     = 1;
             def.general.openVisGUIonStartup     = 1;

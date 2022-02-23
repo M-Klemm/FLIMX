@@ -238,7 +238,12 @@ classdef FDTChunk < FDTreeNode
         function nr = getNrElements(this)
             %get number of slices in this chunk
             nr = this.nrChildren;
-        end  
+        end
+
+        function out = getMVGroupTargets(this,MVGroupID)
+            %get multivariate targets
+            out = this.myParent.getMVGroupTargets(MVGroupID);
+        end
         
         function nr = getMySubjectName(this)
             %return the current subject name
