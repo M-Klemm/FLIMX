@@ -234,7 +234,11 @@ classdef AICtrl < handle
                 this.chA.Visible = 'on';
                 this.opA.Visible = 'on';
                 set(this.ROIB,'Enable','on','Visible','on');
-                set(this.ROIVicinityB,'Enable','on','Visible','on');
+                if(isempty(aiParam{idx}))
+                    set(this.ROIVicinityB,'Enable','on','Visible','on','Value',1);
+                else
+                    set(this.ROIVicinityB,'Enable','on','Visible','on','Value',aiParam{idx}.ROIVicinityB);
+                end
                 %find selected ROI
                 this.updateItemPopup(this.chA.Value-1,'ROI','B',aiParam{idx});
                 return
