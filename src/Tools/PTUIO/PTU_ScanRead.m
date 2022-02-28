@@ -46,13 +46,13 @@ if(strcmp(fext,'.ptu'))
             Resolution = max(1e9*head.MeasDesc_Resolution);
             chDiv      = 1e-9*Resolution/head.MeasDesc_Resolution;
             Ngate      = ceil(1e9*head.MeasDesc_GlobalResolution./Resolution)+1;
-            LineStart = 4;
-            LineStop  = 2;
+            LineStartMarker = 4;
+            LineStopMarker  = 2;
             if(isfield(head,'ImgHdr_LineStart'))
-                LineStart = 2^(head.ImgHdr_LineStart-1);
+                LineStartMarker = 2^(head.ImgHdr_LineStart-1);
             end
             if(isfield(head,'ImgHdr_LineStop'))
-                LineStop = 2^(head.ImgHdr_LineStop-1);
+                LineStopMarker = 2^(head.ImgHdr_LineStop-1);
             end
             y        = [];
             tmpx     = [];
@@ -63,6 +63,7 @@ if(strcmp(fext,'.ptu'))
             im_chan  = [];
             im_line  = [];
             im_col   = [];
+            im_frame = [];
             Turns1   = [];
             Turns2   = [];
             cnt      = 0;
@@ -82,8 +83,8 @@ if(strcmp(fext,'.ptu'))
                     tmpx    = [tmpx; floor(tmptcspc(ind)./chDiv)+1;]; %#ok<AGROW>
                     chan    = [chan; tmpchan(ind)+1];                 %#ok<AGROW>
                     markers = [markers; tmpmarkers(ind)];             %#ok<AGROW>
-                    if(LineStart == LineStop)
-                        tmpturns = y(markers==LineStart);
+                    if(LineStartMarker == LineStopMarker)
+                        tmpturns = y(markers==LineStartMarker);
                         if numel(Turns1)>numel(Turns2)           % first turn is a LineStop
                             Turns1 = [Turns1; tmpturns(2:2:end)];      %#ok<AGROW>
                             Turns2 = [Turns2; tmpturns(1:2:end)];      %#ok<AGROW>
@@ -92,8 +93,8 @@ if(strcmp(fext,'.ptu'))
                             Turns2 = [Turns2; tmpturns(2:2:end)];      %#ok<AGROW>
                         end
                     else
-                        Turns1 = [Turns1; y(markers == LineStart)]; %#ok<AGROW>
-                        Turns2 = [Turns2; y(markers == LineStop)];  %#ok<AGROW>
+                        Turns1 = [Turns1; y(markers == LineStartMarker)]; %#ok<AGROW>
+                        Turns2 = [Turns2; y(markers == LineStopMarker)];  %#ok<AGROW>
                     end
                     ind          = (markers ~= 0);
                     y(ind)       = [];
@@ -152,8 +153,8 @@ if(strcmp(fext,'.ptu'))
                     tmpx    = [tmpx; floor(tmptcspc(ind)./chDiv)+1;]; %#ok<AGROW>
                     chan    = [chan; tmpchan(ind)+1];                   %#ok<AGROW>
                     markers = [markers; tmpmarkers(ind)];             %#ok<AGROW>
-                    if(LineStart == LineStop)
-                        tmpturns = y(markers == LineStart);
+                    if(LineStartMarker == LineStopMarker)
+                        tmpturns = y(markers == LineStartMarker);
                         if numel(Turns1) > numel(Turns2)           % first turn is a LineStop
                             Turns1 = [Turns1; tmpturns(2:2:end)];      %#ok<AGROW>
                             Turns2 = [Turns2; tmpturns(1:2:end)];      %#ok<AGROW>
@@ -162,8 +163,8 @@ if(strcmp(fext,'.ptu'))
                             Turns2 = [Turns2; tmpturns(2:2:end)];      %#ok<AGROW>
                         end
                     else
-                        Turns1 = [Turns1; y(markers == LineStart)]; %#ok<AGROW>
-                        Turns2 = [Turns2; y(markers == LineStop)];  %#ok<AGROW>
+                        Turns1 = [Turns1; y(markers == LineStartMarker)]; %#ok<AGROW>
+                        Turns2 = [Turns2; y(markers == LineStopMarker)];  %#ok<AGROW>
                     end
                     ind          = (markers ~= 0);
                     y(ind)       = [];
@@ -246,11 +247,12 @@ if(strcmp(fext,'.ptu'))
             tmpx     = [];
             chan     = [];
             marker   = [];
-            dt       = zeros(ny,1,'uint32');
+            dt       = zeros(ny,1,'uint64');
             im_tcspc = [];
             im_chan  = [];
             im_line  = [];
             im_col   = [];
+            im_frame = [];
             cnt      = 0;
             tend     = 0;
             line     = 1;
@@ -259,15 +261,15 @@ if(strcmp(fext,'.ptu'))
             head.ImgHdr_X0       = 0;
             head.ImgHdr_Y0       = 0;
             head.ImgHdr_PixResol = 1;
-            LineStart = 2^(head.ImgHdr_LineStart-1);
-            LineStop  = 2^(head.ImgHdr_LineStop-1);
-            Frame     = 2^(head.ImgHdr_Frame-1);
+            LineStartMarker = uint8(2^(head.ImgHdr_LineStart-1));
+            LineStopMarker  = uint8(2^(head.ImgHdr_LineStop-1));
+            FrameMarker     = 2^(head.ImgHdr_Frame-1);
             hWaitbar(0.1,sprintf('Reading %.2f MB from disk...',nphot*4/1e6));
-            if(Frame < 1)
-                Frame = -1;
+            if(FrameMarker < 1)
+                FrameMarker = -1;
             end
             in_frame = false;
-            if(Frame < 1)
+            if(FrameMarker < 1)
                 in_frame = true;
                 n_frames = n_frames + 1;
             end
@@ -305,13 +307,14 @@ if(strcmp(fext,'.ptu'))
                     im_chan = vertcat(tmp{:,2});
                     im_line = vertcat(tmp{:,3});
                     im_col = vertcat(tmp{:,4});
+                    im_frame = vertcat(tmp{:,5});
                     tcspc_bin_resolution = tmp{1,5};
                     tacRange = tmp{1,6};
                     %num_tcspc_channel = tmp{1,7};
                     clear tmp
                 else
                     %single core execution
-                    [im_tcspc, im_chan, im_line, im_col, tcspc_bin_resolution, tacRange, num_tcspc_channel] =  zeiss_ScanRead(tmpy, tmptcspc, tmpchan, tmpmarkers, head, hWaitbar);
+                    [im_tcspc, im_chan, im_line, im_col,  im_frame, tcspc_bin_resolution, tacRange, num_tcspc_channel] =  zeiss_ScanRead(tmpy, tmptcspc, tmpchan, tmpmarkers, head, hWaitbar);
                 end
                 clear tmpy tmptcspc tmpchan tmpmarkers num loc;
                 head.tacRange = tacRange;
@@ -329,177 +332,243 @@ if(strcmp(fext,'.ptu'))
                     %                     t_col    = [];
                     cnt = cnt + num;
                     hWaitbar(0.1 + 0.1*cnt/head.TTResult_NumberOfRecords,sprintf('Read %.2f MB of %.2f MB from disk...',nphot*4/1e6,head.TTResult_NumberOfRecords*4/1e6));
-                    tmpy = tmpy+tend;
-                    y       = [y; tmpy];                       %#ok<AGROW>
-                    clear tmpy
-                    tmpx    = [tmpx; tmptcspc];                %#ok<AGROW>
-                    clear tmptcspc
-                    chan    = [chan; tmpchan+1];                 %#ok<AGROW>
-                    clear tmpchan
-                    marker  = [marker; tmpmarkers];            %#ok<AGROW>
-                    clear tmpmarkers
-                    t_tcspc  = zeros(size(tmpx),'like',tmpx);
-                    t_chan   = zeros(size(chan),'like',chan);
-                    t_line   = zeros(size(tmpx),'like',tmpx);
-                    t_col    = zeros(size(tmpx),'like',tmpx);
-                    counter = 0;
-                    tend    = y(end)+loc;
-                    %F  = y(bitand(marker,Frame)>0);
-                    F = y(marker == uint8(Frame));
-                    FLen = length(F);
-                    tStart = FLIMX.now();
-                    lastUpdate = tStart;
-                    activeMask = true(size(y));
-                    while(~isempty(F) && any(activeMask))
-                        tNow = FLIMX.now();
-                        if(tNow - lastUpdate > oneSec)
-                            FLenNow = length(F);
-                            p = (FLen-FLenNow) / FLen;
-                            [hours, minutes, secs] = secs2hms((tNow-tStart)/oneSec/(FLen-FLenNow)*FLenNow); %mean cputime for finished runs * cycles left
-                            minutes = minutes + hours*60;
-                            hWaitbar(0.2 + 0.3*p,sprintf('Converting scan data: %02.1f%% - Time left: %dm %.0fs',p*100,minutes,secs));
-                            lastUpdate = tNow;
+%                     tmpy = tmpy+tend;
+%                     y       = [y; tmpy];                       %#ok<AGROW>
+%                     clear tmpy
+%                     tmpx    = [tmpx; tmptcspc];                %#ok<AGROW>
+%                     clear tmptcspc
+%                     chan    = [chan; tmpchan+1];                 %#ok<AGROW>
+%                     clear tmpchan
+%                     marker  = [marker; tmpmarkers];            %#ok<AGROW>
+%                     clear tmpmarkers
+%                     t_tcspc  = zeros(size(tmpx),'like',tmpx);
+%                     t_chan   = zeros(size(chan),'like',chan);
+%                     t_line   = zeros(size(tmpx),'like',tmpx);
+%                     t_col    = zeros(size(tmpx),'like',tmpx);
+%                     counter = 0;
+%                     tend    = y(end)+loc;
+%                     %F  = y(bitand(marker,Frame)>0);
+%                     %verify markers
+%                     uMarkers = unique(marker);
+%                     %remove zero as regular photon
+%                     uMarkers = uMarkers(uMarkers ~= uint8(0));
+%                     if(~any(uMarkers == uint8(FrameMarker)))
+%                         %frame marker not found
+%                         uMarkers = uMarkers(uMarkers ~= LineStopMarker);
+%                         uMarkers = uMarkers(uMarkers ~= LineStartMarker);
+%                         if(length(uMarkers) == 1)
+%                             FrameMarker = uMarkers;
+%                         end
+%                     end
+%                     F = y(marker == uint8(FrameMarker));
+%                     FLen = length(F);
+%                     tStart = FLIMX.now();
+%                     lastUpdate = tStart;
+%                     activeMask = true(size(y));
+%                     while(~isempty(F) && any(activeMask))
+%                         tNow = FLIMX.now();
+%                         if(tNow - lastUpdate > oneSec)
+%                             FLenNow = length(F);
+%                             p = (FLen-FLenNow) / FLen;
+%                             [hours, minutes, secs] = secs2hms((tNow-tStart)/oneSec/(FLen-FLenNow)*FLenNow); %mean cputime for finished runs * cycles left
+%                             minutes = minutes + hours*60;
+%                             hWaitbar(0.2 + 0.3*p,sprintf('Converting scan data: %02.1f%% - Time left: %dm %.0fs',p*100,minutes,secs));
+%                             lastUpdate = tNow;
+%                         end
+%                         if(~in_frame)
+%                             ind = y <= F(1) & activeMask;
+%                             activeMask(ind) = false;
+%                             %                             y(ind)       = [];
+%                             %                             tmpx(ind)    = [];
+%                             %                             chan(ind)    = [];
+%                             %                             marker(ind)  = [];
+%                             line         = 1;
+%                             in_frame     = true;
+%                             n_frames     = n_frames + 1;
+%                             f_times      = [f_times; F(1)];
+%                             F(1)         = [];
+%                         end
+%                         if(~isempty(F))
+%                             ind = y < F(1) & activeMask; %ind = y < F(1) & activeMask;
+%                             if(sum(ind) == 0)
+%                                 in_frame = false;
+%                                 continue
+%                             end
+%                             f_y  = y(ind);
+%                             f_x  = tmpx(ind);
+%                             f_ch = chan(ind);
+%                             f_m  = marker(ind);
+%                             activeMask(ind) = false;
+%                             %                             y(ind)      = [];
+%                             %                             tmpx(ind)   = [];
+%                             %                             chan(ind)   = [];
+%                             %                             marker(ind) = [];
+%                         end
+%                         %L1 = f_y(bitand(f_m,LineStart)>0);
+%                         L1 = f_y(f_m == uint8(LineStartMarker));
+%                         %L2 = f_y(bitand(f_m,LineStop)>0);
+%                         L2 = f_y(f_m == uint8(LineStopMarker));
+%                         ll = line + numel(L2)-1; % this will be the last complete line in the data stack
+%                         if(ll > ny)
+%                             L1 = L1(1:ny-line+1);
+%                             L2 = L2(1:ny-line+1);
+%                         end
+%                         if(numel(L1) > 1)
+%                             for j = 1:numel(L2)
+%                                 ind = (f_y > L1(j)) & (f_y < L2(j));
+%                                 %                                 t_tcspc  = [t_tcspc; uint16(f_x(ind))];              %#ok<AGROW>
+%                                 %                                 t_chan   = [t_chan; uint8(f_ch(ind))];                %#ok<AGROW>
+%                                 %                                 t_line   = [t_line; uint16(line.*ones(sum(ind),1))];  %#ok<AGROW>
+%                                 %                                 t_col    = [t_col;  uint16(1 + floor(nx.*(f_y(ind)-L1(j))./(L2(j)-L1(j))))];  %#ok<AGROW>
+%                                 indLen = sum(ind);
+%                                 t_tcspc(counter+1:counter+indLen,1)  = uint16(f_x(ind));
+%                                 t_chan(counter+1:counter+indLen,1)   = uint8(f_ch(ind));
+%                                 t_line(counter+1:counter+indLen,1)   = uint16(line.*ones(indLen,1));
+%                                 t_col(counter+1:counter+indLen,1)    = uint16(1 + floor(nx.*(f_y(ind)-L1(j))./(L2(j)-L1(j))));
+%                                 counter = counter + indLen;
+%                                 dt(line) = dt(line) + (L2(j)-L1(j));
+%                                 line = line +1;
+%                             end
+%                         end
+%                         if(line > ny)
+%                             in_frame = false;
+%                         end
+%                     end
+%                     t_tcspc = t_tcspc(1:counter,1);
+%                     t_chan = t_chan(1:counter,1);
+%                     t_line = t_line(1:counter,1);
+%                     t_col = t_col(1:counter,1);
+%                     im_tcspc  = [im_tcspc; t_tcspc];  %#ok<AGROW>
+%                     im_chan   = [im_chan;  t_chan];   %#ok<AGROW>
+%                     im_line   = [im_line;  t_line];   %#ok<AGROW>
+%                     im_col    = [im_col;   t_col];    %#ok<AGROW>
+
+                    pool = gcp('nocreate');
+                    idxTiles = unique([1; find(tmpmarkers == uint8(2^(head.ImgHdr_Frame-1))); length(tmpy)]); %find frame markers
+                    if(~isempty(pool) && length(idxTiles) >= 3)
+                        %use multiple CPU cores
+                        idxTiles(end) = idxTiles(end)+1;
+                        tmp = cell(length(idxTiles)-1,7);
+                        c_tmpy = parallel.pool.Constant(tmpy);
+                        c_tmptcspc = parallel.pool.Constant(tmptcspc);
+                        c_tmpchan = parallel.pool.Constant(tmpchan);
+                        c_tmpmarkers = parallel.pool.Constant(tmpmarkers);
+                        c_idxTiles = parallel.pool.Constant(idxTiles);
+                        parfor i=1:length(idxTiles)-1
+                            [tmp{i,:}] = zeiss_ScanRead(c_tmpy.Value(c_idxTiles.Value(i):c_idxTiles.Value(i+1)-1,1), c_tmptcspc.Value(c_idxTiles.Value(i):c_idxTiles.Value(i+1)-1,1),...
+                                c_tmpchan.Value(c_idxTiles.Value(i):c_idxTiles.Value(i+1)-1,1), c_tmpmarkers.Value(c_idxTiles.Value(i):c_idxTiles.Value(i+1)-1,1), head, []);
                         end
-                        if(~in_frame)
-                            ind = y <= F(1) & activeMask;
-                            activeMask(ind) = false;
-                            %                             y(ind)       = [];
-                            %                             tmpx(ind)    = [];
-                            %                             chan(ind)    = [];
-                            %                             marker(ind)  = [];
-                            line         = 1;
-                            in_frame     = true;
-                            n_frames     = n_frames + 1;
-                            f_times      = [f_times; F(1)];
-                            F(1)         = [];
+                        %remove empty frames
+                        ie = cellfun(@isempty,tmp);
+                        tmp = tmp(~ie(:,1),:);
+                        %update frame numbers
+                        for i = uint16(1:size(tmp,1))
+                            tmp{i,5} = tmp{i,5}.*i;
                         end
-                        if(~isempty(F))
-                            ind = y < F(1) & activeMask; %ind = y < F(1) & activeMask;
-                            if(sum(ind) == 0)
-                                in_frame = false;
-                                continue
-                            end
-                            f_y  = y(ind);
-                            f_x  = tmpx(ind);
-                            f_ch = chan(ind);
-                            f_m  = marker(ind);
-                            activeMask(ind) = false;
-                            %                             y(ind)      = [];
-                            %                             tmpx(ind)   = [];
-                            %                             chan(ind)   = [];
-                            %                             marker(ind) = [];
-                        end
-                        %L1 = f_y(bitand(f_m,LineStart)>0);
-                        L1 = f_y(f_m == uint8(LineStart));
-                        %L2 = f_y(bitand(f_m,LineStop)>0);
-                        L2 = f_y(f_m == uint8(LineStop));
-                        ll = line + numel(L2)-1; % this will be the last complete line in the data stack
-                        if(ll > ny)
-                            L1 = L1(1:ny-line+1);
-                            L2 = L2(1:ny-line+1);
-                        end
-                        if(numel(L1) > 1)
-                            for j = 1:numel(L2)
-                                ind = (f_y > L1(j)) & (f_y < L2(j));
-                                %                                 t_tcspc  = [t_tcspc; uint16(f_x(ind))];              %#ok<AGROW>
-                                %                                 t_chan   = [t_chan; uint8(f_ch(ind))];                %#ok<AGROW>
-                                %                                 t_line   = [t_line; uint16(line.*ones(sum(ind),1))];  %#ok<AGROW>
-                                %                                 t_col    = [t_col;  uint16(1 + floor(nx.*(f_y(ind)-L1(j))./(L2(j)-L1(j))))];  %#ok<AGROW>
-                                indLen = sum(ind);
-                                t_tcspc(counter+1:counter+indLen,1)  = uint16(f_x(ind));
-                                t_chan(counter+1:counter+indLen,1)   = uint8(f_ch(ind));
-                                t_line(counter+1:counter+indLen,1)   = uint16(line.*ones(indLen,1));
-                                t_col(counter+1:counter+indLen,1)    = uint16(1 + floor(nx.*(f_y(ind)-L1(j))./(L2(j)-L1(j))));
-                                counter = counter + indLen;
-                                dt(line) = dt(line) + (L2(j)-L1(j));
-                                line = line +1;
-                            end
-                        end
-                        if(line > ny)
-                            in_frame = false;
-                        end
+                        t_tcspc = vertcat(tmp{:,1});
+                        t_chan = vertcat(tmp{:,2});
+                        t_line = vertcat(tmp{:,3});
+                        t_col = vertcat(tmp{:,4});
+                        t_frame = vertcat(tmp{:,5});
+                        t_bin_res = vertcat(tmp{:,6});
+                        t_tac_range = vertcat(tmp{:,7});
+                        tcspc_bin_resolution = t_bin_res(1);
+                        tacRange = t_tac_range(1);
+                        clear tmp
+                    else
+                        %single core execution
+                        [t_tcspc, t_chan, t_line, t_col,  t_frame, tcspc_bin_resolution, tacRange, num_tcspc_channel] =  zeiss_ScanRead(tmpy, tmptcspc, tmpchan, tmpmarkers, head, hWaitbar);
                     end
-                    t_tcspc = t_tcspc(1:counter,1);
-                    t_chan = t_chan(1:counter,1);
-                    t_line = t_line(1:counter,1);
-                    t_col = t_col(1:counter,1);
-                    im_tcspc  = [im_tcspc; t_tcspc];  %#ok<AGROW>
-                    im_chan   = [im_chan;  t_chan];   %#ok<AGROW>
-                    im_line   = [im_line;  t_line];   %#ok<AGROW>
-                    im_col    = [im_col;   t_col];    %#ok<AGROW>
+                    clear tmpy tmptcspc tmpchan tmpmarkers num loc;                    
+
+                    im_tcspc  = [im_tcspc; t_tcspc];
+                    im_chan   = [im_chan;  t_chan];
+                    im_line   = [im_line;  t_line];
+                    im_col    = [im_col;   t_col];
+                    im_frame    = [im_frame;   t_frame];
+
                     [tmpy, tmptcspc, tmpchan, tmpmarkers, num, loc] = PTU_Read(name, [cnt+1 nphot], head);
                 end
-                %F  = y(bitand(marker,Frame) > 0);
-                F = y(marker == uint8(Frame));
-                %                 t_tcspc  = [];
-                %                 t_chan   = [];
-                %                 t_line   = [];
-                %                 t_col    = [];
-                if(~in_frame)
-                    if(isempty(F))
-                        y       = [];
-                        tmpx    = [];
-                        chan    = [];
-                        marker  = [];
-                        line    = 1;
-                    else
-                        ind = y <= F(1);
-                        y(ind)       = [];
-                        tmpx(ind)    = [];
-                        chan(ind)    = [];
-                        marker(ind)  = [];
-                        line         = 1;
-                        n_frames     = n_frames + 1;
-                        f_times      = [f_times; F(1)];
-                    end
-                end
-                f_y = y;
-                f_x = tmpx;
-                f_ch = chan;
-                f_m  = marker;
-                clear y tmpx chan marker
-                t_tcspc  = zeros(size(f_x),'like',f_x);
-                t_chan   = zeros(size(f_ch),'like',f_ch);
-                t_line   = zeros(size(f_x),'like',f_x);
-                t_col    = zeros(size(f_x),'like',f_x);
-                counter = 0;
-                %L1 = f_y(bitand(f_m,LineStart) > 0);
-                L1 = f_y(f_m == uint8(LineStart));
-                %L2 = f_y(bitand(f_m,LineStop)>0);
-                L2 = f_y(f_m == uint8(LineStop));
-                ll = line + numel(L2)-1; % this will be the last complete line in the data stack
-                if(ll > ny)
-                    L1 = L1(1:ny-line+1);
-                    L2 = L2(1:ny-line+1);
-                end
-                if(numel(L1) > 1)
-                    for j = 1:numel(L2)
-                        ind = (f_y > L1(j)) & (f_y < L2(j));
-                        %                         t_tcspc  = [t_tcspc; uint16(f_x(ind))];              %#ok<AGROW>
-                        %                         t_chan   = [t_chan; uint8(f_ch(ind))];                %#ok<AGROW>
-                        %                         t_line   = [t_line; uint16(line.*ones(sum(ind),1))];  %#ok<AGROW>
-                        %                         t_col    = [t_col;  uint16(1 + floor(nx.*(f_y(ind)-L1(j))./(L2(j)-L1(j))))];  %#ok<AGROW>
-                        indLen = sum(ind);
-                        t_tcspc(counter+1:counter+indLen,1)  = uint16(f_x(ind));
-                        t_chan(counter+1:counter+indLen,1)   = uint8(f_ch(ind));
-                        t_line(counter+1:counter+indLen,1)   = uint16(line.*ones(indLen,1));
-                        t_col(counter+1:counter+indLen,1)    = uint16(1 + floor(nx.*(f_y(ind)-L1(j))./(L2(j)-L1(j))));
-                        counter = counter + indLen;
-                        dt(line) = dt(line) + (L2(j)-L1(j));
-                        line = line +1;
-                    end
-                end
-                t_tcspc = t_tcspc(1:counter,1);
-                t_chan = t_chan(1:counter,1);
-                t_line = t_line(1:counter,1);
-                t_col = t_col(1:counter,1);
-                im_tcspc  = [im_tcspc; t_tcspc];
-                im_chan   = [im_chan;  t_chan];
-                im_line   = [im_line;  t_line];
-                im_col    = [im_col;   t_col];
+
+                head.tacRange = tacRange;
+                head.nrTimeChannels = round(tacRange / tcspc_bin_resolution);% num_tcspc_channel;
+                idx = im_tcspc > head.nrTimeChannels;
+                im_tcspc = im_tcspc(~idx);
+                im_chan = im_chan(~idx);
+                im_line = im_line(~idx);
+                im_col = im_col(~idx);
+                im_frame = im_frame(~idx);
+%                 %F  = y(bitand(marker,Frame) > 0);
+%                 F = y(marker == uint8(FrameMarker));
+%                 %                 t_tcspc  = [];
+%                 %                 t_chan   = [];
+%                 %                 t_line   = [];
+%                 %                 t_col    = [];
+%                 if(~in_frame)
+%                     if(isempty(F))
+%                         y       = [];
+%                         tmpx    = [];
+%                         chan    = [];
+%                         marker  = [];
+%                         line    = 1;
+%                     else
+%                         ind = y <= F(1);
+%                         y(ind)       = [];
+%                         tmpx(ind)    = [];
+%                         chan(ind)    = [];
+%                         marker(ind)  = [];
+%                         line         = 1;
+%                         n_frames     = n_frames + 1;
+%                         f_times      = [f_times; F(1)];
+%                     end
+%                 end
+%                 f_y = y;
+%                 f_x = tmpx;
+%                 f_ch = chan;
+%                 f_m  = marker;
+%                 clear y tmpx chan marker
+%                 t_tcspc  = zeros(size(f_x),'like',f_x);
+%                 t_chan   = zeros(size(f_ch),'like',f_ch);
+%                 t_line   = zeros(size(f_x),'like',f_x);
+%                 t_col    = zeros(size(f_x),'like',f_x);
+%                 counter = 0;
+%                 %L1 = f_y(bitand(f_m,LineStart) > 0);
+%                 L1 = f_y(f_m == uint8(LineStartMarker));
+%                 %L2 = f_y(bitand(f_m,LineStop)>0);
+%                 L2 = f_y(f_m == uint8(LineStopMarker));
+%                 ll = line + numel(L2)-1; % this will be the last complete line in the data stack
+%                 if(ll > ny)
+%                     L1 = L1(1:ny-line+1);
+%                     L2 = L2(1:ny-line+1);
+%                 end
+%                 if(numel(L1) > 1)
+%                     for j = 1:numel(L2)
+%                         ind = (f_y > L1(j)) & (f_y < L2(j));
+%                         %                         t_tcspc  = [t_tcspc; uint16(f_x(ind))];              %#ok<AGROW>
+%                         %                         t_chan   = [t_chan; uint8(f_ch(ind))];                %#ok<AGROW>
+%                         %                         t_line   = [t_line; uint16(line.*ones(sum(ind),1))];  %#ok<AGROW>
+%                         %                         t_col    = [t_col;  uint16(1 + floor(nx.*(f_y(ind)-L1(j))./(L2(j)-L1(j))))];  %#ok<AGROW>
+%                         indLen = sum(ind);
+%                         t_tcspc(counter+1:counter+indLen,1)  = uint16(f_x(ind));
+%                         t_chan(counter+1:counter+indLen,1)   = uint8(f_ch(ind));
+%                         t_line(counter+1:counter+indLen,1)   = uint16(line.*ones(indLen,1));
+%                         t_col(counter+1:counter+indLen,1)    = uint16(1 + floor(nx.*(f_y(ind)-L1(j))./(L2(j)-L1(j))));
+%                         counter = counter + indLen;
+%                         dt(line) = dt(line) + (L2(j)-L1(j));
+%                         line = line +1;
+%                     end
+%                 end
+%                 t_tcspc = t_tcspc(1:counter,1);
+%                 t_chan = t_chan(1:counter,1);
+%                 t_line = t_line(1:counter,1);
+%                 t_col = t_col(1:counter,1);
+%                 im_tcspc  = [im_tcspc; t_tcspc];
+%                 im_chan   = [im_chan;  t_chan];
+%                 im_line   = [im_line;  t_line];
+%                 im_col    = [im_col;   t_col];
                 
-                head.tacRange = head.MeasDesc_GlobalResolution*1e9;
-                head.nrTimeChannels = round(head.tacRange / (1e9*head.MeasDesc_Resolution));
+                head.tacRange = tacRange; %head.MeasDesc_GlobalResolution*1e9;
+                %head.nrTimeChannels = num_tcspc_channel; %ceil(head.tacRange / (1e9*head.MeasDesc_Resolution));
             end
             %head.ImgHdr_FrameTime = 1e9.*mean(diff(f_times))/head.TTResult_SyncRate;
             if(isfield(head,'TimePerPixel'))
@@ -510,7 +579,15 @@ if(strcmp(fext,'.ptu'))
             %head.ImgHdr_DwellTime = head.ImgHdr_PixelTime./n_frames;
         end
         head.nrSpectralChannels = max(im_chan(:));
-        %         head.nrTimeChannels = max(im_tcspc);
+        if(head.nrSpectralChannels == 0 && max(im_frame) <= 1)
+            %prevent channel from being 0
+            im_chan(:) = 1;
+            head.nrSpectralChannels = 1;
+        elseif(head.nrSpectralChannels == 0 && max(im_frame) > 1)
+            im_chan = im_frame;
+            head.nrSpectralChannels = max(im_chan(:));
+            im_frame(:) = 1;
+        end
     end
 end
 

@@ -59,14 +59,14 @@ if(~isempty(head))
             switch head.TTResultFormat_TTTRRecType
                 case rtPicoHarpT3
                     WRAPAROUND = 65536;
-                    sync    = uint32(bitand(T3Record,65535));              % the lowest 16 bits:
+                    sync    = uint64(bitand(T3Record,65535));              % the lowest 16 bits:
                     chan    = uint8(bitand(bitshift(T3Record,-28),15));   % the upper 4 bits:
                     tcspc   = uint16(bitand(bitshift(T3Record,-16),4095));
                     special = uint8(chan==15).*uint8(bitand(tcspc,15));
                     ind = ((chan==15) & bitand(tcspc,15)==0);
                 case rtPicoHarpT2
                     WRAPAROUND = 210698240;
-                    sync    = uint32(bitand(T3Record,268435455));         %the lowest 28 bits
+                    sync    = uint64(bitand(T3Record,268435455));         %the lowest 28 bits
                     tcspc   = uint16(bitand(T3Record,15));                %the lowest 4 bits
                     chan    = uint8(bitand(bitshift(T3Record,-28),15));  %the next 4 bits
                     special = uint8(chan==15).*uint8(bitand(tcspc,15));
@@ -76,7 +76,7 @@ if(~isempty(head))
                     %   +----------------------+ T3 32 bit record  +---------------------+
                     %   |x|x|x|x|x|x|x|x|x|x|x|x|x|x|x|x|  |x|x|x|x|x|x|x|x|x|x|x|x|x|x|x|x|
                     %   +-------------------------------+  +-------------------------------+
-                    sync = uint32(bitand(T3Record,1023));       % the lowest 10 bits:
+                    sync = uint64(bitand(T3Record,1023));       % the lowest 10 bits:
                     %   +-------------------------------+  +-------------------------------+
                     %   | | | | | | | | | | | | | | | | |  | | | | | | |x|x|x|x|x|x|x|x|x|x|
                     %   +-------------------------------+  +-------------------------------+
@@ -97,7 +97,7 @@ if(~isempty(head))
                     special = special.*chan;
                 case rtHydraHarpT2
                     WRAPAROUND = 33552000;
-                    sync    = uint32(bitand(T3Record,33554431));           % the last 25 bits
+                    sync    = uint64(bitand(T3Record,33554431));           % the last 25 bits
                     chan    = uint8(bitand(bitshift(T3Record,-25),63));   % the next 6 bits
                     tcspc   = uint16(bitand(chan,15));
                     special = uint8(bitand(bitshift(T3Record,-31),1));    % the last bit
@@ -105,7 +105,7 @@ if(~isempty(head))
                     special = special.*chan;
                 case {rtHydraHarp2T2, rtTimeHarp260NT2, rtTimeHarp260PT2,rtMultiHarpNT2}
                     WRAPAROUND = 33554432;
-                    sync    = uint32(bitand(T3Record,33554431));           % the last 25 bits
+                    sync    = uint64(bitand(T3Record,33554431));           % the last 25 bits
                     chan    = uint8(bitand(bitshift(T3Record,-25),63));   % the next 6 bits
                     tcspc   = uint16(bitand(chan,15));
                     special = uint8(bitand(bitshift(T3Record,-31),1));    % the last bit
@@ -117,7 +117,7 @@ if(~isempty(head))
             tmp  = sync(ind == 1);
             tmp(tmp == 0) = 1;
             sync(ind) = tmp;
-            sync = sync + uint32(WRAPAROUND)*cumsum(uint32(ind).*sync);
+            sync = sync + uint64(WRAPAROUND)*cumsum(uint64(ind).*sync);
             sync(ind)    = [];
             tcspc(ind)   = [];
             special(ind) = [];
@@ -130,7 +130,7 @@ if(~isempty(head))
         %         chan = uint8(chan);
         fclose(fid);
     else
-        sync = uint32([]);
+        sync = uint64([]);
         tcspc = uint16([]);
         special = uint8([]);
         chan = uint8([]);
