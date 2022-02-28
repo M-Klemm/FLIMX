@@ -538,7 +538,7 @@ classdef FDTSubject < fluoSubject
 %             if(isMultipleCall())
 %                 return
 %             end
-            success = false;
+            success = 0;
             persistent currentChannel
             if(isempty(currentChannel))
                currentChannel = ch;
@@ -607,6 +607,9 @@ classdef FDTSubject < fluoSubject
                         this.updateShortProgress(0,'');
                         idx = ((currentChannel - ch) < eps);
                         currentChannel(idx) = [];
+                        if(~isempty(intImage))
+                            success = 1;
+                        end
                         return
                     end
                     this.updateShortProgress(0.66,sprintf('Load Ch %s',num2str(ch)));
@@ -732,7 +735,7 @@ classdef FDTSubject < fluoSubject
             end
             idx = ((currentChannel - ch) < eps);
             currentChannel(idx) = [];
-            success = true;
+            success = 2;
         end
 
         function setSubjectName(this,val)
@@ -782,7 +785,8 @@ classdef FDTSubject < fluoSubject
             %get FData object
             h = [];
             if(~this.channelResultIsLoaded(ch))% && ~isMultipleCall())
-                if(~this.loadChannel(ch,false))
+                loadFlag = this.loadChannel(ch,false);
+                if(loadFlag < 1 && strcmp(dType,'Intensity') || loadFlag < 2 && ~strcmp(dType,'Intensity'))
                     return
                 end
             end            

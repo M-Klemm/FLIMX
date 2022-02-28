@@ -81,7 +81,7 @@ im_col = im_col(~idx);
 im_line = im_line(~idx);
 %sort data according to lines
 [im_line_sort, idx] = sort(im_line);
-line_counts = cumsum(histcounts(single(im_line_sort),0:single(imSzY)+1));
+line_counts = cumsum(uint32(histcounts(uint32(im_line_sort),0:uint32(imSzY)+1)));
 im_tcspc = im_tcspc(idx);
 im_col = im_col(idx);
 %clear idx im_line_sort
@@ -93,7 +93,7 @@ c_lineCounts = parallel.pool.Constant(line_counts);
 
 %ticBytes(pool);
 %% y outer loop
-parfor y = 1:int32(imSzY)
+parfor y = 1:uint16(imSzY)
     if(c_lineCounts.Value(y) == c_lineCounts.Value(y+1))
         continue
     end
@@ -126,11 +126,11 @@ parfor y = 1:int32(imSzY)
         %             end
         %end
         valCol = sort(valCol);
-        curRow(1,x,valCol) = 1;
-        diffTmp = diff(int8(diff([0; int8(valCol); 0]) == 0));
+        curRow(1,x,valCol) = 1; %store a 1 in each found time channel
+        diffTmp = diff(int16(diff([0; int16(valCol); 0]) == 0)); %find time channels that occur more than once
         idxTmp = zeros(1,1,length(valCol),'like',im_tcspc);
         idxTmp(1,1,:) = 1:cast(length(valCol),'like',im_tcspc);
-        curRow(1,x,valCol(diffTmp == 1)) = curRow(1,x,valCol(diffTmp == 1)) + idxTmp(1,1,diffTmp == -1) - idxTmp(1,1,diffTmp == 1);
+        curRow(1,x,valCol(diffTmp == 1)) = curRow(1,x,valCol(diffTmp == 1)) + idxTmp(1,1,diffTmp == -1) - idxTmp(1,1,diffTmp == 1); %replace the 1 with the number of occurances
     end
     out(y,:,:) = curRow;
     if(updateProgress)

@@ -145,7 +145,7 @@ classdef measurementReadRawData < measurementFile
                         im_line = im_line(~idx);
                         im_col = im_col(~idx);
                     end
-                    chs = unique(im_chan)';
+                    chs = max(1,unique(im_chan)');
                     hWaitbar(0.5,'Building photon histogram');
                     for ch = chs
                         raw = make3DPhHist(uint16(head.ImgHdr_PixY), uint16(head.ImgHdr_PixX), im_tcspc, im_chan, im_line, im_col, head.nrTimeChannels, ch, hWaitbar);
