@@ -2471,7 +2471,9 @@ classdef FLIMXVisGUI < handle
         
         function rotate_mouseButtonUpWrapper(hObject, eventdata, hFLIMXVis)
             %wrapper for mouse button up funtion in rotate3d mode
+            hFLIMXVis.dynParams.mouseButtonIsLeft = true;
             hFLIMXVis.GUI_mouseButtonUp_Callback(hObject, eventdata);
+            hFLIMXVis.dynParams.mouseButtonIsLeft = false;
             %in case of 3d roation, we have to call the button up function to stop rotating
             hManager = uigetmodemanager(hObject);
             if(~isempty(hManager.CurrentMode.WindowButtonUpFcn))
