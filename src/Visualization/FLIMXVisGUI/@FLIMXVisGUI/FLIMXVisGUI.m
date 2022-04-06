@@ -770,10 +770,8 @@ classdef FLIMXVisGUI < handle
                 if(this.stopFlag)
                     break
                 end
-                fn = fullfile(path,sprintf('%s_%02.0f%s',file,i,ext));
                 if(settings.UseSubjectNameAsFileName)
-                    file = [file '_' this.visHandles.(sprintf('subject_%s_pop',side)).String{i}];
-                    fn = fullfile(path,[file,ext]);
+                    fn = fullfile(path,[file,'_',this.visHandles.(sprintf('subject_%s_pop',side)).String{i},ext]);
                 else
                     fn = fullfile(path,sprintf('%s_%02.0f%s',file,i,ext));
                 end
