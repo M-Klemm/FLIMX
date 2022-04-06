@@ -732,6 +732,7 @@ classdef FLIMXVisGUI < handle
                 'Description','This tool will export the chosen figure for each subject in the currently selected view of the current study.',...
                 'title' , 'Figure Batch Export',...
                 'Export Batch of Figures or Animation',{'Batch of Figures';'Animation'},...
+                'Use Subject Name as File Name',false,...
                 'Add Text Overlay',true,...
                 'Overlay Type',{'Running Number';'Subject Name'} );
             %check user inputs
@@ -791,6 +792,12 @@ classdef FLIMXVisGUI < handle
                     break
                 end
                 fn = fullfile(path,sprintf('%s_%02.0f%s',file,i,ext));
+                if(settings.UseSubjectNameAsFileName)
+                    file = [file '_' this.visHandles.(sprintf('subject_%s_pop',side)).String{i}];
+                    fn = fullfile(path,[file,ext]);
+                else
+                    fn = fullfile(path,sprintf('%s_%02.0f%s',file,i,ext));
+                end
                 this.visHandles.(sprintf('subject_%s_pop',side)).Value = i;
                 this.updateGUI(side);  
                 feObj.sethfdMain([]);
@@ -2499,7 +2506,9 @@ classdef FLIMXVisGUI < handle
         
         function rotate_mouseButtonUpWrapper(hObject, eventdata, hFLIMXVis)
             %wrapper for mouse button up funtion in rotate3d mode
+            hFLIMXVis.dynParams.mouseButtonIsLeft = true;
             hFLIMXVis.GUI_mouseButtonUp_Callback(hObject, eventdata);
+            hFLIMXVis.dynParams.mouseButtonIsLeft = false;
             %in case of 3d roation, we have to call the button up function to stop rotating
             hManager = uigetmodemanager(hObject);
             if(~isempty(hManager.CurrentMode.WindowButtonUpFcn))
