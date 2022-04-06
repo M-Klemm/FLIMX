@@ -2273,6 +2273,9 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.var_mode_r_pop,'Callback',@this.GUI_varModePop_Callback,'TooltipString','Display one or multiple FLIM parameters on the right side');
             set(this.visHandles.dimension_l_pop,'Callback',@this.GUI_dimensionPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the left side');
             set(this.visHandles.dimension_r_pop,'Callback',@this.GUI_dimensionPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the right side');
+            %martin hack
+            this.visHandles.dimension_l_pop.String = {'2D','2D ROI','3D ROI','3D SCR'};
+            this.visHandles.dimension_r_pop.String = {'2D','2D ROI','3D ROI','3D SCR'};
             set(this.visHandles.channel_l_pop,'Callback',@this.GUI_channelPop_Callback,'TooltipString','Switch the spectral channel on the left side');
             set(this.visHandles.channel_r_pop,'Callback',@this.GUI_channelPop_Callback,'TooltipString','Switch the spectral channel on the right side');
             set(this.visHandles.scale_l_pop,'Callback',@this.GUI_scalePop_Callback,'Enable','off','Value',1,'TooltipString','Select linear or log10 scaling of the FLIM parameter on the left side');

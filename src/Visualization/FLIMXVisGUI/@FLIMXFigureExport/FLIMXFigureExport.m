@@ -207,7 +207,7 @@ classdef FLIMXFigureExport < FDisplay
 %                         end
                         %set(hAx,'Units',this.myDynVisParams.mainAxesUnits,'Position',this.myDynVisParams.mainAxesPosition);                        
                     end
-                    if(this.mDispDim == 3)
+                    if(this.mDispDim >= 3)
                         if(~isempty(this.disp_view))
                             view(hAx,this.disp_view);
                         end

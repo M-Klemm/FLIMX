@@ -1198,6 +1198,39 @@ classdef FDisplay < handle
                             xlabel(hAx,'TauMean ch1');
                             ylabel(hAx,'TauMean ch2');
                             zlabel(hAx,'spectral');
+%                             %labels
+%                             xlbl = [round(hfdx.getCIminLbl([],0,0,1)):1:round(hfdx.getCImaxLbl([],0,0,1))];
+%                             ylbl = [round(hfdy.getCIminLbl([],0,0,1)):1:round(hfdy.getCImaxLbl([],0,0,1))];
+%                             zlbl = [round(hfdz.getCIminLbl([],0,0,1)):1:round(hfdz.getCImaxLbl([],0,0,1))];
+%                             %x                            
+%                             xtick = get(this.h_m_ax,'XTick');
+%                             xtick = min(xtick,length(xlbl));
+%                             idx = abs(fix(xtick)-xtick)<eps; %only integer labels
+%                             pos = xtick(idx);
+%                             idx = find(idx);
+%                             idx(~pos) = [];
+%                             pos(~pos) = [];
+%                             xCell = cell(length(xtick),1);
+%                             xCell(idx) = num2cell(xlbl(pos));
+%                             %y
+%                             ytick = get(this.h_m_ax,'YTick');
+%                             ytick = min(ytick,length(ylbl));
+%                             idx = abs(fix(ytick)-ytick)<eps; %only integer labels
+%                             pos = ytick(idx);
+%                             idx(~pos) = [];
+%                             pos(~pos) = [];
+%                             yCell = cell(length(ytick),1);
+%                             yCell(idx) = num2cell(ylbl(pos));
+%                             %z
+%                             ztick = get(this.h_m_ax,'ZTick');
+%                             ztick = min(ztick,length(zlbl));
+%                             idx = abs(fix(ztick)-ztick)<eps; %only integer labels
+%                             pos = ztick(idx);
+%                             idx(~pos) = [];
+%                             pos(~pos) = [];
+%                             zCell = cell(length(ztick),1);
+%                             zCell(idx) = num2cell(zlbl(pos));
+%                             set(this.h_m_ax,'XTickLabel',xCell,'YTickLabel',yCell,'ZTickLabel',zCell);
                         end
                 end
                 %clear current_img
@@ -1206,7 +1239,7 @@ classdef FDisplay < handle
                 hold(hAx,'off');
             end
             if(~this.screenshot)
-                if(dispDim == 3)
+                if(dispDim >= 3)
                     setAllowAxesRotate(this.visObj.visHandles.hrotate3d,this.h_m_ax,true);
                 else
                     setAllowAxesRotate(this.visObj.visHandles.hrotate3d,this.h_m_ax,false);
@@ -1291,7 +1324,7 @@ classdef FDisplay < handle
             zoom = this.mZoomFactor;
             %main plot
             hAxMain = this.h_m_ax;
-            if(this.mDispDim ~= 3)  %martin hack
+            if(this.mDispDim ~= 4)  %martin hack
                 if((zoom-1) < eps)
                     hAxMain.XLim = [1 xFullRange];
                     hAxMain.YLim = [1 yFullRange];
@@ -1333,7 +1366,7 @@ classdef FDisplay < handle
                 axis(this.h_m_ax,'off');
                 return
             end
-            if(this.mDispDim == 3) %martin hack
+            if(this.mDispDim == 4) %martin hack
                 return
             end
             if(this.mDispDim == 1) %2Do
