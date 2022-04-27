@@ -234,7 +234,9 @@ classdef SDTIO < handle
                 otherwise
             end
             %Convert from uint... to cell for measurementReadRawData.m
-            raw = permute(raw,[3 2 1]);
+            if(ndims(raw) == 3)
+                raw = permute(raw,[3 2 1]);
+            end
         end
     end
     
@@ -347,6 +349,11 @@ classdef SDTIO < handle
                         sdtMDescBlk.(StructureSDT_MEASUREMENTDESCBLOCK{i}) = obj.ReadStructInMeasBlock(StructureSDT_MEASUREMENTDESCBLOCK{i});
                     end
                 end
+                %check sdtMDescBlk
+                if(abs(sdtMDescBlk.adc_re - 0) <= eps && iNum > 1)
+                    %sdtMDescBlk is empty -> use it from the first channel
+                    sdtMDescBlk = obj.m_SDTReadInfo.MeasurmentDescBlocks(1);
+                end
                 %transform into SPCDATA struct
                 if(sdtMDescBlk.scan_x ~= 0)
                     obj.m_SDTReadInfo.pSPCData(iNum).img_size_x = sdtMDescBlk.scan_x;
@@ -358,7 +365,7 @@ classdef SDTIO < handle
                 else
                     obj.m_SDTReadInfo.pSPCData(iNum).img_size_y = sdtMDescBlk.image_y;
                 end
-                obj.m_SDTReadInfo.pSPCData(iNum).adc_resolution = int16(log2(sdtMDescBlk.adc_re));                
+                obj.m_SDTReadInfo.pSPCData(iNum).adc_resolution = uint16(log2(sdtMDescBlk.adc_re));                
                 obj.m_SDTReadInfo.pSPCData(iNum).cfd_zc_level = sdtMDescBlk.cfd_zc;
                 obj.m_SDTReadInfo.pSPCData(iNum).cfd_limit_low = sdtMDescBlk.cfd_ll;
                 obj.m_SDTReadInfo.pSPCData(iNum).cfd_limit_high = sdtMDescBlk.cfd_lh;
