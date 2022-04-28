@@ -1184,7 +1184,11 @@ classdef FLIMX < handle
 
                 newline;
                 'This software uses ''Violinplot-Matlab'' by Bastian Bechtold from https://github.com/bastibe/Violinplot-Matlab, which is released under the terms of the BSD 3-clause license.';
-
+                char(13);
+                
+                newline;
+                'This software uses ''MEXlibCZI'' by ptahmose from https://https://github.com/ptahmose/MEXlibCZI, which is covered by the following license:';
+                'GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007';
                 char(13);
                 };
         end
