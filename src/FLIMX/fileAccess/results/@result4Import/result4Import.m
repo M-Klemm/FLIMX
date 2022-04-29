@@ -402,6 +402,40 @@ classdef result4Import < resultFile
                             %todo: message user
                             continue
                         end
+                    case '.czi'
+                        try
+                            hc = MEXlibCZI('Open',file);
+                            ci = MEXlibCZI('GetInfo',hc);
+                            if(isempty(ci) || ~isfield(ci,'boundingBox') || ~isfield(ci,'subblockcount'))
+                                continue
+                            end
+                            %cs = MEXlibCZI('GetScaling',hc);
+                            if(ci.subblockcount == 3)                                
+                                data_temp = MEXlibCZI('GetMultiChannelScalingTileComposite',hc,ci.boundingBox,'',1);
+                                %convert image to binary image
+                                data_temp = rgb2ind(data_temp(:,:,1:3),0.01,'nodither');                                
+                            else
+                                %cs = MEXlibCZI('GetSingleChannelScalingTileComposite',hc,ci.boundingBox,'C1',1);
+                                tmp = MEXlibCZI('GetSubBlockBitmap',hc,0);
+                                tmp = zeros(ci.subblockcount,size(tmp,1),size(tmp,2),'like',tmp);
+                                for sb = 1:ci.subblockcount
+                                    tmp(sb,:,:) = MEXlibCZI('GetSubBlockBitmap',hc,sb-1);
+                                end
+                                data_temp = zeros(size(tmp,2),size(tmp,3));
+                                for x = 1:size(tmp,2)
+                                    for y = 1:size(tmp,3)
+                                        data_temp(x,y) = result4Import.histogramMeasure(tmp(:,x,y),'median');
+                                    end
+                                end
+                                %data_temp = mean(data_temp,3);
+                            end 
+                            %flip the image by default
+                            data_temp = flipud(data_temp);
+                        catch ME
+                            %reading image failed
+                            %todo: message user
+                            continue
+                        end
                 end
                 %restrict B&H amplitudes to <= 1 and amplify
                 %                 if(strcmp(dType,'Amplitude') && median(data_temp(:)) < 0.5)
@@ -443,6 +477,21 @@ classdef result4Import < resultFile
         function out = reservedFLIMItemNames()
             %return names of FLIM items which are used by FLIMX; thus can't be imported
             out = {'TauMean','TauMeanIS','TauMeanRetina','Q','AmplitudePercent','RAUC','RAUCIS'};
+        end
+        
+        function out = histogramMeasure(h,mType)
+            %compute measure of histogram
+            n = zeros(1,1,'like',h);
+            n(1) = length(h);
+            raw = repelem(1:n,h);
+            switch mType
+                case 'mean'
+                    out = mean(raw,'omitnan');
+                case 'median'
+                    out = median(raw,'omitnan');
+                otherwise
+                    out = [];
+            end
         end
     end
 end%classdef

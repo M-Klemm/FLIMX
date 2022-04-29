@@ -40,7 +40,7 @@ classdef FLIMXFitResultImport < handle
     properties(GetAccess = protected, SetAccess = protected)
         visHandles = [];
         allFiles = cell(0,0);
-        myFileTypes = {'.bmp', '.tif', '.tiff', '.png'};
+        myFileTypes = {'.bmp', '.tif', '.tiff', '.png', '.czi'};
         myFileGroups = {};
         myFileGroupsCounts = [];
         myResultStruct = [];
@@ -606,23 +606,29 @@ classdef FLIMXFitResultImport < handle
         
         function [xRef,yRef] = getRefImageSize(this)
             %return the size of the subject's intensity image or of amplitude 1
-            xRef = []; yRef = [];
-            fi = this.currentFileInfo;            
-            if(fi.rawXSz == 0)
-                %look in valid channel for reference
-                afRef = this.allFiles{this.myChannelNrs(1)};
-                idx = find(strcmp(afRef(:,1),'Amplitude1'), 1);
-                if(isempty(idx))
-                    %no reference, nothing to do
-                    return
-                end
-                sz = vertcat(afRef{:,7});
-                xRef = sz(idx,2);
-                yRef = sz(idx,1);
-            else
-                xRef = fi.rawXSz;
-                yRef = fi.rawYSz;
-            end            
+            xRef = []; yRef = [];            
+            subObj = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudyName,this.currentSubjectName,true);
+            if(isempty(subObj))
+                return
+            end
+            xRef = subObj.XSz;
+            yRef = subObj.YSz;
+%             fi = this.currentFileInfo;
+%             if(fi.rawXSz == 0)
+%                 %look in valid channel for reference
+%                 afRef = this.allFiles{this.myChannelNrs(1)};
+%                 idx = find(strcmp(afRef(:,1),'Amplitude1'), 1);
+%                 if(isempty(idx))
+%                     %no reference, nothing to do
+%                     return
+%                 end
+%                 sz = vertcat(afRef{:,7});
+%                 xRef = sz(idx,2);
+%                 yRef = sz(idx,1);
+%             else
+%                 xRef = fi.rawXSz;
+%                 yRef = fi.rawYSz;
+%             end            
         end
             
         function flag = checkSubjectID(this, Ch)
@@ -1028,6 +1034,7 @@ classdef FLIMXFitResultImport < handle
             end
             img = imdilate(img,true(2*binFactor+1));
         end
+        
     end
 end
 
