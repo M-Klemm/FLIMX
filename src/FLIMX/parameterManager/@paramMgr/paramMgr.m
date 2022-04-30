@@ -47,6 +47,7 @@ classdef paramMgr < handle
         boundsParams = [];
         optimizationParams = [];
         roiParams = [];
+        studyMgrParams
     end
 
     methods
@@ -148,6 +149,11 @@ classdef paramMgr < handle
             params = this.getParamSection('region_of_interest');
         end
 
+        function params = get.studyMgrParams(this)
+            %get study manager
+            params = this.getParamSection('study_manager');
+        end
+
         function set.generalParams(this,val)
             %set general parameters
             this.setParamSection('general',val);
@@ -197,6 +203,12 @@ classdef paramMgr < handle
             %set roi info
             this.setParamSection('region_of_interest',val);
         end
+
+        function set.studyMgrParams(this,val)
+            %set roi info
+            this.setParamSection('study_manager',val);
+        end
+
         function def = getDefaults(this)
             %get default FLIMX parameters
             def.about.config_revision = this.about.config_revision;
@@ -680,6 +692,9 @@ classdef paramMgr < handle
             def.region_of_interest.rectangle3Quantil    =   [2 98];
             def.region_of_interest.rectangle3Quantil_TauMean1 = [2 98];
             def.region_of_interest.rectangle3Quantil_spectral = [2 98];
+
+            def.study_manager.resultImportAutoResize        = 0;
+            def.study_manager.resultImportExistingResults   = 1; %1: ask; 2: keep existing results; 3: delete existing results
 
             def.general.openFitGUIonStartup     = 1;
             def.general.openVisGUIonStartup     = 1;
