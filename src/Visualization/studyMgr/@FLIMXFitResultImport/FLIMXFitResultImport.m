@@ -40,7 +40,7 @@ classdef FLIMXFitResultImport < handle
     properties(GetAccess = protected, SetAccess = protected)
         visHandles = [];
         allFiles = cell(0,0);
-        myFileTypes = {'.bmp', '.tif', '.tiff', '.png'};
+        myFileTypes = {'.bmp', '.tif', '.tiff', '.png', '.czi'};
         myFileGroups = {};
         myFileGroupsCounts = [];
         myResultStruct = [];
@@ -142,6 +142,8 @@ classdef FLIMXFitResultImport < handle
         
         function setupGUI(this)
             %setup GUI controls
+            this.visHandles.checkAutoResize.Value = this.FLIMXObj.paramMgr.studyMgrParams.resultImportAutoResize;
+            this.visHandles.popupExistingResults.Value = this.FLIMXObj.paramMgr.studyMgrParams.resultImportExistingResults;
             %study selection
             set(this.visHandles.popupStudySel,'String',this.FLIMXObj.fdt.getAllStudyNames());
             if(get(this.visHandles.radioExistingStudy,'Value'))
@@ -495,7 +497,9 @@ classdef FLIMXFitResultImport < handle
             %setup fileGroup popup
             this.visHandles.popupFileGroup.String = this.myFileGroups;
             if(~isempty(this.myFileGroupsCounts))
-                [~,lg] = max(this.myFileGroupsCounts);
+                idx = cellfun(@(c)FLIMXFitResultImport.wfEdits(c,this.currentSubjectName),this.myFileGroups);
+                [~, lg] = min(idx);
+                %[~,lg] = max(this.myFileGroupsCounts);
                 this.visHandles.popupFileGroup.Value = lg;
             end
             this.switchFileGroup(this.currentFileGroup);
@@ -512,10 +516,14 @@ classdef FLIMXFitResultImport < handle
             [~, existingChs] = this.FLIMXObj.fdt.getSubjectFilesStatus(this.currentStudyName,this.currentSubjectName);
             choice = '';
             chs = intersect(existingChs,1:rsChNrs);
-            if(any(chs))
+            if(any(chs) && this.FLIMXObj.paramMgr.studyMgrParams.resultImportExistingResults == 1)
                 %some or all channels exist already in current subject
                 choice = questdlg(sprintf('Channels ''%s'' already have results in subject ''%s''!',num2str(chs),this.currentSubjectName),...
                     'FLIMX Result Import: Existing Result Channel(s)','Keep existing results and add new items','Delete all existing results and import new channel(s)','Abort','Keep existing results and add new items');
+            elseif(this.FLIMXObj.paramMgr.studyMgrParams.resultImportExistingResults == 2)
+                choice = 'Keep existing results and add new items';
+            elseif(this.FLIMXObj.paramMgr.studyMgrParams.resultImportExistingResults == 3)
+                choice = 'Delete all existing results and import new channel(s)';
             end
             switch choice
                 case 'Abort'
@@ -606,23 +614,29 @@ classdef FLIMXFitResultImport < handle
         
         function [xRef,yRef] = getRefImageSize(this)
             %return the size of the subject's intensity image or of amplitude 1
-            xRef = []; yRef = [];
-            fi = this.currentFileInfo;            
-            if(fi.rawXSz == 0)
-                %look in valid channel for reference
-                afRef = this.allFiles{this.myChannelNrs(1)};
-                idx = find(strcmp(afRef(:,1),'Amplitude1'), 1);
-                if(isempty(idx))
-                    %no reference, nothing to do
-                    return
-                end
-                sz = vertcat(afRef{:,7});
-                xRef = sz(idx,2);
-                yRef = sz(idx,1);
-            else
-                xRef = fi.rawXSz;
-                yRef = fi.rawYSz;
-            end            
+            xRef = []; yRef = [];            
+            subObj = this.FLIMXObj.fdt.getSubject4Approx(this.currentStudyName,this.currentSubjectName,true);
+            if(isempty(subObj))
+                return
+            end
+            xRef = subObj.XSz;
+            yRef = subObj.YSz;
+%             fi = this.currentFileInfo;
+%             if(fi.rawXSz == 0)
+%                 %look in valid channel for reference
+%                 afRef = this.allFiles{this.myChannelNrs(1)};
+%                 idx = find(strcmp(afRef(:,1),'Amplitude1'), 1);
+%                 if(isempty(idx))
+%                     %no reference, nothing to do
+%                     return
+%                 end
+%                 sz = vertcat(afRef{:,7});
+%                 xRef = sz(idx,2);
+%                 yRef = sz(idx,1);
+%             else
+%                 xRef = fi.rawXSz;
+%                 yRef = fi.rawYSz;
+%             end            
         end
             
         function flag = checkSubjectID(this, Ch)
@@ -703,6 +717,8 @@ classdef FLIMXFitResultImport < handle
             figure(this.visHandles.FLIMXFitResultImportFigure);
             %set callbacks
             % popup
+            set(this.visHandles.popupExistingResults,'Callback',@this.GUI_popupExistingResults_Callback);
+            set(this.visHandles.checkAutoResize,'Callback',@this.GUI_checkAutoResize_Callback);
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select channel');
             set(this.visHandles.popupFileGroup,'Callback',@this.GUI_popupFileGroup_Callback,'TooltipString','Select file stub. You will loose your current choice of FLIM items!');
             set(this.visHandles.popupFilter,'Enable','off','Callback',@this.GUI_popupFilter_Callback,'TooltipString','Select file stub. You will loose your current choice of FLIM items!');
@@ -761,7 +777,7 @@ classdef FLIMXFitResultImport < handle
         
         %% GUI Callbacks
         % Tables
-        function GUI_tableFiles_CellSelectionCallback(this,hObject, eventdata)
+        function GUI_tableFiles_CellSelectionCallback(this, hObject, eventdata)
             if (isempty(eventdata.Indices))
                 return
             else
@@ -771,7 +787,7 @@ classdef FLIMXFitResultImport < handle
             this.drawCurrentImage();
         end
         
-        function GUI_tableFiles_CellEditCallback(this,hObject, eventdata)
+        function GUI_tableFiles_CellEditCallback(this, hObject, eventdata)
             % which file is selected
             if (isempty(eventdata.Indices))
                 row = 1;
@@ -826,7 +842,7 @@ classdef FLIMXFitResultImport < handle
                 %check if an item was enabled for import, which size doesn't match the reference
                 if(newVal)
                     resList = find(~this.checkImageSizes(this.currentChannel));
-                    if(any(resList == di))
+                    if(any(resList == di) && ~this.FLIMXObj.paramMgr.studyMgrParams.resultImportAutoResize)
                         uiwait(warndlg(sprintf('Image size of ''%s'' is different from the reference (x:%d y:%d).\n\nThe image will be rescaled to match the reference!',dataOld{di},this.xRef,this.yRef),...
                             'FLIMX Result Import: Size Mismatch'));
                     end
@@ -845,7 +861,7 @@ classdef FLIMXFitResultImport < handle
         end
         
         % edit
-        function GUI_editPath_Callback(this,hObject,eventdata)
+        function GUI_editPath_Callback(this, hObject,eventdata)
             %enter path manually
             path = get(this.visHandles.editPath,'String');
             if(isempty(path))
@@ -856,12 +872,16 @@ classdef FLIMXFitResultImport < handle
         end
                 
         % Popup
-        function GUI_popupChannel_Callback(this,hObject, eventdata)
+        function GUI_popupExistingResults_Callback(this, hObject,eventdata)
+            this.FLIMXObj.paramMgr.studyMgrParams.resultImportExistingResults = hObject.Value;
+        end
+        
+        function GUI_popupChannel_Callback(this, hObject, eventdata)
             this.currentRow = min(this.currentRow,size(this.allFiles{this.currentChannel},1));
             this.updateGUI();
         end
         
-        function GUI_popupFileGroup_Callback(this,hObject, eventdata)
+        function GUI_popupFileGroup_Callback(this, hObject, eventdata)
             %change current file group
             this.currentRow = 1;
             this.currentChannel = 1;
@@ -870,32 +890,32 @@ classdef FLIMXFitResultImport < handle
 %             this.updateGUI();
         end
         
-        function GUI_popupFilter_Callback(this,hObject, eventdata)
+        function GUI_popupFilter_Callback(this, hObject, eventdata)
             %change file selection filter
             
         end
         
-        function GUI_popupStudySel_Callback(this,hObject, eventdata)
+        function GUI_popupStudySel_Callback(this, hObject, eventdata)
             %change study
             this.setupGUI();
         end
         
-        function GUI_popupSubjectSel_Callback(this,hObject, eventdata)
+        function GUI_popupSubjectSel_Callback(this, hObject, eventdata)
             %change subject
             this.setupGUI();
         end
         
         % Pushbutton
-        function GUI_buttonBrowse_Callback(this,hObject, eventdata)
+        function GUI_buttonBrowse_Callback(this, hObject, eventdata)
             %browse for a new folder
             this.openFolderByGUI(this.currentStudyName,this.currentSubjectName);
         end
         
-        function GUI_buttonCancel_Callback(this,hObject, eventdata)
+        function GUI_buttonCancel_Callback(this, hObject, eventdata)
             this.closeVisWnd();
         end
         
-        function GUI_buttonImport_Callback(this,hObject, eventdata)
+        function GUI_buttonImport_Callback(this, hObject, eventdata)
             %import selected results to subject
             %check if something is selected
             if(this.numberOfAllImports == 0)
@@ -953,7 +973,7 @@ classdef FLIMXFitResultImport < handle
                             rs.results.pixel.(fn{i}) = flipud(rs.results.pixel.(fn{i}));
                         end
                     end
-                    if(any([data{:,5}])) 
+                    if(subObj.isPixelResult(this.myChannelNrs(chId),[],[],false))
                         %we have existing results
                         subObj.addFLIMItems(this.myChannelNrs(chId),rs.results.pixel);
                     else
@@ -969,7 +989,11 @@ classdef FLIMXFitResultImport < handle
         end
         
         % checkbox
-        function GUI_checkSelectAll_Callback(this,hObject, eventdata)
+        function GUI_checkAutoResize(this, hObject, eventdata)
+            this.FLIMXObj.paramMgr.resultImportAutoResize = hObject.Value;
+        end
+        
+        function GUI_checkSelectAll_Callback(this, hObject, eventdata)
             % switch checkbox and select all/deselect all
             data = this.getTableData4Channel(this.currentChannel);
             set(hObject,'Value',1)
@@ -978,7 +1002,7 @@ classdef FLIMXFitResultImport < handle
             this.updateGUI();
         end
         
-        function GUI_checkSelectNone_Callback(this,hObject, eventdata)
+        function GUI_checkSelectNone_Callback(this, hObject, eventdata)
             % switch checkbox and select all/deselect all
             data = this.getTableData4Channel(this.currentChannel);
             set(hObject,'Value',0)
@@ -988,12 +1012,12 @@ classdef FLIMXFitResultImport < handle
         end
                 
         %radio button
-        function GUI_radioStudy_Callback(this,hObject, eventdata)
+        function GUI_radioStudy_Callback(this, hObject, eventdata)
             %user changed study source
             this.setupGUI();
         end
         
-        function GUI_radioSubject_Callback(this,hObject, eventdata)
+        function GUI_radioSubject_Callback(this, hObject, eventdata)
             %user changed subject name source
             this.setupGUI();
         end
@@ -1028,6 +1052,27 @@ classdef FLIMXFitResultImport < handle
             end
             img = imdilate(img,true(2*binFactor+1));
         end
+        
+        function d = wfEdits(S1,S2)
+            %code from: https://www.mathworks.com/matlabcentral/answers/318477-find-the-most-similar-word-from-a-set-of-words
+            % Wagner–Fischer algorithm to calculate the edit distance / Levenshtein distance.
+            %
+            N1 = 1+numel(S1);
+            N2 = 1+numel(S2);
+            %
+            D = zeros(N1,N2);
+            D(:,1) = 0:N1-1;
+            D(1,:) = 0:N2-1;
+            %
+            for r = 2:N1
+                for c = 2:N2
+                    D(r,c) = min([D(r-1,c)+1, D(r,c-1)+1, D(r-1,c-1)+~strcmpi(S1(r-1),S2(c-1))]);
+                end
+            end
+            d = D(end);
+            %
+        end
+        
     end
 end
 
