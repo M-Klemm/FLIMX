@@ -407,6 +407,7 @@ classdef result4Import < resultFile
                             hc = MEXlibCZI('Open',file);
                             ci = MEXlibCZI('GetInfo',hc);
                             if(isempty(ci) || ~isfield(ci,'boundingBox') || ~isfield(ci,'subblockcount'))
+                                MEXlibCZI('Close',hc);
                                 continue
                             end
                             %cs = MEXlibCZI('GetScaling',hc);
@@ -428,9 +429,11 @@ classdef result4Import < resultFile
                                     end
                                 end
                                 %data_temp = mean(data_temp,3);
-                            end 
+                            end
+                            %close file
+                            MEXlibCZI('Close',hc);
                             %flip the image by default
-                            data_temp = flipud(data_temp);
+                            %data_temp = flipud(data_temp);
                         catch ME
                             %reading image failed
                             %todo: message user
