@@ -40,13 +40,16 @@ classdef resultFile < handle
         filesOnHDD = false(1,0);
         loadedChannels = false(1,0);
         results = [];
-        resultSize = zeros(1,2);
         resultMemorySize = 0;
         initApproximated = false(1,1);
         pixelApproximated = false(1,1);
         auxiliaryData = cell(0,0);
         resultType = 'FluoDecayFit';
         dirtyFlags = false(1,0);        
+    end
+
+    properties(GetAccess = protected, SetAccess = protected)
+        resultSize = zeros(1,2);
     end
     
     properties (Dependent = true)
@@ -64,6 +67,7 @@ classdef resultFile < handle
         nonEmptyChannelList = [];
         loadedChannelList = [];
         isDirty = false;
+        mySize;
     end
     
     methods
@@ -1210,6 +1214,35 @@ classdef resultFile < handle
         function out = get.isDirty(this)
             %return true if something has to be saved to disk
             out = any(this.dirtyFlags(:));
+        end
+
+        function out = get.mySize(this)
+            %return size of results
+            if(~any(this.resultSize) && ~isMultipleCall())
+                %get size from any channel
+                if(isempty(this.loadedChannelList))
+                    if(isempty(this.nonEmptyChannelList))
+                        %we don't have any file
+                        %we don't have anything
+                        out = [];
+                        return
+                    else
+                        %try to load a channel
+                        ch = this.nonEmptyChannelList(1);
+                        %                             this.openChannel(ch);
+                    end
+                else
+                    ch = this.loadedChannelList(1);
+                end
+                %                 elseif(isMultipleCall())
+                %                     ch = 1;
+                if(ismember(ch,this.nonEmptyChannelList)) %(length(this.auxiliaryData) < ch) || isempty(this.auxiliaryData{ch}) &&
+                    %load first available result
+                    this.openChannel(ch);
+                    %resuöt size should not be empty anymore
+                end
+            end
+            out = this.resultSize;
         end
         
     end %methods

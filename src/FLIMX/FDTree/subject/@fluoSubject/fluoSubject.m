@@ -754,7 +754,7 @@ classdef fluoSubject < FDTreeNode
             %return width of results
             if(~(isempty(this.myResult.nonEmptyChannelList)))
                 %get it from a result first
-                out = this.myResult.resultSize;
+                out = this.myResult.mySize;
                 if(length(out) == 2)
                     out = out(2);
                 else
@@ -776,7 +776,7 @@ classdef fluoSubject < FDTreeNode
             %return height of results
             if(~(isempty(this.myResult.nonEmptyChannelList)))
                 %get it from a result first
-                out = this.myResult.resultSize;
+                out = this.myResult.mySize;
                 if(length(out) == 2)
                     out = out(1);
                 else
