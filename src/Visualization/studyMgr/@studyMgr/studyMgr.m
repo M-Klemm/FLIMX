@@ -734,9 +734,10 @@ classdef studyMgr < handle
             if(isempty(this.selectedInfoField))
                 return
             end
-            %check if conditional column and enable context menu
-            ref = this.fdt.getConditionalColumnDefinition(this.curStudyName,this.selectedInfoField(2));
             infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoAllColumnNames');
+            this.selectedInfoField(2) = min(length(infoHeaders),this.selectedInfoField(2));
+            %check if conditional column and enable context menu
+            ref = this.fdt.getConditionalColumnDefinition(this.curStudyName,this.selectedInfoField(2));            
             opt.list = infoHeaders;
             opt.ops = {'-no op-','AND','OR','!AND','!OR','XOR','<','>','<=','>=','==','!='};
             opLen = length(opt.ops);
@@ -840,14 +841,14 @@ classdef studyMgr < handle
         
         function contextDelColumn_Callback(this,hObject,eventdata)
             %delete selected column
-            col=this.selectedInfoField(2);
+            col = this.selectedInfoField(2);
             infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoAllColumnNames');
             if(col > size(infoHeaders,1))
                 %if index is greater than column number (i.e. table is empty or
                 %user deleted a column at the end without selecting new cell)
                 col = size(infoHeaders,1);
             end
-            if(col>0)
+            if(col > 0)
                 choice = questdlg(sprintf('Do you really want to delete Column "%s" ?',...
                     infoHeaders{col,1}),'Delete Column','Yes','Cancel','Yes');
                 %Handle response
@@ -859,6 +860,8 @@ classdef studyMgr < handle
             %User want to delete column or column is empty:
             this.fdt.removeColumn(this.curStudyName,infoHeaders{col,1});
             this.fdt.saveStudy(this.curStudyName);
+            infoHeaders = this.fdt.getDataFromStudyInfo(this.curStudyName,'subjectInfoAllColumnNames');
+            this.selectedInfoField(2) = min(length(infoHeaders),this.selectedInfoField(2));
             this.updateGUI();
             this.visObj.setupGUI();
             this.visObj.updateGUI('');
