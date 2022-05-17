@@ -695,6 +695,7 @@ classdef paramMgr < handle
 
             def.study_manager.resultImportAutoResize        = 0;
             def.study_manager.resultImportExistingResults   = 1; %1: ask; 2: keep existing results; 3: delete existing results
+            def.study_manager.resultImportFlipDefault       = 1;
 
             def.general.openFitGUIonStartup     = 1;
             def.general.openVisGUIonStartup     = 1;

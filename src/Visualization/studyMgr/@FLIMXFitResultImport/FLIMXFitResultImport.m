@@ -557,6 +557,11 @@ classdef FLIMXFitResultImport < handle
                 this.visHandles.buttonImport.Enable = 'On';
                 return
             end
+            if(this.FLIMXObj.paramMgr.studyMgrParams.resultImportFlipDefault)
+                defaultFlipFlag = true;
+            else
+                defaultFlipFlag = false;
+            end
             for chId = 1:length(this.myChannelNrs)
                 fn = fieldnames(rs(this.myChannelNrs(chId)).results.pixel);
                 af = cell(length(fn),7);
@@ -565,7 +570,7 @@ classdef FLIMXFitResultImport < handle
                     af(i,1) = {fn{i}};
                     af(i,2) = {sprintf('%dx%d',sx,sy)}; %size
                     af(i,3) = {0}; %binning
-                    af(i,4) = {false}; %flip up/down flag
+                    af(i,4) = {defaultFlipFlag}; %flip up/down flag
                     af(i,5) = {false}; %exist flag
                     af(i,6) = {true}; %import flag
                     af(i,7) = {[sy, sx, sz]};
@@ -717,8 +722,7 @@ classdef FLIMXFitResultImport < handle
             figure(this.visHandles.FLIMXFitResultImportFigure);
             %set callbacks
             % popup
-            set(this.visHandles.popupExistingResults,'Callback',@this.GUI_popupExistingResults_Callback);
-            set(this.visHandles.checkAutoResize,'Callback',@this.GUI_checkAutoResize_Callback);
+            set(this.visHandles.popupExistingResults,'Callback',@this.GUI_popupExistingResults_Callback,'TooltipString','If subject already has results: ask user; keep existing results and add new or delete all existing resuts and import the new results');            
             set(this.visHandles.popupChannel,'Callback',@this.GUI_popupChannel_Callback,'TooltipString','Select channel');
             set(this.visHandles.popupFileGroup,'Callback',@this.GUI_popupFileGroup_Callback,'TooltipString','Select file stub. You will loose your current choice of FLIM items!');
             set(this.visHandles.popupFilter,'Enable','off','Callback',@this.GUI_popupFilter_Callback,'TooltipString','Select file stub. You will loose your current choice of FLIM items!');
@@ -754,8 +758,10 @@ classdef FLIMXFitResultImport < handle
             set(this.visHandles.buttonImport,'Callback',@this.GUI_buttonImport_Callback,'TooltipString','If you are ready, click here to import all selected files from all channels for the selected file stub');
             set(this.visHandles.buttonCancel,'Callback',@this.GUI_buttonCancel_Callback,'TooltipString','Click here for cancel importing result files');
             % checkbox
+            set(this.visHandles.checkAutoResize,'Callback',@this.GUI_checkAutoResize_Callback,'TooltipString','Always resize import to subject resolution, if necessary');
             set(this.visHandles.checkSelectAll,'Callback',@this.GUI_checkSelectAll_Callback,'TooltipString','Select all files for import in the current channel');
             set(this.visHandles.checkSelectNone,'Callback',@this.GUI_checkSelectNone_Callback,'TooltipString','Deselect all files for import in the current channel');
+            set(this.visHandles.checkFlipDefault,'Callback',@this.GUI_checkFlipDefault_Callback,'TooltipString','Enable up/down flip of imported data by default');
             % edit fields
             set(this.visHandles.editPath,'Callback',@this.GUI_editPath_Callback,'TooltipString','Current import folder');
             % mouse
@@ -798,7 +804,7 @@ classdef FLIMXFitResultImport < handle
             % update GUI
             dataNew = eventdata.Source.Data;
             dataOld = this.getTableData4Channel(this.currentChannel);
-            di = find(~[dataOld{:,5}] & [dataOld{:,6}] - [dataNew{:,6}],1);
+            di = find([dataOld{:,6}] - [dataNew{:,6}],1); %~[dataOld{:,5}] & 
             if(~isempty(di))
                 %check if change is an amplitude or a tau
                 newVal = dataNew{di,6};
@@ -989,8 +995,20 @@ classdef FLIMXFitResultImport < handle
         end
 
         % checkbox
-        function GUI_checkAutoResize(this, hObject, eventdata)
-            this.FLIMXObj.paramMgr.resultImportAutoResize = hObject.Value;
+        function GUI_checkAutoResize_Callback(this, hObject, eventdata)
+            this.FLIMXObj.paramMgr.studyMgrParams.resultImportAutoResize = hObject.Value;
+        end
+
+        function GUI_checkFlipDefault_Callback(this, hObject, eventdata)
+            this.FLIMXObj.paramMgr.studyMgrParams.resultImportFlipDefault = hObject.Value;
+            if(hObject.Value)
+                if(~isempty(this.allFiles))
+                    data = this.getTableData4Channel(this.currentChannel);
+                    data(:,4) = num2cell(true(size(data,1),1));
+                    this.setTableData4Channel(this.currentChannel,data);
+                    this.updateGUI();
+                end
+            end            
         end
 
         function GUI_checkSelectAll_Callback(this, hObject, eventdata)
