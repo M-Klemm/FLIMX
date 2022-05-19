@@ -335,6 +335,14 @@ classdef FLIMXVisGUI < handle
                                 set(this.visHandles.(sprintf('view_%s_pop',s)),'Visible','off');
                             end
                     end
+                    %disable FLIM item and variation selection in case of 3D scatter plot
+                    if(this.visHandles.(sprintf('dimension_%s_pop',s)).Value == 4)
+                        this.visHandles.(sprintf('flim_param_%s_pop',s)).Visible = 'off';
+                        this.visHandles.(sprintf('var_mode_%s_pop',s)).Visible = 'off';
+                    else
+                        this.visHandles.(sprintf('flim_param_%s_pop',s)).Visible = 'on';
+                        this.visHandles.(sprintf('var_mode_%s_pop',s)).Visible = 'on';
+                    end
                     %supplementary plot histogram selection
                     if(get(this.visHandles.(sprintf('supp_axes_%s_pop',s)),'Value') == 2)
                         %Histogram
@@ -562,7 +570,7 @@ classdef FLIMXVisGUI < handle
             defaults.flimvis = this.visParams;
             defaults.general = this.generalParams; %todo
             defaults.region_of_interest = this.FLIMXObj.paramMgr.getParamSection('region_of_interest');
-            new = GUI_FLIMXVisGUIVisualizationOptions(defaults.flimvis,defaults.general,defaults.region_of_interest,defaults,this.FLIMXObj.fdt);
+            new = GUI_FLIMXVisGUIVisualizationOptions(defaults.flimvis,defaults.general,defaults.region_of_interest,defaults,this.FLIMXObj.fdt,this);
             if(~isempty(new))
                 %save to disk
                 if(new.isDirty(1) == 1)
@@ -1844,6 +1852,7 @@ classdef FLIMXVisGUI < handle
             if(this.fdt.getNrSubjects(this.getStudy(s),this.getCondition(s)) < 1)
                 return
             end
+            this.setupGUI();
             if(this.objHandles.(sprintf('%sdo',s)).myColorScaleObj.check)
                 this.objHandles.(sprintf('%sdo',s)).myColorScaleObj.forceAutoScale(hObject.Value > 1);
             else
@@ -2278,7 +2287,6 @@ classdef FLIMXVisGUI < handle
             set(this.visHandles.var_mode_r_pop,'Callback',@this.GUI_varModePop_Callback,'TooltipString','Display one or multiple FLIM parameters on the right side');
             set(this.visHandles.dimension_l_pop,'Callback',@this.GUI_dimensionPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the left side');
             set(this.visHandles.dimension_r_pop,'Callback',@this.GUI_dimensionPop_Callback,'TooltipString','Show the whole image in 2D or only the ROI in 2D and 3D respectively on the right side');
-            %martin hack
             this.visHandles.dimension_l_pop.String = {'2D','2D ROI','3D ROI','3D SCR'};
             this.visHandles.dimension_r_pop.String = {'2D','2D ROI','3D ROI','3D SCR'};
             set(this.visHandles.channel_l_pop,'Callback',@this.GUI_channelPop_Callback,'TooltipString','Switch the spectral channel on the left side');
@@ -2479,6 +2487,19 @@ classdef FLIMXVisGUI < handle
             else
                 dTypeNr = 0;
                 dType = {dType};
+            end
+        end
+
+        function out = ChItem2ID(chStr)
+            %confert a channel item 'Ch 1' to 1
+            chStr = deblank(char(chStr));
+            %find whitespace
+            idx = isstrprop(chStr, 'wspace');
+            if(any(idx))
+                idx = find(idx,1,'last');
+                out = str2double(chStr(idx:end));
+            else
+                out = [];
             end
         end
         

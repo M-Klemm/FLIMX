@@ -35,7 +35,7 @@ function varargout = GUI_FLIMXVisGUIVisualizationOptions(varargin)
 % vargin - structure with preferences and defaults
 %output: same as input, but altered according to user input
 
-% Last Modified by GUIDE v2.5 02-Dec-2021 23:55:03
+% Last Modified by GUIDE v2.5 18-May-2022 11:20:39
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -69,6 +69,7 @@ rdh.general = varargin{2};
 rdh.region_of_interest = varargin{3};
 rdh.defaults = varargin{4};
 rdh.fdt = varargin{5};
+rdh.FLIMXVisGUI = varargin{6};
 rdh.isDirty = [0 0 0]; %1: flimvis, 2: general 3: region_of_interest
 [mapNames, iconPaths] = FLIMX.getColormapsInfo();
 if(~isempty(iconPaths))
@@ -99,7 +100,7 @@ ypatch = [0 0 1 1];
 handles.patchCacheMemory = patch(xpatch,ypatch,'m','EdgeColor','m','Parent',handles.axesCacheMemory);%,'EraseMode','normal'
 handles.textCacheMemory = text(1,0,'','Parent',handles.axesCacheMemory);
 %set tooltips
-handles.textCacheMemorySize = 'Set abount of memory (RAM) used to cache measurements and results';
+handles.textCacheMemorySize = 'Set amount of memory (RAM) used to cache measurements and results';
 handles.textCacheMemoryUtilization = 'Shows the current utilization of the cache memory';
 guidata(handles.FLIMXVisVisualizationOptionsFigure,handles);
 updateGUI(handles,rdh);
@@ -225,6 +226,40 @@ if(data.flimvis.offset_m3d)
 else
     set(handles.radioOffsetFixed,'Value',data.flimvis.offset_sc,'Enable','off');
     set(handles.radioOffsetAdaptive,'Value',~data.flimvis.offset_sc,'Enable','off');
+end
+%3d scatter plot
+curStudy = data.FLIMXVisGUI.getStudy('l');
+ds = data.fdt.getAllSubjectNames(curStudy,FDTree.defaultConditionName());
+dims = ['X','Y','Z'];
+if(~isempty(ds))
+    chStr = data.fdt.getChStr(curStudy,ds{1});
+    chIDs = cellfun(@FLIMXVisGUI.ChItem2ID,chStr);
+    nCh = max([chIDs;data.flimvis.Scatter3DFLIMItemXCh;data.flimvis.Scatter3DFLIMItemYCh;data.flimvis.Scatter3DFLIMItemZCh]);
+    chStr = sprintfc('Ch %d',1:nCh);
+    for i = 1:3
+        coStr = data.fdt.getChObjStr(curStudy,ds{1},data.flimvis.(sprintf('Scatter3DFLIMItem%sCh',dims(i))));
+        if(~isempty(coStr) && iscell(coStr))
+            coStr = sort(coStr);
+            idx = strcmp(coStr,data.flimvis.(sprintf('Scatter3DFLIMItem%s',dims(i))));
+            if(~any(idx) && ~isempty(data.flimvis.(sprintf('Scatter3DFLIMItem%s',dims(i)))))
+                %add FLIM item to list
+                coStr(end+1,1) = {data.flimvis.(sprintf('Scatter3DFLIMItem%s',dims(i)))};
+                idx = size(coStr,1);
+            else
+                idx = find(idx);
+            end
+            set(handles.(sprintf('popupScatter3DFLIMItem%s',dims(i))),'String',coStr,'Value',idx,'Visible','On');
+            set(handles.(sprintf('popupScatter3DFLIMItem%sCh',dims(i))),'String',chStr,'Value',data.flimvis.(sprintf('Scatter3DFLIMItem%sCh',dims(i))),'Visible','On');
+        else
+            handles.(sprintf('popupScatter3DFLIMItem%s',dims(i))).Visible = 'Off';
+            handles.(sprintf('popupScatter3DFLIMItem%sCh',dims(i))).Visible = 'Off';
+        end
+    end
+else
+    for i = 1:3
+        handles.(sprintf('popupScatter3DFLIMItem%s',dims(i))).Visible = 'Off';
+        handles.(sprintf('popupScatter3DFLIMItem%sCh',dims(i))).Visible = 'Off';
+    end
 end
 %startup
 if(data.general.openFitGUIonStartup && ~data.general.openVisGUIonStartup)
@@ -382,6 +417,74 @@ rdh.flimvis.ROILinestyle = id2LineStyle(get(hObject,'Value'));
 rdh.isDirty(1) = 1;
 set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
 updateGUI(handles,rdh);
+
+% --- Executes on selection change in popupScatter3DFLIMItemXCh.
+function popupScatter3DFLIMItemXCh_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+rdh.flimvis.Scatter3DFLIMItemXCh = get(hObject,'Value');
+rdh.isDirty(1) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+updateGUI(handles,rdh);
+
+% --- Executes on selection change in popupScatter3DFLIMItemX.
+function popupScatter3DFLIMItemX_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+str = get(hObject,'String');
+if(iscell(str))
+    str = str{get(hObject,'Value')};
+elseif(ischar(str))
+    %nothing to do
+else
+    return
+end
+rdh.flimvis.Scatter3DFLIMItemX = str;
+rdh.isDirty(1) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+
+% --- Executes on selection change in popupScatter3DFLIMItemYCh.
+function popupScatter3DFLIMItemYCh_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+rdh.flimvis.Scatter3DFLIMItemYCh = get(hObject,'Value');
+rdh.isDirty(1) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+
+% --- Executes on selection change in popupScatter3DFLIMItemY.
+function popupScatter3DFLIMItemY_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+str = get(hObject,'String');
+if(iscell(str))
+    str = str{get(hObject,'Value')};
+elseif(ischar(str))
+    %nothing to do
+else
+    return
+end
+rdh.flimvis.Scatter3DFLIMItemY = str;
+rdh.isDirty(1) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+
+% --- Executes on selection change in popupScatter3DFLIMItemZCh.
+function popupScatter3DFLIMItemZCh_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+rdh.flimvis.Scatter3DFLIMItemZCh = get(hObject,'Value');
+rdh.isDirty(1) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+
+% --- Executes on selection change in popupScatter3DFLIMItemZ.
+function popupScatter3DFLIMItemZ_Callback(hObject, eventdata, handles)
+rdh = get(handles.FLIMXVisVisualizationOptionsFigure,'userdata');
+str = get(hObject,'String');
+if(iscell(str))
+    str = str{get(hObject,'Value')};
+elseif(ischar(str))
+    %nothing to do
+else
+    return
+end
+rdh.flimvis.Scatter3DFLIMItemZ = str;
+rdh.isDirty(1) = 1;
+set(handles.FLIMXVisVisualizationOptionsFigure,'userdata',rdh);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %checkboxes
@@ -805,6 +908,36 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 % --- Executes during object creation, after setting all properties.
 function popupMVGroupBrightnessScaling_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupScatter3DFLIMItemXCh_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupScatter3DFLIMItemX_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupScatter3DFLIMItemYCh_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupScatter3DFLIMItemY_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupScatter3DFLIMItemZCh_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function popupScatter3DFLIMItemZ_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
