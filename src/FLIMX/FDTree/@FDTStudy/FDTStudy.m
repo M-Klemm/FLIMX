@@ -2118,18 +2118,23 @@ classdef FDTStudy < FDTreeNode
                             centers = cTemp;
                             histTable(i,1:length(histTemp)) = histTemp;
                         else
-                            start = find(centers == cTemp(1));
+                            start = find(abs(centers - cTemp(1)) < eps("like",centers));
                             if(isempty(start))
-                                start = find(cTemp == centers(1));
+                                %cTemp (histogram of current subject) is not within the merged histogram
+                                %try to find the index (start), where the merged histogram starts in the histogram of the subject
+                                start = find(abs(cTemp - centers(1)) < eps("like",centers));
                                 if(isempty(start))
+                                    %merged histogram and subjects histogram do not overlap
                                     cw = getHistParams(this.getStatsParams(),chan,dType,id);
                                     if(min(cTemp(:)) > max(centers(:)))
+                                        %subject histogram lies "above" merged histogram
                                         centers = centers(1):cw:cTemp(end);
                                         start = find(centers == cTemp(1));
                                         histTemp2 = zeros(length(hg),length(centers));
                                         histTemp2(:,1:size(histTable,2)) = histTable;
                                         histTemp2(i,start:start+length(histTemp)-1) = histTemp;
                                     else
+                                        %subject histogram lies "below" %merged histogram
                                         centers = cTemp(1):cw:centers(end);
                                         histTemp2 = zeros(length(hg),length(centers));
                                         histTemp2(:,end-size(histTable,2)+1:end) = histTable;

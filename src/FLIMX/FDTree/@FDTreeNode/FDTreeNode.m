@@ -194,11 +194,16 @@ classdef FDTreeNode < handle
         
         function out = getMyIDInParent(this)
             %return the current running number from my parent
-            if(~isempty(this.myParent))
+            try
                 out = this.myParent.getChildID(this);
-            else
+            catch
                 out = [];
             end
+%             if(~isempty(this.myParent))
+%                 out = this.myParent.getChildID(this);
+%             else
+%                 out = [];
+%             end
         end
         
         function out = getChildID(this,callingChildObj) %old: getMyChannelNr
