@@ -1063,8 +1063,8 @@ classdef StatsGroupComparison < handle
             else
                 cw2 = [];
             end
-            if(cw1 == cw2)
-                centers = unique([c1, c2]);
+            if(abs(cw1-cw2) < eps("like",cw1))
+                centers = uniquetol([c1, c2], max([eps(c1),eps(c2)]));
                 equalCWFlag = true;
             elseif(isempty(cw1))
                 centers = c2;
@@ -1086,7 +1086,8 @@ classdef StatsGroupComparison < handle
                         histTable = bsxfun(@minus,histTable,max(histTable,[],2,'omitnan') .* str2double(get(this.visHandles.editSubstractRowMax,'String'))/100);
                         histTable(histTable < 0) = 0;
                     end
-                    [~, idx] = intersect(centers,grpCenters);
+                    %[~, idx] = intersect(centers,grpCenters);
+                    idx = ismembertol(centers,grpCenters,max([eps(centers),eps(grpCenters)])); 
                     tab(:,idx) = histTable;
                     this.histograms(j) = {tab};
                     this.grpNames(j) = {colDescr};
