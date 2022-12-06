@@ -67,6 +67,15 @@ classdef FDTStudy < FDTreeNode
         isDirty                     %flag is true if something of the study was changed
         nrSubjects        
     end
+
+    properties (Constant)
+        roiBaseETDRS = 1000;
+        %roiMacularGridBase = 3000;
+        roiBaseRectangle = 2000;
+        roiBaseCircle = 3000;
+        roiBasePolygon = 4000;
+        roiBaseStop = 5000;
+    end
     
     methods
         function this = FDTStudy(parent,name)
@@ -615,10 +624,10 @@ classdef FDTStudy < FDTreeNode
                 end
                 idx = find(abs(roiTmp(:,1,1) - ROIType) < eps,1,'first');
             end
-            if(ROIType >= 1000 && ROIType < 4000 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
+            if(ROIType >= this.roiBaseETDRS && ROIType < this.roiBasePolygon && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
                 %ETDRS, rectangle or cricle
                 roiTmp(idx,1:3,1:2) = int16(ROICoord');
-            elseif(ROIType > 4000 && ROIType < 5000 && size(ROICoord,1) == 2)
+            elseif(ROIType > this.roiBasePolygon && ROIType < this.roiBaseStop && size(ROICoord,1) == 2)
                 %polygons
                 if(size(ROICoord,2) > size(roiTmp,2))
                     tmpNew = zeros(size(roiTmp,1),size(ROICoord,2),2,'int16');

@@ -344,14 +344,14 @@ classdef FDTChunk < FDTreeNode
         function ROICoordinates = extractROICoordinates(ROICoordinates,ROIType)
             %return ROI coordinates for a specific ROI type
             ROICoordinates = double(ROICoordinates);
-            if(~isempty(ROICoordinates) && ~isempty(ROIType) && isscalar(ROIType) && ROIType > 1000)
+            if(~isempty(ROICoordinates) && ~isempty(ROIType) && isscalar(ROIType) && ROIType > FDTStudy.roiBaseETDRS)
                 idx = find(abs(ROICoordinates(:,1,1) - ROIType) < eps,1,'first');
                 if(~isempty(idx))
                     ROICoordinates = squeeze(ROICoordinates(idx,:,:))';
                     ROICoordinates = ROICoordinates(1:2,2:end);
-                    if(ROIType < 4000)
+                    if(ROIType < FDTStudy.roiBasePolygon)
                         ROICoordinates = ROICoordinates(1:2,1:2);
-                    elseif(ROIType > 4000 && ROIType < 5000)
+                    elseif(ROIType > FDTStudy.roiBasePolygon && ROIType < FDTStudy.roiBaseStop)
                         %remove potential trailing zeros
                         idx = any(ROICoordinates,1);
                         idx(1:3) = true;

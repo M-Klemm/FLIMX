@@ -247,7 +247,7 @@ classdef StatsMVGroupMgr < handle
                     this.visHandles.popupROIType.Value = 1;
                 end
             end
-            if(cMVs.ROI.ROIType > 1000 && cMVs.ROI.ROIType < 2000)
+            if(cMVs.ROI.ROIType > FDTStudy.roiBaseETDRS && cMVs.ROI.ROIType < FDTStudy.roiBaseRectangle)
                 visFlag = 'on';
             else
                 visFlag = 'off';

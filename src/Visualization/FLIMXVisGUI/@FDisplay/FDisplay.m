@@ -315,7 +315,7 @@ classdef FDisplay < handle
                 end
                 this.h_ROIArea(ROIType) = [];
             end
-            if(this.staticVisParams.ROI_fill_enable && (this.ROIVicinity ~= 1 || ROIType > 1000 && ROIType < 2000 && this.ROIVicinity == 1))
+            if(this.staticVisParams.ROI_fill_enable && (this.ROIVicinity ~= 1 || ROIType > FDTStudy.roiBaseETDRS && ROIType < FDTStudy.roiBaseRectangle && this.ROIVicinity == 1))
                 %draw ETDRS grid segments or inverted / vicinity ROI areas
                 gc = this.staticVisParams.ROIColor;
                 fileInfo.pixelResolution = this.pixelResolution;
@@ -335,20 +335,20 @@ classdef FDisplay < handle
                 end
             end
             %draw ROI lines
-            if(ROIType > 1000 && ROIType < 2000)
+            if(ROIType > FDTStudy.roiBaseETDRS && ROIType < FDTStudy.roiBaseRectangle)
                 this.drawETDRSGrid(cp,drawTextFlag,ROIMinor);
-            elseif(ROIType > 2000 && ROIType < 3000)
+            elseif(ROIType > FDTStudy.roiBaseRectangle && ROIType < FDTStudy.roiBaseCircle)
                 if(isempty(op))
                     return
                 end
                 this.drawRectangle(cp,op-cp,drawTextFlag,ROIMinor);
-            elseif(ROIType > 3000 && ROIType < 4000)
+            elseif(ROIType > FDTStudy.roiBaseCircle && ROIType < FDTStudy.roiBasePolygon)
                 if(isempty(op))
                     return
                 end
                 radius = sqrt(sum((op-cp).^2));
                 this.drawCircle(op,radius,drawTextFlag,ROIMinor);
-            elseif(ROIType > 4000 && ROIType < 5000)
+            elseif(ROIType > FDTStudy.roiBasePolygon && ROIType < FDTStudy.roiBaseStop)
                 this.drawPolygon([op,cp],drawTextFlag,ROIMinor);
             else
                 try

@@ -1169,13 +1169,13 @@ classdef FLIMXVisGUI < handle
             elseif(isempty(cpMain) && isempty(cpSupp))
                 set(this.visHandles.FLIMXVisGUIFigure,'Pointer','arrow');
             end
-            %% main axes            
+            %% main axes
             if(~isempty(cpMain) && this.getROIDisplayMode(thisSide) < 3)
                 otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
                 if(this.dynParams.mouseButtonDown)
                     %user pressed a mouse button
                     rt = this.getROIType(thisSide);
-                    if(rt > 1000)
+                    if(rt > FDTStudy.roiBaseETDRS)
                         %an ROI is active
                         if(isLeftButton)
                             %left button down
@@ -1183,7 +1183,7 @@ classdef FLIMXVisGUI < handle
                                 %new ROI
                                 thisROIObj.setEndPoint(flipud(cpMain),false);
                                 %draw ROI
-                                if(rt > 4000 && rt < 5000)
+                                if(rt > FDTStudy.roiBasePolygon && rt < FDTStudy.roiBaseStop)
                                     %polygon
                                     roi = thisROIObj.getCurROIInfo();
                                     this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),roi(:,2:end),flipud(cpMain),false);
@@ -1193,7 +1193,7 @@ classdef FLIMXVisGUI < handle
                             else
                                 %change ROI size                                
                                 tmpROI = this.dynParams.mouseButtonDownROI;
-                                if(rt > 2000 && rt < 3000)
+                                if(rt > FDTStudy.roiBaseRectangle && rt < FDTStudy.roiBaseCircle)
                                     %rectangle
                                     switch this.dynParams.mouseButtonDown-1
                                         case 1 %right
@@ -1221,11 +1221,11 @@ classdef FLIMXVisGUI < handle
                                             tmpROI(1,1) = cpMain(2);
                                             tmpROI(2,2) = cpMain(1);
                                     end
-                                elseif(rt > 3000 && rt < 4000)
+                                elseif(rt > FDTStudy.roiBaseCircle && rt < FDTStudy.roiBasePolygon)
                                     %circle
                                     tmpROI(:,2) = flipud(cpMain);
                                     thisROIObj.setEndPoint(flipud(cpMain),false);
-                                elseif(rt > 4000 && rt < 5000)
+                                elseif(rt > FDTStudy.roiBasePolygon && rt < FDTStudy.roiBaseStop)
                                     %polygon
                                     oldPoint = flipud(this.dynParams.mouseButtonDownCoord);
                                     newPoint = cpMain;
@@ -1265,7 +1265,7 @@ classdef FLIMXVisGUI < handle
                                 ROICoord = thisROIObj.getCurROIInfo();
                                 %draw ROI
                                 rt = thisROIObj.ROIType;
-                                if(rt > 3000 && rt < 4000)
+                                if(rt > FDTStudy.roiBaseCircle && rt < FDTStudy.roiBasePolygon)
                                     %circle
                                     this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),ROICoord(:,2),ROICoord(:,3),false);
                                 else
@@ -1273,7 +1273,7 @@ classdef FLIMXVisGUI < handle
                                 end
                                 if(thisROIObj.ROIType == otherROIObj.ROIType && strcmp(this.getStudy(thisSide),this.getStudy(otherSide)) && strcmp(this.getSubject(thisSide),this.getSubject(otherSide)) && this.getROIDisplayMode(otherSide) == 1)
                                     %move ROI also on the other side
-                                    if(rt > 3000 && rt < 4000)
+                                    if(rt > FDTStudy.roiBaseCircle && rt < FDTStudy.roiBasePolygon)
                                         %circle
                                         this.objHandles.(sprintf('%sdo',otherSide)).drawROI(this.getROIType(thisSide),ROICoord(:,2),ROICoord(:,3),false);
                                     else
@@ -1388,7 +1388,7 @@ classdef FLIMXVisGUI < handle
                 %user clicked in a main axes
                 ROIBorderID = 0;
                 rt = this.getROIType(thisSide);
-                if(rt > 1000)
+                if(rt > FDTStudy.roiBaseETDRS)
                     %there is an ROI active
                     thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
                     otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
@@ -1396,16 +1396,16 @@ classdef FLIMXVisGUI < handle
                     %check if user hit the border of an ROI
                     [ROIBorderStr, ROIBorderID] = ROICtrl.mouseOverROIBorder(cpMain,rt,currentROI(:,2:end),pixelMargin);
                     %ROI is active and ROI definition enabled
-                    if(isLeftButton && this.visHandles.enableROIDef_check.Value && rt > 1000)
+                    if(isLeftButton && this.visHandles.enableROIDef_check.Value && rt > FDTStudy.roiBaseETDRS)
                         this.dynParams.mouseButtonDown = ROIBorderID+1;
-                        if(rt > 2000 && ~strcmp(ROIBorderStr,'cross'))
+                        if(rt > FDTStudy.roiBaseRectangle && ~strcmp(ROIBorderStr,'cross'))
                             %this is not an ETDRS grid, change size of existing ROI
                             this.visHandles.FLIMXVisGUIFigure.Pointer = ROIBorderStr;
                         end
-                        if(rt > 4000 && rt < 5000 && ~strcmp(ROIBorderStr,'cross'))
+                        if(rt > FDTStudy.roiBasePolygon && rt < FDTStudy.roiBaseStop && ~strcmp(ROIBorderStr,'cross'))
                             %move current point of a polygon
                             this.dynParams.mouseButtonDownROI = cpMain;
-                        elseif(rt < 4000 && strcmp(ROIBorderStr,'cross'))
+                        elseif(rt < FDTStudy.roiBasePolygon && strcmp(ROIBorderStr,'cross'))
                             %left click, start new ROI
                             this.dynParams.mouseButtonDownROI = [];
                             thisROIObj.setStartPoint(flipud(cpMain));
@@ -1422,7 +1422,7 @@ classdef FLIMXVisGUI < handle
                         this.dynParams.mouseButtonDown = 1;
                         %check if inside ROI
                         isInsideROI = false;
-                        if(rt > 1000 && rt < 2000)
+                        if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseRectangle)
                             %for the ETDRS grid the pixel scaling is required -> obtain it and simulate a circle with its outer ring
                             hfd = this.objHandles.(sprintf('%sdo',thisSide)).gethfd;
                             if(~isempty(hfd{1}))
@@ -1449,7 +1449,7 @@ classdef FLIMXVisGUI < handle
                     this.dynParams.mouseButtonDown = 1;
                     this.dynParams.mouseButtonDownCoord = cpMain;
                 end
-                if(isLeftButton && this.getROIType(thisSide) < 4000 && ROIBorderID == 1)
+                if(isLeftButton && this.getROIType(thisSide) < FDTStudy.roiBasePolygon && ROIBorderID == 1)
                     %draw current point and ROI in both main axes (empty cp deletes old lines)
                     this.objHandles.(sprintf('%sdo',thisSide)).drawROI(this.getROIType(thisSide),flipud(cpMain),flipud(cpMain),false);
                     this.objHandles.(sprintf('%sdo',thisSide)).drawCPMain(cpMain);
@@ -1527,7 +1527,7 @@ classdef FLIMXVisGUI < handle
             %% main axes
             %draw mouse overlay in both main axes (empty cp deletes old overlays)
             if(~isempty(cpMain) && this.getROIDisplayMode(thisSide) < 3)
-                if(isempty(cpSupp) && this.getROIType(thisSide) > 1000 && this.visHandles.enableROIDef_check.Value)
+                if(isempty(cpSupp) && this.getROIType(thisSide) > FDTStudy.roiBaseETDRS && this.visHandles.enableROIDef_check.Value)
                     thisROIObj = this.objHandles.(sprintf('%sROI',thisSide));
                     otherROIObj = this.objHandles.(sprintf('%sROI',otherSide));
                     if(~isempty(cpMain))
@@ -1542,7 +1542,7 @@ classdef FLIMXVisGUI < handle
                                 %change ROI size
                                 tmpROI = this.dynParams.mouseButtonDownROI;
                                 rt = thisROIObj.ROIType;
-                                if(rt > 2000 && rt < 3000)
+                                if(rt > FDTStudy.roiBaseRectangle && rt < FDTStudy.roiBaseCircle)
                                     %rectangle
                                     switch this.dynParams.mouseButtonDown-1
                                         case 1 %right
@@ -1564,10 +1564,10 @@ classdef FLIMXVisGUI < handle
                                             tmpROI(1,1) = cpMain(2);
                                             tmpROI(2,2) = cpMain(1);
                                     end
-                                elseif(rt > 3000 && rt < 4000)
+                                elseif(rt > FDTStudy.roiBaseCircle && rt < FDTStudy.roiBasePolygon)
                                     %circle
                                     tmpROI(:,2) = flipud(cpMain);
-                                elseif(rt > 4000 && rt < 5000) %polygon
+                                elseif(rt > FDTStudy.roiBasePolygon && rt < FDTStudy.roiBaseStop) %polygon
                                     pixelMargin = 0;
                                     oldPoint = flipud(this.dynParams.mouseButtonDownCoord);
                                     newPoint = cpMain;
@@ -1593,7 +1593,7 @@ classdef FLIMXVisGUI < handle
                                         thisROIObj.tableEditCallback([]);
                                     end
                                 end
-                                if(rt < 4000)
+                                if(rt < FDTStudy.roiBasePolygon)
                                     %only for rectangles and circles
                                     thisROIObj.setStartPoint(tmpROI(:,1));
                                     thisROIObj.setEndPoint(tmpROI(:,2),true);
@@ -1642,7 +1642,7 @@ classdef FLIMXVisGUI < handle
                         %other side displays something else, clear possible invalid mouse overlay
                         this.objHandles.(sprintf('%sdo',otherSide)).drawCPMain([]);
                     end
-                elseif(~isempty(cpMain) && isempty(cpSupp) && ~this.visHandles.enableROIDef_check.Value || this.getROIType(thisSide) < 1000)
+                elseif(~isempty(cpMain) && isempty(cpSupp) && ~this.visHandles.enableROIDef_check.Value || this.getROIType(thisSide) < FDTStudy.roiBaseETDRS)
                     %click in main axis with ROI definition disabled or no ROI active
                     if(~this.dynParams.mouseButtonIsLeft)
                         %move zoom anchor

@@ -532,7 +532,7 @@ classdef FData < handle
                 XLblStart = this.rawXLblStart;
                 XLblTick = this.rawXLblTick;
             end
-            if(~isempty(ROICoordinates) && (ROIType == 0 || ROIType > 2000 && ROIType < 3000))
+            if(~isempty(ROICoordinates) && (ROIType == 0 || ROIType > FDTStudy.roiBaseRectangle && ROIType < FDTStudy.roiBaseCircle))
                 shift = ROICoordinates(2,1)-1;
             else
                 shift = 0;
@@ -604,7 +604,7 @@ classdef FData < handle
                 YLblStart = this.rawYLblStart;
                 YLblTick = this.rawYLblTick;
             end
-            if(~isempty(ROICoordinates) && (ROIType == 0 || ROIType > 2000 && ROIType < 3000))
+            if(~isempty(ROICoordinates) && (ROIType == 0 || ROIType > FDTStudy.roiBaseRectangle && ROIType < FDTStudy.roiBaseCircle))
                 shift = ROICoordinates(1,1)-1;
             else
                 shift = 0;
@@ -931,7 +931,7 @@ classdef FData < handle
             [y,x,z] = size(data);
             if(ROIType  == 0)
                 idx = (1:uint32(numel(data)))';
-            elseif(ROIType > 1000 && ROIType < 2000)
+            elseif(ROIType > FDTStudy.roiBaseETDRS && ROIType < FDTStudy.roiBaseRectangle)
                 %ETDRS grid
                 if(~isempty(fileInfo))
                     res = fileInfo.pixelResolution;
@@ -1023,7 +1023,7 @@ classdef FData < handle
                     idx = find(outerMask);
                 end
                 data = FData.removeNaNBoundingBox(data);
-            elseif(ROIType > 2000 && ROIType < 3000)
+            elseif(ROIType > FDTStudy.roiBaseRectangle && ROIType < FDTStudy.roiBaseCircle)
                 %rectangle
                 rc = zeros(2,4);
                 rc(:,1) = ROICoord(:,1);
@@ -1045,12 +1045,12 @@ classdef FData < handle
                     idx = find(outerMask);                    
                 end
                 data = FData.removeNaNBoundingBox(data);
-            elseif(ROIType > 3000 && ROIType < 4000)
+            elseif(ROIType > FDTStudy.roiBaseCircle && ROIType < FDTStudy.roiBasePolygon)
                 %circle
                 r = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
                 thetaRange = [-pi, 0; 0, pi];
                 [data,idx] = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,0,[],[],ROIVicinity,vicDist,vicDiameter);
-            elseif(ROIType > 4000 && ROIType < 5000)
+            elseif(ROIType > FDTStudy.roiBasePolygon && ROIType < FDTStudy.roiBaseStop)
                 %polygon
                 %check whether there are at least three vertices of the polygon yet
                 [~,vertices] = size(ROICoord);
