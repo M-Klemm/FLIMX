@@ -107,14 +107,14 @@ classdef FDataScatterPlot < FDataNormal
                     %todo: get default ROICoordinates from parent!?
                     tmp = zeros(7,3,2,'int16');
                 end
-                if(ROIType > 1000 && ROIType < 5000 && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
+                if(ROIType > FDTStudy.roiBaseETDRS && ROIType < FDTStudy.roiBaseStop && size(ROICoord,1) == 2 && size(ROICoord,2) == 3)
                     idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
                     if(~isempty(idx))
                         tmp(idx,:,1:2) = int16(ROICoord');
                     else
                         return
                     end
-                elseif(ROIType > 4000 && ROIType < 5000 && size(ROICoord,1) == 1 && size(ROICoord,2) == 3 && size(ROICoord,3) > 2)
+                elseif(ROIType > FDTStudy.roiBasePolygon && ROIType < FDTStudy.roiBaseStop && size(ROICoord,1) == 1 && size(ROICoord,2) == 3 && size(ROICoord,3) > 2)
                     tmp(:,:,3:size(ROICoord,3)) = zeros(7,2,size(ROICoord,3)-2,'int16');
                     idx = find(abs(tmp(:,1,1) - ROIType) < eps,1,'first');
                     if(~isempty(idx))

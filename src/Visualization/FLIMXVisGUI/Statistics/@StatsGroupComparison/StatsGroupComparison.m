@@ -508,13 +508,19 @@ classdef StatsGroupComparison < handle
             %ROI
             set(this.visHandles.popupSelROIType,'String',allROIStr,'Value',min(this.visHandles.popupSelROIType.Value,length(allROIStr)));
             rt = this.ROIType;
-            if(rt == 0 || rt > 2000)
+            if(rt == 0 || rt > FDTStudy.roiBaseRectangle)
                 flag = 'off';
             else
                 flag = 'on';
             end
             set(this.visHandles.popupSelROISubType,'Visible',flag);
-            if(rt > 1000)
+            if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseMaculaGrid)
+                this.visHandles.popupSelROISubType.String = ROICtrl.getROISubtypeString('ETDRS');
+            elseif(rt > FDTStudy.roiBaseMaculaGrid && rt < FDTStudy.roiBaseRectangle)
+                this.visHandles.popupSelROISubType.Value = min(6,this.visHandles.popupSelROISubType.Value);
+                this.visHandles.popupSelROISubType.String = ROICtrl.getROISubtypeString('Macula Grid');
+            end
+            if(rt > FDTStudy.roiBaseETDRS)
                 flag = 'on';
             end
             set(this.visHandles.popupSelROIVicinity,'Visible',flag);

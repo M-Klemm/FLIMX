@@ -192,7 +192,7 @@ classdef ROICtrl < handle
         
         function out = get.ROISubType(this)
             %get current ROI subtype
-            out = get(this.roi_subtype_popup,'Value');
+            out = this.roi_subtype_popup.Value;
         end
         
         function out = get.ROIVicinity(this)
@@ -239,7 +239,7 @@ classdef ROICtrl < handle
             current = str2double(get(this.(sprintf('%s_%s_edit',dim,bnd)),'String'));
             %check for validity
             rt = this.ROIType;
-            if(rt > 2000 && rt < 3000)
+            if(rt > FDTStudy.roiBaseRectangle && rt < FDTStudy.roiBaseCircle)
                 %rectangles
                 current = this.checkBnds(dim,bnd,current);
             end
@@ -268,14 +268,14 @@ classdef ROICtrl < handle
             other = [];
             rt = this.ROIType;
             ROICoord = hfd.getROICoordinates(rt);
-            if(isempty(ROICoord) || ~any(ROICoord(:)) && rt < 4000)
+            if(isempty(ROICoord) || ~any(ROICoord(:)) && rt < FDTStudy.roiBasePolygon)
                 %ETDRS grid, rectangles, circles
                 ROICoord = [hfd.rawImgYSz; hfd.rawImgXSz];
                 this.updateGUI(ROICoord);
                 this.save();
                 return
             end
-            if(rt > 1000 && rt < 2000)
+            if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseRectangle)
                 %ETDRS grid
                 switch target
                     case 'inc'
@@ -289,12 +289,12 @@ classdef ROICtrl < handle
                     case 'y'
                         current = min(max(1,this.editYlo+d),hfd.rawImgXSz(2));
                 end
-            elseif(rt > 2000 && rt < 3000)
+            elseif(rt > FDTStudy.roiBaseRectangle && rt < FDTStudy.roiBaseCircle)
                 %rectangles
                 current = this.(sprintf('%s%s',target,thisEdit))(dim);
                 %increase/decrease and check for validity
                 current = this.checkBnds(dim,thisBnd,current);
-            elseif(rt > 3000 && rt < 4000)
+            elseif(rt > FDTStudy.roiBaseCircle && rt < FDTStudy.roiBasePolygon)
                 %circles
                 current = this.(sprintf('%s%s',target,thisEdit))(dim);
                 if(strcmp(thisBnd,'lo'))
@@ -319,7 +319,7 @@ classdef ROICtrl < handle
             %callback function to clear last node of current polygon
             data = get(this.roi_table,'Data');
             rt = this.ROIType;
-            if(~isempty(data) && rt > 4000 && rt < 5000)
+            if(~isempty(data) && rt > FDTStudy.roiBasePolygon && rt < FDTStudy.roiBaseStop)
 %                 [~,~,ROITypeFine] = ROICtrl.ROIType2ROIItem(this.ROIType);
 %                 choice = questdlg(sprintf('Delete last node (y=%d, x=%d) of Polygon #%d ROI in subject %s?',data{1,end},data{2,end},ROITypeFine,this.myHFD.subjectName),'Clear last Polygon ROI node?','Yes','No','No');
 %                 switch choice
@@ -335,13 +335,13 @@ classdef ROICtrl < handle
             %callback function to clear all nodes of current polygon
             rt = this.ROIType;
             [ROIStr,~,ROITypeFine] = ROICtrl.ROIType2ROIItem(this.ROIType);
-            if(rt > 1000 && rt < 4000)
+            if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBasePolygon)
                 choice = questdlg(sprintf('Clear ROI %s in subject %s?',ROIStr,this.myHFD.subjectName),'Clear ROI?','Yes','No','No');
                 switch choice
                     case 'Yes'
                         this.resetROI();
                 end
-            elseif(rt > 4000 && rt < 5000)
+            elseif(rt > FDTStudy.roiBasePolygon && rt < FDTStudy.roiBaseStop)
                 choice = questdlg(sprintf('Delete all nodes of Polygon #%d ROI in subject %s?',ROITypeFine,this.myHFD.subjectName),'Clear all Polygon ROI nodes?','Yes','No','No');
                 switch choice
                     case 'Yes'
@@ -369,11 +369,11 @@ classdef ROICtrl < handle
             this.updateGUI([]);
             this.save();
         end
-        
+
         function deleteROI(this)
             %delete current ROI
             rt = this.ROIType;
-            if(rt > 1001 && rt < 2000 || rt > 2002 && rt < 3000 || rt > 3002 && rt < 4000 || rt > 4002 && rt < 5000)
+            if(rt > 1001 && rt < FDTStudy.roiBaseRectangle || rt > 2002 && rt < FDTStudy.roiBaseCircle || rt > 3002 && rt < FDTStudy.roiBasePolygon || rt > 4002 && rt < FDTStudy.roiBaseStop)
                 hfd = this.myHFD;
                 if(isempty(hfd))
                     return
@@ -414,7 +414,7 @@ classdef ROICtrl < handle
         function setStartPoint(this,coord)
             %set coordinates(y,x) of ROI start point
             %coord must be matrix position
-            if(this.ROIType < 4000)
+            if(this.ROIType < FDTStudy.roiBasePolygon)
                 ROICoord = this.getCurROIInfo();
                 ROICoord = ROICoord(:,2:end);
                 if(isempty(coord))
@@ -432,12 +432,12 @@ classdef ROICtrl < handle
             ROICoord = ROICoord(:,2:end);
             rt = this.ROIType;
             coord = int16(coord);
-            if(rt < 4000)
+            if(rt < FDTStudy.roiBasePolygon)
                 if(isempty(coord))
                     coord = [0,0];
                 end
                 ROICoord(:,2) = coord;
-                if(rt > 1000 && rt < 2000) %ETDRS
+                if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseRectangle) %ETDRS
                     ROICoord(:,1) = coord;
                 end
             else
@@ -449,7 +449,7 @@ classdef ROICtrl < handle
                 end
             end
             if(saveFlag)
-                if(rt > 2000 && rt < 3000) %rectangle
+                if(rt > FDTStudy.roiBaseRectangle && rt < FDTStudy.roiBaseCircle) %rectangle
                     ROICoord = sort(ROICoord,2);
                 end
                 this.updateGUI(ROICoord);
@@ -469,7 +469,7 @@ classdef ROICtrl < handle
             ROICoord = bsxfun(@minus,ROICoord,int16(d));
             rt = this.ROIType;
             if(saveFlag)
-                if(rt > 2000 && rt < 3000) %rectangle
+                if(rt > FDTStudy.roiBaseRectangle && rt < FDTStudy.roiBaseCircle) %rectangle
                     ROICoord = sort(ROICoord,2);
                 end
                 this.updateGUI(ROICoord);
@@ -497,8 +497,10 @@ classdef ROICtrl < handle
             end
             set(this.roi_type_popup,'String',allROIStr,'Value',min(this.roi_type_popup.Value,length(allROIStr)));
             rt = this.ROIType;
-            if(rt > 1000 && rt < 2000)
+            if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseMaculaGrid)
                 %ETDRS grid
+                %this.roi_subtype_popup.Value = 1;
+                this.roi_subtype_popup.String = this.getROISubtypeString('ETDRS');
                 set(this.roi_apply_button,'Visible','on');
                 set(this.roi_add_button,'Visible','on');
                 set(this.roi_del_button,'Visible','on');
@@ -516,7 +518,28 @@ classdef ROICtrl < handle
                 set(this.roi_table,'Visible','off');
                 set(this.roi_table_clearLast_button,'Visible','off');
                 set(this.roi_table_clearAll_button,'Visible','on','String','Clear');
-            elseif(rt > 2000 && rt < 3000)
+            elseif(rt > FDTStudy.roiBaseMaculaGrid && rt < FDTStudy.roiBaseRectangle)
+                %macula grid
+                this.roi_subtype_popup.Value = min(6,this.roi_subtype_popup.Value);
+                this.roi_subtype_popup.String = this.getROISubtypeString('Macula Grid');
+                set(this.roi_apply_button,'Visible','on');
+                set(this.roi_add_button,'Visible','on');
+                set(this.roi_del_button,'Visible','on');
+                set(this.roi_vicinity_popup,'Visible','on');
+                set(this.roi_subtype_popup,'Visible','on');
+                this.enDisAble('off','off');
+                set(this.x_check,'Visible','on');
+                set(this.y_check,'Visible','on');
+                set(this.x_lo_edit,'Visible','on','Enable','on');
+                set(this.y_lo_edit,'Visible','on','Enable','on');
+                set(this.x_lo_dec_button,'Enable','on','Visible','on');
+                set(this.x_lo_inc_button,'Enable','on','Visible','on');
+                set(this.y_lo_dec_button,'Enable','on','Visible','on');
+                set(this.y_lo_inc_button,'Enable','on','Visible','on');
+                set(this.roi_table,'Visible','off');
+                set(this.roi_table_clearLast_button,'Visible','off');
+                set(this.roi_table_clearAll_button,'Visible','on','String','Clear');
+            elseif(rt > FDTStudy.roiBaseRectangle && rt < FDTStudy.roiBaseCircle)
                 %rectangle
                 set(this.roi_apply_button,'Visible','on');
                 set(this.roi_add_button,'Visible','on');
@@ -527,7 +550,7 @@ classdef ROICtrl < handle
                 set(this.roi_table,'Visible','off');
                 set(this.roi_table_clearLast_button,'Visible','off');
                 set(this.roi_table_clearAll_button,'Visible','on','String','Clear');
-            elseif(rt > 3000 && rt < 4000)
+            elseif(rt > FDTStudy.roiBaseCircle && rt < FDTStudy.roiBasePolygon)
                 %circle
                 set(this.roi_apply_button,'Visible','on');
                 set(this.roi_add_button,'Visible','on');
@@ -543,7 +566,7 @@ classdef ROICtrl < handle
                 set(this.roi_table,'Visible','off');
                 set(this.roi_table_clearLast_button,'Visible','off');
                 set(this.roi_table_clearAll_button,'Visible','on','String','Clear');
-            elseif(rt > 4000 && rt < 5000)
+            elseif(rt > FDTStudy.roiBasePolygon && rt < FDTStudy.roiBaseStop)
                 %polygon
                 set(this.roi_apply_button,'Visible','on');
                 set(this.roi_add_button,'Visible','on');
@@ -560,7 +583,7 @@ classdef ROICtrl < handle
                 set(this.roi_add_button,'Visible','off');
                 set(this.roi_del_button,'Visible','off');
                 set(this.roi_vicinity_popup,'Visible','on');
-                if(abs(rt) <= size(grps,1) && any(grps{abs(rt),2} < 2000))
+                if(abs(rt) <= size(grps,1) && any(grps{abs(rt),2} < FDTStudy.roiBaseRectangle))
                     %current ROI groups contains an ETDRS grid
                     set(this.roi_subtype_popup,'Visible','on');
                 else
@@ -596,14 +619,14 @@ classdef ROICtrl < handle
                 ROICoord = hfd.getROICoordinates(rt);
             end
 %             if(isempty(ROICoord) || ~any(ROICoord(:)))
-%                 if(rt < 4000)
+%                 if(rt < FDTStudy.roiBasePolygon)
 %                     %ETDRS grid, rectangles, circles
 %                     ROICoord = [hfd.rawImgYSz; hfd.rawImgXSz];
 %                 else
 %                     ROICoord = [];
 %                 end
 %             end
-            if(rt > 4000 && rt < 5000 && ~all(all(ROICoord,1)))
+            if(rt > FDTStudy.roiBasePolygon && rt < FDTStudy.roiBaseStop && ~all(all(ROICoord,1)))
                 %polygons
                 ROICoord = ROICoord(:,all(ROICoord,1));
             end
@@ -614,7 +637,7 @@ classdef ROICtrl < handle
                 res = 0;%58.66666666666/1000;
                 %todo: warning/error message
             end
-            if((isempty(ROICoord) || ~any(ROICoord(:))) && rt < 4000)
+            if((isempty(ROICoord) || ~any(ROICoord(:))) && rt < FDTStudy.roiBasePolygon)
                 this.y_lo_edit.String = '';
                 this.x_lo_edit.String = '';
                 this.y_u_edit.String = '';
@@ -630,11 +653,11 @@ classdef ROICtrl < handle
                     ROICoord(1,:) = hfd.yPos2Lbl(ROICoord(1,:));
                     ROICoord(2,:) = hfd.xPos2Lbl(ROICoord(2,:));
                 end
-                if(rt > 1000 && rt < 2000)
+                if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseRectangle)
                     %ETDRS grid
                     set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
                     set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
-                elseif(rt == 0 || rt > 2000 && rt < 3000)
+                elseif(rt == 0 || rt > FDTStudy.roiBaseRectangle && rt < FDTStudy.roiBaseCircle)
                     %rectangle
                     set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
                     set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
@@ -646,7 +669,7 @@ classdef ROICtrl < handle
                     d = abs(ROICoord(2,2)-ROICoord(2,1))+1;
                     set(this.x_sz_edit,'String',num2str(d));
                     set(this.x_szMM_edit,'String',FLIMXFitGUI.num4disp(res*double(d)));
-                elseif(rt > 3000 && rt < 4000)
+                elseif(rt > FDTStudy.roiBaseCircle && rt < FDTStudy.roiBasePolygon)
                     %circle
                     set(this.y_lo_edit,'String',num2str(ROICoord(1,1)));
                     set(this.x_lo_edit,'String',num2str(ROICoord(2,1)));
@@ -655,7 +678,7 @@ classdef ROICtrl < handle
                     d = 2*sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
                     set(this.x_sz_edit,'String',FLIMXFitGUI.num4disp(d));
                     set(this.x_szMM_edit,'String',FLIMXFitGUI.num4disp(res*d));
-                elseif(rt > 4000 && rt < 5000)
+                elseif(rt > FDTStudy.roiBasePolygon && rt < FDTStudy.roiBaseStop)
                     %polygon
                     set(this.roi_table,'Data',num2cell(ROICoord))
                     if(~isempty(ROICoord))
@@ -704,15 +727,15 @@ classdef ROICtrl < handle
                     (isempty(this.y_u_edit.String) && this.y_u_edit.Visible) || (isempty(this.x_u_edit.String) && this.x_u_edit.Visible) )
                 return
             end
-            if(rt > 1000 && rt < 4000)
+            if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBasePolygon)
                 %ETDRS, rectangles, circles
                 out(1,2) = hfd.yLbl2Pos(sscanf(this.y_lo_edit.String,'%i',1)); %sscanf(s,'%f',1);
                 out(2,2) = hfd.xLbl2Pos(sscanf(this.x_lo_edit.String,'%i',1));
             end
-            if(rt > 1000 && rt < 2000)
+            if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseRectangle)
                 %ETDRS
                 out(:,3) = out(:,2);
-            elseif(rt > 4000 && rt < 5000)
+            elseif(rt > FDTStudy.roiBasePolygon && rt < FDTStudy.roiBaseStop)
                 %polygons
                 out = int16([[1;this.ROIVicinity], cell2mat(get(this.roi_table,'Data'))]);
                 out(1,2:end) = hfd.yLbl2Pos(out(1,2:end));
@@ -910,16 +933,15 @@ classdef ROICtrl < handle
             if(strcmp(str,'-none-'))
                 out = 0;
             elseif(strncmp(str,'ETDRS Grid #',12))
-%                 out = 1001;
-%                 if(length(str) > 10)
-                    out = 1000 + str2double(str(13:end));
-%                 end
+                out = FDTStudy.roiBaseETDRS + str2double(str(13:end));
+            elseif(strncmp(str,'Macula Grid #',13))
+                out = FDTStudy.roiBaseMaculaGrid + str2double(str(14:end));
             elseif(strncmp(str,'Rectangle #',11))
-                out = 2000 + str2double(str(12:end));
+                out = FDTStudy.roiBaseRectangle + str2double(str(12:end));
             elseif(strncmp(str,'Circle #',8))
-                out = 3000 + str2double(str(9:end));
+                out = FDTStudy.roiBaseCircle + str2double(str(9:end));
             elseif(strncmp(str,'Polygon #',9))
-                out = 4000 + str2double(str(10:end));
+                out = FDTStudy.roiBasePolygon + str2double(str(10:end));
             else
                 out = 0;
             end
@@ -930,16 +952,14 @@ classdef ROICtrl < handle
             [ROIMajor, ROIMinor] = ROICtrl.decodeROIType(ROIType);
             switch ROIMajor
                 case 1
-%                     if(ROITypeFine == 1)
-%                         str = 'ETDRS Grid';
-%                     else
-                        str = sprintf('ETDRS Grid #%d',ROIMinor);
-%                     end
+                    str = sprintf('ETDRS Grid #%d',ROIMinor);
                 case 2
-                    str = sprintf('Rectangle #%d',ROIMinor);
+                    str = sprintf('Macula Grid #%d',ROIMinor);
                 case 3
-                    str = sprintf('Circle #%d',ROIMinor);
+                    str = sprintf('Rectangle #%d',ROIMinor);
                 case 4
+                    str = sprintf('Circle #%d',ROIMinor);
+                case 5
                     str = sprintf('Polygon #%d',ROIMinor);
                 otherwise
                     str = '-none-';
@@ -961,12 +981,12 @@ classdef ROICtrl < handle
             if(isempty(cp) || isempty(ROICoord))
                 return
             end            
-            if(ROIType > 2000 && ROIType < 3000)
+            if(ROIType > FDTStudy.roiBaseRectangle && ROIType < FDTStudy.roiBaseCircle)
                 %rectangle
                 if(cp(1) >= ROICoord(2,1) && cp(1) <= ROICoord(2,2) && cp(2) >= ROICoord(1,1) && cp(2) <= ROICoord(1,2))
                     flag = true;
                 end
-            elseif(ROIType > 3000 && ROIType < 4000)
+            elseif(ROIType > FDTStudy.roiBaseCircle && ROIType < FDTStudy.roiBasePolygon)
                 %circle
                 radius = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
                 center = double(ROICoord(:,1));
@@ -975,7 +995,7 @@ classdef ROICtrl < handle
                 if(rho <= radius)
                     flag = true;
                 end
-            elseif(ROIType > 4000 && ROIType < 5000)
+            elseif(ROIType > FDTStudy.roiBasePolygon && ROIType < FDTStudy.roiBaseStop)
                 %polygon
                 ROICoord = double(ROICoord);
                 mask = poly2mask(ROICoord(2,:),ROICoord(1,:),max([ROICoord(1,:),cp(2)]),max([ROICoord(2,:),cp(1)]));
@@ -986,7 +1006,7 @@ classdef ROICtrl < handle
         function [out, numIdent] = mouseOverROIBorder(cp,ROIType,ROICoord,pixelMargin)
             %check if coordinates of current point (cp) are over the border of an ROI, return the mouse pointer type, otherwise return 'cross'
             out = 'cross'; numIdent = 0;
-            if(ROIType > 2000 && ROIType < 3000)
+            if(ROIType > FDTStudy.roiBaseRectangle && ROIType < FDTStudy.roiBaseCircle)
                 %rectangle
                 if(abs(ROICoord(2,2)-cp(1)) <= pixelMargin && abs(ROICoord(1,2)-cp(2)) <= pixelMargin)
                     out = 'topr';
@@ -1013,7 +1033,7 @@ classdef ROICtrl < handle
                     out = 'bottom';
                     numIdent = 7;
                 end
-            elseif(ROIType > 3000 && ROIType < 4000)
+            elseif(ROIType > FDTStudy.roiBaseCircle && ROIType < FDTStudy.roiBasePolygon)
                 %circle
                 radius = sqrt(sum((ROICoord(:,1)-ROICoord(:,2)).^2));
                 center = double(ROICoord(:,1));
@@ -1030,7 +1050,7 @@ classdef ROICtrl < handle
                         return
                     end
                 end
-            elseif(ROIType > 4000 && ROIType < 5000)
+            elseif(ROIType > FDTStudy.roiBasePolygon && ROIType < FDTStudy.roiBaseStop)
                 %polygon
                 if(size(ROICoord,2) >= 1)
                     idx = abs(cp(2) - ROICoord(1,1:end)) <= pixelMargin;
@@ -1043,9 +1063,40 @@ classdef ROICtrl < handle
         end
         
         function out = getDefaultROIStruct()
-            %return default ROI struct for 1 ETDRS grid, 2 rectangles, 2 circles and 2 polygons
-            out = zeros(7,3,2,'int16');
-            out(:,1,1) = [1001,2001,2002,3001,3002,4001,4002];
+            %return default ROI struct for 1 ETDRS grid, 1 macula grid, 2 rectangles, 2 circles and 2 polygons
+            out = zeros(8,3,2,'int16');
+            out(:,1,1) = [1001,2001,3001,3002,4001,4002,5001,5002];
+        end
+
+        function out = getROISubtypeString(type)
+            %return strings for sub ROIs
+            switch upper(type)
+                case 'ETDRS'
+                    out = {'Central';                        
+                        'Inner Superior';
+                        'Inner Nasal';
+                        'Inner Inferior';
+                        'Inner Temporal';
+                        'Outer Superior';
+                        'Outer Nasal';
+                        'Outer Inferior';
+                        'Outer Temporal';
+                        'Inner Ring';
+                        'Outer Ring';
+                        'Full Circle';
+                        'Center + Inner Ring';
+                        'Center + Outer Ring';
+                        'Inner + Outer Ring';};
+                case 'MACULA GRID'
+                    out = {'Central Bouquet';
+                        'Central';
+                        'Inner Ring';
+                        'Outer Ring';
+                        'Slope Rod Ring';
+                        'Crest Rod Ring';};
+                otherwise
+                    out = {''};
+            end
         end
         
     end

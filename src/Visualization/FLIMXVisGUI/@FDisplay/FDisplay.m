@@ -59,6 +59,8 @@ classdef FDisplay < handle
         h_Circle = [];
         h_ETDRSGrid = [];
         h_ETDRSGridText = [];
+        h_MaculaGrid;
+        h_MaculaGridText;
         h_Polygon = [];
         h_ROIArea = [];
         h_cmImage = [];
@@ -315,7 +317,7 @@ classdef FDisplay < handle
                 end
                 this.h_ROIArea(ROIType) = [];
             end
-            if(this.staticVisParams.ROI_fill_enable && (this.ROIVicinity ~= 1 || ROIType > 1000 && ROIType < 2000 && this.ROIVicinity == 1))
+            if(this.staticVisParams.ROI_fill_enable && (this.ROIVicinity ~= 1 || ROIType > FDTStudy.roiBaseETDRS && ROIType < FDTStudy.roiBaseRectangle && this.ROIVicinity == 1))
                 %draw ETDRS grid segments or inverted / vicinity ROI areas
                 gc = this.staticVisParams.ROIColor;
                 fileInfo.pixelResolution = this.pixelResolution;
@@ -335,20 +337,22 @@ classdef FDisplay < handle
                 end
             end
             %draw ROI lines
-            if(ROIType > 1000 && ROIType < 2000)
+            if(ROIType > FDTStudy.roiBaseETDRS && ROIType < FDTStudy.roiBaseMaculaGrid)
                 this.drawETDRSGrid(cp,drawTextFlag,ROIMinor);
-            elseif(ROIType > 2000 && ROIType < 3000)
+            elseif(ROIType > FDTStudy.roiBaseMaculaGrid && ROIType < FDTStudy.roiBaseRectangle)  
+                this.drawMaculaGrid(cp,drawTextFlag,ROIMinor);
+            elseif(ROIType > FDTStudy.roiBaseRectangle && ROIType < FDTStudy.roiBaseCircle)
                 if(isempty(op))
                     return
                 end
                 this.drawRectangle(cp,op-cp,drawTextFlag,ROIMinor);
-            elseif(ROIType > 3000 && ROIType < 4000)
+            elseif(ROIType > FDTStudy.roiBaseCircle && ROIType < FDTStudy.roiBasePolygon)
                 if(isempty(op))
                     return
                 end
                 radius = sqrt(sum((op-cp).^2));
                 this.drawCircle(op,radius,drawTextFlag,ROIMinor);
-            elseif(ROIType > 4000 && ROIType < 5000)
+            elseif(ROIType > FDTStudy.roiBasePolygon && ROIType < FDTStudy.roiBaseStop)
                 this.drawPolygon([op,cp],drawTextFlag,ROIMinor);
             else
                 try
@@ -366,6 +370,14 @@ classdef FDisplay < handle
                 try
                     delete(this.h_ETDRSGridText);
                     this.h_ETDRSGridText = [];
+                end
+                try
+                    delete(this.h_MaculaGrid);
+                    this.h_MaculaGrid = [];
+                end
+                try
+                    delete(this.h_MaculaGridText);
+                    this.h_MaculaGridText = [];
                 end
                 try
                     delete(this.h_Polygon);
@@ -456,6 +468,102 @@ classdef FDisplay < handle
                 end
             end
         end
+
+        function drawMaculaGrid(this,cp,drawTextFlag,ROINumber)
+            %draw macula grid
+            if isMultipleCall();  return;  end
+            if(size(this.h_MaculaGrid,2) >= ROINumber)
+                idxG = ishghandle(this.h_MaculaGrid(:,ROINumber)) & this.h_MaculaGrid > 0;
+            else
+                idxG = [];
+            end
+            if(size(this.h_MaculaGridText,2) >= ROINumber)
+                idxT = ishghandle(this.h_MaculaGridText(:,ROINumber)) & this.h_MaculaGridText > 0;
+            else
+                idxT = [];
+            end
+            if(isempty(cp) || ~any(cp(:)))
+                delete(this.h_MaculaGrid(idxG,ROINumber));
+                delete(this.h_MaculaGridText(idxT,ROINumber));
+                return
+            end
+            res = this.pixelResolution;
+            gc = this.staticVisParams.ROIColor;
+            if(res > 0)
+                %radius ring1 = 100 µm
+                d1 = 200/res;
+                d2 = 1000/res;
+                d3 = 3000/res;
+                d4 = 6000/res;
+                d5 = 9000/res;
+                d6 = 12000/res;
+                lw = this.staticVisParams.ROILinewidth;
+                ls = this.staticVisParams.ROILinestyle;
+                fs = this.staticVisParams.fontsize;
+                if(~isempty(idxG) && all(idxG(:)) && size(this.h_ETDRSGrid,2) >= ROINumber)% && ~this.staticVisParams.ROI_fill_enable)
+                    %circles
+                    set(this.h_ETDRSGrid(1,ROINumber),'Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(2,ROINumber),'Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(3,ROINumber),'Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(4,ROINumber),'Position',[cp(2)-d4/2,cp(1)-d4/2,d4,d4],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(5,ROINumber),'Position',[cp(2)-d5/2,cp(1)-d5/2,d5,d5],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_ETDRSGrid(6,ROINumber),'Position',[cp(2)-d6/2,cp(1)-d6/2,d6,d6],'LineWidth',lw,'LineStyle',ls);
+                else
+                    h = zeros(6,1);
+                    h(1) = rectangle('Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    h(2) = rectangle('Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    h(3) = rectangle('Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    h(4) = rectangle('Position',[cp(2)-d4/2,cp(1)-d4/2,d4,d4],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    h(5) = rectangle('Position',[cp(2)-d5/2,cp(1)-d5/2,d5,d5],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    h(6) = rectangle('Position',[cp(2)-d6/2,cp(1)-d6/2,d6,d6],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
+                    this.h_MaculaGrid(:,ROINumber) = h;
+                end
+                %text in subfields
+                if(~drawTextFlag)
+                    delete(this.h_MaculaGridText(idxT,ROINumber));
+                    return
+                end
+                hfd = this.gethfd();
+                if(isempty(hfd{1}))
+                    return
+                end
+                hfd = hfd{1};
+                txt = repmat({''},6,1);
+                bgc = [0 0 0 0];
+                if(~strcmp(this.staticVisParams.ETDRS_subfield_values,'none'))
+                    if(strcmp(this.staticVisParams.ETDRS_subfield_values,'field name'))
+                        txt = {'CB','C','IR','OR','SRR','CRR'}';
+                    else
+                        tmp = hfd.getROISubfieldStatistics(cp,FDTStudy.roiBaseMaculaGrid+1,this.staticVisParams.ETDRS_subfield_values);
+                        txt = FLIMXFitGUI.num4disp(tmp);
+                    end
+                    if(this.staticVisParams.ETDRS_subfield_bg_enable)
+                        bgc = this.staticVisParams.ETDRS_subfield_bg_color;%[0.3 0.3 0.3 0.33];
+                    end
+                end
+                if(strcmp(this.measurementPosition,'OD'))
+                    txt = txt([1,2,3,4,5,6],1);
+                end
+                if(~isempty(idxT) && all(idxT(:)) && size(this.h_MaculaGrid,2) >= ROINumber)
+                    set(this.h_MaculaGridText(1,ROINumber),'Position',[cp(2),cp(1)],'String',txt{1});
+                    set(this.h_MaculaGridText(2,ROINumber),'Position',[cp(2),cp(1)+d1/2+(d2-d1)/4],'String',txt{2});
+                    set(this.h_MaculaGridText(3,ROINumber),'Position',[cp(2),cp(1)+d2/2+(d3-d2)/4],'String',txt{3});
+                    set(this.h_MaculaGridText(4,ROINumber),'Position',[cp(2),cp(1)+d3/2+(d4-d3)/4],'String',txt{4});
+                    set(this.h_MaculaGridText(5,ROINumber),'Position',[cp(2),cp(1)+d4/2+(d5-d4)/4],'String',txt{5});
+                    set(this.h_MaculaGridText(6,ROINumber),'Position',[cp(2),cp(1)+d5/2+(d6-d5)/4],'String',txt{6});
+                else
+                    h = zeros(6,1);
+                    h(1) = text(cp(2),cp(1),txt{1},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(2) = text(cp(2),cp(1)+d1/2+(d2-d1)/4,txt{2},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(3) = text(cp(2),cp(1)+d2/2+(d3-d2)/4,txt{3},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(4) = text(cp(2),cp(1)+d3/2+(d4-d3)/4,txt{4},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(5) = text(cp(2),cp(1)+d4/2+(d5-d4)/4,txt{5},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    h(6) = text(cp(2),cp(1)+d5/2+(d6-d5)/4,txt{6},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
+                    this.h_MaculaGridText(:,ROINumber) = h;
+                end
+            end
+
+        end
         
         function drawETDRSGrid(this,cp,drawTextFlag,ROINumber)
             %draw ETDRS grid into 2D plot
@@ -496,9 +604,6 @@ classdef FDisplay < handle
                     set(this.h_ETDRSGrid(6,ROINumber),'XData',[cp(2)+cos(-pi/4)*d1/2  cp(2)+cos(-pi/4)*d3/2],'YData',[cp(1)+sin(-pi/4)*d1/2 cp(1)+sin(-pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
                     set(this.h_ETDRSGrid(7,ROINumber),'XData',[cp(2)+cos(-3*pi/4)*d1/2  cp(2)+cos(-3*pi/4)*d3/2],'YData',[cp(1)+sin(-3*pi/4)*d1/2 cp(1)+sin(-3*pi/4)*d3/2],'LineWidth',lw,'LineStyle',ls);
                 else
-%                     try
-%                         delete(this.h_ETDRSGrid(idxG,ROINumber));
-%                     end
                     h = zeros(7,1);
                     h(1) = rectangle('Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
                     h(2) = rectangle('Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
@@ -526,7 +631,7 @@ classdef FDisplay < handle
                     if(strcmp(this.staticVisParams.ETDRS_subfield_values,'field name'))
                         txt = {'C','IS','IN','II','IT','OS','ON','OI','OT'}';
                     else
-                        tmp = hfd.getROISubfieldStatistics(cp,1,this.staticVisParams.ETDRS_subfield_values);
+                        tmp = hfd.getROISubfieldStatistics(cp,FDTStudy.roiBaseETDRS+1,this.staticVisParams.ETDRS_subfield_values);
                         txt = FLIMXFitGUI.num4disp(tmp);
                     end
                     if(this.staticVisParams.ETDRS_subfield_bg_enable)
@@ -538,16 +643,15 @@ classdef FDisplay < handle
                 end
                 if(~isempty(idxT) && all(idxT(:)) && size(this.h_ETDRSGrid,2) >= ROINumber)
                     set(this.h_ETDRSGridText(1,ROINumber),'Position',[cp(2),cp(1)],'String',txt{1});
-                    set(this.h_ETDRSGridText(2,ROINumber),'Position',[cp(2),cp(1)+d1/2+(d2-d1)/4,cp(1)],'String',txt{2});
+                    set(this.h_ETDRSGridText(2,ROINumber),'Position',[cp(2),cp(1)+d1/2+(d2-d1)/4],'String',txt{2});
                     set(this.h_ETDRSGridText(3,ROINumber),'Position',[cp(2)-(d1/2+(d2-d1)/4),cp(1)],'String',txt{3});
-                    set(this.h_ETDRSGridText(4,ROINumber),'Position',[cp(2),cp(1)-d1/2-(d2-d1)/4,cp(1)],'String',txt{4});
+                    set(this.h_ETDRSGridText(4,ROINumber),'Position',[cp(2),cp(1)-d1/2-(d2-d1)/4],'String',txt{4});
                     set(this.h_ETDRSGridText(5,ROINumber),'Position',[cp(2)+(d1/2+(d2-d1)/4),cp(1)],'String',txt{5});
-                    set(this.h_ETDRSGridText(6,ROINumber),'Position',[cp(2),cp(1)+d2/2+(d3-d2)/4,cp(1)],'String',txt{6});
+                    set(this.h_ETDRSGridText(6,ROINumber),'Position',[cp(2),cp(1)+d2/2+(d3-d2)/4],'String',txt{6});
                     set(this.h_ETDRSGridText(9,ROINumber),'Position',[cp(2)-(d2/2+(d3-d2)/4),cp(1)],'String',txt{7});
-                    set(this.h_ETDRSGridText(7,ROINumber),'Position',[cp(2),cp(1)-d2/2-(d3-d2)/4,cp(1)],'String',txt{8});
+                    set(this.h_ETDRSGridText(7,ROINumber),'Position',[cp(2),cp(1)-d2/2-(d3-d2)/4],'String',txt{8});
                     set(this.h_ETDRSGridText(8,ROINumber),'Position',[cp(2)+(d2/2+(d3-d2)/4),cp(1)],'String',txt{9});
                 else
-%                     delete(this.h_ETDRSGridText(idxT,ROINumber));
                     h = zeros(9,1);
                     h(1) = text(cp(2),cp(1),txt{1},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
                     h(2) = text(cp(2),cp(1)+d1/2+(d2-d1)/4,txt{2},'Color',gc,'BackgroundColor',bgc,'Fontsize',fs,'FontWeight','bold','HorizontalAlignment','center','VerticalAlignment','middle','Parent',this.h_m_ax);
@@ -562,10 +666,13 @@ classdef FDisplay < handle
                 end
             end
         end
+
+
         function hfdInt = getIntHfd(this)
             %get handle to intensity image
             hfdInt = this.visObj.fdt.getFDataObj(this.visObj.getStudy(this.mySide),this.visObj.getSubject(this.mySide),this.visObj.getChannel(this.mySide),'Intensity',0,1);
         end
+
         function [hfd, hfdSupp] = gethfd(this)
             %get handle(s) to current FData object(s)
 %             hfd = this.myhfdMain;           
@@ -695,9 +802,15 @@ classdef FDisplay < handle
             isHG = ishghandle(this.h_ETDRSGrid) & this.h_ETDRSGrid > 0;
             delete(this.h_ETDRSGrid(isHG));
             this.h_ETDRSGrid = [];
-            isHG = ishghandle(this.h_ETDRSGridText) & this.h_ETDRSGridText > 0;            
+            isHG = ishghandle(this.h_ETDRSGridText) & this.h_ETDRSGridText > 0;
             delete(this.h_ETDRSGridText(isHG));
             this.h_ETDRSGridText = [];
+            isHG = ishghandle(this.h_MaculaGrid) & this.h_MaculaGrid > 0;
+            delete(this.h_MaculaGrid(isHG));
+            this.h_MaculaGrid = [];
+            isHG = ishghandle(this.h_MaculaGridText) & this.h_MaculaGridText > 0;
+            delete(this.h_MaculaGridText(isHG));
+            this.h_MaculaGridText = [];
             isHG = ishghandle(this.h_Rectangle) & this.h_Rectangle > 0;
             delete(this.h_Rectangle(isHG));
             this.h_Rectangle = [];

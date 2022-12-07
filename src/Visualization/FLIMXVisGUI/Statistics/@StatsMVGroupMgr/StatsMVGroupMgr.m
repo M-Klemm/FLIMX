@@ -247,15 +247,21 @@ classdef StatsMVGroupMgr < handle
                     this.visHandles.popupROIType.Value = 1;
                 end
             end
-            if(cMVs.ROI.ROIType > 1000 && cMVs.ROI.ROIType < 2000)
+            if(cMVs.ROI.ROIType > FDTStudy.roiBaseETDRS && cMVs.ROI.ROIType < FDTStudy.roiBaseRectangle)
                 visFlag = 'on';
             else
                 visFlag = 'off';
             end
-            set(this.visHandles.popupROISubType,'Value',cMVs.ROI.ROISubType,'Visible',visFlag);                        
-                
+            set(this.visHandles.popupROISubType,'Value',cMVs.ROI.ROISubType,'Visible',visFlag);
+            if(cMVs.ROI.ROIType > FDTStudy.roiBaseETDRS && cMVs.ROI.ROIType < FDTStudy.roiBaseMaculaGrid)
+                this.visHandles.popupROISubType.String = ROICtrl.getROISubtypeString('ETDRS');
+            elseif(cMVs.ROI.ROIType > FDTStudy.roiBaseMaculaGrid && cMVs.ROI.ROIType < FDTStudy.roiBaseRectangle)
+                this.visHandles.popupROISubType.Value = min(6,this.visHandles.popupROISubType.Value);
+                this.visHandles.popupROISubType.String = ROICtrl.getROISubtypeString('Macula Grid');
+            end            
+
             if(this.visHandles.radioFLIMItem.Value) %FI
-                this.visHandles.radioMIS.Value = 0; 
+                this.visHandles.radioMIS.Value = 0;
                 this.visHandles.radioMMS.Value = 0;
                 this.enDisAblePanels('on','off','off');
                 this.updateFICtrls();

@@ -85,15 +85,15 @@ classdef FDataNormal < FData
         function out = getCrossSectionXVal(this,isRelative,isMatrixPos,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get current crossSection position of x axis
             if(isRelative && ROIType ~= 0) %val is relative to roi
-                if(ROIType > 1000 && ROIType < 2000)
+                if(ROIType > FDTStudy.roiBaseETDRS && ROIType < FDTStudy.roiBaseRectangle)
                     %ETDRS
                     %todo
                     out = 0;
                     return
-                elseif(ROIType > 2000 && ROIType < 3000)
+                elseif(ROIType > FDTStudy.roiBaseRectangle && ROIType < FDTStudy.roiBaseCircle)
                     %rectangle
                     xMin = ROICoordinates(2,1);
-                elseif(ROIType > 3000 && ROIType < 4000)
+                elseif(ROIType > FDTStudy.roiBaseCircle && ROIType < FDTStudy.roiBasePolygon)
                     %circle
                     r = sqrt(sum((ROICoordinates(:,1)-ROICoordinates(:,2)).^2));
                     xMin = ceil(ROICoordinates(2,1)-r);
@@ -130,15 +130,15 @@ classdef FDataNormal < FData
         function out = getCrossSectionYVal(this,isRelative,isMatrixPos,ROICoordinates,ROIType,ROISubType,ROIVicinity)
             %get current crossSection position of y axis
             if(isRelative && ROIType ~= 0) %val is relative to roi
-                if(ROIType > 1000 && ROIType < 2000)
+                if(ROIType > FDTStudy.roiBaseETDRS && ROIType < FDTStudy.roiBaseRectangle)
                     %ETDRS
                     %todo
                     out = 0;
                     return
-                elseif(ROIType > 2000 && ROIType < 3000)
+                elseif(ROIType > FDTStudy.roiBaseRectangle && ROIType < FDTStudy.roiBaseCircle)
                     %rectangle
                     yMin = ROICoordinates(1,1);
-                elseif(ROIType > 3000 && ROIType < 4000)
+                elseif(ROIType > FDTStudy.roiBaseCircle && ROIType < FDTStudy.roiBasePolygon)
                     %circle
                     r = sqrt(sum((ROICoordinates(:,1)-ROICoordinates(:,2)).^2));
                     yMin = ceil(ROICoordinates(1,1)-r);

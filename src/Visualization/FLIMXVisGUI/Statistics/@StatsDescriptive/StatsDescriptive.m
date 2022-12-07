@@ -409,7 +409,7 @@ classdef StatsDescriptive < handle
                                     rt = this.ROIType;
                                     rc = fdt.getROICoordinates(rt);
                                     data = fdt.getROIImage(rc,rt,this.ROISubType,this.ROIVicinityFlag);                                    
-                                    if(rt > 1000 && rt < 2000)
+                                    if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseRectangle)
                                         txt = {'C','IS','IN','II','IT','OS','ON','OI','OT','IR','OR','FC'}';
                                         rStr = txt{this.ROISubType};
                                     else
@@ -496,13 +496,19 @@ classdef StatsDescriptive < handle
                 this.visHandles.checkDisplayAllROIs.String = 'Display all ROIs of the current type';
                 this.visHandles.checkDisplayAllROIs.Tooltip = 'Display all ROIs of the current type in the subject statistics (this will also influence exported data)';
             end
-            if(rt == 0 || rt > 2000 || rt < 0 && ~isempty(grps) && size(grps,2) == 2 && all([grps{abs(rt),2}] >= 2000))
+            if(rt == 0 || rt > FDTStudy.roiBaseRectangle || rt < 0 && ~isempty(grps) && size(grps,2) == 2 && all([grps{abs(rt),2}] >= FDTStudy.roiBaseRectangle))
                 flag = 'off';
             else
                 flag = 'on';
             end
             this.visHandles.popupSelROISubType.Visible = flag;
-            if(rt > 1000 || rt < 0)
+            if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseMaculaGrid)
+                this.visHandles.popupSelROISubType.String = ROICtrl.getROISubtypeString('ETDRS');
+            elseif(rt > FDTStudy.roiBaseMaculaGrid && rt < FDTStudy.roiBaseRectangle)
+                this.visHandles.popupSelROISubType.Value = min(6,this.visHandles.popupSelROISubType.Value);
+                this.visHandles.popupSelROISubType.String = ROICtrl.getROISubtypeString('Macula Grid');
+            end
+            if(rt > FDTStudy.roiBaseETDRS || rt < 0)
                 flag = 'on';
             end
             this.visHandles.popupSelROIVicinity.Visible = flag;
@@ -821,7 +827,7 @@ classdef StatsDescriptive < handle
                 if(this.visHandles.checkDisplayAllROIs.Value)
                     rtStr = deblank(strtok(rtStr,'#'));
                 end
-                if(rt > 1000 && rt < 2000)
+                if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseRectangle)
                     str = this.visHandles.popupSelROISubType.String;
                     out = [out str{this.ROISubType} '_']; %[out rtStr str{this.ROISubType} '_']
                 else

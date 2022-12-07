@@ -114,7 +114,7 @@ classdef FDataMerge < FData
             if(~isempty(ROIType) && isscalar(ROIType))
                 idx = find(abs(out(:,1,1) - ROIType) < eps,1,'first');
                 if(~isempty(idx))
-                    if(ROIType > 2000 && ROIType < 4000)
+                    if(ROIType > FDTStudy.roiBaseRectangle && ROIType < FDTStudy.roiBasePolygon)
                         out = squeeze(out(idx,2:3,:))';
                     else %polygons
                         out = squeeze(out(idx,2:end,:))';
