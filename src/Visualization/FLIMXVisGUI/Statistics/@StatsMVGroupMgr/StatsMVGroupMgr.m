@@ -252,10 +252,16 @@ classdef StatsMVGroupMgr < handle
             else
                 visFlag = 'off';
             end
-            set(this.visHandles.popupROISubType,'Value',cMVs.ROI.ROISubType,'Visible',visFlag);                        
-                
+            set(this.visHandles.popupROISubType,'Value',cMVs.ROI.ROISubType,'Visible',visFlag);
+            if(cMVs.ROI.ROIType > FDTStudy.roiBaseETDRS && cMVs.ROI.ROIType < FDTStudy.roiBaseMaculaGrid)
+                this.visHandles.popupROISubType.String = ROICtrl.getROISubtypeString('ETDRS');
+            elseif(cMVs.ROI.ROIType > FDTStudy.roiBaseMaculaGrid && cMVs.ROI.ROIType < FDTStudy.roiBaseRectangle)
+                this.visHandles.popupROISubType.Value = min(6,this.visHandles.popupROISubType.Value);
+                this.visHandles.popupROISubType.String = ROICtrl.getROISubtypeString('Macula Grid');
+            end            
+
             if(this.visHandles.radioFLIMItem.Value) %FI
-                this.visHandles.radioMIS.Value = 0; 
+                this.visHandles.radioMIS.Value = 0;
                 this.visHandles.radioMMS.Value = 0;
                 this.enDisAblePanels('on','off','off');
                 this.updateFICtrls();

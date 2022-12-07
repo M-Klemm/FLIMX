@@ -730,20 +730,34 @@ classdef FData < handle
 
         function out = getROISubfieldStatistics(this,ROICoord,ROIType,statsType)
             %get statType (mean, SD) for all subfields of the ETDRS grid
-            %with the following order:
-            %             1 %central
-            %             2 %inner superior
-            %             3 %inner nasal
-            %             4 %inner inferior
-            %             5 %inner temporal
-            %             6 %outer superior
-            %             7 %outer nasal
-            %             8 %outer inferior
-            %             9 %outer temporal
             ri = this.getFullImage();
-            out = zeros(9,1);
-            for i = 1:9
-                ci = this.getImgSeg(ri,ROICoord,ROIType,i,0,this.getFileInfoStruct(),this.getVicinityInfo());
+            if(ROIType > FDTStudy.roiBaseETDRS && ROIType < FDTStudy.roiBaseMaculaGrid)
+                %with the following order:
+                %             1 %central
+                %             2 %inner superior
+                %             3 %inner nasal
+                %             4 %inner inferior
+                %             5 %inner temporal
+                %             6 %outer superior
+                %             7 %outer nasal
+                %             8 %outer inferior
+                %             9 %outer temporal
+                out = zeros(9,1);
+            elseif(ROIType > FDTStudy.roiBaseMaculaGrid && ROIType < FDTStudy.roiBaseRectangle)
+                %with the following order
+                %         1 %central bouquet
+                %         2 %central (ETDRS)
+                %         3 %inner ring (ETDRS)
+                %         4 %outer ring (ETDRS)
+                %         5 %slope rod ring
+                %         6 %crest rod ring
+                out = zeros(6,1);
+            else
+                out = [];
+                return
+            end
+            for i = 1:length(out)            
+                ci = this.getImgSeg(ri,ROICoord,ROIType,i,1,this.getFileInfoStruct(),this.getVicinityInfo());
                 ci = ci(~(isnan(ci(:)) | isinf(ci(:))));
                 cim = FData.getNonInfMinMax(1,ci);
                 %set possible "-inf" in curImg to "cim"
@@ -931,7 +945,7 @@ classdef FData < handle
             [y,x,z] = size(data);
             if(ROIType  == 0)
                 idx = (1:uint32(numel(data)))';
-            elseif(ROIType > FDTStudy.roiBaseETDRS && ROIType < FDTStudy.roiBaseRectangle)
+            elseif(ROIType > FDTStudy.roiBaseETDRS && ROIType < FDTStudy.roiBaseMaculaGrid)
                 %ETDRS grid
                 if(~isempty(fileInfo))
                     res = fileInfo.pixelResolution;
@@ -1006,6 +1020,66 @@ classdef FData < handle
                     case 15 %inner + outer ring
                         thetaRange = [-pi, 0; 0, pi];
                         r = rOuter;
+                end
+                [tmpData,idx] = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,ROISubType,rCenter,rInner,1,0,0);
+                if(ROIVicinity == 1)
+                    data = tmpData;
+                elseif(ROIVicinity == 2)
+                    mask = true(y,x);
+                    mask(idx) = false;
+                    data(idx) = NaN;
+                    idx = find(mask);
+                elseif(ROIVicinity == 3)
+                    mask = false(y,x);
+                    mask(idx) = true;
+                    outerMask = FData.computeVicinityMask(mask,vicDist,vicDiameter);
+                    data(~outerMask) = NaN;
+                    idx = find(outerMask);
+                end
+                data = FData.removeNaNBoundingBox(data);
+            elseif(ROIType > FDTStudy.roiBaseMaculaGrid && ROIType < FDTStudy.roiBaseRectangle)
+                %macula grid
+                if(~isempty(fileInfo))
+                    res = fileInfo.pixelResolution;
+                    side = fileInfo.position;
+                else
+                    res = 58.66666666666;
+                    side = 'OS';
+                    %todo: warning/error message
+                end
+                rCentralBouquet = (200/res/2);
+                rCenter = (1000/res/2);
+                rInner = (3000/res/2);
+                rOuter = (6000/res/2);
+                rOuter2 = (9000/res/2);
+                rOuter3 = (12000/res/2);
+                switch ROISubType
+                    case 1 %central bouguet
+                        thetaRange = [0, pi; -pi, pi];
+                        r = rCentralBouquet;
+                    case 2 %central
+                        thetaRange = [-pi, 0; 0, pi];
+                        r = rCenter;
+                        ROISubType = 1;
+                    case 3 %inner ring
+                        thetaRange = [-pi, 0; 0, pi];
+                        r = rInner;
+                        rInner = rCenter;
+                        ROISubType = 6;
+                    case 4 %outer ring
+                        thetaRange = [-pi, 0; 0, pi];
+                        r = rOuter;
+                        ROISubType = 6;
+                    case 5 %outer ring2
+                        thetaRange = [-pi, 0; 0, pi];
+                        r = rOuter2;
+                        rInner = rOuter;
+                        ROISubType = 6;
+                    case 6 %outer ring3
+                        thetaRange = [-pi, 0; 0, pi];
+                        r = rOuter3;
+                        rInner = rOuter2;
+                        ROISubType = 6;
                 end
                 [tmpData,idx] = FData.getCircleSegment(data,ROICoord(:,1),r,thetaRange,ROISubType,rCenter,rInner,1,0,0);
                 if(ROIVicinity == 1)

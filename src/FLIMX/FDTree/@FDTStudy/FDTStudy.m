@@ -70,18 +70,18 @@ classdef FDTStudy < FDTreeNode
 
     properties (Constant)
         roiBaseETDRS = 1000;
-        %roiMacularGridBase = 3000;
-        roiBaseRectangle = 2000;
-        roiBaseCircle = 3000;
-        roiBasePolygon = 4000;
-        roiBaseStop = 5000;
+        roiBaseMaculaGrid = 2000;
+        roiBaseRectangle = 3000;
+        roiBaseCircle = 4000;
+        roiBasePolygon = 5000;
+        roiBaseStop = 6000;
     end
     
     methods
         function this = FDTStudy(parent,name)
             % Constructor for FDTStudy
             this = this@FDTreeNode(parent,name);
-            this.revision = 34;
+            this.revision = 35;
             %check my directory
             sDir = this.myDir;
             if(~isfolder(sDir))
@@ -159,12 +159,12 @@ classdef FDTStudy < FDTreeNode
             if(import.revision < this.revision)
                 %version problem
                 import = this.updateStudyVer(import);
-            end            
+            end
             %dirtyOld = this.dirtyFlag; %loadStudyIS may reset dirty flag from revision update
             this.name = import.name;
             %this.myStudyInfoSet.loadStudyIS(import);
             %load study info set
-            [import,dirty] = FDTStudy.checkStudyConsistency(import);            
+            [import,dirty] = FDTStudy.checkStudyConsistency(import);
             this.subjectNames = import.subjectNames;
             this.subjectInfoColumnNames = import.subjectInfoColumnNames;
             %             this.subjectFilesHeaders = import.subjectFilesHeaders;
@@ -578,7 +578,7 @@ classdef FDTStudy < FDTreeNode
             end
             if(isempty(ROIType))
                 %set all ROI coordinates at once
-                if(size(ROICoord,1) >= 7 && size(ROICoord,2) >= 3 && size(ROICoord,3) >= 2)
+                if(size(ROICoord,1) >= 8 && size(ROICoord,2) >= 3 && size(ROICoord,3) >= 2)
                     this.resultROICoordinates(subIdx) = {int16(ROICoord)};
                 end
                 return
@@ -599,7 +599,7 @@ classdef FDTStudy < FDTreeNode
                     roiTmp = subTmp{dTIdx,2};
                 end
             end
-            if(isempty(roiTmp) || size(roiTmp,1) < 7 || size(roiTmp,2) < 3)
+            if(isempty(roiTmp) || size(roiTmp,1) < 8 || size(roiTmp,2) < 3)
                 roiTmp = ROICtrl.getDefaultROIStruct();
             end
             ROIType = int16(ROIType);
@@ -3500,6 +3500,48 @@ classdef FDTStudy < FDTreeNode
             if(oldStudy.revision < 34)
                 %add subjectInfoColumnDefaults
                 oldStudy.subjectInfoColumnDefaults = cell(size(oldStudy.subjectInfoColumnNames));
+            end
+
+            if(oldStudy.revision < 35)
+                %add new macula grid ROI type and change other ROI IDs accordingly
+                for i = 1:length(oldStudy.resultROICoordinates)
+                    tmp = oldStudy.resultROICoordinates{i};
+                    if(isempty(tmp))
+                        tmp = ROICtrl.getDefaultROIStruct();
+                    end
+                    idx = tmp(:,1,1) >= 2000;
+                    tmp(idx,1,1) = tmp(idx,1,1) + 1000;
+                    %add new macula grid
+                    tmp(end+1,:,:) = 0;
+                    tmp(end,1,1) = 2001;
+                    [~,idx] = sort(tmp(:,1,1));
+                    tmp = tmp(idx,:,:);
+                    oldStudy.resultROICoordinates{i} = tmp;
+                end
+                %update ROI groups
+                if(~isempty(oldStudy.resultROIGroups))
+                    for i = 1:size(oldStudy.resultROIGroups,1)
+                        tmp = oldStudy.resultROIGroups{i,2};
+                        idx = tmp >= 2000;
+                        tmp(idx) = tmp(idx) + 1000;
+                        oldStudy.resultROIGroups{i,2} = tmp;
+                    end
+                end
+                if(~isempty(oldStudy.MVGroupTargets))
+                    for i = 1:size(oldStudy.MVGroupTargets,2)
+                        tmp = oldStudy.MVGroupTargets{2,i};
+                        if(isfield(tmp,'ROI'))
+                            tmp = tmp.ROI;
+                            if(isfield(tmp,'ROIType'))
+                                tmp = tmp.ROIType;
+                                if(tmp > 2000)
+                                    tmp = tmp+1000;
+                                    oldStudy.MVGroupTargets{2,i}.ROI.ROIType = tmp;
+                                end
+                            end
+                        end
+                    end
+                end
             end
             
             this.setDirty(true);

@@ -502,6 +502,12 @@ classdef StatsDescriptive < handle
                 flag = 'on';
             end
             this.visHandles.popupSelROISubType.Visible = flag;
+            if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseMaculaGrid)
+                this.visHandles.popupSelROISubType.String = ROICtrl.getROISubtypeString('ETDRS');
+            elseif(rt > FDTStudy.roiBaseMaculaGrid && rt < FDTStudy.roiBaseRectangle)
+                this.visHandles.popupSelROISubType.Value = min(6,this.visHandles.popupSelROISubType.Value);
+                this.visHandles.popupSelROISubType.String = ROICtrl.getROISubtypeString('Macula Grid');
+            end
             if(rt > FDTStudy.roiBaseETDRS || rt < 0)
                 flag = 'on';
             end

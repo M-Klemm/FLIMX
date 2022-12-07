@@ -192,7 +192,7 @@ classdef ROICtrl < handle
         
         function out = get.ROISubType(this)
             %get current ROI subtype
-            out = get(this.roi_subtype_popup,'Value');
+            out = this.roi_subtype_popup.Value;
         end
         
         function out = get.ROIVicinity(this)
@@ -369,7 +369,7 @@ classdef ROICtrl < handle
             this.updateGUI([]);
             this.save();
         end
-        
+
         function deleteROI(this)
             %delete current ROI
             rt = this.ROIType;
@@ -497,8 +497,31 @@ classdef ROICtrl < handle
             end
             set(this.roi_type_popup,'String',allROIStr,'Value',min(this.roi_type_popup.Value,length(allROIStr)));
             rt = this.ROIType;
-            if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseRectangle)
+            if(rt > FDTStudy.roiBaseETDRS && rt < FDTStudy.roiBaseMaculaGrid)
                 %ETDRS grid
+                %this.roi_subtype_popup.Value = 1;
+                this.roi_subtype_popup.String = this.getROISubtypeString('ETDRS');
+                set(this.roi_apply_button,'Visible','on');
+                set(this.roi_add_button,'Visible','on');
+                set(this.roi_del_button,'Visible','on');
+                set(this.roi_vicinity_popup,'Visible','on');
+                set(this.roi_subtype_popup,'Visible','on');
+                this.enDisAble('off','off');
+                set(this.x_check,'Visible','on');
+                set(this.y_check,'Visible','on');
+                set(this.x_lo_edit,'Visible','on','Enable','on');
+                set(this.y_lo_edit,'Visible','on','Enable','on');
+                set(this.x_lo_dec_button,'Enable','on','Visible','on');
+                set(this.x_lo_inc_button,'Enable','on','Visible','on');
+                set(this.y_lo_dec_button,'Enable','on','Visible','on');
+                set(this.y_lo_inc_button,'Enable','on','Visible','on');
+                set(this.roi_table,'Visible','off');
+                set(this.roi_table_clearLast_button,'Visible','off');
+                set(this.roi_table_clearAll_button,'Visible','on','String','Clear');
+            elseif(rt > FDTStudy.roiBaseMaculaGrid && rt < FDTStudy.roiBaseRectangle)
+                %macula grid
+                this.roi_subtype_popup.Value = min(6,this.roi_subtype_popup.Value);
+                this.roi_subtype_popup.String = this.getROISubtypeString('Macula Grid');
                 set(this.roi_apply_button,'Visible','on');
                 set(this.roi_add_button,'Visible','on');
                 set(this.roi_del_button,'Visible','on');
@@ -910,10 +933,9 @@ classdef ROICtrl < handle
             if(strcmp(str,'-none-'))
                 out = 0;
             elseif(strncmp(str,'ETDRS Grid #',12))
-%                 out = 1001;
-%                 if(length(str) > 10)
-                    out = FDTStudy.roiBaseETDRS + str2double(str(13:end));
-%                 end
+                out = FDTStudy.roiBaseETDRS + str2double(str(13:end));
+            elseif(strncmp(str,'Macula Grid #',13))
+                out = FDTStudy.roiBaseMaculaGrid + str2double(str(14:end));
             elseif(strncmp(str,'Rectangle #',11))
                 out = FDTStudy.roiBaseRectangle + str2double(str(12:end));
             elseif(strncmp(str,'Circle #',8))
@@ -930,16 +952,14 @@ classdef ROICtrl < handle
             [ROIMajor, ROIMinor] = ROICtrl.decodeROIType(ROIType);
             switch ROIMajor
                 case 1
-%                     if(ROITypeFine == 1)
-%                         str = 'ETDRS Grid';
-%                     else
-                        str = sprintf('ETDRS Grid #%d',ROIMinor);
-%                     end
+                    str = sprintf('ETDRS Grid #%d',ROIMinor);
                 case 2
-                    str = sprintf('Rectangle #%d',ROIMinor);
+                    str = sprintf('Macula Grid #%d',ROIMinor);
                 case 3
-                    str = sprintf('Circle #%d',ROIMinor);
+                    str = sprintf('Rectangle #%d',ROIMinor);
                 case 4
+                    str = sprintf('Circle #%d',ROIMinor);
+                case 5
                     str = sprintf('Polygon #%d',ROIMinor);
                 otherwise
                     str = '-none-';
@@ -1043,9 +1063,40 @@ classdef ROICtrl < handle
         end
         
         function out = getDefaultROIStruct()
-            %return default ROI struct for 1 ETDRS grid, 2 rectangles, 2 circles and 2 polygons
-            out = zeros(7,3,2,'int16');
-            out(:,1,1) = [1001,2001,2002,3001,3002,4001,4002];
+            %return default ROI struct for 1 ETDRS grid, 1 macula grid, 2 rectangles, 2 circles and 2 polygons
+            out = zeros(8,3,2,'int16');
+            out(:,1,1) = [1001,2001,3001,3002,4001,4002,5001,5002];
+        end
+
+        function out = getROISubtypeString(type)
+            %return strings for sub ROIs
+            switch upper(type)
+                case 'ETDRS'
+                    out = {'Central';                        
+                        'Inner Superior';
+                        'Inner Nasal';
+                        'Inner Inferior';
+                        'Inner Temporal';
+                        'Outer Superior';
+                        'Outer Nasal';
+                        'Outer Inferior';
+                        'Outer Temporal';
+                        'Inner Ring';
+                        'Outer Ring';
+                        'Full Circle';
+                        'Center + Inner Ring';
+                        'Center + Outer Ring';
+                        'Inner + Outer Ring';};
+                case 'MACULA GRID'
+                    out = {'Central Bouquet';
+                        'Central';
+                        'Inner Ring';
+                        'Outer Ring';
+                        'Slope Rod Ring';
+                        'Crest Rod Ring';};
+                otherwise
+                    out = {''};
+            end
         end
         
     end
