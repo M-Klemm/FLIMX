@@ -500,14 +500,14 @@ classdef FDisplay < handle
                 lw = this.staticVisParams.ROILinewidth;
                 ls = this.staticVisParams.ROILinestyle;
                 fs = this.staticVisParams.fontsize;
-                if(~isempty(idxG) && all(idxG(:)) && size(this.h_ETDRSGrid,2) >= ROINumber)% && ~this.staticVisParams.ROI_fill_enable)
+                if(~isempty(idxG) && all(idxG(:)) && size(this.h_MaculaGrid,2) >= ROINumber)% && ~this.staticVisParams.ROI_fill_enable)
                     %circles
-                    set(this.h_ETDRSGrid(1,ROINumber),'Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'LineWidth',lw,'LineStyle',ls);
-                    set(this.h_ETDRSGrid(2,ROINumber),'Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'LineWidth',lw,'LineStyle',ls);
-                    set(this.h_ETDRSGrid(3,ROINumber),'Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'LineWidth',lw,'LineStyle',ls);
-                    set(this.h_ETDRSGrid(4,ROINumber),'Position',[cp(2)-d4/2,cp(1)-d4/2,d4,d4],'LineWidth',lw,'LineStyle',ls);
-                    set(this.h_ETDRSGrid(5,ROINumber),'Position',[cp(2)-d5/2,cp(1)-d5/2,d5,d5],'LineWidth',lw,'LineStyle',ls);
-                    set(this.h_ETDRSGrid(6,ROINumber),'Position',[cp(2)-d6/2,cp(1)-d6/2,d6,d6],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_MaculaGrid(1,ROINumber),'Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_MaculaGrid(2,ROINumber),'Position',[cp(2)-d2/2,cp(1)-d2/2,d2,d2],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_MaculaGrid(3,ROINumber),'Position',[cp(2)-d3/2,cp(1)-d3/2,d3,d3],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_MaculaGrid(4,ROINumber),'Position',[cp(2)-d4/2,cp(1)-d4/2,d4,d4],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_MaculaGrid(5,ROINumber),'Position',[cp(2)-d5/2,cp(1)-d5/2,d5,d5],'LineWidth',lw,'LineStyle',ls);
+                    set(this.h_MaculaGrid(6,ROINumber),'Position',[cp(2)-d6/2,cp(1)-d6/2,d6,d6],'LineWidth',lw,'LineStyle',ls);
                 else
                     h = zeros(6,1);
                     h(1) = rectangle('Position',[cp(2)-d1/2,cp(1)-d1/2,d1,d1],'Curvature',[1 1],'LineWidth',lw,'LineStyle',ls,'Parent',this.h_m_ax,'EdgeColor',gc);
