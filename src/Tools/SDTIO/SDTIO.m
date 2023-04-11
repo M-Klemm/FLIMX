@@ -194,12 +194,13 @@ classdef SDTIO < handle
                             fn_stub = 'FlimUnzipTemp';
                             for i = 1:100
                                 fn = fullfile(current_folder,sprintf('%s%d.zip',fn_stub,i));
-                                if(~isfile(path))
+                                if(isfile(fn))
                                     break
                                 end
                             end
                             tmp_fid = fopen(fn,'w');
                             count = fwrite(tmp_fid, zipbuf,'uint8');
+                            clear zipbuf
                             pause(1);
                             fclose(tmp_fid);                            
                             try
@@ -214,13 +215,31 @@ classdef SDTIO < handle
                                 raw = [];
                             end
                         else
-                            raw = fread(obj.m_hInFile, double(blk{block_no}.block_length/type_len), type_str);
+                            raw = fread(obj.m_hInFile, double(pReqDBI.uBlockLength/type_len), type_str);
                         end
                         if(isempty(raw))
                             return
                         end
+                        img_size_diff_x = log2(obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_x) - floor(log2(obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_x));
+                        img_size_diff_y = log2(obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y) - floor(log2(obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y));
                         if(no_of_curves == obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_x*obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y)
                             raw = reshape(raw, (2^obj.m_SDTReadInfo.pSPCData(iDataBlock).adc_resolution), obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y, obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_x);
+                        elseif(img_size_diff_x > eps || img_size_diff_y > eps)
+                            raw = reshape(raw, (2^obj.m_SDTReadInfo.pSPCData(iDataBlock).adc_resolution), 2^ceil(log2(obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y)), 2^ceil(log2(obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_x)));
+                            if(img_size_diff_x > eps)
+                                raw = raw(:,:,1:2:end-1);
+                                % this is how it should be
+                                % raw(:,:,end+1:obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_x) = zeros(size(raw,1),size(raw,2),obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_x - size(raw,3),'like',raw);
+                                % but x and y seem switched, thus:
+                                raw(:,end+1:obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_x,:) = zeros(size(raw,1),obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_x - size(raw,2),size(raw,3),'like',raw);
+                            end
+                            if(img_size_diff_y > eps)
+                                raw = raw(:,1:2:end-1,:);
+                                % this is how it should be
+                                % raw(:,end+1:obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y,:) = zeros(size(raw,1),obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y - size(raw,2),size(raw,3),'like',raw);
+                                % but x and y seem switched, thus:
+                                raw(:,:,end+1:obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y) = zeros(size(raw,1),size(raw,2),obj.m_SDTReadInfo.pSPCData(iDataBlock).img_size_y - size(raw,3),'like',raw);
+                            end
                         else
                             raw = reshape(raw, (2^obj.m_SDTReadInfo.pSPCData(iDataBlock).adc_resolution), no_of_curves);
                         end
@@ -235,7 +254,7 @@ classdef SDTIO < handle
             end
             %Convert from uint... to cell for measurementReadRawData.m
             if(ndims(raw) == 3)
-                raw = permute(raw,[3 2 1]);
+                raw = permute(raw,[3 2 1]); %y,x,z(time)
             end
         end
     end
