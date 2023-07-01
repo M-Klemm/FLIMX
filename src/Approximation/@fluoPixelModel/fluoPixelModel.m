@@ -816,7 +816,7 @@ classdef fluoPixelModel < matlab.mixin.Copyable
             end
             %make optimizer init vector
             vcp = this.getVolatileChannelParams(chList(1));
-            if(isempty(vcp) || vcp(1).nApproxParamsPerCh == 0) %isempty(iArray)
+            if(isempty(vcp) || vcp(1).nApproxParamsPerCh == 0 || isempty(pixelIDs)) %isempty(iArray)
                 iVec = [];
                 return
             end

@@ -870,7 +870,13 @@ classdef FluoDecayFit < handle
                                 this.FLIMXObj.curSubject.addInitResult(ch,workingSet{finishedSlots(f),1}.InputArguments{1,2}.pixelIDs,workingSet{finishedSlots(f),1}.OutputArguments{1,1});
                                 this.updateShortProgress(finishedWUs/double(totalWUs),sprintf('Initialization: %02.1f%%',finishedWUs/double(totalWUs)*100));
                             else
-                                this.FLIMXObj.curSubject.addMultipleResults(ch,workingSet{finishedSlots(f),1}.InputArguments{1,2}.pixelIDs,workingSet{finishedSlots(f),1}.OutputArguments{1,1});
+                                wu = workingSet{finishedSlots(f),1};
+                                if(~isempty(wu.OutputArguments))
+                                    this.FLIMXObj.curSubject.addMultipleResults(ch,workingSet{finishedSlots(f),1}.InputArguments{1,2}.pixelIDs,wu.OutputArguments{1,1});
+                                else
+                                    %to do: result computation failed -> do error handling
+                                    %exception info is in wu.Error
+                                end
                                 %display results
                                 if(isempty(lastUpdate) || etime(clock, lastUpdate) > 5)
                                     this.FLIMXObj.FLIMFitGUI.setCurrentPos(workingSet{finishedSlots(f),1}.InputArguments{1,2}.pixelIDs(end,1),workingSet{finishedSlots(f),1}.InputArguments{1,2}.pixelIDs(end,2));
