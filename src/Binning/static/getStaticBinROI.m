@@ -97,7 +97,7 @@ else
     else
         %use the pool, use as many tiles as there are workers
         nrTiles = pool.NumWorkers;
-        idxTiles = binFactor+uint16(floor(linspace(0,single(siz(1)),nrTiles+1)));
+        idxTiles = binFactor+uint16(floor(linspace(0,single(size(dataTmp,1)-2*binFactor),nrTiles+1)));
         dataSlices = cell(nrTiles,1);
         for i = 1:nrTiles
             dataSlices{i} = dataTmp(idxTiles(i)+1-binFactor:idxTiles(i+1)+binFactor,:,:);
