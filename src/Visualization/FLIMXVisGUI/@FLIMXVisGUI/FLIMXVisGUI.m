@@ -1369,7 +1369,7 @@ classdef FLIMXVisGUI < handle
             end
             pixelMargin = 0;
             %% cursor
-            isLeftButton = strcmp('normal',get(hObject,'SelectionType'));            
+            isLeftButton = strcmp('normal',get(hObject,'SelectionType'));
             if(~isempty(cpMain) && this.getROIDisplayMode(thisSide) < 3 || ~isempty(cpSupp))
                 this.dynParams.mouseButtonIsLeft = isLeftButton;
                 if(isLeftButton)
@@ -1490,7 +1490,7 @@ classdef FLIMXVisGUI < handle
                 end
                 this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
                 this.objHandles.(sprintf('%sdo',thisSide)).drawCPSupp(cpSupp);
-                this.objHandles.(sprintf('%sdo',otherSide)).drawCPSupp([]);            
+                this.objHandles.(sprintf('%sdo',otherSide)).drawCPSupp([]);
             end
         end
         
@@ -1651,7 +1651,7 @@ classdef FLIMXVisGUI < handle
                             this.objHandles.(sprintf('%sdo',thisSide)).setZoomAnchor(this.objHandles.(sprintf('%sdo',thisSide)).zoomAnchor+dTarget);
                             this.objHandles.(sprintf('%sdo',thisSide)).makeZoom();
                         end
-                    end                        
+                    end
                 end
                 this.dynParams.mouseButtonDown = 0;
                 this.dynParams.mouseButtonDownCoord = [];
@@ -1686,7 +1686,7 @@ classdef FLIMXVisGUI < handle
                     this.objHandles.(sprintf('%sdo',thisSide)).myColorScaleObj.forceAutoScale(this.getROIDisplayMode(thisSide) > 1);
                 end
                 this.objHandles.(sprintf('%sdo',otherSide)).updatePlots();
-            end            
+            end
             this.objHandles.(sprintf('%sdo',thisSide)).drawCPSupp(cpSupp);
             this.objHandles.(sprintf('%sdo',otherSide)).drawCPSupp([]);
             this.dynParams.mouseButtonDown = 0;
@@ -2476,13 +2476,24 @@ classdef FLIMXVisGUI < handle
         
         function rotate_mouseButtonUpWrapper(hObject, eventdata, hFLIMXVis)
             %wrapper for mouse button up funtion in rotate3d mode
-            hFLIMXVis.dynParams.mouseButtonIsLeft = true;
-            hFLIMXVis.GUI_mouseButtonUp_Callback(hObject, eventdata);
-            hFLIMXVis.dynParams.mouseButtonIsLeft = false;
-            %in case of 3d roation, we have to call the button up function to stop rotating
-            hManager = uigetmodemanager(hObject);
-            if(~isempty(hManager.CurrentMode.WindowButtonUpFcn))
-                hManager.CurrentMode.WindowButtonUpFcn(hObject,eventdata);
+            if(eventdata.Source.CurrentAxes == hFLIMXVis.visHandles.main_r_axes)
+                thisSide = 'r';
+            elseif(eventdata.Source.CurrentAxes == hFLIMXVis.visHandles.main_l_axes)
+                thisSide = 'l';
+            else
+                return
+            end
+            if(hFLIMXVis.getROIDisplayMode(thisSide) == 3)
+                hFLIMXVis.dynParams.mouseButtonIsLeft = true;
+                hFLIMXVis.GUI_mouseButtonUp_Callback(hObject, eventdata);
+                hFLIMXVis.dynParams.mouseButtonIsLeft = false;
+                %in case of 3d roation, we have to call the button up function to stop rotating
+                hManager = uigetmodemanager(hObject);
+                if(~isempty(hManager.CurrentMode.WindowButtonUpFcn))
+                    hManager.CurrentMode.WindowButtonUpFcn(hObject,eventdata);
+                end
+            else
+                hFLIMXVis.GUI_mouseButtonUp_Callback(hObject, eventdata);
             end
         end
         
