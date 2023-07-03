@@ -2481,9 +2481,12 @@ classdef FLIMXVisGUI < handle
             elseif(eventdata.Source.CurrentAxes == hFLIMXVis.visHandles.main_l_axes)
                 thisSide = 'l';
             else
+                %supplemental axes
+                hFLIMXVis.GUI_mouseButtonUp_Callback(hObject, eventdata);
                 return
             end
             if(hFLIMXVis.getROIDisplayMode(thisSide) == 3)
+                %3d rotation in a main axes
                 hFLIMXVis.dynParams.mouseButtonIsLeft = true;
                 hFLIMXVis.GUI_mouseButtonUp_Callback(hObject, eventdata);
                 hFLIMXVis.dynParams.mouseButtonIsLeft = false;
@@ -2493,6 +2496,7 @@ classdef FLIMXVisGUI < handle
                     hManager.CurrentMode.WindowButtonUpFcn(hObject,eventdata);
                 end
             else
+                %main axes with 3D mode not selected -> run regular mouse button up callback
                 hFLIMXVis.GUI_mouseButtonUp_Callback(hObject, eventdata);
             end
         end
